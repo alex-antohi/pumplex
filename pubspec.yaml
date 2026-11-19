@@ -1,0 +1,21 @@
+name: gym_app
+description: "Conjugate gym tracker"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.2
+
+# Only packages already in the local pub cache (same versions as doc_app).
+dependencies:
+  flutter:
+    sdk: flutter
+  shared_preferences: 2.5.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
