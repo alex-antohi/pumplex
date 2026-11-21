@@ -148,13 +148,17 @@ Measured on a 390 dp wide phone (`readability.html`). These are observations, no
 ## Class select (setup step 2)
 
 Design for screen 3 in `docs/app-flow.md`, following brief 4.1: **class = your equipment**.
+The screen calls the classes **paths**, using the marketing draft's working name
+(`docs/marketing/01-name.md`: SWOLEMANCER, "Summon your gains"; the classes are
+"the Swolemancer's paths"). If the app name changes, change the kicker line.
+
 The layout is a phone version of a classic RPG class picker. There is no stat
 table, because brief rule 3 says no tables of numbers. A **loadout** (gear) and
 three **training tags** take its place.
 
 Screen, top to bottom (390×844 dp):
 
-1. `STEP 2 OF 5 · CLASS` and the title **WHAT DO YOU TRAIN WITH?**
+1. Kicker `STEP 2 OF 5 · THE SWOLEMANCER'S PATHS`, title **CHOOSE YOUR PATH**, subline **What do you train with?**
 2. Preview card: the lifter at 3× from `creator/body_atlas.png` (until there are class outfits, each class
    shows a body that hints at it), the class name in its colour, the loadout line and 3 tags.
    The card's hard shadow takes the class colour.
@@ -162,21 +166,39 @@ Screen, top to bottom (390×844 dp):
 4. Four class buttons (a radio group): class name on the left, equipment on the right. The picked one fills with its colour.
 5. **NEXT: DIFFICULTY**.
 
-| Equipment (brief 4.1) | Class | Colour | Loadout | Tags | Description |
-| --- | --- | --- | --- | --- | --- |
-| No equipment | **Zoomer** | sky `#3fd2ff` | Nothing. Just you, the floor and the stairs. | CARDIO · BODYWEIGHT · SPRINTS | No gym, no gear, no excuses left. Runs on stairs, floors and pure spite. Fast enough to outrun their own doubts. |
-| Basic home gym | **Scrapper** | orange `#ffa033` | Two dumbbells, one mat, a kettlebell of unknown origin. | FLOOR WORK · SOME CARDIO · SOME WEIGHTS | Trains in the garage between the bike and the boxes. Makes do with what is there, and makes gains anyway. |
-| Lots of free weights | **Plate Paladin** | lime `#c6ff3d` | A barbell, a rack and a wall of plates. | STRONGMAN · BARBELL · HEAVY | Sworn to the barbell. Carries plates like holy relics and drops them like thunder. Big, burly, unbothered. |
-| Lots of machines | **Cablemancer** | violet `#a77bff` | Cables, pin-stacks and every machine in the building. | MACHINES · CABLES · LEAN POWER | Bends steel cables and pin-stacks to their will. Thin as a wire, strong as the machine. Never waits for the squat rack. |
+### Freeze-frame intro card
 
-Preview bodies (atlas cells): Zoomer F fat 0 / muscle 25 · Scrapper M 25 / 50 ·
+From `borderlands-reference.md` (character intro card: show it on class pick and on level-up).
+Each time a class is picked:
+
+- The preview **freezes**: the sprite goes greyscale with high contrast, and dark diagonal stripes cover the card.
+- The class name **slams in** as a stencil tag: an Anton 40 px name on the class colour, with a 4 px ink border,
+  a hard ink shadow and a −6° tilt. It scales down from 2.2× in 6 hard steps over 420 ms, with no easing,
+  to match the pixel art.
+- A **joke subtitle** slides in under it on an ink strip, in the class colour, tilted −3°.
+- It closes by itself after **1.8 s**, or when you tap it. Each new pick restarts it.
+- With reduced motion turned on, the card appears without the slam and slide.
+- Use the same card (with new copy) for level-ups.
+
+### Classes
+
+The tone of each class follows the gun-maker table in `borderlands-reference.md` section 6.
+
+| Equipment (brief 4.1) | Class | Maker tone | Colour | Loadout | Tags | Intro subtitle | Description |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| No equipment | **Scrapper** | Bandit / Scav: scrappy, DIY, warm | orange `#ffa033` | Nothin'. Just you, the floor and the stairs. | CARDIO · BODYWEIGHT · SPRINTS | BUILT FROM STAIRS AND SPITE | No gym, no gear, no problem. Builds every workout out of floors, stairs and pure spite. Homemade, held together with tape, and very loud about it. |
+| Basic home gym | **Bargain Bruiser** | Tediore: store-brand, cheap and cheerful | sky `#3fd2ff` | Two dumbbells, one mat, a kettlebell of unknown origin. | FLOOR WORK · SOME CARDIO · SOME WEIGHTS | BUY ONE GAIN, GET ONE FREE | Kitted out from the clearance aisle. Every piece of gear is store-brand, slightly wobbly and fully committed. Cheap kit, real gains. |
+| Lots of free weights | **Plate Paladin** | Jakobs: old-school, heavy | lime `#c6ff3d` | A barbell, a rack and a wall of plates. | STRONGMAN · BARBELL · HEAVY | OATH-SWORN TO THE BARBELL | Sworn to the barbell. Carries plates like holy relics and drops them like thunder. Big, burly, unbothered. |
+| Lots of machines | **Cablemancer** | Maliwan / Hyperion: sleek, high-tech | violet `#a77bff` | Cables, pin-stacks and every machine in the building. | MACHINES · CABLES · LEAN POWER | SPEAKS FLUENT PULLEY | Bends steel cables and pin-stacks to their will. Thin as a wire, strong as the machine. Never waits for the squat rack. |
+
+Preview bodies (atlas cells): Scrapper F fat 0 / muscle 25 · Bargain Bruiser M 25 / 50 ·
 Plate Paladin M 75 / 100 · Cablemancer F 0 / 75.
 
 The names are **proposals**. Brief 4.1 says the final names come from the
 design phase. They copy the tone of Borderlands' class names (one punchy archetype word,
 often a mashup) but are our own. Other options:
 - **No equipment:** Burpee Bandit, Dashrat, Floor Phantom
-- **Basic home gym:** Garage Rogue, Basement Bandit
+- **Basic home gym:** Value Brawler, Discount Duke, Home Brand Hero
 - **Lots of free weights:** Ironclad, Platebreaker, Barbellion
 - **Lots of machines:** Pulley Assassin, Leg-Press Lich, Pinstack Witch
 
