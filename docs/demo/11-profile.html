@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PUMPLEX · Profile</title>
+<link rel="stylesheet" href="shared/pumplex.css">
+<script src="shared/demo.js"></script>
+<style>
+  /* ---------- Profile: an RPG character sheet ---------- */
+  .pro-head { display: flex; align-items: center; gap: var(--s3); flex: 1; min-width: 0; }
+  .pro-head .title.sm { margin: 0; }
+  .pro-spacer { width: 44px; flex: none; }
+
+  .pro-screen { display: flex; flex-direction: column; gap: var(--s5); padding-bottom: var(--s5); }
+
+  /* hero: the lifter in their world */
+  .pro-hero { --shadow-c: var(--cls-c); padding: 0; position: relative; }
+  .pro-world {
+    position: relative; height: 300px; overflow: hidden;
+    border-bottom: var(--border-thick);
+    background:
+      radial-gradient(rgba(255, 95, 176, .22) 2px, transparent 2.5px) 0 0 / 20px 20px,
+      linear-gradient(var(--sky) 0 74%, var(--ink) 74% calc(74% + 4px), var(--floor) calc(74% + 4px));
+  }
+  /* floor planks: hard stripes on the light ground */
+  .pro-world::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: calc(26% - 4px);
+    background: repeating-linear-gradient(90deg, transparent 0 46px, rgba(11, 4, 20, .18) 46px 50px);
+  }
+  .pro-lifter {
+    position: absolute; left: 50%; bottom: 34px; transform: translateX(-50%); z-index: 2;
+    cursor: pointer; background-color: transparent; border: 0; padding: 0;
+  }
+  .pro-lifter:focus-visible { outline: 3px dashed var(--text); outline-offset: 3px; }
+  .pro-shadow {
+    position: absolute; left: 50%; bottom: 26px; width: 150px; height: 14px; margin-left: -75px; z-index: 1;
+    background: rgba(11, 4, 20, .45);
+    clip-path: polygon(8% 0, 92% 0, 100% 30%, 100% 70%, 92% 100%, 8% 100%, 0 70%, 0 30%);
+  }
+  .pro-tag { position: absolute; left: var(--s3); bottom: var(--s3); z-index: 3; --tag-c: var(--cls-c); font-size: 12px; padding: 3px 10px; }
+  .pro-area-tag {
+    position: absolute; right: var(--s3); top: var(--s3); z-index: 3;
+    font-weight: 700; font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
+    color: var(--muted); background: var(--ink); padding: 2px 6px;
+  }
+
+  /* level starburst, slapped on the corner like a sticker */
+  .pro-lv {
+    position: absolute; left: -6px; top: -14px; z-index: 4;
+    width: 104px; height: 104px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: var(--pink); color: var(--ink);
+    filter: drop-shadow(4px 4px 0 var(--ink));
+    transform: rotate(-8deg);
+  }
+  .pro-lv small { font-family: var(--body); font-weight: 700; font-size: 11px; letter-spacing: 1px; line-height: 1; margin-top: 6px; }
+  .pro-lv b { font-family: var(--display); font-weight: 400; font-size: 44px; line-height: .9; }
+
+  .pro-rank { padding: var(--s4); display: flex; flex-direction: column; gap: var(--s2); }
+  .pro-rank-title {
+    font-family: var(--display); font-size: 34px; line-height: .95; letter-spacing: 1px; text-transform: uppercase;
+    color: var(--text); text-shadow: 3px 3px 0 var(--cls-c), 5px 5px 0 var(--ink); margin: 0;
+  }
+  .pro-xp-row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s2); font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+  .pro-xp-row b { color: var(--lime); }
+  .pro-xp-row span { color: var(--muted); }
+  .pro-xpbar { height: 22px; }
+  .pro-quip { margin: 0; font-size: 12px; color: var(--muted); }
+  .pro-quip b { color: var(--text); }
+
+  /* section headers: stencil tab on a rule */
+  .pro-sec-h { display: flex; align-items: center; gap: var(--s2); margin: 0 0 var(--s3); }
+  .pro-sec-h span {
+    font-family: var(--display); font-weight: 400; font-size: 18px; letter-spacing: 1px; text-transform: uppercase;
+    background: var(--text); color: var(--ink); padding: 2px 8px 0; transform: rotate(-2deg);
+  }
+  .pro-sec-h::after { content: ""; flex: 1; height: 4px; background: repeating-linear-gradient(90deg, var(--line) 0 8px, transparent 8px 12px); }
+
+  /* the path */
+  .pro-path { --shadow-c: var(--cls-c); display: flex; flex-direction: column; gap: var(--s2); }
+  .pro-path-name { font-family: var(--display); font-size: 30px; line-height: 1; letter-spacing: 1px; text-transform: uppercase; color: var(--cls-c); margin: 0; }
+  .pro-path-equip { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+  .pro-loadout { margin: 0; font-size: 13px; padding-left: var(--s3); border-left: 4px solid var(--cls-c); }
+  .pro-path .nametag { --tag-c: var(--cls-c); }
+
+  /* difficulty + world: two stat cards side by side */
+  .pro-duo { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s4); }
+  .pro-card { padding: var(--s3); display: flex; flex-direction: column; gap: var(--s2); min-width: 0; }
+  .pro-card .kicker { font-size: 10px; }
+  .pro-card h3 { font-family: var(--display); font-weight: 400; font-size: 21px; line-height: 1; letter-spacing: 1px; text-transform: uppercase; margin: 0; color: var(--card-c); }
+  .pro-card p { margin: 0; font-size: 11px; color: var(--muted); line-height: 1.4; }
+  .pro-diff { --shadow-c: var(--card-c); }
+  .pro-world-card { --shadow-c: var(--card-c); }
+  .pro-bonus {
+    align-self: flex-start; margin-top: auto;
+    font-family: var(--display); font-size: 16px; letter-spacing: 1px; line-height: 1;
+    color: var(--ink); background: var(--card-c); border: 2px solid var(--ink); padding: 4px 6px 2px; transform: rotate(-3deg);
+  }
+  .pro-rungs { display: flex; gap: 3px; }
+  .pro-rungs i { flex: 1; height: 8px; background: var(--raised); border: 2px solid var(--ink); }
+  .pro-rungs i.on { background: var(--card-c); }
+  .pro-rungs i.now { background: var(--text); }
+  .pro-mark { display: flex; align-items: center; gap: var(--s2); margin-top: auto; }
+  .pro-mark svg { width: 28px; height: 28px; flex: none; color: var(--card-c); }
+  .pro-mark span { font-size: 10px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--text); line-height: 1.3; }
+
+  /* milestones: pixel medals */
+  .pro-badges { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s4) var(--s3); }
+  .pro-badge { display: flex; flex-direction: column; align-items: center; gap: var(--s2); text-align: center; min-width: 0; }
+  .pro-medal {
+    width: 72px; height: 76px; position: relative;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--ink);
+    clip-path: polygon(25% 0, 75% 0, 75% 8%, 100% 8%, 100% 62%, 88% 62%, 88% 76%, 75% 76%, 75% 88%, 60% 88%, 60% 100%, 40% 100%, 40% 88%, 25% 88%, 25% 76%, 12% 76%, 12% 62%, 0 62%, 0 8%, 25% 8%);
+  }
+  .pro-medal::before {
+    content: ""; position: absolute; inset: 4px;
+    background: var(--rar);
+    clip-path: inherit;
+  }
+  .pro-medal::after { /* top-left highlight band, cel style */
+    content: ""; position: absolute; left: 8px; top: 10px; width: 12px; height: 26px; background: rgba(246, 238, 255, .45);
+  }
+  .pro-medal svg { position: relative; z-index: 1; width: 32px; height: 32px; color: var(--ink); margin-top: -8px; }
+  .pro-badge b { font-family: var(--display); font-weight: 400; font-size: 15px; line-height: 1; letter-spacing: 1px; text-transform: uppercase; }
+  .pro-badge small { font-size: 10px; color: var(--muted); line-height: 1.25; }
+  .pro-badge.locked .pro-medal::before { background: var(--raised); }
+  .pro-badge.locked .pro-medal::after { display: none; }
+  .pro-badge.locked .pro-medal svg { color: var(--line); }
+  .pro-badge.locked b { color: var(--line); }
+  .pro-badge.locked small { color: var(--muted); opacity: .7; }
+  .pro-badges-note { margin: var(--s3) 0 0; font-size: 12px; color: var(--muted); text-align: center; }
+  .pro-badges-note b { color: var(--text); }
+
+  /* side actions */
+  .pro-actions { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s3); }
+  .pro-actions .btn { font-size: 16px; padding: 0 var(--s2); gap: 6px; white-space: nowrap; }
+  .pro-actions .btn svg { width: 18px; height: 18px; flex: none; }
+  .pro-history { grid-column: 1 / -1; }
+
+  /* empty: no sessions yet */
+  .pro-empty {
+    border: 3px dashed var(--line); padding: var(--s3); font-size: 12px; color: var(--muted); text-align: center; margin: 0 0 var(--s4);
+  }
+  .pro-empty b { color: var(--text); font-family: var(--display); font-weight: 400; font-size: 18px; letter-spacing: 1px; display: block; }
+</style>
+</head>
+<body class="px">
+<main class="phone" data-screen="profile">
+  <header class="topbar">
+    <div class="pro-head">
+      <button class="icon-btn" type="button" id="back" aria-label="Back to the hub"></button>
+      <div>
+        <p class="kicker">Character sheet</p>
+        <h1 class="title sm">Your lifter</h1>
+      </div>
+    </div>
+  </header>
+
+  <section class="screen pro-screen" aria-label="Your lifter">
+    <!-- hero -->
+    <article class="panel big pro-hero" aria-label="Character and level">
+      <div class="pro-world" id="world">
+        <span class="pro-area-tag" id="areaTag"></span>
+        <div class="pro-shadow" aria-hidden="true"></div>
+        <button class="pro-lifter" type="button" id="lifter"></button>
+        <span class="nametag pro-tag" id="nameTag"></span>
+      </div>
+      <div class="pro-lv starburst" aria-hidden="true"><small>LVL</small><b id="lvNum">1</b></div>
+      <div class="pro-rank">
+        <p class="kicker" id="lvKicker">Level 1</p>
+        <h2 class="pro-rank-title" id="lvTitle">Fresh Spawn</h2>
+        <div class="xpbar pro-xpbar" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="xpbar"><i id="xpfill"></i></div>
+        <div class="pro-xp-row"><b id="xpLeft"></b><span id="xpInto"></span></div>
+        <p class="pro-quip" id="quip"></p>
+      </div>
+    </article>
+
+    <!-- the path -->
+    <section aria-labelledby="h-path">
+      <h2 class="pro-sec-h" id="h-path"><span>The path</span></h2>
+      <div class="panel pro-path">
+        <div>
+          <span class="pro-path-equip" id="equip"></span>
+          <p class="pro-path-name" id="pathName"></p>
+        </div>
+        <p class="pro-loadout" id="loadout"></p>
+        <div class="chips" id="tags"></div>
+      </div>
+    </section>
+
+    <!-- difficulty + world -->
+    <section class="pro-duo" aria-label="Difficulty and world">
+      <div class="panel pro-card pro-diff" id="diffCard">
+        <p class="kicker">Difficulty</p>
+        <h3 id="diffName"></h3>
+        <div class="pro-rungs" id="rungs" aria-hidden="true"></div>
+        <p id="diffLine"></p>
+        <span class="pro-bonus" id="bonus"></span>
+      </div>
+      <div class="panel pro-card pro-world-card" id="worldCard">
+        <p class="kicker">World</p>
+        <h3 id="areaName"></h3>
+        <p id="areaHint"></p>
+        <div class="pro-mark"><span id="markIcon" aria-hidden="true"></span><span id="markText"></span></div>
+      </div>
+    </section>
+
+    <!-- milestones -->
+    <section aria-labelledby="h-badges">
+      <h2 class="pro-sec-h" id="h-badges"><span>Milestones</span></h2>
+      <p class="pro-empty" id="empty" hidden><b>No medals yet</b>Your first session unlocks FIRST BLOOD. The hub is right there.</p>
+      <div class="pro-badges" id="badges" role="list"></div>
+      <p class="pro-badges-note" id="badgeNote"></p>
+    </section>
+
+    <!-- side actions -->
+    <section class="pro-actions" aria-label="Change your build">
+      <button class="btn" type="button" id="toDiff"></button>
+      <button class="btn" type="button" id="toChar"></button>
+      <button class="btn ghost pro-history" type="button" id="toHist"></button>
+    </section>
+  </section>
+
+  <footer class="foot">
+    <button class="btn cta" type="button" id="cta">Back to training</button>
+  </footer>
+</main>
+<script>
+(function () {
+  "use strict";
+  if (!PX.get().setupDone) { PX.go("character", { replace: true }); return; }
+  if (!PX.require(["cls", "difficulty", "area"], "character")) return;
+
+  var s = PX.get(), k = PX.cls(), d = PX.difficulty(), a = PX.area();
+  var lv = PX.levelInfo(s.xp || 0);
+  var sessions = s.sessions || [];
+  var $ = function (id) { return document.getElementById(id); };
+  var phone = document.querySelector(".phone");
+
+  phone.style.setProperty("--cls-c", PX.c(k.color));
+
+  /* pixel icons for this screen, same 24-grid square style as PX.icon */
+  var ICO = {
+    fire:  '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 1h2v2h2v4h2V5h2v4h2v8h-2v3h-2v2H8v-2H6v-3H4v-6h2v2h2V5h2z"/></svg>',
+    drop:  '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11 2h2v3h2v3h2v3h2v7h-2v2h-2v2H9v-2H7v-2H5v-7h2V8h2V5h2z"/></svg>',
+    bell:  '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M1 9h3v6H1zM20 9h3v6h-3zM4 7h3v10H4zM17 7h3v10h-3zM7 10h10v4H7z"/></svg>',
+    crown: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 6h3v4h2V6h3v3h4V6h3v4h2V6h3v12H2zM2 19h20v3H2z"/></svg>',
+    skull: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 2h12v2h2v10h-2v3h-2v5H8v-5H6v-3H4V4h2zm1 6v4h4V8zm6 0v4h4V8zm-2 6v2h2v-2z" fill-rule="evenodd"/></svg>',
+    lock:  '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 3h8v2h2v5h2v12H4V10h2V5h2zm1 3v4h6V6zm2 7v5h2v-5z" fill-rule="evenodd"/></svg>',
+    body:  '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="9" y="2" width="6" height="6"/><path d="M3 9h18v3h-5v10h-3v-6h-2v6H8V12H3z"/></svg>',
+    gem:   '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 3h10l5 6-10 12L2 9z"/></svg>'
+  };
+  /* how each world records a set (moodboard "Starting areas") */
+  var MARKS = {
+    rustbelt:  '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 3h4v2h2v2h2v2h2V7h2V5h2V3h4v4h-2v2h-2v2h-2v2h2v2h2v2h2v4h-4v-2h-2v-2h-2v-2h-2v2H9v2H7v2H3v-4h2v-2h2v-2h2v-2H7V9H5V7H3z"/></svg>',
+    gainsgard: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 3h2v18H4zM8 3h2v18H8zM12 3h2v18h-2zM16 3h2v18h-2zM2 15h4v-2h4v-2h4V9h4V7h4v3h-4v2h-4v2h-4v2H6v2H2z"/></svg>',
+    riptide:   '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 3h6v2h3v2h2v4h2v6h-2v2h-3v2H7v-2H4v-2H2v-6h2V7h2V5h3zm2 4v10h2V7zM7 9v7h2V9zm8 0v7h2V9z" fill-rule="evenodd"/></svg>',
+    arcade:    '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 6h20v4h-2v4h2v4H2v-4h2v-4H2zm7 3v6h2V9zm4 0v6h2V9z" fill-rule="evenodd"/></svg>',
+    frostbite: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 2h3v20H5zM8 3h11v2h-2v2h2v2h2v2H8z"/></svg>'
+  };
+
+  /* ---------- header + links ---------- */
+  $("back").innerHTML = PX.icon("back");
+  $("back").onclick = function () { PX.go("hub"); };
+  $("cta").onclick = function () { PX.go("hub"); };
+  $("toDiff").innerHTML = ICO.gem + "<span>Change difficulty</span>";
+  $("toDiff").onclick = function () { PX.go("difficulty"); };
+  $("toChar").innerHTML = ICO.body + "<span>Rebuild body</span>";
+  $("toChar").onclick = function () { PX.go("character"); };
+  $("toHist").innerHTML = PX.icon("history") + "<span>Past sessions</span>";
+  $("toHist").onclick = function () { PX.go("history"); };
+
+  /* ---------- hero ---------- */
+  var world = $("world");
+  world.style.setProperty("--sky", a.sky);
+  world.style.setProperty("--floor", a.floor);
+  $("areaTag").textContent = a.name;
+  var lifter = PX.sprite($("lifter"), s.character, 4);
+  lifter.classList.add("bob");
+  lifter.removeAttribute("role"); /* PX.sprite marks it as an image; keep it a button */
+  lifter.setAttribute("aria-label", "Your lifter. Tap to poke.");
+  var POKES = ["STOP POKING. START LIFTING.", "THAT TICKLES. DO A SET.", "I'M SAVING IT FOR THE BARBELL.", "POKE COUNT DOES NOT GIVE XP."];
+  var poke = 0;
+  lifter.addEventListener("click", function () {
+    lifter.classList.remove("bob", "shake"); void lifter.offsetWidth;
+    lifter.classList.add("shake");
+    setTimeout(function () { lifter.classList.remove("shake"); lifter.classList.add("bob"); }, 340);
+    PX.toast(POKES[poke++ % POKES.length]);
+  });
+  $("nameTag").textContent = "The " + k.name;
+
+  $("lvNum").textContent = lv.level;
+  $("lvKicker").textContent = "Level " + lv.level + " · rank";
+  $("lvTitle").textContent = lv.title;
+  $("xpfill").style.setProperty("--pct", lv.pct + "%");
+  $("xpbar").setAttribute("aria-valuenow", lv.pct);
+  $("xpbar").setAttribute("aria-label", lv.pct + "% of the way to level " + (lv.level + 1));
+  $("xpLeft").textContent = lv.toNext + " XP to level " + (lv.level + 1);
+  $("xpInto").textContent = lv.pct + "% there";
+
+  var sets = sessions.reduce(function (n, x) { return n + PX.totalSets(x.sets); }, 0);
+  var quip = $("quip");
+  if (!sessions.length) {
+    quip.innerHTML = "<b>Fresh off the spawn point.</b> Zero sessions, infinite potential.";
+  } else {
+    var next = PX.LEVEL_TITLES[Math.min(lv.level, PX.LEVEL_TITLES.length - 1)];
+    quip.innerHTML = "<b></b> Next rank: <b></b>.";
+    quip.children[0].textContent = sessions.length + (sessions.length === 1 ? " session" : " sessions") + ", " + sets + " sets smashed.";
+    quip.children[1].textContent = next.toUpperCase();
+  }
+
+  /* ---------- path ---------- */
+  $("equip").textContent = k.equipment;
+  $("pathName").textContent = k.name;
+  $("loadout").textContent = k.loadout;
+  k.tags.forEach(function (t) {
+    var c = document.createElement("span"); c.className = "nametag"; c.textContent = t; $("tags").appendChild(c);
+  });
+
+  /* ---------- difficulty ---------- */
+  $("diffCard").style.setProperty("--card-c", PX.c(d.color));
+  $("diffName").textContent = d.name;
+  $("diffLine").textContent = d.line;
+  var di = PX.DIFFICULTIES.indexOf(d);
+  PX.DIFFICULTIES.forEach(function (x, i) {
+    var r = document.createElement("i"); if (i < di) r.className = "on"; if (i === di) r.className = "now"; $("rungs").appendChild(r);
+  });
+  var pct = Math.round((d.mult - 1) * 100);
+  $("bonus").textContent = pct > 0 ? "+" + pct + "% XP" : "BASE XP";
+
+  /* ---------- world ---------- */
+  $("worldCard").style.setProperty("--card-c", PX.c(a.color));
+  $("areaName").textContent = a.name;
+  $("areaHint").textContent = a.hint.charAt(0) + a.hint.slice(1).toLowerCase() + " to log a set.";
+  $("markIcon").outerHTML = MARKS[a.id] || MARKS.rustbelt;
+  $("markText").textContent = a.record;
+
+  /* ---------- milestones (rarity ladder: muted, lime, sky, violet, orange, pink) ---------- */
+  var maxOne = 0;
+  sessions.forEach(function (x) { for (var n in x.sets) maxOne = Math.max(maxOne, x.sets[n] || 0); });
+  var MEDALS = [
+    { name: "First blood", ico: "drop",  rar: "muted",  done: sessions.length >= 1, ok: "Session one. Done.",  todo: "Finish 1 session" },
+    { name: "On a roll",   ico: "fire",  rar: "lime",   done: sessions.length >= 5, ok: "5 sessions deep.",    todo: function () { return (5 - sessions.length) + " more sessions"; } },
+    { name: "50 sets club", ico: "bell", rar: "sky",    done: sets >= 50,           ok: "Half a hundred.",     todo: function () { return (50 - sets) + " sets to go"; } },
+    { name: "Overkill",    ico: "bolt",  rar: "violet", done: maxOne >= 4,          ok: "Beat a set target.",  todo: "Go past a target" },
+    { name: "Double digits", ico: "crown", rar: "orange", done: sessions.length >= 10, ok: "10 sessions. Legend.", todo: function () { return (10 - sessions.length) + " more sessions"; } },
+    { name: "Centurion",   ico: "skull", rar: "pink",   done: sets >= 100,          ok: "100 sets. Respect.",  todo: function () { return (100 - sets) + " sets to go"; } }
+  ];
+  var got = 0;
+  MEDALS.forEach(function (m) {
+    var el = document.createElement("div");
+    el.className = "pro-badge" + (m.done ? "" : " locked");
+    el.setAttribute("role", "listitem");
+    var msg = m.done ? m.ok : (typeof m.todo === "function" ? m.todo() : m.todo);
+    el.innerHTML = '<div class="pro-medal">' + (m.done ? (ICO[m.ico] || PX.icon(m.ico)) : ICO.lock) + "</div><b></b><small></small>";
+    el.querySelector(".pro-medal").style.setProperty("--rar", m.rar === "muted" ? "var(--muted)" : PX.c(m.rar));
+    el.querySelector("b").textContent = m.name;
+    el.querySelector("small").textContent = msg;
+    el.setAttribute("aria-label", m.name + (m.done ? ", unlocked. " : ", locked. ") + msg);
+    $("badges").appendChild(el);
+    if (m.done) got++;
+  });
+  $("empty").hidden = sessions.length > 0;
+  var note = $("badgeNote");
+  note.innerHTML = "<b></b>";
+  note.firstChild.textContent = got === MEDALS.length ? "Every medal. Go touch grass." : got + " of " + MEDALS.length + " medals";
+  if (got && got < MEDALS.length) note.appendChild(document.createTextNode(". The rest are hiding in the hub."));
+})();
+</script>
+</body>
+</html>

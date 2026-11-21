@@ -1,0 +1,611 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PUMPLEX · Workout</title>
+<link rel="stylesheet" href="shared/pumplex.css">
+<script src="shared/demo.js"></script>
+<style>
+/* ---------- 08 workout: screen-only styles (.wo-) ---------- */
+.wo-top { padding-top: var(--s3); }
+.wo-ttl { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.wo-ttl .kicker { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wo-area { font-size: 24px; color: var(--wo-c); white-space: nowrap; }
+.wo-clock {
+  flex: none; padding: 6px 10px; background: var(--ink); border: 3px solid var(--lime); box-shadow: 4px 4px 0 var(--ink);
+  font-weight: 700; font-size: 22px; line-height: 1; color: var(--lime);
+}
+.wo-body { display: flex; flex-direction: column; gap: var(--s3); }
+
+/* exercise strip */
+.wo-strip { display: grid; grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)); gap: var(--s2); flex: none; }
+.wo-card {
+  appearance: none; position: relative; min-height: 96px; padding: 8px 8px 6px;
+  display: flex; flex-direction: column; justify-content: space-between; gap: 4px;
+  background: var(--surface); color: var(--text); border: 3px solid var(--ink);
+  text-align: left; cursor: pointer; font-family: var(--body); touch-action: manipulation;
+}
+.wo-card:focus-visible, .wo-hit:focus-visible, .wo-ok:focus-visible { outline: 3px dashed var(--text); outline-offset: 3px; }
+.wo-card b { font-family: var(--display); font-weight: 400; font-size: 18px; line-height: 1; letter-spacing: 1px; text-transform: uppercase; overflow-wrap: anywhere; }
+.wo-card[aria-selected="true"] { background: var(--wo-ui); color: var(--ink); box-shadow: 4px 4px 0 var(--wo-ui-sh); }
+.wo-card.done { background: var(--raised); }
+.wo-card:active { transform: translate(2px, 2px); }
+.wo-slots { display: flex; gap: 4px; align-items: baseline; flex-wrap: wrap; }
+.wo-slot { font-family: var(--display); font-size: 20px; line-height: 1; color: var(--slot-c); }
+.wo-card[aria-selected="true"] .wo-slot:not(.off) { background: var(--ink); padding: 1px 2px 0; }
+.wo-slot.off { color: transparent; -webkit-text-stroke: 1.5px var(--slot-c); opacity: .65; }
+.wo-extra { font-size: 11px; font-weight: 700; }
+.wo-status { display: flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; letter-spacing: 1px; }
+.wo-status svg { width: 12px; height: 12px; }
+
+/* the world */
+.wo-scene { position: relative; flex: 1 1 auto; min-height: 430px; overflow: hidden; border: 4px solid var(--ink); box-shadow: 6px 6px 0 var(--wo-c); }
+.wo-scene > * { position: absolute; }
+.wo-scene.locked .wo-hit { cursor: default; }
+.wo-scene.locked .wo-ring, .wo-scene.locked .wo-hint { display: none; }
+.wo-shadow { left: 14px; bottom: 20px; width: 136px; height: 14px; background: rgba(11, 4, 20, .45); border-radius: 50%; z-index: 4; }
+.wo-lifter { left: 4px; bottom: 28px; z-index: 5; }
+.wo-stars { inset: 0; background-image: radial-gradient(#f6eeff 1px, transparent 1.6px), radial-gradient(#c9b8e8 1px, transparent 1.6px); background-size: 41px 31px, 67px 47px; background-position: 5px 7px, 23px 19px; animation: wo-twinkle 2.4s steps(2, end) infinite; }
+.wo-hint {
+  left: -4px; top: 12px; z-index: 8; display: flex; flex-direction: column; gap: 2px; padding: 6px 12px 5px;
+  background: var(--wo-c); border: 3px solid var(--ink); transform: rotate(-2deg); pointer-events: none;
+  animation: wo-nudge 1.4s steps(2, end) infinite;
+}
+.wo-hint b { font-family: var(--display); font-weight: 400; font-size: 18px; letter-spacing: 1px; line-height: 1; color: var(--ink); }
+.wo-hint i { font-style: normal; font-size: 11px; font-weight: 700; color: var(--ink); }
+.wo-tip { left: 8px; right: 8px; top: 74px; z-index: 10; display: flex; align-items: center; gap: var(--s2); padding: 8px 8px 8px 12px; background: var(--ink); border: 3px solid var(--lime); animation: px-pop .2s steps(3, end) both; }
+.wo-tip span { flex: 1 1 auto; font-size: 11px; font-weight: 700; line-height: 1.35; color: var(--lime); }
+.wo-ok { flex: 0 0 48px; height: 44px; background: var(--surface); border: 3px solid var(--lime); color: var(--lime); font-family: var(--display); font-size: 18px; cursor: pointer; }
+
+/* the action object */
+.wo-hit {
+  z-index: 6; background: transparent; border: 0; padding: 0; margin: 0; cursor: pointer;
+  touch-action: manipulation; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+}
+.wo-p { position: absolute; display: block; }
+.wo-ring { inset: -10px; border: 3px dashed var(--text); opacity: .55; animation: wo-ring 1.4s steps(2, end) infinite; }
+.wo-hit.down .wo-obj { transform: scale(.94); }
+.wo-fx { inset: 0; z-index: 7; pointer-events: none; }
+.wo-fx > * { position: absolute; }
+.wo-burst { z-index: 9; width: 110px; height: 110px; display: flex; align-items: center; justify-content: center; animation: wo-burst .5s steps(5, end) both; }
+.wo-burst.big { width: 132px; height: 132px; }
+.wo-burst::before, .wo-burst::after { content: ""; position: absolute; inset: 0; clip-path: polygon(50% 0,61% 30%,93% 18%,74% 45%,100% 62%,68% 66%,72% 100%,50% 76%,28% 100%,32% 66%,0 62%,26% 45%,7% 18%,39% 30%); }
+.wo-burst::before { background: var(--ink); }
+.wo-burst::after { inset: 7px; background: var(--fx); }
+.wo-burst b { position: relative; z-index: 1; font-family: var(--display); font-weight: 400; font-size: 19px; line-height: 1; color: var(--ink); text-align: center; transform: rotate(-8deg); }
+.wo-burst.big b { font-size: 23px; }
+.wo-star { clip-path: polygon(50% 0,61% 30%,93% 18%,74% 45%,100% 62%,68% 66%,72% 100%,50% 76%,28% 100%,32% 66%,0 62%,26% 45%,7% 18%,39% 30%); }
+.wo-boom { animation: wo-boom .6s steps(6, end) both; }
+.wo-puff { border-radius: 50%; background: #593597; border: 3px solid var(--ink); animation: wo-puff .6s steps(6, end) both; }
+.wo-debris { width: 10px; height: 10px; background: #a6643c; border: 2px solid var(--ink); animation: wo-debris .6s steps(6, end) both; }
+.wo-shard { width: 12px; height: 12px; background: #88dff3; border: 2px solid var(--ink); animation: wo-debris .55s steps(6, end) both; }
+.wo-dustfx { width: 60px; height: 26px; background-image: radial-gradient(#f6eeff 1.6px, transparent 2px); background-size: 8px 7px; animation: wo-puff .5s steps(5, end) both; }
+.wo-fly { z-index: 7; animation: wo-fly .5s steps(6, end) both; }
+
+/* rustbelt: barrel + scrap sign */
+.wo-barrel { left: 0; bottom: 0; width: 62px; height: 84px; border: 4px solid var(--ink); border-radius: 6px; background: repeating-linear-gradient(45deg, #ffa033 0 9px, #0b0414 9px 18px); box-shadow: inset 0 8px 0 #a6643c, inset 0 -8px 0 #a6643c; }
+.wo-roll { animation: wo-rollin .45s steps(5, end) both; }
+.wo-plate { align-self: flex-start; padding: 2px 6px; background: var(--ink); font-family: var(--display); font-size: 13px; letter-spacing: 1px; line-height: 1; color: #ffa033; text-transform: uppercase; }
+.wo-xs { display: flex; flex-wrap: wrap; justify-content: center; gap: 0 8px; }
+.wo-tag { display: inline-flex; flex-direction: column; align-items: center; }
+.wo-tag b { font-family: var(--display); font-weight: 400; font-size: 32px; line-height: .9; transform: rotate(-8deg); text-shadow: 2px 2px 0 #0b0414; }
+.wo-tag i { width: 4px; margin-top: -3px; }
+.wo-tag.off b { color: transparent; text-shadow: none; -webkit-text-stroke: 2px rgba(236, 215, 208, .55); }
+
+/* riptide: chest + loot pile */
+.wo-lid { transform-origin: 6px 100%; }
+.wo-lid.open { animation: wo-lid .6s steps(4, end) both; }
+.wo-shell { width: 20px; height: 15px; border: 3px solid var(--ink); border-radius: 50% 50% 4px 4px; background: repeating-linear-gradient(90deg, #ff5fb0 0 3px, #ff98c2 3px 5px); box-shadow: inset 0 -4px 0 #a63e84; }
+.wo-pearl { width: 17px; height: 17px; border: 3px solid var(--ink); border-radius: 50%; background: #88dff3; box-shadow: inset -5px -5px 0 #3681b2, inset 3px 3px 0 #f6eeff; }
+.wo-pile { display: flex; flex-wrap: wrap-reverse; justify-content: center; align-content: flex-start; gap: 1px; z-index: 4; }
+
+/* gainsgard: wall tally */
+.wo-tally { display: flex; flex-wrap: wrap; align-content: center; justify-content: center; gap: 22px 24px; }
+.wo-grp { position: relative; display: flex; gap: 6px; height: 44px; }
+.wo-stroke { position: relative; width: 6px; height: 44px; background: #f6eeff; box-shadow: 2px 0 0 #c9b8e8; transform-origin: top; }
+.wo-stroke.ghost { background: transparent; box-shadow: none; outline: 2px dashed rgba(246, 238, 255, .28); outline-offset: -2px; }
+.wo-slash { position: absolute; left: -10px; top: 17px; width: 62px; height: 6px; background: #f6eeff; box-shadow: 0 2px 0 #c9b8e8; transform: rotate(-28deg); transform-origin: left; }
+.wo-slash.ghost { background: transparent; box-shadow: none; outline: 2px dashed rgba(246, 238, 255, .28); outline-offset: -2px; }
+.wo-stroke.wo-new { animation: wo-scratch .2s steps(3, end) both; }
+.wo-slash.wo-new { animation: wo-scratchx .2s steps(3, end) both; }
+.wo-wplate { left: 10px; top: -14px; padding: 2px 6px; background: var(--ink); border: 2px solid #ffa033; font-family: var(--display); font-size: 13px; letter-spacing: 1px; line-height: 1; color: #ffa033; text-transform: uppercase; }
+
+/* arcade: PUNCH-O-TRON + tickets */
+.wo-pad.punch { animation: wo-punch .45s steps(5, end) both; }
+.wo-led { left: 6px; top: 3px; font-family: var(--body); font-size: 30px; font-weight: 700; line-height: 1; letter-spacing: 2px; color: #c6ff3d; }
+.wo-tickets { display: flex; flex-direction: row-reverse; gap: 2px; z-index: 4; }
+.wo-ticket { width: 14px; height: 11px; background: #ffc075; border: 2px solid var(--ink); box-shadow: inset 0 -2px 0 #ffa033; }
+.wo-neon { animation: wo-neon 3.2s steps(1, end) infinite; }
+
+/* frostbite: ice + flags */
+.wo-ice { left: 0; bottom: 0; width: 64px; height: 58px; border: 3px solid var(--ink); background: #88dff3; box-shadow: inset 8px 8px 0 #c9f2ff, inset -8px -8px 0 #3681b2; }
+.wo-reform { animation: wo-reform .4s steps(4, end) both; }
+.wo-flag { position: absolute; width: 20px; height: 30px; z-index: 3; margin-left: -2px; }
+.wo-flag i { position: absolute; left: 0; bottom: 0; width: 3px; height: 30px; background: #f6eeff; border: 1px solid var(--ink); }
+.wo-flag b { position: absolute; left: 4px; top: 0; width: 15px; height: 11px; border: 2px solid var(--ink); }
+.wo-flag.ghost { opacity: .4; }
+.wo-flag.ghost b { background: transparent !important; border: 2px dashed var(--ink); }
+.wo-snow { animation: wo-snow 2.2s steps(9, end) infinite; }
+.wo-aur { animation: wo-drift 4s steps(4, end) infinite alternate; }
+
+/* newest record pops in */
+.wo-new { animation: wo-pop .22s steps(4, end) both; }
+
+/* the CTA while the UNDO window is open */
+.wo-cta[data-pending="true"] { background: var(--lime-hi); }
+
+@keyframes wo-twinkle { 50% { background-position: 5px 7px, 24px 19px; opacity: .6; } }
+@keyframes wo-nudge { 50% { transform: rotate(-2deg) translateY(-3px); } }
+@keyframes wo-ring { 50% { opacity: .15; } }
+@keyframes wo-burst { 0% { transform: scale(.2) rotate(-40deg); } 60% { transform: scale(1.15) rotate(6deg); } 100% { transform: scale(1) rotate(0); } }
+@keyframes wo-boom { 0% { transform: scale(.2); } 35% { transform: scale(1.25); } 100% { transform: scale(1.4); opacity: 0; } }
+@keyframes wo-puff { 0% { transform: scale(.3); } 100% { transform: scale(1.6) translateY(-36px); opacity: 0; } }
+@keyframes wo-debris { 100% { transform: translate(var(--dx), var(--dy)) rotate(270deg); opacity: 0; } }
+@keyframes wo-rollin { 0% { transform: translateX(160px) rotate(90deg); } 100% { transform: none; } }
+@keyframes wo-lid { 0% { transform: none; } 40% { transform: rotate(-42deg) translateY(-8px); } 100% { transform: rotate(-34deg) translateY(-6px); } }
+@keyframes wo-fly { 0% { transform: translate(0, 0) rotate(0); } 50% { transform: translate(42px, -80px) rotate(180deg); } 100% { transform: translate(86px, 30px) rotate(360deg); opacity: 0; } }
+@keyframes wo-pop { 0% { transform: scale(2.2) rotate(-14deg); opacity: 0; } 100% { transform: scale(1) rotate(0); opacity: 1; } }
+@keyframes wo-scratch { 0% { transform: scaleY(0); } 100% { transform: scaleY(1); } }
+@keyframes wo-scratchx { 0% { transform: rotate(-28deg) scaleX(0); } 100% { transform: rotate(-28deg) scaleX(1); } }
+@keyframes wo-punch { 0% { transform: none; } 25% { transform: translateX(22px) scaleX(.7); } 60% { transform: translateX(-6px); } 100% { transform: none; } }
+@keyframes wo-reform { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+@keyframes wo-neon { 0%, 86%, 100% { opacity: 1; } 88% { opacity: .25; } 90% { opacity: 1; } 93% { opacity: .4; } }
+@keyframes wo-blink { 0%, 90%, 100% { transform: scaleY(1); } 94% { transform: scaleY(.1); } }
+@keyframes wo-waves { to { background-position: 30px 0; } }
+@keyframes wo-sway { 50% { transform: skewX(-6deg); } }
+@keyframes wo-flick { 0%, 100% { transform: scaleY(1); } 33% { transform: scaleY(.8) translateX(1px); } 66% { transform: scaleY(1.12) translateX(-1px); } }
+@keyframes wo-snow { to { background-position: 0 54px, 12px 90px; } }
+@keyframes wo-drift { to { transform: translateX(-18px) skewY(-6deg); } }
+
+/* reduced motion: nothing flies or explodes, records just appear (the burst still says +1 SET) */
+@media (prefers-reduced-motion: reduce) {
+  .wo-boom, .wo-puff, .wo-debris, .wo-shard, .wo-dustfx, .wo-fly { display: none; }
+}
+</style>
+</head>
+<body class="px">
+<main class="phone" data-screen="workout">
+  <header class="topbar wo-top">
+    <button class="icon-btn" type="button" id="wo-close" aria-label="Back to the hub. The workout keeps running."></button>
+    <div class="wo-ttl">
+      <span class="kicker" id="wo-sess">SESSION 1</span>
+      <span class="wo-area display" id="wo-area">RUSTBELT FLATS</span>
+    </div>
+    <div class="wo-clock" role="timer" aria-label="Workout time" id="wo-clock">00:00</div>
+  </header>
+
+  <section class="screen wo-body">
+    <div class="wo-strip" role="tablist" aria-label="Exercises" id="wo-strip"></div>
+    <div class="wo-scene" id="wo-scene"></div>
+  </section>
+
+  <footer class="foot">
+    <button class="btn cta wo-cta" type="button" id="wo-cta" disabled>I WORKED</button>
+  </footer>
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------- demo-only query params (screenshots and tests) ----------
+     ?area=<id>   play in another area (saved to state, like picking it in setup)
+     ?tip=1       show the first-workout tip again
+     ?sets=2,1,0  start with these marks
+     ?tap=n       hit the object n times on load (shows the effect)          */
+  var q = new URLSearchParams(location.search);
+  if (q.get("area") && PX.AREAS[q.get("area")]) PX.save({ area: q.get("area") });
+  if (q.get("tip") === "1") PX.save({ seenSetTip: false });
+
+  /* guard: the workout needs a finished setup */
+  if (!PX.get().setupDone || !PX.cls()) { PX.go("character", { replace: true }); return; }
+
+  var st = PX.get();
+  var LIST = PX.workout();
+  var AREA = PX.area() || PX.AREAS.rustbelt;
+  var CLS = PX.cls();
+  var CAP = 9;
+  var RUNG = ["var(--muted)", "var(--lime)", "var(--sky)", "var(--violet)", "var(--orange)", "var(--pink)"];
+  function rung(i) { return RUNG[Math.max(0, Math.min(i, RUNG.length - 1))]; }
+  function up(s) { return String(s).toUpperCase(); }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (ch) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]; }); }
+
+  /* ---------- the running workout (app-flow §6: survives a reload) ---------- */
+  var cur = st.current;
+  if (!cur || !cur.start) cur = { start: Date.now(), active: 0, sets: {} };
+  cur = { start: cur.start, active: cur.active || 0, sets: Object.assign({}, cur.sets || {}) };
+  LIST.forEach(function (ex) { if (typeof cur.sets[ex.name] !== "number") cur.sets[ex.name] = 0; });
+  if (q.get("sets")) q.get("sets").split(",").forEach(function (v, i) { if (LIST[i]) cur.sets[LIST[i].name] = Math.max(0, Math.min(CAP, parseInt(v, 10) || 0)); });
+  if (cur.active < 0 || cur.active >= LIST.length) cur.active = 0;
+  function persist() { PX.save({ current: Object.assign({}, PX.get().current || {}, { start: cur.start, sets: cur.sets, active: cur.active }) }); }
+  persist();
+
+  function count(i) { return cur.sets[LIST[i].name] || 0; }
+  function total() { return PX.totalSets(cur.sets); }
+
+  /* ---------- the five worlds (moodboard "Starting areas"; shapes stand in for pixel art) ---------- */
+  var SCENES = {
+    rustbelt: {
+      bg: "background:#1f0d36", ui: "orange", uiSh: "pink", noun: "BARREL", verb: "Blow up the barrel",
+      back:
+        '<div style="left:0;right:0;bottom:240px;height:150px;background:#2a1148"></div>' +
+        '<div style="left:0;right:0;bottom:130px;height:110px;background:#3b2230"></div>' +
+        '<div style="left:40px;bottom:240px;width:130px;height:66px;border-radius:66px 66px 0 0;background:repeating-linear-gradient(0deg,#ffa033 0 8px,#1f0d36 8px 12px);border:3px solid #0b0414;border-bottom:0"></div>' +
+        '<div style="left:0;right:0;bottom:78px;height:14px;background:#ecd7d0;border-top:2px solid #0b0414"></div>' +
+        '<div style="left:-10px;bottom:92px;width:160px;height:84px;background:#3b2230;border:3px solid #0b0414;border-bottom:0;clip-path:polygon(14% 0,86% 0,100% 100%,0 100%);box-shadow:inset 6px 0 0 #6b4a5e"></div>' +
+        '<div style="left:128px;top:60px;bottom:80px;width:7px;background:#4b2d19;border:2px solid #0b0414;transform:rotate(-4deg)"></div>' +
+        '<div style="left:106px;top:76px;width:52px;height:6px;background:#4b2d19;border:2px solid #0b0414;transform:rotate(-4deg)"></div>' +
+        '<div style="left:-20px;top:76px;width:420px;height:70px;border-bottom:2px solid #0b0414;border-radius:0 0 50% 50%"></div>' +
+        '<div style="left:160px;bottom:78px;width:22px;height:70px;background:#3a2a52;border:3px solid #0b0414;border-radius:11px 11px 0 0"></div>' +
+        '<div style="left:145px;bottom:104px;width:15px;height:26px;background:#3a2a52;border:3px solid #0b0414;border-right:0;border-radius:8px 0 0 0"></div>' +
+        '<div style="left:166px;bottom:124px;width:4px;height:4px;background:#ffa033;box-shadow:7px 0 0 #ffa033;animation:wo-blink 3s steps(1,end) infinite"></div>' +
+        '<div style="right:22px;bottom:78px;width:9px;height:204px;background:#4b2d19;border:2px solid #0b0414"></div>' +
+        '<div style="right:148px;bottom:78px;width:9px;height:204px;background:#4b2d19;border:2px solid #0b0414"></div>' +
+        '<div style="right:42px;bottom:80px;width:90px;height:32px;background:#6b5033;border:3px solid #0b0414;border-radius:14px 18px 4px 4px;box-shadow:inset 0 -8px 0 #4b2d19;background-image:radial-gradient(#a6643c 3px,transparent 4px);background-size:19px 13px"></div>' +
+        '<div style="left:0;right:0;bottom:0;height:80px;background:#a6643c;border-top:4px solid #0b0414;box-shadow:inset 0 6px 0 #ffc075"></div>' +
+        '<div style="right:20px;bottom:10px;width:120px;height:32px;border-top:2px solid #4b2d19;border-left:2px solid #4b2d19;transform:skewX(40deg)"></div>' +
+        '<div style="right:14px;bottom:34px;width:26px;height:14px;border:3px solid #0b0414;border-radius:50%;background:#3a2a52;box-shadow:20px -2px 0 -2px #3a2a52"></div>',
+      rec: "right:8px;bottom:278px;width:168px;height:128px;z-index:2;background-color:#6b5033;background-image:radial-gradient(#4b2d19 6px,transparent 7px),radial-gradient(#a6643c 3px,transparent 4px);background-size:47px 37px,23px 29px;border:4px solid #0b0414;box-shadow:inset 0 -6px 0 #4b2d19,inset 6px 0 0 #a6643c;display:flex;flex-direction:column;gap:2px;padding:6px 8px",
+      record: function (n, t, name, fresh) {
+        var h = '<span class="wo-plate">' + esc(name) + "</span><span class=\"wo-xs\">";
+        for (var j = 0; j < Math.max(n, t); j++) {
+          if (j < n) h += '<span class="wo-tag' + (fresh && j === n - 1 ? " wo-new" : "") + '"><b style="color:' + rung(j) + '">X</b><i style="height:' + (5 + (j * 7) % 9) + "px;background:" + rung(j) + '"></i></span>';
+          else h += '<span class="wo-tag off"><b>X</b><i></i></span>';
+        }
+        return h + "</span>";
+      },
+      hit: { style: "left:196px;bottom:26px;width:62px;height:84px", inner: '<span class="wo-p wo-obj wo-barrel"></span>' },
+      burst: "left:176px;bottom:150px",
+      fx: function () {
+        return '<span class="wo-puff" style="left:182px;bottom:80px;width:46px;height:46px"></span>' +
+          '<span class="wo-puff" style="left:222px;bottom:96px;width:36px;height:36px;animation-delay:.08s"></span>' +
+          '<span class="wo-boom wo-star" style="left:166px;bottom:16px;width:122px;height:122px;background:#0b0414"></span>' +
+          '<span class="wo-boom wo-star" style="left:176px;bottom:26px;width:102px;height:102px;background:#ffa033"></span>' +
+          '<span class="wo-boom" style="left:200px;bottom:50px;width:54px;height:54px;background:#ffc075;border-radius:50%"></span>' +
+          '<span class="wo-debris" style="left:222px;bottom:76px;--dx:-80px;--dy:-110px"></span>' +
+          '<span class="wo-debris" style="left:222px;bottom:76px;--dx:70px;--dy:-130px"></span>' +
+          '<span class="wo-debris" style="left:222px;bottom:76px;--dx:100px;--dy:-40px;background:#ffa033"></span>' +
+          '<span class="wo-debris" style="left:222px;bottom:76px;--dx:-50px;--dy:-160px;background:#ffa033"></span>';
+      },
+      act: function (obj) { hideThen(obj, 600, "wo-roll"); }
+    },
+
+    riptide: {
+      bg: "background:#12061f", ui: "pink", uiSh: "violet", noun: "CHEST", verb: "Open the treasure chest",
+      back:
+        '<div class="wo-stars"></div>' +
+        '<div style="right:40px;top:54px;width:46px;height:46px;border-radius:50%;background:#f6eeff;border:3px solid #0b0414;box-shadow:inset -10px -6px 0 #c9b8e8,inset 6px 8px 0 -3px #ecd7d0"></div>' +
+        '<div style="left:0;right:0;bottom:70px;height:200px;background-color:#2a1148;background-image:repeating-linear-gradient(0deg,transparent 0 9px,#3a2a52 9px 11px);border-top:3px solid #0b0414"></div>' +
+        '<div style="right:48px;bottom:86px;width:36px;height:170px;background:repeating-linear-gradient(0deg,#c9b8e8 0 3px,transparent 3px 9px);clip-path:polygon(30% 0,70% 0,100% 100%,0 100%);opacity:.8"></div>' +
+        '<div style="left:176px;bottom:267px;width:60px;height:9px;background:#1f0d36;border-radius:50% 50% 0 0"></div>' +
+        '<div style="left:202px;bottom:273px;width:4px;height:28px;background:#1f0d36;transform:rotate(8deg)"></div>' +
+        '<div style="left:188px;bottom:294px;width:36px;height:15px;background:#1f0d36;clip-path:polygon(50% 40%,100% 100%,70% 50%,50% 0,30% 50%,0 100%)"></div>' +
+        '<div style="left:0;right:0;bottom:70px;height:8px;background:repeating-linear-gradient(90deg,#3fd2ff 0 16px,#88dff3 16px 20px,transparent 20px 30px);border-top:2px solid #0b0414;animation:wo-waves 1.6s steps(6,end) infinite"></div>' +
+        '<div style="left:0;right:0;bottom:150px;height:3px;background:repeating-linear-gradient(90deg,#3fd2ff 0 10px,transparent 10px 34px);opacity:.7;animation:wo-waves 2.4s steps(6,end) infinite reverse"></div>' +
+        '<div style="left:0;right:0;bottom:0;height:72px;background-color:#ad9293;background-image:radial-gradient(#8a6f73 1.2px,transparent 1.8px),radial-gradient(#ecd7d0 1px,transparent 1.5px);background-size:13px 9px,19px 11px;border-top:4px solid #0b0414;box-shadow:inset 0 8px 0 #6b5033"></div>' +
+        '<div style="right:14px;bottom:72px;width:14px;height:170px;background:repeating-linear-gradient(0deg,#6b5033 0 10px,#4b2d19 10px 12px);border:3px solid #0b0414;transform:rotate(6deg);transform-origin:bottom"></div>' +
+        '<div style="right:-16px;bottom:230px;width:92px;height:48px;background:#4b2a7a;clip-path:polygon(50% 40%,100% 70%,62% 52%,90% 100%,50% 58%,10% 100%,38% 52%,0 70%,50% 40%,30% 0,50% 30%,70% 0);animation:wo-sway 2s steps(2,end) infinite"></div>' +
+        '<div style="left:160px;bottom:6px;width:18px;height:18px;background:#ff5fb0;clip-path:polygon(50% 0,62% 36%,100% 38%,70% 60%,80% 100%,50% 76%,20% 100%,30% 60%,0 38%,38% 36%)"></div>',
+      rec: "right:4px;bottom:6px;width:68px;height:66px",
+      recCls: "wo-pile",
+      record: function (n, t, name, fresh) {
+        var h = "";
+        for (var j = 0; j < n; j++) h += '<span class="' + (j % 5 === 4 ? "wo-pearl" : "wo-shell") + (fresh && j === n - 1 ? " wo-new" : "") + '"></span>';
+        return h;
+      },
+      hit: {
+        style: "left:178px;bottom:22px;width:84px;height:74px",
+        inner:
+          '<span class="wo-p" style="left:6px;top:34px;width:72px;height:10px;background:#ffc075;border:3px solid #0b0414"></span>' +
+          '<span class="wo-p" style="left:2px;bottom:0;width:80px;height:44px;border:3px solid #0b0414;background:linear-gradient(90deg,#6b5033 0 12px,#ffa033 12px 22px,#6b5033 22px 56px,#ffa033 56px 66px,#6b5033 66px);box-shadow:inset 0 -6px 0 #4b2d19"></span>' +
+          '<span class="wo-p" style="left:34px;bottom:18px;width:14px;height:16px;background:#ffa033;border:2px solid #0b0414;box-shadow:inset 0 -5px 0 #a6643c"></span>' +
+          '<span class="wo-p wo-obj wo-lid" style="left:0;bottom:40px;width:84px;height:26px;border:3px solid #0b0414;border-radius:16px 16px 0 0;background:linear-gradient(90deg,#6b5033 0 14px,#ffa033 14px 24px,#6b5033 24px 58px,#ffa033 58px 68px,#6b5033 68px);box-shadow:inset 0 5px 0 #a6643c"></span>'
+      },
+      burst: "left:150px;bottom:150px",
+      fx: function (n) { return '<span class="wo-fly ' + (n % 5 === 0 ? "wo-pearl" : "wo-shell") + '" style="left:210px;bottom:96px"></span>'; },
+      act: function (obj) { restart(obj, "open"); setTimeout(function () { obj.classList.remove("open"); }, 700); }
+    },
+
+    gainsgard: {
+      bg: "background-color:#3a2a52;background-image:repeating-linear-gradient(0deg,#2a1148 0 3px,transparent 3px 26px),repeating-linear-gradient(90deg,#2a1148 0 3px,transparent 3px 44px)",
+      ui: "orange", uiSh: "pink", noun: "WALL", verb: "Scratch the wall",
+      back:
+        '<div style="left:22px;top:66px;width:64px;height:100px;background-color:#1a0b3b;background-image:radial-gradient(#f6eeff 1px,transparent 1.6px);background-size:13px 17px;border:4px solid #0b0414;border-radius:32px 32px 0 0;box-shadow:inset 0 0 0 4px #4b2a7a"></div>' +
+        '<div style="left:51px;top:70px;width:6px;height:96px;background:#0b0414"></div>' +
+        '<div style="left:26px;top:112px;width:56px;height:5px;background:#0b0414"></div>' +
+        '<div style="left:6px;top:170px;width:100px;height:170px;background:rgba(201,184,232,.12);clip-path:polygon(22% 0,78% 0,100% 100%,0 100%)"></div>' +
+        '<div style="left:104px;top:0;width:4px;height:60px;background:repeating-linear-gradient(0deg,#8672a5 0 6px,#0b0414 6px 8px)"></div>' +
+        '<div style="left:136px;top:0;width:42px;height:84px;background:#a77bff;clip-path:polygon(0 0,100% 0,100% 100%,50% 84%,0 100%);box-shadow:inset 6px 0 0 #c8a9f3,inset -6px 0 0 #724eb2"></div>' +
+        '<div style="left:148px;top:30px;width:18px;height:6px;background:#0b0414;box-shadow:-6px 0 0 0 #0b0414,6px 0 0 0 #0b0414,-6px -4px 0 0 #0b0414,-6px 4px 0 0 #0b0414,6px -4px 0 0 #0b0414,6px 4px 0 0 #0b0414"></div>' +
+        '<div style="left:280px;top:0;width:42px;height:84px;background:#ff5fb0;clip-path:polygon(0 0,100% 0,100% 100%,50% 84%,0 100%);box-shadow:inset 6px 0 0 #ff98c2,inset -6px 0 0 #a63e84"></div>' +
+        '<div style="left:292px;top:30px;width:18px;height:6px;background:#0b0414;box-shadow:-6px 0 0 0 #0b0414,6px 0 0 0 #0b0414,-6px -4px 0 0 #0b0414,-6px 4px 0 0 #0b0414,6px -4px 0 0 #0b0414,6px 4px 0 0 #0b0414"></div>' +
+        '<div style="left:208px;top:76px;width:48px;height:48px;border-radius:50%;background:rgba(255,160,51,.18)"></div>' +
+        '<div style="left:227px;top:96px;width:10px;height:26px;background:#6b5033;border:2px solid #0b0414"></div>' +
+        '<div style="left:223px;top:72px;width:18px;height:24px;background:#ffa033;border:2px solid #0b0414;border-radius:50% 50% 20% 20%;box-shadow:inset 0 -8px 0 #ff5fb0,inset 0 5px 0 #ffc075;transform-origin:bottom;animation:wo-flick .5s steps(3,end) infinite"></div>' +
+        '<div style="left:0;right:0;bottom:0;height:72px;background-color:#8672a5;background-image:repeating-linear-gradient(90deg,#593597 0 3px,transparent 3px 52px),repeating-linear-gradient(0deg,#593597 0 3px,transparent 3px 22px);border-top:4px solid #0b0414;box-shadow:inset 0 6px 0 #ad8ed6"></div>' +
+        '<div style="left:0;bottom:8px;width:210px;height:34px;background:#a63e84;border:3px solid #0b0414;box-shadow:inset 0 0 0 3px #ffa033;transform:skewX(-20deg);transform-origin:bottom left"></div>',
+      rec: null, /* the tally lives inside the wall (the hit object) */
+      record: function (n, t, name, fresh) {
+        var T = Math.max(n, t), h = '<span class="wo-p wo-wplate">' + esc(name) + '</span><span class="wo-p wo-tally" style="left:12px;right:12px;top:16px;bottom:16px">';
+        for (var g = 0; g < T; g += 5) {
+          h += '<span class="wo-grp">';
+          for (var j = g; j < Math.min(g + 4, T); j++) h += '<span class="wo-stroke' + (j >= n ? " ghost" : fresh && j === n - 1 ? " wo-new" : "") + '"></span>';
+          if (g + 4 < T) h += '<span class="wo-slash' + (g + 4 >= n ? " ghost" : fresh && g + 4 === n - 1 ? " wo-new" : "") + '"></span>';
+          h += "</span>";
+        }
+        return h + "</span>";
+      },
+      hit: {
+        style: "left:172px;bottom:92px;width:162px;height:196px",
+        inner: '<span class="wo-p wo-obj" style="inset:0;background-color:#4b2a7a;background-image:repeating-linear-gradient(0deg,#3a2a52 0 3px,transparent 3px 30px),repeating-linear-gradient(90deg,#3a2a52 0 3px,transparent 3px 60px);border:4px solid #0b0414;box-shadow:inset 6px 6px 0 #593597"></span><span class="wo-p" id="wo-rec-in" style="inset:0"></span>'
+      },
+      burst: "left:20px;bottom:300px",
+      fx: function () { return '<span class="wo-dustfx" style="left:222px;bottom:100px"></span><span class="wo-dustfx" style="left:250px;bottom:118px;animation-delay:.06s"></span>'; },
+      act: function () {}
+    },
+
+    arcade: {
+      bg: "background-color:#12061f;background-image:radial-gradient(rgba(255,95,176,.22) 2.5px,transparent 3px);background-size:24px 24px",
+      ui: "sky", uiSh: "pink", noun: "MACHINE", verb: "Punch the machine",
+      back:
+        '<div style="left:0;right:0;top:0;height:34px;background-color:#2a1148;background-image:radial-gradient(#8672a5 2px,transparent 2.5px);background-size:16px 34px;background-position:4px 0;border-bottom:4px solid #0b0414"></div>' +
+        '<div style="left:0;right:0;top:38px;height:16px;background:repeating-linear-gradient(90deg,transparent 0 22px,#2a1148 22px 26px)"></div>' +
+        '<div style="left:14px;top:100px;width:44px;height:56px;background:#f6eeff;border:3px solid #0b0414;transform:rotate(-4deg);clip-path:polygon(0 0,100% 0,100% 80%,76% 100%,0 100%);box-shadow:inset 0 20px 0 #ff5fb0"></div>' +
+        '<div style="left:66px;top:120px;font-family:Anton,Impact,sans-serif;font-size:32px;line-height:1;color:transparent;-webkit-text-stroke:2px #ff5fb0;transform:rotate(-10deg)">SWOLE</div>' +
+        '<div style="left:28px;top:176px;font-family:Anton,Impact,sans-serif;font-size:22px;line-height:1;color:#3fd2ff;transform:rotate(4deg);text-shadow:2px 2px 0 #0b0414;opacity:.85">GAINZ</div>' +
+        '<div class="wo-neon" style="left:20px;top:226px;padding:6px 10px;border:3px solid #c6ff3d;box-shadow:0 0 0 3px #0b0414,inset 0 0 0 3px #0b0414;font-family:Anton,Impact,sans-serif;font-size:20px;line-height:1;letter-spacing:2px;color:#c6ff3d">OPEN 24/7</div>' +
+        '<div style="left:0;right:0;bottom:0;height:72px;background-color:#724eb2;background-image:repeating-linear-gradient(90deg,#593597 0 3px,transparent 3px 60px);border-top:4px solid #0b0414;box-shadow:inset 0 6px 0 #a77bff"></div>' +
+        '<div style="left:0;right:0;bottom:10px;height:4px;background:repeating-linear-gradient(90deg,#c6ff3d 0 22px,transparent 22px 40px)"></div>' +
+        '<div style="left:150px;bottom:28px;width:70px;height:14px;border-radius:50%;background:#2a1148;border:2px solid #0b0414;background-image:repeating-linear-gradient(0deg,transparent 0 4px,#c6ff3d 4px 5px)"></div>',
+      rec: "right:10px;bottom:6px;width:170px;height:14px",
+      recCls: "wo-tickets",
+      record: function (n, t, name, fresh) {
+        var led = document.getElementById("wo-led"); if (led) led.textContent = String(n).padStart(2, "0");
+        var h = ""; for (var j = 0; j < n; j++) h += '<span class="wo-ticket' + (fresh && j === n - 1 ? " wo-new" : "") + '"></span>';
+        return h;
+      },
+      hit: {
+        style: "right:8px;bottom:70px;width:144px;height:290px",
+        inner:
+          '<span class="wo-p" style="right:0;bottom:0;width:82px;height:250px;background:#2a1148;border:4px solid #0b0414;box-shadow:inset 8px 0 0 #4b2a7a"></span>' +
+          '<span class="wo-p" style="right:0;bottom:246px;width:82px;height:40px;background:#ff5fb0;border:4px solid #0b0414;display:flex;align-items:center;justify-content:center;font-family:Anton,Impact,sans-serif;font-size:13px;letter-spacing:1px;line-height:1;color:#0b0414;text-align:center">PUNCH-O-<br>TRON</span>' +
+          '<span class="wo-p" style="right:8px;bottom:192px;width:66px;height:46px;background:#0b0414;border:3px solid #c6ff3d">' +
+            '<span class="wo-p wo-led" style="color:rgba(198,255,61,.12)">88</span><span class="wo-p wo-led" id="wo-led">00</span></span>' +
+          '<span class="wo-p" style="right:80px;bottom:130px;width:26px;height:10px;background:#8672a5;border:3px solid #0b0414"></span>' +
+          '<span class="wo-p wo-obj wo-pad" style="right:98px;bottom:112px;width:46px;height:46px;border-radius:50%;background:#ff5fb0;border:4px solid #0b0414;box-shadow:inset -8px -8px 0 #a63e84,inset 6px 6px 0 #ff98c2"></span>' +
+          '<span class="wo-p" style="right:22px;bottom:30px;width:38px;height:10px;background:#0b0414;border:3px solid #8672a5"></span>' +
+          '<span class="wo-p" style="right:30px;bottom:60px;width:22px;height:22px;border-radius:50%;background:#ffa033;border:3px solid #0b0414"></span>'
+      },
+      burst: "left:150px;bottom:330px",
+      fx: function () { return ""; },
+      act: function (obj) { restart(obj, "punch"); }
+    },
+
+    frostbite: {
+      bg: "background:#1a0b3b", ui: "sky", uiSh: "pink", noun: "ICE", verb: "Smash the ice block",
+      back:
+        '<div class="wo-stars"></div>' +
+        '<div class="wo-aur" style="left:-30px;right:-30px;top:60px;height:16px;background:#a77bff;opacity:.5;transform:skewY(-6deg)"></div>' +
+        '<div class="wo-aur" style="left:-30px;right:-30px;top:84px;height:10px;background:#3fd2ff;opacity:.45;transform:skewY(-6deg);animation-duration:3s;animation-direction:alternate-reverse"></div>' +
+        '<div class="wo-aur" style="left:-30px;right:-30px;top:102px;height:6px;background:#c6ff3d;opacity:.25;transform:skewY(-6deg);animation-duration:5s"></div>' +
+        '<div style="left:-50px;bottom:70px;width:250px;height:250px;background:#2a1148;clip-path:polygon(50% 0,100% 100%,0 100%)"></div>' +
+        '<div style="left:-50px;bottom:262px;width:250px;height:58px;background:#c9b8e8;clip-path:polygon(50% 0,64% 40%,57% 34%,50% 50%,43% 34%,36% 40%)"></div>' +
+        '<div style="left:150px;bottom:70px;width:34px;height:66px;background:#1f0d36;clip-path:polygon(50% 0,70% 30%,60% 30%,85% 62%,70% 62%,100% 100%,0 100%,30% 62%,15% 62%,40% 30%,30% 30%)"></div>' +
+        '<div style="left:150px;bottom:110px;width:34px;height:26px;background:#c9b8e8;clip-path:polygon(50% 0,70% 30%,50% 22%,30% 30%)"></div>' +
+        '<div style="inset:0;background:#c9b8e8;clip-path:polygon(30% 85%,92% 22%,100% 26%,100% 85%)"></div>' +
+        '<div style="inset:0;background:#f6eeff;clip-path:polygon(30% 85%,92% 22%,95% 25%,36% 85%)"></div>' +
+        '<div style="right:22px;top:calc(22% - 36px);width:4px;height:38px;background:#f6eeff;border:1px solid #0b0414"></div>' +
+        '<div style="right:-2px;top:calc(22% - 36px);width:24px;height:16px;background:#ff5fb0;border:2px solid #0b0414;clip-path:polygon(0 0,100% 50%,0 100%)"></div>' +
+        '<div class="wo-snow" style="left:0;right:0;top:0;bottom:72px;z-index:3;pointer-events:none;background-image:radial-gradient(#f6eeff 1.4px,transparent 2px),radial-gradient(#c9b8e8 1px,transparent 1.6px);background-size:37px 54px,23px 45px"></div>' +
+        '<div style="left:0;right:0;bottom:0;height:72px;background:#c9b8e8;border-top:4px solid #0b0414;box-shadow:inset 0 6px 0 #f6eeff"></div>' +
+        '<div style="right:20px;bottom:30px;width:100px;height:16px;border-radius:50%;background:#f6eeff"></div>' +
+        '<div style="left:268px;bottom:14px;width:6px;height:4px;background:#8672a5;box-shadow:14px -4px 0 #8672a5,28px 0 0 #8672a5,42px -4px 0 #8672a5"></div>',
+      rec: "inset:0;z-index:2;pointer-events:none",
+      record: function (n, t, name, fresh) {
+        var T = Math.max(n, t, 1), h = "";
+        for (var j = 0; j < T; j++) {
+          var f = (j + 1) / T, x = 33 + f * 53, y = 85 - (x - 30) * 63 / 62; /* along the slope polygon */
+          h += '<span class="wo-flag' + (j >= n ? " ghost" : fresh && j === n - 1 ? " wo-new" : "") + '" style="left:' + x.toFixed(1) + "%;bottom:" + (100 - y).toFixed(1) + '%"><i></i><b style="background:' + rung(j) + '"></b></span>';
+        }
+        return h;
+      },
+      hit: {
+        style: "left:192px;bottom:22px;width:64px;height:58px",
+        inner: '<span class="wo-p wo-obj wo-ice"><span class="wo-p" style="left:10px;top:8px;width:3px;height:22px;background:#f6eeff;transform:rotate(30deg)"></span><span class="wo-p" style="left:34px;top:20px;width:3px;height:18px;background:#3681b2;transform:rotate(-40deg)"></span></span>'
+      },
+      burst: "left:120px;bottom:330px",
+      fx: function () {
+        var h = "", s = [[-60, -80, ""], [50, -100, ""], [80, -20, "#c9f2ff"], [-30, -130, "#3681b2"], [-90, -10, ""]];
+        s.forEach(function (d) { h += '<span class="wo-shard" style="left:218px;bottom:46px;--dx:' + d[0] + "px;--dy:" + d[1] + "px" + (d[2] ? ";background:" + d[2] : "") + '"></span>'; });
+        return h;
+      },
+      act: function (obj) { hideThen(obj, 550, "wo-reform"); }
+    }
+  };
+  var SC = SCENES[AREA.id] || SCENES.rustbelt;
+
+  function restart(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+  var hideTimer = null;
+  function hideThen(el, ms, cls) {
+    clearTimeout(hideTimer);
+    el.style.visibility = "hidden"; el.classList.remove(cls);
+    hideTimer = setTimeout(function () { el.style.visibility = ""; restart(el, cls); }, ms);
+  }
+
+  /* ---------- build the screen ---------- */
+  var phone = document.querySelector(".phone");
+  phone.style.setProperty("--wo-c", PX.c(AREA.color));
+  phone.style.setProperty("--wo-ui", PX.c(SC.ui));
+  phone.style.setProperty("--wo-ui-sh", PX.c(SC.uiSh));
+
+  document.getElementById("wo-close").innerHTML = PX.icon("back");
+  document.getElementById("wo-sess").textContent = "SESSION " + ((st.sessions || []).length + 1) + " · " + up(CLS.name);
+  document.getElementById("wo-area").textContent = up(AREA.name);
+
+  var scene = document.getElementById("wo-scene");
+  scene.setAttribute("style", SC.bg);
+  scene.innerHTML =
+    SC.back +
+    (SC.rec ? '<div id="wo-rec" class="' + (SC.recCls || "") + '" style="' + SC.rec + '"></div>' : "") +
+    '<div class="wo-shadow"></div>' +
+    '<div class="wo-lifter" id="wo-lifter"></div>' +
+    '<button type="button" class="wo-hit" id="wo-hit" style="' + SC.hit.style + '"><span class="wo-p wo-ring"></span>' + SC.hit.inner + "</button>" +
+    '<div class="wo-fx" id="wo-fx"></div>' +
+    '<span class="wo-hint" aria-hidden="true"><b>' + esc(AREA.hint) + '</b><i id="wo-hint-sub"></i></span>' +
+    '<p class="sr-only" aria-live="polite" id="wo-live"></p>';
+  PX.sprite(document.getElementById("wo-lifter"), st.character, 3);
+  document.getElementById("wo-lifter").setAttribute("aria-label", "Your lifter, a " + CLS.name);
+
+  var hitEl = document.getElementById("wo-hit");
+  var objEl = hitEl.querySelector(".wo-obj");
+  var recEl = document.getElementById("wo-rec") || document.getElementById("wo-rec-in");
+  var fxEl = document.getElementById("wo-fx");
+  var live = document.getElementById("wo-live");
+  var strip = document.getElementById("wo-strip");
+  var cta = document.getElementById("wo-cta");
+  strip.style.setProperty("--n", LIST.length);
+
+  /* ---------- render ---------- */
+  function renderStrip() {
+    strip.innerHTML = "";
+    LIST.forEach(function (ex, i) {
+      var n = count(i), on = i === cur.active, crushed = n >= ex.target;
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "wo-card" + (crushed && !on ? " done" : "");
+      b.setAttribute("role", "tab");
+      b.setAttribute("aria-selected", on ? "true" : "false");
+      b.setAttribute("aria-label", ex.name + ", " + n + " of " + ex.target + " sets" + (crushed ? ", crushed" : ""));
+      var slots = "";
+      for (var j = 0; j < ex.target; j++) {
+        slots += '<span class="wo-slot' + (j < n ? "" : " off") + '" style="--slot-c:' + (j < n ? rung(j) : on ? "var(--ink)" : "var(--muted)") + '">X</span>';
+      }
+      if (n > ex.target) slots += '<span class="wo-extra">+' + (n - ex.target) + "</span>";
+      var status = crushed ? PX.icon("check") + "CRUSHED" : on ? "NOW" : "NEXT UP";
+      b.innerHTML = "<b>" + esc(ex.name) + '</b><span class="wo-slots">' + slots + '</span><span class="wo-status">' + status + "</span>";
+      b.addEventListener("click", function () { if (pending) return; setActive(i); });
+      strip.appendChild(b);
+    });
+  }
+  function renderWorld(fresh) {
+    var i = cur.active, ex = LIST[i], n = count(i);
+    recEl.innerHTML = SC.record(n, ex.target, ex.name, fresh);
+    var sub = document.getElementById("wo-hint-sub");
+    if (n >= CAP) sub.textContent = up(ex.name) + " · " + CAP + " IS THE CAP";
+    else sub.textContent = up(ex.name) + " · SET " + (n + 1) + (n < ex.target ? " OF " + ex.target : " (EXTRA)");
+    hitEl.setAttribute("aria-label", SC.verb + ": log one working set of " + ex.name.toLowerCase() + ". " + n + " of " + ex.target + " done. Hold, or Shift+Enter, to take one back.");
+  }
+  function renderCta() {
+    var t = total();
+    cta.disabled = t === 0 && !pending;
+    cta.textContent = pending ? "SEE REWARD" : "I WORKED";
+    cta.setAttribute("data-pending", pending ? "true" : "false");
+    cta.setAttribute("aria-label", pending ? "See the reward now" : t === 0 ? "I worked. Log at least one working set first." : "I worked: finish the workout, " + t + " sets");
+  }
+  function render(fresh) { renderStrip(); renderWorld(fresh); renderCta(); }
+
+  /* ---------- actions ---------- */
+  var advTimer = null, fxTimer = null, pending = false, committed = false;
+  function setActive(i) { clearTimeout(advTimer); cur.active = i; persist(); render(false); }
+
+  var lastIdx = null; /* exercise that got the most recent set */
+  function addSet() {
+    if (pending) return;
+    var i = cur.active, ex = LIST[i], n = count(i);
+    if (n >= CAP) { PX.toast(CAP + " SETS IS THE CAP. NEXT EXERCISE.", { ms: 1800 }); return; }
+    n += 1; cur.sets[ex.name] = n; lastIdx = i;
+    persist();
+    clearTimeout(advTimer);
+    render(true);
+
+    /* the hit: object reacts, scene shakes, a starburst says what happened */
+    SC.act(objEl);
+    restart(scene, "shake");
+    var crushed = n === ex.target, fifth = n % 5 === 0;
+    var text = crushed ? "CRUSHED!" : fifth ? AREA.fifth : "+1 SET";
+    clearTimeout(fxTimer);
+    fxEl.innerHTML = SC.fx(n) + '<div class="wo-burst' + (crushed || fifth ? " big" : "") + '" style="--fx:' + rung(n - 1) + ";" + SC.burst + '"><b>' + text + "</b></div>";
+    fxTimer = setTimeout(function () { fxEl.innerHTML = ""; }, 750);
+    live.textContent = ex.name + ": set " + n + (n <= ex.target ? " of " + ex.target : ", extra") + (crushed ? ". Crushed." : ".");
+
+    if (crushed) {
+      var next = -1;
+      for (var k = 1; k < LIST.length; k++) { var j = (i + k) % LIST.length; if (count(j) < LIST[j].target) { next = j; break; } }
+      if (next >= 0) advTimer = setTimeout(function () { if (!pending) setActive(next); }, 800);
+      else live.textContent += " Every exercise crushed. Press I worked.";
+    }
+  }
+
+  function takeBack() {
+    if (pending) return;
+    var i = cur.active, ex, n = count(i);
+    /* after an auto-advance the active card is empty: take back the set that was just logged */
+    if (n <= 0 && lastIdx !== null && count(lastIdx) > 0) { i = lastIdx; cur.active = i; n = count(i); }
+    ex = LIST[i];
+    if (n <= 0) { PX.toast("NOTHING TO TAKE BACK ON " + up(ex.name) + ".", { ms: 1600 }); return; }
+    cur.sets[ex.name] = n - 1;
+    persist();
+    clearTimeout(advTimer); clearTimeout(fxTimer); fxEl.innerHTML = "";
+    render(false);
+    PX.toast("ONE SET TAKEN BACK · " + up(ex.name), { ms: 1600 });
+    live.textContent = ex.name + ": one set taken back, " + (n - 1) + " of " + ex.target + ".";
+  }
+
+  PX.press(hitEl, addSet, takeBack, 550);
+  hitEl.addEventListener("pointerdown", function () { if (!pending) hitEl.classList.add("down"); });
+  ["pointerup", "pointerleave", "pointercancel"].forEach(function (ev) { hitEl.addEventListener(ev, function () { hitEl.classList.remove("down"); }); });
+
+  /* ---------- I WORKED: a 6-second UNDO, then the reward ---------- */
+  function commit() {
+    if (committed || !pending) return;
+    committed = true;
+    var s = PX.get(), sets = Object.assign({}, cur.sets), n = PX.totalSets(sets);
+    var xp = PX.xpForSets(n), before = PX.levelInfo(s.xp || 0).level, id = "s" + Date.now();
+    var session = { id: id, start: cur.start, end: Date.now(), cls: s.cls, area: s.area || AREA.id, sets: sets, xp: xp };
+    var newXp = (s.xp || 0) + xp;
+    PX.save({
+      sessions: (s.sessions || []).concat([session]),
+      xp: newXp,
+      lastReward: { sessionId: id, xp: xp, levelBefore: before, levelAfter: PX.levelInfo(newXp).level },
+      current: null
+    });
+    PX.go("reward");
+  }
+  cta.addEventListener("click", function () {
+    if (pending) { var t = phone.querySelector(".toast"); if (t) t.remove(); commit(); return; }
+    var n = total(); if (!n) return;
+    pending = true; clearTimeout(advTimer);
+    scene.classList.add("locked");
+    renderCta();
+    PX.toast(n + (n === 1 ? " SET" : " SETS") + " IN THE BAG. WRONG BUTTON?", {
+      action: "UNDO", ms: 6000,
+      onAction: function () { pending = false; scene.classList.remove("locked"); renderCta(); cta.focus(); },
+      onTimeout: commit
+    });
+  });
+
+  document.getElementById("wo-close").addEventListener("click", function () { persist(); PX.go("hub"); });
+
+  /* ---------- first-workout tip ---------- */
+  if (!st.seenSetTip) {
+    var tip = document.createElement("div");
+    tip.className = "wo-tip"; tip.setAttribute("role", "note");
+    tip.innerHTML = "<span>ONLY WORKING SETS COUNT. WARM-UPS DON'T. HOLD THE " + SC.noun + ' TO TAKE ONE BACK.</span><button type="button" class="wo-ok" aria-label="Got it, close the tip">OK</button>';
+    tip.querySelector("button").addEventListener("click", function () { PX.save({ seenSetTip: true }); tip.remove(); hitEl.focus(); });
+    scene.appendChild(tip);
+  }
+
+  /* ---------- clock (keeps running from the saved start) ---------- */
+  var clock = document.getElementById("wo-clock");
+  function tick() { clock.textContent = PX.fmtClock(Date.now() - cur.start); }
+  tick(); setInterval(tick, 1000);
+
+  render(false);
+
+  /* demo: ?tap=n hits the object n times so a screenshot catches the effect */
+  var taps = Math.min(CAP, parseInt(q.get("tap"), 10) || 0);
+  for (var k = 0; k < taps; k++) addSet();
+})();
+</script>
+</body>
+</html>
