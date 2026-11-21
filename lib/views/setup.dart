@@ -385,68 +385,30 @@ class _SideTitle extends StatelessWidget {
   }
 }
 
-class _Choice extends StatelessWidget {
-  const _Choice({
-    super.key,
-    required this.selected,
-    required this.color,
-    required this.title,
-    required this.line,
-    required this.onTap,
-    this.leading,
-    this.trailing,
-  });
+/// Rarity-ladder colour of difficulty [i] (borderlands-reference.md §4):
+/// muted, lime, sky, violet, orange, pink. Harder reads as rarer.
+Color difficultyColor(Pal p, int i) =>
+    [const Color(0xFFC9B8E8), p.lime, p.sky, p.violet, p.orange, p.pink][i.clamp(0, 5)];
 
-  final bool selected;
-  final Color color;
-  final String title, line;
-  final VoidCallback onTap;
-  final String? leading, trailing;
+/// XP gems: a picture of the multiplier, no numbers (rule 3).
+String gems(int i) => '◆' * (i + 1);
 
-  @override
-  Widget build(BuildContext context) {
-    final p = Pal.of(context);
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        transform: Matrix4.translationValues(selected ? 6 : 0, 0, 0),
-        decoration: BoxDecoration(
-          color: selected ? color : p.panel,
-          border: Border.all(color: p.ink, width: 4),
-          boxShadow: [BoxShadow(color: selected ? p.ink : color, offset: const Offset(5, 5))],
-        ),
-        child: Row(
-          children: [
-            if (leading != null) ...[
-              Text(leading!, style: display(22, selected ? p.on : p.ink)),
-              const SizedBox(width: 12),
-            ],
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title.toUpperCase(), style: display(20, selected ? p.on : p.ink)),
-                  const SizedBox(height: 3),
-                  Text(line, style: mono(11.5, selected ? p.on : p.ink)),
-                ],
-              ),
-            ),
-            if (trailing != null) Text(trailing!, style: display(15, selected ? p.on : p.ink)),
-          ],
-        ),
-      ),
-    );
-  }
+/// Where the detail card sits on the difficulty step (the freeze-frame
+/// title card covers it).
+Rect difficultyCardRect(Size area) {
+  final ladderBottom = 92 + area.height * 0.46;
+  return Rect.fromLTRB(16, ladderBottom + 10, area.width - 22, area.height - 84);
 }
 
+/// Setup step 3 (docs/moodboard/README.md "Difficulty"): a six-rung ladder,
+/// hardest at the top, a detail card, NEXT: STARTING AREA. Picking a rung
+/// plays the freeze-frame title card (the shell shows it).
 class DifficultyView extends StatelessWidget {
   const DifficultyView({
     super.key,
     required this.stage,
     required this.difficultyId,
+    required this.editing,
     required this.onPick,
     required this.onBack,
     required this.onNext,
@@ -454,6 +416,7 @@ class DifficultyView extends StatelessWidget {
 
   final Rect stage;
   final String difficultyId;
+  final bool editing;
   final ValueChanged<String> onPick;
   final VoidCallback onBack, onNext;
 
@@ -461,87 +424,285 @@ class DifficultyView extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = Pal.of(context);
     final sel = difficultyIndex(difficultyId);
-    return Column(
-      children: [
-        _SideTitle(
-          stage: stage,
-          step: 'Step 3 of 5',
-          title: 'How hard?',
-          line: 'From never lifted to years of iron. Harder means more XP.',
-        ),
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 24, 8),
-            children: [
-              for (var i = 0; i < difficulties.length; i++)
-                _Choice(
-                  key: ValueKey('difficulty-${difficulties[i].id}'),
-                  selected: i == sel,
-                  color: p.accents[i % p.accents.length],
-                  leading: '${i + 1}',
-                  title: difficulties[i].name,
-                  line: difficulties[i].line,
-                  trailing: '${rulesFor(i).exercisesPerWorkout} EX\n×${rulesFor(i).xpMultiplier} XP',
-                  onTap: () => onPick(difficulties[i].id),
+    final d = difficulties[sel];
+    final color = difficultyColor(p, sel);
+    return LayoutBuilder(builder: (context, box) {
+      final card = difficultyCardRect(box.biggest);
+      final ladder = Rect.fromLTRB(16, 92, box.maxWidth - 22, card.top - 10);
+      const rail = 10.0;
+      final rung = (ladder.height - 8) / difficulties.length;
+      return Stack(
+        children: [
+          Positioned(
+            left: 16,
+            right: stage.width + 26,
+            top: 6,
+            height: 84,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Shout('Step 3 of 5 · difficulty', color: p.pink, size: 12),
+                const SizedBox(height: 6),
+                const FittedBox(fit: BoxFit.scaleDown, child: MegaText('How hard do you go?', size: 30)),
+                const SizedBox(height: 6),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text('Pick a difficulty mode. Harder modes earn more XP.', style: mono(12, p.ink)),
                 ),
+              ],
+            ),
+          ),
+          // The ladder: two rails, 6 rungs, hardest at the top.
+          Positioned.fromRect(
+            rect: ladder,
+            child: Stack(
+              children: [
+                for (final left in [true, false])
+                  Positioned(
+                    left: left ? 0 : null,
+                    right: left ? null : 0,
+                    top: 0,
+                    bottom: 0,
+                    width: rail,
+                    child: Container(
+                      decoration: BoxDecoration(color: const Color(0xFF8A5A3B), border: Border.all(color: p.ink, width: 3)),
+                    ),
+                  ),
+                for (var i = 0; i < difficulties.length; i++)
+                  Positioned(
+                    left: rail + 6,
+                    right: rail + 10,
+                    top: (difficulties.length - 1 - i) * rung + 4,
+                    height: rung - 8,
+                    child: _Rung(
+                      key: ValueKey('difficulty-${difficulties[i].id}'),
+                      index: i,
+                      selected: i == sel,
+                      onTap: () => onPick(difficulties[i].id),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          // Detail card.
+          Positioned.fromRect(
+            rect: card,
+            child: Brutal(
+              shadow: color,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  child: Column(
+                    key: ValueKey(d.id),
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(d.name.toUpperCase(), style: display(28, p.ink).copyWith(shadows: [
+                          Shadow(offset: const Offset(2, 2), color: color),
+                        ])),
+                      ),
+                      const SizedBox(height: 4),
+                      Shout('Difficulty ${sel + 1} of ${difficulties.length}', color: p.pink, size: 12),
+                      const SizedBox(height: 6),
+                      Flexible(child: Text(d.line, style: mono(12, p.ink), overflow: TextOverflow.fade)),
+                      const SizedBox(height: 6),
+                      Text(gems(sel), style: display(20, color).copyWith(shadows: [
+                        Shadow(offset: const Offset(1, 1), color: p.ink),
+                      ])),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: _Nav(onBack: onBack, next: editing ? 'NEXT ▶' : 'NEXT: STARTING AREA', onNext: onNext),
+          ),
+        ],
+      );
+    });
+  }
+}
+
+/// One rung: a diamond in its rarity colour, the name, the XP gems.
+class _Rung extends StatelessWidget {
+  const _Rung({super.key, required this.index, required this.selected, required this.onTap});
+
+  final int index;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Pal.of(context);
+    final color = difficultyColor(p, index);
+    final fg = selected ? p.on : p.ink;
+    return Semantics(
+      inMutuallyExclusiveGroup: true,
+      checked: selected,
+      button: true,
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          decoration: BoxDecoration(
+            color: selected ? color : p.panel,
+            border: Border.all(color: p.ink, width: selected ? 4 : 3),
+            boxShadow: [BoxShadow(color: selected ? p.pink : p.ink, offset: const Offset(4, 4))],
+          ),
+          child: Row(
+            children: [
+              Transform.rotate(
+                angle: pi / 4,
+                child: Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(color: color, border: Border.all(color: p.ink, width: 2)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(difficulties[index].name.toUpperCase(), style: display(18, fg)),
+                ),
+              ),
+              Text(gems(index), style: display(13, fg)),
             ],
           ),
         ),
-        _Nav(onBack: onBack, next: 'NEXT ▶', onNext: onNext),
-      ],
+      ),
     );
   }
 }
 
 // ----------------------------------------------------------- starting area
 
+/// Setup step 4 (docs/moodboard/README.md "Starting areas"): five areas,
+/// each with its scene colours, the object to hit and the default path.
+/// The class picks the default; the player can choose any area.
 class AreaView extends StatelessWidget {
   const AreaView({
     super.key,
     required this.stage,
     required this.areaId,
+    required this.classId,
+    required this.editing,
     required this.onPick,
     required this.onBack,
     required this.onNext,
   });
 
   final Rect stage;
-  final String areaId;
+  final String areaId, classId;
+  final bool editing;
   final ValueChanged<String> onPick;
   final VoidCallback onBack, onNext;
 
   @override
   Widget build(BuildContext context) {
-    final p = Pal.of(context);
     return Column(
       children: [
         _SideTitle(
           stage: stage,
           step: 'Step 4 of 5',
           title: 'Where?',
-          line: 'Your starting area. More worlds come later.',
+          line: 'Your starting area: the look, and what you hit to log a set.',
         ),
         Expanded(
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 24, 8),
             children: [
-              for (final (i, a) in areas.indexed)
-                _Choice(
+              for (final a in areas)
+                _AreaCard(
                   key: ValueKey('area-${a.id}'),
+                  area: a,
                   selected: a.id == areaById(areaId).id,
-                  color: i.isEven ? p.sky : p.violet,
-                  leading: a.icon,
-                  title: a.name,
-                  line: a.line,
+                  isDefault: a.defaultFor == classId,
                   onTap: () => onPick(a.id),
                 ),
-              const SizedBox(height: 6),
-              const Terminal(['MORE AREAS: BEING BUILT BY THE DESIGN TEAM.', 'BRING SNACKS.']),
             ],
           ),
         ),
-        _Nav(onBack: onBack, next: 'NEXT ▶', onNext: onNext),
+        _Nav(onBack: onBack, next: editing ? 'NEXT ▶' : 'NEXT: READY?', onNext: onNext),
       ],
+    );
+  }
+}
+
+class _AreaCard extends StatelessWidget {
+  const _AreaCard({super.key, required this.area, required this.selected, required this.isDefault, required this.onTap});
+
+  final Area area;
+  final bool selected, isDefault;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Pal.of(context);
+    final accent = Color(area.accent);
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        margin: const EdgeInsets.only(bottom: 14),
+        transform: Matrix4.translationValues(selected ? 6 : 0, 0, 0),
+        decoration: BoxDecoration(
+          color: selected ? accent : p.panel,
+          border: Border.all(color: p.ink, width: 4),
+          boxShadow: [BoxShadow(color: selected ? p.ink : accent, offset: const Offset(5, 5))],
+        ),
+        child: Row(
+          children: [
+            // Scene swatch: dark sky, light floor, the object.
+            SizedBox(
+              width: 74,
+              height: 74,
+              child: Column(
+                children: [
+                  Expanded(child: Container(color: Color(area.sky))),
+                  Expanded(
+                    child: Container(
+                      color: Color(area.floor),
+                      alignment: Alignment.topCenter,
+                      child: Transform.translate(
+                        offset: const Offset(0, -14),
+                        child: Text(area.object, style: const TextStyle(fontSize: 26)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(area.name.toUpperCase(), style: display(19, selected ? p.on : p.ink)),
+                    const SizedBox(height: 3),
+                    Text(area.line, style: mono(11, selected ? p.on : p.ink)),
+                    if (isDefault) ...[
+                      const SizedBox(height: 5),
+                      Tag('Your path\'s home', bg: kNight, fg: accent, size: 11, angle: 0),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
+        ),
+      ),
     );
   }
 }

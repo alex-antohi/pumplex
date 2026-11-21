@@ -37,7 +37,7 @@ const _oldSwaps = '{"hu1":{"S00004":"Floor Press"}}';
 const _profile = Profile(
   character: Character(sex: 'female', height: 80, muscle: 100, fat: 0),
   classId: 'warrior',
-  difficultyId: 'd03', // 4 exercises, 3 target sets, ×1.2, streak N 2
+  difficultyId: 'sweat', // 4 exercises, 3 target sets, ×1.4, streak N 2
   areaId: 'castle',
 );
 const _d = 2; // difficulty index of d03
@@ -115,7 +115,7 @@ void main() {
     expect(set(1, crit: true), 20);
     expect(set(1, streak: 2), 11); // +10%
     expect(set(1, streak: 9), 13); // capped at +25% (12.5 rounds up)
-    expect(set(1, d: 11), 20);
+    expect(set(1, d: 5), 20);
     expect(xpPerLegacySession, 150);
     // Repeatable criticals, about 3% of sets.
     expect(isCritical('2026-11-21', 'warrior.squat', 1), isCritical('2026-11-21', 'warrior.squat', 1));
@@ -163,7 +163,7 @@ void main() {
     store.addSet(1);
     final s = store.todaySession!;
     expect(store.sessions.keys, ['2026-11-21']);
-    expect((s.classId, s.difficultyId, s.areaId, s.legacy), ('warrior', 'd03', 'castle', false));
+    expect((s.classId, s.difficultyId, s.areaId, s.legacy), ('warrior', 'sweat', 'castle', false));
     expect((s.firstMarkAt, s.lastMarkAt), ('2026-11-21T07:00:00', '2026-11-21T18:00:00'));
     expect(s.exercises.map((e) => e.exerciseId), plan);
     expect([s.exercises[0].sets, s.exercises[1].sets], [2, 1]);
@@ -196,7 +196,7 @@ void main() {
     expect(list.length, rulesFor(_d).exercisesPerWorkout);
     expect(list.every((e) => pool.contains(e.exerciseId) && e.targetSets == rulesFor(_d).targetSets), isTrue);
     expect(list.map((e) => e.exerciseId).toSet().length, list.length);
-    expect(LogStore.planFor(classById('mage'), 11, '2026-11-21').length, 8);
+    expect(LogStore.planFor(classById('mage'), 5, '2026-11-21').length, 8);
   });
 
   test('swipe switches, ↺ brings it back, add and remove keep the record', () async {
@@ -233,7 +233,7 @@ void main() {
     final (store, _) = await _store(setUp: true);
     store.addSet(0);
     final xp = store.totalXp;
-    const gym = Profile(character: Character(), classId: 'mage', difficultyId: 'd12', areaId: 'beach');
+    const gym = Profile(character: Character(), classId: 'mage', difficultyId: 'nightmare', areaId: 'beach');
     store.setProfile(gym);
     expect((store.todaySession!.classId, store.todaySession!.areaId), ('warrior', 'castle'));
     expect(store.totalXp, xp);
@@ -242,7 +242,7 @@ void main() {
     expect(store.todayExercises.first.exerciseId, startsWith('mage.'));
     store.addSet(0);
     expect(store.todaySession!.areaId, 'beach');
-    expect(store.sessions['2026-11-21']!.difficultyId, 'd03');
+    expect(store.sessions['2026-11-21']!.difficultyId, 'sweat');
 
     // With no sets yet, a change makes today's workout again.
     final (fresh, _) = await _store(setUp: true);
@@ -526,20 +526,24 @@ void main() {
     await t.tap(find.text('NEXT: DIFFICULTY'));
     await _frames(t);
     expect(find.byKey(const ValueKey('intro-card')), findsNothing);
-    expect(find.text('HOW HARD?'), findsWidgets);
-    await t.tap(find.byKey(const ValueKey('difficulty-d03')));
-    await t.tap(find.text('NEXT ▶'));
+    expect(find.text('HOW HARD DO YOU GO?'), findsWidgets);
+    await t.tap(find.byKey(const ValueKey('difficulty-sweat')));
+    await t.pump(const Duration(milliseconds: 100));
+    expect(find.text('TOWEL STRONGLY RECOMMENDED'), findsOneWidget); // title card
+    expect(find.text('DIFFICULTY 3 OF 6'), findsOneWidget);
+    await t.tap(find.text('NEXT: STARTING AREA'));
     await _frames(t);
+    expect(find.text("YOUR PATH'S HOME"), findsOneWidget); // Plate Paladin -> Gainsgard Keep
     await t.tap(find.byKey(const ValueKey('area-castle')));
-    await t.tap(find.text('NEXT ▶'));
+    await t.tap(find.text('NEXT: READY?'));
     await _frames(t);
-    expect(find.text('SNACK PALADIN'), findsOneWidget);
+    expect(find.text('SWEAT MODE'), findsOneWidget);
     await t.tap(find.text("LET'S GO!!!"));
     await _frames(t, 70); // welcome burst
 
     final saved = Profile.fromJson(jsonDecode(prefs.getString('profile_v1')!) as Map<String, dynamic>);
     expect(saved.character, const Character(sex: 'female', height: 100, muscle: 100, fat: 0));
-    expect((saved.classId, saved.difficultyId, saved.areaId, saved.schemaVersion), ('warrior', 'd03', 'castle', 1));
+    expect((saved.classId, saved.difficultyId, saved.areaId, saved.schemaVersion), ('warrior', 'sweat', 'castle', 1));
     expect(find.text("TODAY'S WORKOUT"), findsOneWidget);
     expect(find.text(exerciseName(store.todayExercises.first.exerciseId).toUpperCase()), findsOneWidget);
     expect(find.textContaining('THIS WEEK 0/2 DAYS'), findsOneWidget);
@@ -557,7 +561,7 @@ void main() {
 
     await t.tap(find.byKey(const ValueKey('hub-workout')));
     await _frames(t);
-    final card = find.byKey(const ValueKey('card-0'));
+    final card = find.byKey(const ValueKey('world-object'));
     await t.tap(card);
     await _frames(t, 70); // level-up intro card and achievement burst
     for (var i = 0; i < 5; i++) {
@@ -573,6 +577,11 @@ void main() {
       await t.tap(find.byKey(const ValueKey('intro-card')));
       await t.pump(const Duration(milliseconds: 80));
     }
+    // At the target the strip moved on; go back to the first exercise.
+    await _frames(t, 20);
+    expect(find.descendant(of: find.byKey(const ValueKey('strip-1')), matching: find.text('NOW')), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('strip-0')));
+    await _frames(t, 4);
     await t.longPress(card);
     await _frames(t, 70);
     expect(store.todayExercises[0].sets, 5);
@@ -605,12 +614,12 @@ void main() {
     await t.drag(card, const Offset(-200, 0));
     await _frames(t, 10);
     expect(store.todayExercises[0].switched, isTrue);
-    expect(find.text(exerciseName(store.todayExercises[0].exerciseId).toUpperCase()), findsOneWidget);
+    expect(find.text(exerciseName(store.todayExercises[0].exerciseId).toUpperCase()), findsWidgets);
     await t.tap(find.descendant(of: card, matching: find.text('↺')));
     await _frames(t, 10);
     expect(store.todayExercises[0].exerciseId, first);
 
-    await t.tap(card);
+    await t.tap(find.byKey(const ValueKey('world-object')));
     await _frames(t, 70); // achievement burst
     await t.drag(card, const Offset(-200, 0));
     await _frames(t, 10);
@@ -666,7 +675,7 @@ void main() {
     await _frames(t);
     await t.tap(find.byKey(const ValueKey('hub-workout')));
     await _frames(t);
-    await t.tap(find.byKey(const ValueKey('card-1'))); // first set: +50 and more
+    await t.tap(find.byKey(const ValueKey('world-object'))); // first set: +50 and more
     await t.pump(const Duration(milliseconds: 600));
     final level = levelFor(store.totalXp).level;
     expect(level, greaterThan(1));

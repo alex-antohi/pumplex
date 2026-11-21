@@ -14,6 +14,7 @@ import 'views/play.dart';
 import 'views/scene.dart';
 import 'views/setup.dart';
 import 'views/sprite.dart';
+import 'views/workout.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -58,11 +59,13 @@ Rect stageRect(Scene s, Size a) {
   return switch (s) {
     Scene.create => Rect.fromLTWH(0, 8, w, h * 0.42),
     Scene.classSelect => Rect.fromLTWH(26, 132, w * 0.34, h * 0.25),
-    Scene.difficulty || Scene.area => Rect.fromLTWH(12, 8, w * 0.30, h * 0.22),
+    Scene.difficulty => Rect.fromLTWH(w * 0.76, 2, w * 0.2, 88),
+    Scene.area => Rect.fromLTWH(12, 8, w * 0.30, h * 0.22),
     Scene.summary => Rect.fromLTWH(0, 10, w, h * 0.40),
     Scene.hub => Rect.fromLTWH(0, 6, w, h * 0.34),
     Scene.migrate => Rect.fromLTWH(0, 10, w, h * 0.34),
-    Scene.workout || Scene.history || Scene.gear => Rect.fromLTWH(w * 0.70, 6, w * 0.26, h * 0.17),
+    Scene.workout => workoutStage(a),
+    Scene.history || Scene.gear => Rect.fromLTWH(w * 0.70, 6, w * 0.26, h * 0.17),
   };
 }
 
@@ -90,6 +93,7 @@ class _GameShellState extends State<GameShell> {
   late Character _char;
   late String _classId, _difficultyId, _areaId;
   bool _editing = false;
+  bool _areaPicked = false;
 
   late final AppLifecycleListener _life;
 
@@ -149,7 +153,8 @@ class _GameShellState extends State<GameShell> {
     _char = p?.character ?? const Character();
     _classId = classById(p?.classId).id;
     _difficultyId = difficulties[difficultyIndex(p?.difficultyId)].id;
-    _areaId = areaById(p?.areaId).id;
+    _areaId = p == null ? defaultAreaFor(_classId).id : areaById(p.areaId).id;
+    _areaPicked = p != null;
   }
 
   /// One session per calendar day: on open, a new day shows a new workout.
@@ -257,9 +262,19 @@ class _GameShellState extends State<GameShell> {
       });
 
   void _pickClass(String id) {
-    setState(() => _classId = id);
+    setState(() {
+      _classId = id;
+      // The class picks the default area, until the player picks one.
+      if (!_areaPicked) _areaId = defaultAreaFor(id).id;
+    });
     final c = classById(id);
     _showIntro((title: c.name, subtitle: c.subtitle, color: classColor(Pal.of(context), id)));
+  }
+
+  void _pickDifficulty(String id) {
+    setState(() => _difficultyId = id);
+    final i = difficultyIndex(id);
+    _showIntro((title: difficulties[i].name, subtitle: difficulties[i].joke, color: difficultyColor(Pal.of(context), i)));
   }
 
   void _removeSet(int i) => _store.removeSet(i);
@@ -403,14 +418,20 @@ class _GameShellState extends State<GameShell> {
         Scene.difficulty => DifficultyView(
             stage: stage,
             difficultyId: _difficultyId,
-            onPick: (id) => setState(() => _difficultyId = id),
+            editing: _editing,
+            onPick: _pickDifficulty,
             onBack: _back,
             onNext: () => _go(_editing ? Scene.summary : Scene.area),
           ),
         Scene.area => AreaView(
             stage: stage,
             areaId: _areaId,
-            onPick: (id) => setState(() => _areaId = id),
+            classId: _classId,
+            editing: _editing,
+            onPick: (id) => setState(() {
+              _areaId = id;
+              _areaPicked = true;
+            }),
             onBack: _back,
             onNext: () => _go(Scene.summary),
           ),
@@ -519,9 +540,11 @@ class _GameShellState extends State<GameShell> {
                         // Freeze-frame intro card: over the preview card on
                         // the class step, over the whole view on level-ups.
                         if (_intro != null)
-                          _scene == Scene.classSelect
+                          _scene == Scene.classSelect || _scene == Scene.difficulty
                               ? Positioned.fromRect(
-                                  rect: classCardRect(stage, box.maxWidth),
+                                  rect: _scene == Scene.classSelect
+                                      ? classCardRect(stage, box.maxWidth)
+                                      : difficultyCardRect(box.biggest),
                                   child: IntroCard(
                                     key: ValueKey(_introRun),
                                     spec: _intro!,

@@ -1,5 +1,7 @@
 # PUMPLEX game moodboard (v0.2)
 
+Owner decisions win over this document: read [docs/decisions.md](../decisions.md) first.
+
 Visual direction for the PUMPLEX game side: pixel-art characters, cel-shaded,
 on the app's dark theme. These are **style tests**. Character classes are not
 decided yet.

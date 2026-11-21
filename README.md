@@ -1,5 +1,7 @@
 # PUMPLEX™
 
+Owner decisions win over this document: read [docs/decisions.md](docs/decisions.md) first.
+
 Train, not track. An over-the-top, single-player, fully offline gym app for
 Android (Flutter). All data stays on the phone.
 

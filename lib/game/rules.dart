@@ -17,20 +17,16 @@ typedef DifficultyRules = ({
 });
 
 /// Per difficulty level, in the order of `difficulties`
-/// (lib/game/content.dart). Multiplier = 1 + i / 11 (rules.md §1).
+/// (lib/game/content.dart): the design team's 6 modes. Multiplier in even
+/// steps from 1.0 to 2.0 (rules.md §1); 3 exercises at the easiest, 8 at
+/// the hardest (data-schema.md). Targets and streak N are placeholders.
 const difficultyRules = <DifficultyRules>[
-  (exercisesPerWorkout: 3, targetSets: 2, xpMultiplier: 1.0, streakN: 2),
-  (exercisesPerWorkout: 3, targetSets: 2, xpMultiplier: 1.09, streakN: 2),
-  (exercisesPerWorkout: 4, targetSets: 3, xpMultiplier: 1.18, streakN: 2),
-  (exercisesPerWorkout: 4, targetSets: 3, xpMultiplier: 1.27, streakN: 3),
-  (exercisesPerWorkout: 5, targetSets: 3, xpMultiplier: 1.36, streakN: 3),
-  (exercisesPerWorkout: 5, targetSets: 4, xpMultiplier: 1.45, streakN: 3),
-  (exercisesPerWorkout: 6, targetSets: 4, xpMultiplier: 1.55, streakN: 4),
-  (exercisesPerWorkout: 6, targetSets: 4, xpMultiplier: 1.64, streakN: 4),
-  (exercisesPerWorkout: 7, targetSets: 5, xpMultiplier: 1.73, streakN: 4),
-  (exercisesPerWorkout: 7, targetSets: 5, xpMultiplier: 1.82, streakN: 5),
-  (exercisesPerWorkout: 8, targetSets: 5, xpMultiplier: 1.91, streakN: 5),
-  (exercisesPerWorkout: 8, targetSets: 6, xpMultiplier: 2.0, streakN: 5),
+  (exercisesPerWorkout: 3, targetSets: 2, xpMultiplier: 1.0, streakN: 2), // Sofa
+  (exercisesPerWorkout: 3, targetSets: 3, xpMultiplier: 1.2, streakN: 2), // Warm-up
+  (exercisesPerWorkout: 4, targetSets: 3, xpMultiplier: 1.4, streakN: 2), // Sweat
+  (exercisesPerWorkout: 5, targetSets: 4, xpMultiplier: 1.6, streakN: 3), // Pain
+  (exercisesPerWorkout: 6, targetSets: 4, xpMultiplier: 1.8, streakN: 3), // Brutal
+  (exercisesPerWorkout: 8, targetSets: 5, xpMultiplier: 2.0, streakN: 4), // Nightmare
 ];
 
 DifficultyRules rulesFor(int difficulty) =>

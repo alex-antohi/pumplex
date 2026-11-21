@@ -177,30 +177,31 @@ final Map<String, Exercise> exercisesById = {
 /// Display name of an exercise id (the id itself if it is unknown).
 String exerciseName(String id) => exercisesById[id]?.name ?? id;
 
-/// Difficulty levels, easiest first. The numbers (exercises, target sets,
-/// XP multiplier, streak N) are in rules.dart, same order. Our own names,
-/// Borderlands-like tone.
+/// Difficulty modes, easiest first (docs/moodboard/README.md "Difficulty":
+/// 6 levels, every name is `<WORD> MODE`, proposals). The numbers
+/// (exercises, target sets, XP multiplier, streak N) are in rules.dart,
+/// same order. The gems are a picture of the multiplier, not the number.
 class Difficulty {
-  const Difficulty(this.id, this.name, this.line);
+  const Difficulty(this.id, this.name, this.line, this.joke);
 
   final String id;
   final String name;
+
+  /// Who it is for.
   final String line;
+
+  /// Subtitle on the freeze-frame title card.
+  final String joke;
 }
 
 const difficulties = <Difficulty>[
-  Difficulty('d01', 'Fresh Meat', 'Never lifted. The remote counts as cardio.'),
-  Difficulty('d02', 'Couch Escapee', 'You own sneakers. They are scared.'),
-  Difficulty('d03', 'Snack Paladin', 'Some sport at school. Mostly snacks.'),
-  Difficulty('d04', 'Weekend Brawler', 'You train sometimes. Mostly Saturdays.'),
-  Difficulty('d05', 'Gym Rat Larva', 'A few months in. The mirror knows you.'),
-  Difficulty('d06', 'Plate Botherer', 'About a year. You have opinions on chalk.'),
-  Difficulty('d07', 'Rack Goblin', 'You live in the squat rack. Rent is due.'),
-  Difficulty('d08', 'Bar Bender', 'Two years plus. Barbells fear you a bit.'),
-  Difficulty('d09', 'Chalk Wizard', 'Years in. You speak fluent protein.'),
-  Difficulty('d10', 'Iron Lich', 'Many years. Your gym bag has a gym bag.'),
-  Difficulty('d11', 'Mythic Meathead', 'You were the warm-up for other people.'),
-  Difficulty('d12', 'Ascended Swole', 'Beyond help. Beyond reason. Beyond legs.'),
+  Difficulty('sofa', 'Sofa Mode', 'Never lifted, or not for years. The gentlest workouts.', 'THE SOFA WILL REMEMBER YOU'),
+  Difficulty('warmup', 'Warm-up Mode', 'A few weeks to a few months in. Easy, steady workouts.', 'EVERY LEGEND STARTS HERE'),
+  Difficulty('sweat', 'Sweat Mode', 'Training most weeks, for about a year. Proper sweaty workouts.', 'TOWEL STRONGLY RECOMMENDED'),
+  Difficulty('pain', 'Pain Mode', 'About two years in. Hard workouts, real effort.', 'OUCH, BUT MAKE IT GAINS'),
+  Difficulty('brutal', 'Brutal Mode', 'Years of serious lifting. Very hard workouts.', 'THE RACK FEARS YOU NOW'),
+  Difficulty('nightmare', 'Nightmare Mode', 'Many years, competition level. The hardest workouts there are.',
+      'GRAVITY FILED A COMPLAINT'),
 ];
 
 int difficultyIndex(String? id) {
@@ -208,27 +209,137 @@ int difficultyIndex(String? id) {
   return i < 0 ? 0 : i;
 }
 
-/// How a working set shows on an exercise card. Only [tally] is drawn now;
-/// themed marks per area come from the design team.
-enum MarkStyle { tally }
+/// How an area shows the working sets (docs/moodboard/README.md "Starting
+/// areas": the action is the set, and the result stays in the world).
+enum MarkStyle {
+  shells, // a loot pile of shells on the sand
+  tally, // chalk tally marks on a wall
+  crosses, // spray-painted Xs on a scrap sign
+  tickets, // arcade tickets on the floor
+  flags, // flags up the slope to the summit
+}
 
-/// Starting areas (placeholders until the mood board has them).
+/// A starting area: the look, the palette and how a set is logged.
+/// Proposals from the design team; the pixel-art scenes come later, so the
+/// app draws a placeholder sky, floor and object (emoji).
 class Area {
-  const Area(this.id, this.name, this.line, this.icon, this.marks);
+  const Area({
+    required this.id,
+    required this.name,
+    required this.line,
+    required this.icon,
+    required this.marks,
+    required this.object,
+    required this.hint,
+    required this.stamp,
+    required this.sky,
+    required this.floor,
+    required this.accent,
+    this.defaultFor,
+  });
 
   final String id;
   final String name;
   final String line;
+
+  /// Placeholder for the scene in lists.
   final String icon;
   final MarkStyle marks;
+
+  /// The object to hit (placeholder emoji until the sprites exist).
+  final String object;
+
+  /// The bobbing stencil hint over the object.
+  final String hint;
+
+  /// The stamp on every 5th set.
+  final String stamp;
+
+  /// Scene colours (ARGB): dark sky above, light floor behind the lifter
+  /// (so the ink outline reads), and the neon accent.
+  final int sky, floor, accent;
+
+  /// The class whose default area this is (null = neutral).
+  final String? defaultFor;
 }
 
 const areas = <Area>[
-  Area('beach', 'Swole Beach', 'Sand, sun, and suspicious seagulls.', '🏖️', MarkStyle.tally),
-  Area('castle', 'Castle Gainsworth', 'Cold stone. Loud echoes. A moat of sweat.', '🏰', MarkStyle.tally),
+  Area(
+    id: 'beach',
+    name: 'Riptide Shore',
+    line: 'Moonlit sand, a palm island and a treasure chest full of shells.',
+    icon: '🏝️',
+    marks: MarkStyle.shells,
+    object: '🧰',
+    hint: 'TAP THE CHEST',
+    stamp: 'PEARL!',
+    sky: 0xFF12061F,
+    floor: 0xFFAD9293,
+    accent: 0xFFFF5FB0,
+  ),
+  Area(
+    id: 'castle',
+    name: 'Gainsgard Keep',
+    line: 'Cold stone, a flickering torch and a wall that wants scratches.',
+    icon: '🏰',
+    marks: MarkStyle.tally,
+    object: '🧱',
+    hint: 'SCRATCH THE WALL',
+    stamp: 'SLASHED!',
+    sky: 0xFF3A2A52,
+    floor: 0xFF8672A5,
+    accent: 0xFFFFA033,
+    defaultFor: 'warrior',
+  ),
+  Area(
+    id: 'rustbelt',
+    name: 'Rustbelt Flats',
+    line: 'A striped sunset, a car wreck and barrels that go boom.',
+    icon: '🏜️',
+    marks: MarkStyle.crosses,
+    object: '🛢️',
+    hint: 'BLOW UP THE BARREL',
+    stamp: 'TAGGED!',
+    sky: 0xFF1F0D36,
+    floor: 0xFFA6643C,
+    accent: 0xFFFFA033,
+    defaultFor: 'speedy',
+  ),
+  Area(
+    id: 'arcade',
+    name: 'Arcade Underpass',
+    line: 'Graffiti, a flickering OPEN 24/7 sign and the PUNCH-O-TRON.',
+    icon: '🕹️',
+    marks: MarkStyle.tickets,
+    object: '🥊',
+    hint: 'PUNCH THE MACHINE',
+    stamp: 'COMBO!',
+    sky: 0xFF12061F,
+    floor: 0xFF724EB2,
+    accent: 0xFFC6FF3D,
+    defaultFor: 'rogue',
+  ),
+  Area(
+    id: 'summit',
+    name: 'Frostbite Summit',
+    line: 'Aurora, falling snow and a slope up to the summit flag.',
+    icon: '🏔️',
+    marks: MarkStyle.flags,
+    object: '🧊',
+    hint: 'SMASH THE ICE',
+    stamp: 'SUMMIT!',
+    sky: 0xFF1A0B3B,
+    floor: 0xFFC9B8E8,
+    accent: 0xFF3FD2FF,
+    defaultFor: 'mage',
+  ),
 ];
 
 Area areaById(String? id) => areas.firstWhere((a) => a.id == id, orElse: () => areas.first);
+
+/// The default area of class [classId] (the drawio's "Background changes").
+Area defaultAreaFor(String classId) =>
+    areas.firstWhere((a) => a.defaultFor == classId, orElse: () => areas.first);
 
 // ------------------------------------------------------------------- gear
 
