@@ -93,6 +93,7 @@ class _GameShellState extends State<GameShell> {
     super.initState();
     _resetDraft();
     _life = AppLifecycleListener(onResume: _checkSession);
+    _store.addListener(_onStore);
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkSession());
   }
 
@@ -108,8 +109,13 @@ class _GameShellState extends State<GameShell> {
     }
   }
 
+  void _onStore() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
+    _store.removeListener(_onStore);
     _life.dispose();
     super.dispose();
   }
@@ -176,9 +182,9 @@ class _GameShellState extends State<GameShell> {
 
   // ---------------------------------------------------------------- workout
 
-  void _addSet(Exercise e) {
+  void _addSet(int i) {
     final before = levelFor(_store.totalXp).level;
-    _store.addSet(e.id);
+    _store.addSet(i);
     final after = levelFor(_store.totalXp).level;
     if (after > before) {
       celebratePr(
@@ -193,9 +199,13 @@ class _GameShellState extends State<GameShell> {
     setState(() {});
   }
 
-  void _removeSet(Exercise e) {
-    _store.removeSet(e.id);
-    setState(() {});
+  void _removeSet(int i) => _store.removeSet(i);
+
+  void _swap(int i, int dir) {
+    if (_store.swap(i, dir)) return;
+    _snack(_store.setsAt(i) > 0
+        ? 'SETS ALREADY DONE HERE. HOLD TO TAKE THEM AWAY, OR ADD AN EXERCISE.'
+        : 'NO OTHER EXERCISE LEFT IN THE POOL.');
   }
 
   // ------------------------------------------------------------------- menu
@@ -278,7 +288,7 @@ class _GameShellState extends State<GameShell> {
       Scene.area => 'STARTING AREA · STEP 3 OF 4',
       Scene.summary => 'READY? · STEP 4 OF 4',
       Scene.hub => 'LVL $l · ${_store.gameClass.name.toUpperCase()} · ${areaById(_store.profile?.areaId).name.toUpperCase()}',
-      Scene.workout => 'WORKOUT · ${_store.open?.totalSets ?? 0} SETS · LVL $l',
+      Scene.workout => 'WORKOUT · ${_store.todaySession?.totalSets ?? 0} SETS · LVL $l',
       Scene.history => 'PAST SESSIONS · LVL $l',
     };
   }
@@ -307,14 +317,14 @@ class _GameShellState extends State<GameShell> {
             classId: _classId,
             onCharacter: (c) => setState(() => _char = c),
             onClass: (id) => setState(() => _classId = id),
-            onNext: () => _go(Scene.difficulty),
+            onNext: () => _go(_editing ? Scene.summary : Scene.difficulty),
           ),
         Scene.difficulty => DifficultyView(
             stage: stage,
             difficultyId: _difficultyId,
             onPick: (id) => setState(() => _difficultyId = id),
             onBack: _back,
-            onNext: () => _go(Scene.area),
+            onNext: () => _go(_editing ? Scene.summary : Scene.area),
           ),
         Scene.area => AreaView(
             stage: stage,
@@ -338,12 +348,14 @@ class _GameShellState extends State<GameShell> {
             store: _store,
             onTrain: () => _go(Scene.workout),
             onHistory: () => _go(Scene.history, Motion.slideRight),
+            onBody: _editCharacter,
           ),
         Scene.workout => WorkoutView(
             stage: stage,
             store: _store,
             onAdd: _addSet,
             onRemove: _removeSet,
+            onSwap: _swap,
             onBack: _back,
           ),
         Scene.history => HistoryView(stage: stage, store: _store, onBack: _back),

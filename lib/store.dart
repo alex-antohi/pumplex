@@ -68,6 +68,7 @@ class LogStore extends ChangeNotifier {
   static const _profileKey = 'game_profile_v1';
   static const _gameSessionsKey = 'game_sessions_v1';
   static const _openKey = 'game_open_v1';
+  static const _bodyKey = 'game_body_v1';
 
   /// Backup field -> storage key, kept from the old tracking system.
   static const _legacy = {'logs': 'logs_v2', 'swaps': 'swaps_v2'};
@@ -77,10 +78,17 @@ class LogStore extends ChangeNotifier {
 
   final List<Session> _oldSessions = [];
   final List<GameSession> _sessions = [];
+  final List<BodyEntry> _body = [];
   Profile? _profile;
   GameSession? _open;
 
   void _load() {
+    _body
+      ..clear()
+      ..addAll([
+        for (final b in jsonDecode(_prefs.getString(_bodyKey) ?? '[]') as List)
+          BodyEntry.fromJson(Map<String, dynamic>.from(b as Map)),
+      ]);
     _oldSessions
       ..clear()
       ..addAll(_parseOld(_prefs.getString(_oldSessionsKey)));
@@ -116,9 +124,29 @@ class LogStore extends ChangeNotifier {
   /// Null until the initial setup is done.
   Profile? get profile => _profile;
 
+  /// Every saved change of the body sliders, oldest first (for charts later).
+  List<BodyEntry> get bodyHistory => List.unmodifiable(_body);
+
+  /// Saves the setup. A changed body is added to [bodyHistory].
+  ///
+  /// A new class or difficulty applies to today's workout only while it has
+  /// no sets yet (the plan is made again). Once sets are marked, today's
+  /// session keeps the class and difficulty it started with, so its XP
+  /// stays the same; the change shows from the next day.
   void setProfile(Profile p) {
     _profile = p;
     _prefs.setString(_profileKey, jsonEncode(p.toJson()));
+    if (_body.isEmpty || _body.last.character != p.character) {
+      _body.add(BodyEntry(atMs: _clock().millisecondsSinceEpoch, character: p.character));
+      _prefs.setString(_bodyKey, jsonEncode([for (final b in _body) b.toJson()]));
+    }
+    final o = _open;
+    if (o != null &&
+        o.totalSets == 0 &&
+        (o.classId != p.classId || o.difficultyId != p.difficultyId)) {
+      _open = null;
+      _saveGame();
+    }
     notifyListeners();
   }
 
@@ -133,59 +161,133 @@ class LogStore extends ChangeNotifier {
   /// Closed game sessions, oldest first.
   List<GameSession> get sessions => List.unmodifiable(_sessions);
 
-  /// The session being trained now, if any.
+  /// Today's session, once something was marked or changed today.
   GameSession? get open => _open;
 
-  /// Working sets for [exerciseId] in the open session.
-  int setsOf(String exerciseId) => _open?.sets[exerciseId] ?? 0;
+  String get _today => dateKey(_clock());
+
+  /// Today's session (null before the first mark or change of the day).
+  GameSession? get todaySession => _open?.day == _today ? _open : null;
 
   /// Applies the session rule (lib/game/rules.dart) when the app is opened
-  /// or comes back from the background. Returns the session it closed.
-  GameSession? onAppOpened() => _closeIfOver(checkDay: true);
+  /// or comes back from the background. Returns the session it banked
+  /// (null if none, or if it had no sets).
+  GameSession? onAppOpened() => _closeIfOver();
 
-  GameSession? _closeIfOver({required bool checkDay}) {
+  /// ONE SESSION PER CALENDAR DAY: the session of an earlier day closes.
+  /// A session with no sets is a skipped day and is not kept.
+  GameSession? _closeIfOver() {
     final o = _open;
-    if (o == null) return null;
-    final now = _clock();
-    final idle = now.difference(o.end) >= sessionTimeout;
-    final newDay = checkDay && daysBetween(o.end, now) > 0;
-    if (!idle && !newDay) return null;
-    _sessions.add(o);
+    if (o == null || o.day == _today) return null;
     _open = null;
+    if (o.totalSets > 0) _sessions.add(o);
     _saveGame();
     notifyListeners();
-    return o;
+    return o.totalSets > 0 ? o : null;
   }
 
-  /// Tap on an exercise card: one more working set. Starts a session if
-  /// none is open (or the open one timed out).
-  void addSet(String exerciseId) {
-    _closeIfOver(checkDay: false);
+  /// The first workout of a day: [workoutSize] exercises from the class
+  /// pool, starting at a place that moves on each day.
+  static List<Slot> planFor(GameClass c, int difficulty, String day) {
+    final pool = c.exercises;
+    final n = workoutSize(difficulty).clamp(1, pool.length);
+    final start = daysBetween(DateTime(2026), parseDateKey(day)).abs() % pool.length;
+    return [
+      for (var i = 0; i < n; i++)
+        Slot(exerciseId: pool[(start + i) % pool.length].id, initialId: pool[(start + i) % pool.length].id),
+    ];
+  }
+
+  /// Today's workout: the open session's exercises, or a new plan.
+  List<Slot> get todaySlots {
+    final o = _open;
+    if (o != null && o.day == _today) return o.slots;
+    return planFor(gameClass, difficulty, _today);
+  }
+
+  /// Working sets on card [i] of today's workout.
+  int setsAt(int i) => i < todaySlots.length ? todaySlots[i].sets : 0;
+
+  /// Applies [edit] to today's slots, opening today's session if needed.
+  void _edit(List<Slot> Function(List<Slot> slots) edit) {
+    _closeIfOver();
     final now = _clock().millisecondsSinceEpoch;
     final o = _open ??
         GameSession(
+          day: _today,
           startMs: now,
           endMs: now,
           classId: gameClass.id,
           difficultyId: difficulties[difficulty].id,
-          sets: const {},
+          slots: planFor(gameClass, difficulty, _today),
         );
-    _open = o.copyWith(endMs: now, sets: {...o.sets, exerciseId: (o.sets[exerciseId] ?? 0) + 1});
+    _open = o.copyWith(endMs: now, slots: edit([...o.slots]));
     _saveGame();
     notifyListeners();
   }
 
-  /// Long-press: one working set less (for a wrong tap). If no sets are
-  /// left, the session did not happen. Does not count as a new mark.
-  void removeSet(String exerciseId) {
-    final o = _open;
-    final n = o?.sets[exerciseId] ?? 0;
-    if (o == null || n == 0) return;
-    final sets = {...o.sets}..[exerciseId] = n - 1;
-    sets.removeWhere((_, v) => v <= 0);
-    _open = sets.isEmpty ? null : o.copyWith(sets: sets);
-    _saveGame();
-    notifyListeners();
+  GameClass get _todayClass => classById(_open?.day == _today ? _open!.classId : gameClass.id);
+
+  /// Tap on card [i]: one more working set.
+  void addSet(int i) => _edit((s) => s..[i] = s[i].copyWith(sets: s[i].sets + 1));
+
+  /// Long-press on card [i]: one working set less (for a wrong tap).
+  void removeSet(int i) {
+    if (setsAt(i) == 0) return;
+    _edit((s) => s..[i] = s[i].copyWith(sets: s[i].sets - 1));
+  }
+
+  /// Class pool exercises not on any card yet.
+  List<Exercise> get unusedExercises {
+    final used = todaySlots.map((s) => s.exerciseId).toSet();
+    return [for (final e in _todayClass.exercises) if (!used.contains(e.id)) e];
+  }
+
+  /// Swipe on card [i]: the next (or, [dir] < 0, previous) pool exercise
+  /// that is not on another card. Only on a card with no sets. False if
+  /// nothing changed.
+  bool swap(int i, int dir) {
+    final slots = todaySlots;
+    if (i >= slots.length || slots[i].sets > 0) return false;
+    final pool = _todayClass.exercises;
+    final used = {for (final (k, s) in slots.indexed) if (k != i) s.exerciseId};
+    var at = pool.indexWhere((e) => e.id == slots[i].exerciseId);
+    for (var step = 0; step < pool.length; step++) {
+      at = (at + (dir < 0 ? -1 : 1)) % pool.length;
+      if (at < 0) at += pool.length;
+      final id = pool[at].id;
+      if (id == slots[i].exerciseId) return false;
+      if (!used.contains(id)) {
+        _edit((s) => s..[i] = s[i].copyWith(exerciseId: id));
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// Card [i] goes back to the exercise the workout first gave.
+  bool resetSlot(int i) {
+    final slots = todaySlots;
+    if (i >= slots.length || !slots[i].switched || slots[i].sets > 0) return false;
+    final initial = slots[i].initialId!;
+    final other = slots.indexWhere((s) => s.exerciseId == initial);
+    _edit((s) {
+      // If that exercise sits on another empty card, the two cards trade.
+      if (other >= 0 && s[other].sets == 0) s[other] = s[other].copyWith(exerciseId: s[i].exerciseId);
+      return s..[i] = s[i].copyWith(exerciseId: initial);
+    });
+    return true;
+  }
+
+  /// Adds a card for pool exercise [exerciseId].
+  void addExercise(String exerciseId) =>
+      _edit((s) => s..add(Slot(exerciseId: exerciseId)));
+
+  /// Removes card [i]. Only a card with no sets (take the sets away first).
+  bool removeSlot(int i) {
+    if (i >= todaySlots.length || setsAt(i) > 0) return false;
+    _edit((s) => s..removeAt(i));
+    return true;
   }
 
   // ------------------------------------------------------------------- XP
@@ -234,6 +336,7 @@ class LogStore extends ChangeNotifier {
           e.key: jsonDecode(_prefs.getString(e.value) ?? '{}'),
         'game': {
           if (_profile != null) 'profile': _profile!.toJson(),
+          'body': [for (final b in _body) b.toJson()],
           'sessions': [for (final s in _sessions) s.toJson()],
           if (_open != null) 'open': _open!.toJson(),
         },
@@ -258,6 +361,10 @@ class LogStore extends ChangeNotifier {
         ? Profile.fromJson(Map<String, dynamic>.from(game['profile'] as Map))
         : null;
     final sessions = _parseGame(jsonEncode(game['sessions'] ?? []));
+    final body = [
+      for (final b in game['body'] as List? ?? const [])
+        BodyEntry.fromJson(Map<String, dynamic>.from(b as Map)),
+    ];
     final open = game['open'] is Map
         ? GameSession.fromJson(Map<String, dynamic>.from(game['open'] as Map))
         : null;
@@ -270,6 +377,7 @@ class LogStore extends ChangeNotifier {
         ? await _prefs.remove(_profileKey)
         : await _prefs.setString(_profileKey, jsonEncode(profile.toJson()));
     await _prefs.setString(_gameSessionsKey, jsonEncode([for (final s in sessions) s.toJson()]));
+    await _prefs.setString(_bodyKey, jsonEncode([for (final b in body) b.toJson()]));
     open == null
         ? await _prefs.remove(_openKey)
         : await _prefs.setString(_openKey, jsonEncode(open.toJson()));

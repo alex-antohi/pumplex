@@ -111,72 +111,140 @@ void main() {
 
   // --------------------------------------------------------- session rule
 
-  test('a session starts on the first mark and stays open while you train', () async {
-    final (store, _) = await _store(fresh: true, setUp: true);
+  test('one session per calendar day: every mark that day goes in it', () async {
+    final (store, prefs) = await _store(fresh: true, setUp: true);
     expect(store.open, isNull);
-    store.addSet('warrior.squat');
-    final start = _now;
-    expect(store.open!.start, start);
-    _now = _now.add(const Duration(minutes: 40));
-    store.addSet('warrior.squat');
-    _now = _now.add(sessionTimeout - const Duration(minutes: 1)); // just under the limit
-    store.addSet('warrior.bench');
+    final plan = store.todaySlots.map((s) => s.exerciseId).toList();
+    _now = DateTime(2026, 11, 21, 7);
+    store.addSet(0);
+    _now = DateTime(2026, 11, 21, 18); // 11 h later: same day, same session
+    store.addSet(0);
+    store.addSet(1);
     expect(store.onAppOpened(), isNull);
     expect(store.sessions, isEmpty);
-    expect(store.open!.sets, {'warrior.squat': 2, 'warrior.bench': 1});
-    expect(store.open!.start, start);
-    expect(store.open!.end, _now);
-    expect(store.totalXp, xpForSets(3, 2) + 0);
-  });
-
-  test('a session closes after the timeout with no new mark', () async {
-    final (store, prefs) = await _store(fresh: true, setUp: true);
-    store.addSet('warrior.squat');
-    _now = _now.add(sessionTimeout);
-    // The next mark closes the old session and starts a new one.
-    store.addSet('warrior.deadlift');
-    expect(store.sessions.single.sets, {'warrior.squat': 1});
-    expect(store.open!.sets, {'warrior.deadlift': 1});
+    expect(store.open!.day, '2026-11-21');
+    expect(store.open!.sets, {plan[0]: 2, plan[1]: 1});
+    expect(store.open!.slots.map((s) => s.exerciseId), plan); // the list is stored
+    expect((store.open!.classId, store.open!.difficultyId), ('warrior', 'd03'));
+    expect(store.totalXp, xpForSets(3, 2));
     // Saved, and loads again.
-    final again = LogStore(prefs, clock: () => _now);
-    expect(again.sessions.single.sets, {'warrior.squat': 1});
-    expect(again.open!.sets, {'warrior.deadlift': 1});
-
-    _now = _now.add(sessionTimeout);
-    expect(again.onAppOpened()!.sets, {'warrior.deadlift': 1});
-    expect(again.open, isNull);
-    expect(again.sessions.length, 2);
+    expect(LogStore(prefs, clock: () => _now).open!.sets, {plan[0]: 2, plan[1]: 1});
   });
 
-  test('opening the app on a later day closes the session', () async {
+  test('a later day closes the session, on open or on the next mark', () async {
     final (store, _) = await _store(fresh: true, setUp: true);
-    _now = DateTime(2026, 11, 21, 23, 0);
-    store.addSet('warrior.squat');
-    _now = DateTime(2026, 11, 22, 0, 30); // 1.5 h later, but a new day
-    expect(store.onAppOpened(), isNotNull);
+    _now = DateTime(2026, 11, 21, 23, 50);
+    store.addSet(0);
+    _now = DateTime(2026, 11, 22, 0, 10); // 20 min later, but a new day
+    store.addSet(0);
+    expect(store.sessions.single.totalSets, 1);
+    expect(store.open!.day, '2026-11-22');
+    _now = DateTime(2026, 11, 25, 9);
+    expect(store.onAppOpened()!.day, '2026-11-22');
     expect(store.open, isNull);
+    expect(store.sessions.length, 2);
   });
 
-  test('a mark after midnight in the same workout does not split it', () async {
+  test('a day with no sets is not kept (skipping = doing no sets)', () async {
     final (store, _) = await _store(fresh: true, setUp: true);
-    _now = DateTime(2026, 11, 21, 23, 40);
-    store.addSet('warrior.squat');
-    _now = DateTime(2026, 11, 22, 0, 10);
-    store.addSet('warrior.squat'); // app stayed open: only the timeout applies
-    expect(store.sessions, isEmpty);
-    expect(store.open!.sets['warrior.squat'], 2);
-  });
-
-  test('long-press takes a set away; no sets left = no session', () async {
-    final (store, _) = await _store(fresh: true, setUp: true);
-    store.removeSet('warrior.squat'); // nothing to remove
-    store.addSet('warrior.squat');
-    store.addSet('warrior.bench');
-    store.removeSet('warrior.squat');
-    expect(store.open!.sets, {'warrior.bench': 1});
-    store.removeSet('warrior.bench');
+    store.removeSet(0); // nothing to remove
     expect(store.open, isNull);
+    store.addSet(0);
+    store.removeSet(0);
+    store.swap(1, 1); // a plan change opens the day too
+    expect(store.open!.totalSets, 0);
+    _now = _now.add(const Duration(days: 1));
+    expect(store.onAppOpened(), isNull);
     expect(store.sessions, isEmpty);
+  });
+
+  // -------------------------------------------------------------- workouts
+
+  test('a workout takes a set number of exercises from the class pool', () async {
+    final (store, _) = await _store(fresh: true, setUp: true);
+    final pool = classById('warrior').exercises.map((e) => e.id).toSet();
+    expect(store.todaySlots.length, workoutSize(2));
+    expect(store.todaySlots.every((s) => pool.contains(s.exerciseId) && !s.switched), isTrue);
+    expect(store.todaySlots.map((s) => s.exerciseId).toSet().length, workoutSize(2));
+    expect(LogStore.planFor(classById('warrior'), 11, '2026-11-21').length,
+        workoutSize(11).clamp(1, pool.length));
+    expect(gameClasses.every((c) => c.exercises.length > workoutSize(0)), isTrue);
+  });
+
+  test('swipe switches an exercise, ↺ brings it back, add and remove cards', () async {
+    final (store, _) = await _store(fresh: true, setUp: true);
+    final first = store.todaySlots[0].exerciseId;
+    final others = store.todaySlots.skip(1).map((s) => s.exerciseId).toSet();
+    expect(store.swap(0, 1), isTrue);
+    final switched = store.todaySlots[0];
+    expect(switched.switched, isTrue);
+    expect(switched.initialId, first);
+    expect(others.contains(switched.exerciseId), isFalse); // never a duplicate
+    expect(store.swap(0, 1), isTrue);
+    expect(store.todaySlots[0].exerciseId, isNot(anyOf(first, switched.exerciseId)));
+    expect(store.todaySlots[0].initialId, first);
+    expect(store.resetSlot(0), isTrue);
+    expect(store.todaySlots[0].exerciseId, first);
+    expect(store.resetSlot(0), isFalse);
+
+    // A card with sets cannot be switched or removed.
+    store.addSet(0);
+    expect(store.swap(0, 1), isFalse);
+    expect(store.removeSlot(0), isFalse);
+
+    final extra = store.unusedExercises.first.id;
+    store.addExercise(extra);
+    expect(store.todaySlots.last.exerciseId, extra);
+    expect(store.todaySlots.last.initialId, isNull);
+    expect(store.unusedExercises.any((e) => e.id == extra), isFalse);
+    expect(store.removeSlot(store.todaySlots.length - 1), isTrue);
+    expect(store.removeSlot(1), isTrue);
+    expect(store.todaySlots.length, workoutSize(2) - 1);
+  });
+
+  test('class and difficulty can change; each session keeps its own', () async {
+    final (store, _) = await _store(fresh: true, setUp: true);
+    store.addSet(0);
+    store.addSet(0);
+    final xp = store.totalXp;
+    // A session with sets keeps its class and difficulty today.
+    const gym = Profile(character: Character(), classId: 'mage', difficultyId: 'd12', areaId: 'beach');
+    store.setProfile(gym);
+    expect(store.open!.classId, 'warrior');
+    expect(store.totalXp, xp);
+    // The next day uses the new class and difficulty.
+    _now = _now.add(const Duration(days: 1));
+    store.onAppOpened();
+    expect(store.todaySlots.length, workoutSize(11));
+    expect(exercisesById[store.todaySlots.first.exerciseId], isNotNull);
+    expect(store.todaySlots.first.exerciseId, startsWith('mage.'));
+    store.addSet(0);
+    expect(store.totalXp, xp + xpForSets(1, 11));
+    expect(store.sessions.single.difficultyId, 'd03');
+
+    // With no sets yet, a change remakes today's plan.
+    final (fresh, _) = await _store(fresh: true, setUp: true);
+    fresh.swap(0, 1);
+    fresh.setProfile(gym);
+    expect(fresh.todaySlots.first.exerciseId, startsWith('mage.'));
+  });
+
+  test('body sliders keep a history of changes', () async {
+    final (store, prefs) = await _store(fresh: true);
+    store.setProfile(_profile);
+    store.setProfile(_profile); // no change, no new entry
+    _now = _now.add(const Duration(days: 30));
+    store.setProfile(Profile(
+      character: _profile.character.copyWith(fat: 40),
+      classId: 'warrior',
+      difficultyId: 'd03',
+      areaId: 'castle',
+    ));
+    expect(store.bodyHistory.length, 2);
+    expect(store.bodyHistory.first.character, _profile.character);
+    expect(store.bodyHistory.last.character.fat, 40);
+    expect(store.bodyHistory.last.at, _now);
+    expect(LogStore(prefs, clock: () => _now).bodyHistory.length, 2);
   });
 
   // ------------------------------------------------------------- old data
@@ -186,8 +254,8 @@ void main() {
     final oldRaw = prefs.getString('sessions_v2');
     expect(store.oldXp, 4 * xpPerOldWorkout + 3 * xpPerOldRestDay);
     expect(store.totalXp, store.oldXp);
-    store.addSet('warrior.squat');
-    _now = _now.add(sessionTimeout);
+    store.addSet(0);
+    _now = _now.add(const Duration(days: 1));
     store.onAppOpened();
     store.setProfile(_profile);
     expect(prefs.getString('sessions_v2'), oldRaw);
@@ -198,9 +266,10 @@ void main() {
 
   test('backups: everything round-trips, old version-2 backups still load', () async {
     final (store, _) = await _store(setUp: true);
-    store.addSet('warrior.squat');
-    _now = _now.add(sessionTimeout);
-    store.addSet('warrior.bench'); // one closed, one open
+    store.setProfile(_profile); // one body entry
+    store.addSet(0);
+    _now = _now.add(const Duration(days: 1));
+    store.addSet(1); // one closed, one open
     final backup = store.backupJson();
     final data = jsonDecode(backup) as Map;
     expect(data['version'], 3);
@@ -211,7 +280,8 @@ void main() {
     await other.importBackup(backup);
     expect(other.profile!.classId, 'warrior');
     expect(other.sessions.length, 1);
-    expect(other.open!.sets, {'warrior.bench': 1});
+    expect(other.open!.totalSets, 1);
+    expect(other.bodyHistory.length, 1);
     expect(other.oldSessions.length, 7);
     expect(jsonDecode(otherPrefs.getString('logs_v2')!), jsonDecode(_oldLogs));
     expect(other.backupJson(), backup);
@@ -291,7 +361,7 @@ void main() {
     expect(saved.character, const Character(sex: 'f', height: 100, muscle: 100, fat: 0));
     expect((saved.classId, saved.difficultyId, saved.areaId), ('warrior', 'd03', 'castle'));
     expect(find.text("TODAY'S WORKOUT"), findsOneWidget);
-    expect(find.text('BACK SQUATS'), findsOneWidget);
+    expect(find.text(exerciseName(store.todaySlots.first.exerciseId).toUpperCase()), findsOneWidget);
     expect(find.text('LVL ${levelFor(store.oldXp).level}'), findsOneWidget);
     expect(pushes.pushes, 1); // only the home route: views never push routes
   });
@@ -307,14 +377,14 @@ void main() {
 
     await t.tap(find.byKey(const ValueKey('hub-workout')));
     await _frames(t);
-    final squats = find.byKey(const ValueKey('card-warrior.squat'));
+    final squats = find.byKey(const ValueKey('card-0'));
     for (var i = 0; i < 6; i++) {
       await t.tap(squats);
       await t.pump(const Duration(milliseconds: 80));
     }
     await t.longPress(squats);
     await _frames(t, 10);
-    expect(store.setsOf('warrior.squat'), 5);
+    expect(store.setsAt(0), 5);
     expect(find.text('5'), findsOneWidget);
     expect(find.text('+${5 * xpForSets(1, 2)} XP'), findsOneWidget);
     expect(find.byType(TallyMarks), findsOneWidget);
@@ -332,6 +402,68 @@ void main() {
     expect(t.takeException(), isNull);
   });
 
+  testWidgets('workout: swipe a card to switch, ↺ back, add and remove exercises', (t) async {
+    _phone(t);
+    final (store, _) = await _store(fresh: true, setUp: true);
+    await t.pumpWidget(GymApp(store: store));
+    await _frames(t);
+    await t.tap(find.byKey(const ValueKey('hub-workout')));
+    await _frames(t);
+    final first = store.todaySlots[0].exerciseId;
+    final card = find.byKey(const ValueKey('card-0'));
+
+    await t.drag(card, const Offset(-200, 0));
+    await _frames(t, 10);
+    expect(store.todaySlots[0].switched, isTrue);
+    final now = store.todaySlots[0].exerciseId;
+    expect(find.text(exerciseName(now).toUpperCase()), findsOneWidget);
+    await t.tap(find.descendant(of: card, matching: find.text('↺')));
+    await _frames(t, 10);
+    expect(store.todaySlots[0].exerciseId, first);
+
+    // A card with sets does not switch; a message says why.
+    await t.tap(card);
+    await t.pump(const Duration(milliseconds: 100));
+    await t.drag(card, const Offset(-200, 0));
+    await _frames(t, 10);
+    expect(store.todaySlots[0].exerciseId, first);
+    expect(find.textContaining('SETS ALREADY DONE HERE'), findsOneWidget);
+
+    final n = store.todaySlots.length;
+    await t.dragUntilVisible(find.text('+ ADD EXERCISE'), find.byType(ListView).last, const Offset(0, -300));
+    await t.tap(find.text('+ ADD EXERCISE'));
+    await _frames(t, 10);
+    final extra = store.unusedExercises.first;
+    await t.tap(find.byKey(ValueKey('add-${extra.id}')));
+    await _frames(t, 10);
+    expect(store.todaySlots.length, n + 1);
+    expect(store.todaySlots.last.exerciseId, extra.id);
+
+    await t.dragUntilVisible(find.byKey(ValueKey('card-$n')), find.byType(ListView).last, const Offset(0, -300));
+    await t.tap(find.descendant(of: find.byKey(ValueKey('card-$n')), matching: find.text('✕')));
+    await _frames(t, 10);
+    expect(store.todaySlots.length, n);
+    await t.pump(const Duration(seconds: 5));
+  });
+
+  testWidgets('tap the character on the hub to edit the body sliders', (t) async {
+    _phone(t);
+    final (store, _) = await _store(fresh: true, setUp: true);
+    await t.pumpWidget(GymApp(store: store));
+    await _frames(t);
+    await t.tap(find.byKey(const ValueKey('hub-character')));
+    await _frames(t);
+    expect(find.text('CHARACTER · STEP 1 OF 4'), findsOneWidget);
+    await t.drag(find.byKey(const ValueKey('slider-FAT %')), const Offset(400, 0));
+    await t.tap(find.text('NEXT ▶'));
+    await _frames(t);
+    await t.tap(find.text('SAVE ✔'));
+    await _frames(t);
+    expect(store.profile!.character.fat, 100);
+    expect(store.bodyHistory.last.character.fat, 100);
+    expect(find.text("TODAY'S WORKOUT"), findsOneWidget);
+  });
+
   testWidgets('enough sets level you up with a burst', (t) async {
     _phone(t);
     final (store, _) = await _store(fresh: true, setUp: true);
@@ -339,7 +471,7 @@ void main() {
     await _frames(t);
     await t.tap(find.byKey(const ValueKey('hub-workout')));
     await _frames(t);
-    final card = find.byKey(const ValueKey('card-warrior.bench'));
+    final card = find.byKey(const ValueKey('card-1'));
     while (levelFor(store.totalXp).level == 1) {
       await t.tap(card);
       await t.pump(const Duration(milliseconds: 60));
@@ -366,7 +498,7 @@ void main() {
   testWidgets('a stale session closes when the app opens', (t) async {
     _phone(t);
     final (store, _) = await _store(fresh: true, setUp: true);
-    store.addSet('warrior.squat');
+    store.addSet(0);
     _now = _now.add(const Duration(days: 1));
     await t.pumpWidget(GymApp(store: store));
     await _frames(t);
@@ -408,7 +540,7 @@ void main() {
     testWidgets('every scene renders on a phone ($b)', (t) async {
       _phone(t);
       final (store, _) = await _store(setUp: true);
-      store.addSet('warrior.squat');
+      store.addSet(0);
       await t.pumpWidget(MaterialApp(
         theme: pumplexTheme(b),
         home: GameShell(store: store),
@@ -427,9 +559,11 @@ void main() {
       await t.tap(find.byIcon(Icons.more_vert));
       await _frames(t, 10);
       await tapAndSettle(find.text('🧬  EDIT CHARACTER'));
-      for (var i = 0; i < 3; i++) {
-        await tapAndSettle(find.text('NEXT ▶'));
-      }
+      await tapAndSettle(find.text('NEXT ▶')); // editing: straight to the summary
+      await tapAndSettle(find.text('DIFFICULTY'));
+      await tapAndSettle(find.text('NEXT ▶'));
+      await tapAndSettle(find.text('AREA'));
+      await tapAndSettle(find.text('NEXT ▶'));
       expect(find.text('SAVE ✔'), findsOneWidget);
       await tapAndSettle(find.text('SAVE ✔'));
       expect(find.text("TODAY'S WORKOUT"), findsOneWidget);

@@ -10,11 +10,14 @@ The plan is in [docs/app-brief.md](docs/app-brief.md) and
 
 - **First launch:** a WoW-style character screen (sex, height, muscle, fat %
   sliders, class by equipment), then difficulty, starting area and LET'S GO.
-- **Hub:** the 2D character, the level and XP bar, today's workout.
-- **Workout:** one card per exercise. Tap = one working set, long-press =
-  one less. No reps, no kilos. XP = sets × XP per set × difficulty.
-- **Free-form sessions:** no calendar, no buttons to start or stop. The rule
-  is in [docs/app-flow.md](docs/app-flow.md) §4.4.
+- **Hub:** the 2D character (tap it to change the body sliders; changes are
+  kept as a history), the level and XP bar, today's workout.
+- **Workout:** exercises from the class pool (how many depends on the
+  difficulty). Tap = one working set, long-press = one less, swipe = switch
+  the exercise, add or remove cards. No reps, no kilos.
+  XP = sets × XP per set × difficulty.
+- **Free-form sessions:** one session per calendar day, no buttons to start
+  or stop. The rule is in [docs/app-flow.md](docs/app-flow.md) §4.4.
 - The whole app is one screen: views change with a camera zoom or slide.
 - Old sessions (`sessions_v2`) give beta XP and show in PAST.
 - Menu (⋮): edit character, save / restore a backup file, chaos mode,

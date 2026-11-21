@@ -1,6 +1,6 @@
 # PUMPLEX app flow
 
-Date: 21 November 2026. Status: draft v3 (built on branch `claude/game-flow-2dbf96`).
+Date: 21 November 2026. Status: draft v4 (built on branch `claude/game-flow-2dbf96`).
 Read with [app-brief.md](app-brief.md), `pumplex.drawio` and `docs/moodboard/`.
 
 Status key: **exists** = in the app now. **later** = waits for the design team or the rules table.
@@ -47,7 +47,7 @@ flowchart TD
 | 3 | Starting area | exists | 2 placeholder areas. Real areas come from the design team. |
 | 4 | Summary | exists | Class, gear, difficulty, area. Tap a row to change it. LET'S GO (or SAVE when editing). |
 | 5 | Hub | exists | The character, the level and XP bar, today's workout card. |
-| 6 | Workout | exists | One card per exercise. Tap adds a working set, long-press removes one. Tally marks. |
+| 6 | Workout | exists | Exercises from the class pool. Tap adds a set, long-press removes one, swipe switches, add, remove, ↺. Tally marks. |
 | 7 | Reward | exists | XP shows on each card. A level-up burst when you reach a new level. |
 | 8 | Past sessions | exists | Game sessions (sets per exercise, time, XP) and the old saves (beta XP). |
 | 9 | Menu | exists | Edit character, save / restore backup, chaos mode, cel shader. |
@@ -83,42 +83,54 @@ Show it on the first launch, and again from the menu (EDIT CHARACTER).
 ### 4.1 Hub
 
 - The character, the class and difficulty name tag, the level and the XP bar.
-- Today's workout card: the class exercises, with tally marks for the sets done in the open session.
+- Tap the character (or ✎ BODY) to change the body sliders at any time. Each saved change is kept
+  in a history (for charts later). In this edit, NEXT goes straight to the summary; tap a summary row
+  to change the class, difficulty or area too.
+- Today's workout card: today's exercises, with tally marks for the sets done today.
   Tap the card: the camera zooms into the workout.
 - ◀ PAST (top left) slides to the past sessions.
 
 ### 4.2 Workout
 
-- One card per exercise (placeholder list per class, `lib/game/content.dart`).
-- Tap a card: one more working set. Long-press: one set less (for a wrong tap).
+- A workout has a set number of exercises, from the class exercise **pool**. The number depends on
+  the difficulty (`exercisesPerWorkout` in `lib/game/rules.dart`). The pools are placeholders, all in
+  `lib/game/content.dart`. The first exercise moves along the pool each day.
+- One card per exercise. Tap: one more working set. Long-press: one set less (for a wrong tap).
+- **Swipe** a card left or right: switch it for the next or previous pool exercise that is not on
+  another card. **↺** on a switched card returns it to the exercise the workout first gave.
+- **+ ADD EXERCISE** adds a card from the rest of the pool. **✕** removes a card.
+- Switch, ↺ and ✕ work only on a card with no sets (take the sets away first). Skipping = doing no sets.
 - The mark is a plain tally mark for now. Themed marks per starting area (shells, wall scratches) come later.
 - On the first workout a hint says: working sets only, warm-up sets do not count.
-- ◀ HUB (or Android back) goes back to the hub. The session stays open.
+- ◀ HUB (or Android back) goes back to the hub.
 
 ### 4.3 XP and level
 
-- XP = working sets × XP per set × difficulty multiplier.
+- XP = working sets × XP per set × difficulty multiplier of the session.
+- Each session stores the class, the difficulty and the exercise list it used, so its XP stays the
+  same when the profile changes later (for example, after joining a gym).
+- A class or difficulty change applies to today's workout only if it has no sets yet (the plan is made
+  again). Otherwise today keeps its class and difficulty, and the change shows from the next day.
 - Old sessions from `sessions_v2` give a fixed XP each (beta).
-- Every number is in `lib/game/rules.dart`: XP per set, multipliers, level curve, XP per old session.
+- Every number is in `lib/game/rules.dart`: XP per set, multipliers, level curve, XP per old session,
+  exercises per workout.
 
-### 4.4 The session rule
+### 4.4 The session rule (owner's decision: one session per calendar day)
 
-There is no I WORKED button, so the app decides when a session starts and ends:
+There is no I WORKED button. The calendar day decides:
 
-1. A session **starts** with its first working-set mark.
-2. It **closes** when the app is opened (cold start, or back from the background) on a
-   **later calendar day** than its last mark.
-3. It also **closes** after **3 hours with no new mark** (`sessionTimeout` in `lib/game/rules.dart`).
-   The app checks this when it opens and before each new mark.
-4. A mark while the app stays open after midnight does not split the workout (only rule 3 applies then).
-5. A long-press that removes the last set of a session removes the session (it did not happen).
-6. A closed session never opens again. The next mark starts a new one.
+1. **One session per calendar day.** All set marks (and workout changes) on the same day belong to that day's session.
+2. The session **opens** with the first mark or change of the day.
+3. It **closes** when the app is opened, or a set is marked, on a **later calendar day**.
+   (A workout that goes past midnight becomes 2 sessions.)
+4. A day with no working sets is not kept (skipped day).
+5. A closed session never opens again.
 
 When the app opens and closes a session, a message says: "LAST SESSION BANKED: N SETS · +X XP".
 
 ## 5. History
 
-- Game sessions: date, sets, time from the first to the last mark, class, XP, tally per exercise.
+- Game sessions: date, sets, time from the first to the last change, class, XP, tally per exercise.
   The open session shows first, marked NOW.
 - Old saves (from the old app): date, worked or rested, time if the old clock was used.
 
@@ -127,7 +139,7 @@ When the app opens and closes a session, a message says: "LAST SESSION BANKED: N
 | Case | What the app does |
 |---|---|
 | First launch with old data (sessions exist) | Run the initial setup. Old sessions become XP (beta). |
-| App closed during a workout | The marks are saved. Open the app to continue (the session rule applies). |
+| App closed during a workout | The marks are saved. Open the app the same day to continue. |
 | Wrong mark | Long-press the exercise card. |
 | Restore a backup | Replace all data. Old version-2 backups still load; they have no game data, so the setup runs again. |
 
@@ -137,7 +149,8 @@ The temporary data model is in `lib/game/model.dart` (notes at the top of the fi
 The real schema is designed in a separate document.
 
 - Profile (`game_profile_v1`): character (sex, height, muscle, fat 0–100), class id, difficulty id, area id.
-- Sessions (`game_sessions_v1`, open one in `game_open_v1`): first and last mark time, class id,
-  difficulty id, working sets per exercise id.
+- Body history (`game_body_v1`): every saved slider change, with its time.
+- Sessions (`game_sessions_v1`, today's in `game_open_v1`): day, first and last change time, class id,
+  difficulty id, and the exercise list (current exercise, first exercise, working sets per card).
 - XP and level are not stored. They are computed.
 - Old keys `sessions_v2`, `logs_v2`, `swaps_v2` are never changed by the game and stay in backups.

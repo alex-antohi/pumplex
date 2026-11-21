@@ -33,7 +33,9 @@ class GameClass {
   /// Placeholder icon (emoji) until the design has class art.
   final String icon;
 
-  /// Placeholder list. It will be replaced by the real workouts.
+  /// The class exercise POOL (placeholder, TBD by design). A workout takes
+  /// `workoutSize(difficulty)` of them (lib/game/rules.dart); the user can
+  /// swap, add and remove exercises from this pool.
   final List<Exercise> exercises;
 }
 
@@ -57,6 +59,10 @@ const gameClasses = <GameClass>[
       Exercise('speedy.burpees', 'Burpees'),
       Exercise('speedy.sprints', 'Sprints'),
       Exercise('speedy.jumps', 'Jump squats'),
+      Exercise('speedy.lunges', 'Lunges'),
+      Exercise('speedy.plank', 'Plank'),
+      Exercise('speedy.climbers', 'Mountain climbers'),
+      Exercise('speedy.jacks', 'Jumping jacks'),
     ],
   ),
   GameClass(
@@ -71,6 +77,10 @@ const gameClasses = <GameClass>[
       Exercise('rogue.pushups', 'Push-ups'),
       Exercise('rogue.rows', 'Dumbbell rows'),
       Exercise('rogue.climbers', 'Mountain climbers'),
+      Exercise('rogue.kbswing', 'Kettlebell swings'),
+      Exercise('rogue.press', 'Dumbbell press'),
+      Exercise('rogue.lunges', 'Dumbbell lunges'),
+      Exercise('rogue.burpees', 'Burpees'),
     ],
   ),
   GameClass(
@@ -85,6 +95,10 @@ const gameClasses = <GameClass>[
       Exercise('warrior.deadlift', 'Deadlifts'),
       Exercise('warrior.bench', 'Bench press'),
       Exercise('warrior.press', 'Overhead press'),
+      Exercise('warrior.row', 'Barbell rows'),
+      Exercise('warrior.frontsquat', 'Front squats'),
+      Exercise('warrior.rdl', 'Romanian deadlifts'),
+      Exercise('warrior.curls', 'Barbell curls'),
     ],
   ),
   GameClass(
@@ -99,6 +113,10 @@ const gameClasses = <GameClass>[
       Exercise('mage.pulldown', 'Lat pulldown'),
       Exercise('mage.chest', 'Chest press'),
       Exercise('mage.cablerow', 'Cable rows'),
+      Exercise('mage.legcurl', 'Leg curls'),
+      Exercise('mage.legext', 'Leg extensions'),
+      Exercise('mage.shoulder', 'Shoulder press machine'),
+      Exercise('mage.flyes', 'Pec deck'),
     ],
   ),
 ];
@@ -157,3 +175,12 @@ const areas = <Area>[
 ];
 
 Area areaById(String? id) => areas.firstWhere((a) => a.id == id, orElse: () => areas.first);
+
+/// Every exercise of every class, by id.
+final Map<String, Exercise> exercisesById = {
+  for (final c in gameClasses)
+    for (final e in c.exercises) e.id: e,
+};
+
+/// Display name of an exercise id (the id itself if it is unknown).
+String exerciseName(String id) => exercisesById[id]?.name ?? id;

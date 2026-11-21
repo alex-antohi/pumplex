@@ -52,15 +52,25 @@ int xpToNext(int level) => levelBaseXp + levelStepXp * (level - 1);
 
 // -------------------------------------------------------------- sessions
 
-/// THE SESSION RULE (also in docs/app-flow.md §4.4).
-///
-/// - A session starts with its first working-set mark.
-/// - It closes when the app is opened (cold start or back from the
-///   background) on a later calendar day than its last mark,
-/// - or when [sessionTimeout] passes with no new mark (checked on open and
-///   before each new mark).
-/// - A closed session never opens again. The next mark starts a new one.
-const sessionTimeout = Duration(hours: 3);
+// THE SESSION RULE (also in docs/app-flow.md §4.4), owner's decision:
+// ONE SESSION PER CALENDAR DAY.
+//
+// - Every set mark and plan change on the same calendar day belongs to
+//   that day's session. The session opens on the first one.
+// - It closes when the app is opened, or a set is marked, on a later
+//   calendar day. A session with no working sets is dropped (skipped day).
+// - A closed session never opens again.
+// (No numbers needed: the rule is the calendar day.)
+
+// --------------------------------------------------------------- workouts
+
+/// Exercises in a new workout, per difficulty level (same order as
+/// `difficulties`). Capped by the size of the class pool.
+const exercisesPerWorkout = <int>[3, 3, 3, 4, 4, 4, 5, 5, 5, 6, 6, 6];
+
+/// Exercises in a workout for difficulty index [difficulty].
+int workoutSize(int difficulty) =>
+    exercisesPerWorkout[difficulty.clamp(0, exercisesPerWorkout.length - 1)];
 
 // ------------------------------------------------------------- character
 
