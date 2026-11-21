@@ -28,6 +28,7 @@ This folder is the copy in the repo. Use it as the reference when building game 
 | `canvas/ClassSelect.dc.html` | Board 6, "Class select": setup step 2, picking a class by equipment. Interactive, runs only inside the canvas. The copy and layout are in "Class select" below. |
 | `canvas/StartingAreas.dc.html` | Board 7, "Starting areas": setup step 4, five areas with scene, palette, default path and a working tap-to-mark demo. Interactive, runs only inside the canvas. Spec in "Starting areas" below. |
 | `canvas/Workout.dc.html` | Board 8, "Workout": the play screen (app-flow §4.2) in Rustbelt Flats for a Scrapper: exercise strip, barrel = one working set, long-press undo, I WORKED and a reward overlay. Interactive, runs only inside the canvas. Spec in "Workout screen" below. |
+| `canvas/Difficulty.dc.html` | Board 9, "Difficulty": setup step 3, a six-rung ladder of fantasy-named levels with XP gems and a title card. Interactive, runs only inside the canvas. Spec in "Difficulty" below. |
 | `canvas/` | Design-canvas source (`canvas.json`, `*.dc.html`), including the interactive Creator and Class select boards, which only run inside the canvas. Only needed to re-import into the canvas. |
 | `../../tools/moodboard/animate.mjs` | Regenerates every animation frame from the body sliders. `node tools/moodboard/animate.mjs` |
 | `../../tools/moodboard/boards.mjs` | Regenerates `animation.html`, `readability.html` and their canvas copies. Run after `animate.mjs`. |
@@ -278,4 +279,34 @@ Rules:
 - **Reward overlay on I WORKED:** freeze-frame stripes, a **WORKOUT CRUSHED** stencil slam, `+[XP] XP` (placeholder: XP rules are still open, brief 4.8), the sets per exercise, the time, and **BACK TO HUB**.
 
 For other areas, swap the scene and the action object. Everything else stays the same (see "Starting areas").
+
+## Difficulty (setup step 3)
+
+**Reference board, not an app screen.** Brief 4.3: many levels from total beginner to years of lifting, fantasy names, Borderlands tone.
+Owner choices (21 Nov 2026): **6 levels**, a **vertical ladder** picker, XP shown as **gems with no numbers**, and names written here (proposals).
+
+Screen, top to bottom (390×844 dp):
+
+1. `STEP 3 OF 5 · DIFFICULTY`, title **HOW HARD DO YOU GO?**, subline "Climb to your rung. Higher rungs earn more XP."
+2. **The ladder:** two wooden rails with 6 rung buttons between them (a radio group), expert at the top and beginner at the bottom.
+   Each rung has a diamond in its rarity colour, the name, and 1–6 XP gems. The picked rung fills with its colour and gets a pink hard shadow.
+3. **Detail card:** the name in its colour, `RUNG n OF 6`, who it is for, and the XP gems. The card's shadow takes the level colour.
+4. **NEXT: STARTING AREA**.
+
+Picking a rung plays the **freeze-frame title card** (same as Class select): a stencil slam of the name and a joke subtitle.
+It closes after 1.8 s or on tap.
+
+| Rung | Rarity colour | Name | Who it's for | Title-card joke | XP gems |
+| --- | --- | --- | --- | --- | --- |
+| 1 | muted `#c9b8e8` | **COUCH SPAWN** | Never lifted, or not for years. Freshly respawned from the sofa. | THE SOFA WILL REMEMBER YOU | 1 |
+| 2 | lime `#c6ff3d` | **DUMBBELL SQUIRE** | A few weeks to a few months in. Knows where the mats live. | SQUIRE TODAY, LEGEND LATER | 2 |
+| 3 | sky `#3fd2ff` | **REP RANGER** | Trains most weeks, for about a year. Has opinions about grip. | RANGES REPS, NOT CATTLE | 3 |
+| 4 | violet `#a77bff` | **GAIN WARLOCK** | About two years in. Summons the pump on demand. | CASTS PUMP ON SELF | 4 |
+| 5 | orange `#ffa033` | **BARBELL WARLORD** | Years of serious lifting. The squat rack fears them. | CONQUERS RACKS, RETURNS PLATES | 5 |
+| 6 | pink `#ff5fb0` | **ASCENDED SWOLEMANCER** | Many years, competition level. Gyms whisper their name. | HAS BEEN WARNED BY GRAVITY | 6 |
+
+- The gem count is a **picture of the XP multiplier**, not the number. The real multipliers come with the XP rules (brief §8, item 3).
+- The colours follow the rarity ladder from `borderlands-reference.md` §4, so harder reads as rarer.
+- "Ascended Swolemancer" uses the marketing draft's app name. Rename it if the app name changes.
+- The tone is loud and silly, never mean about bodies, as the reference asks.
 
