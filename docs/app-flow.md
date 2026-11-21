@@ -1,6 +1,6 @@
 # PUMPLEX app flow
 
-Date: 21 November 2026. Status: draft v6 (built on branch `claude/game-flow-2dbf96`).
+Date: 21 November 2026. Status: draft v7 (built on branch `claude/game-flow-2dbf96`).
 Read with [app-brief.md](app-brief.md), `data-schema.md`, `pumplex.drawio` and `docs/moodboard/`.
 
 Status key: **exists** = in the app now. **later** = waits for the design team or the rules table.
@@ -30,13 +30,13 @@ flowchart TD
     old -- no --> setupDone{Setup done?}
     setupDone -- no --> char[Character: sliders]
     char --> cls[Class: CHOOSE YOUR PATH, freeze-frame intro card]
-    cls --> diff[Difficulty: fantasy-named levels]
-    diff --> area[Starting area]
-    area --> summary[Summary: LET'S GO]
+    cls --> diff[Difficulty: 6 modes, ladder, freeze-frame title card]
+    diff --> area[Starting area: 5 areas, the class picks the default]
+    area --> summary[Summary: READY? LET'S GO]
     summary --> hub
     setupDone -- yes --> hub[Hub: character, level, XP bar, week streak, today's workout]
 
-    hub -- tap the workout card --> work[Workout: tap = +1 set, hold = -1, swipe = switch]
+    hub -- tap the workout card --> work[Workout: tap the object = +1 set, hold = -1, swipe the card = switch]
     work -- each set --> xp[XP, critical sets, level-up intro card, achievement and gear bursts]
     work -- HUB --> hub
 
@@ -51,13 +51,13 @@ flowchart TD
 | # | Scene | Status | Purpose |
 |---|---|---|---|
 | 0 | Upgrade | exists | Only with old-app data. SAVE BACKUP & UPGRADE, or NOT NOW. |
-| 1 | Character | exists | WoW-style: the character large in the centre on a pedestal. Sex toggle, 🎲 random, sliders for height, muscle and fat %. Changes live. |
+| 1 | Character | exists | WoW-style: the character large in the centre on a pedestal. Sex toggle, 🎲 random, sliders for height, muscle and fat %. Changes live. The sprite comes from the 5×5 body atlas. |
 | 2 | Class select | exists | CHOOSE YOUR PATH: preview card (lifter, loadout, 3 tags), description, 4 class buttons, NEXT: DIFFICULTY. Freeze-frame intro card on each pick. |
-| 3 | Difficulty | exists | 12 fantasy-named levels. Shows exercises per workout and the XP multiplier. |
-| 4 | Starting area | exists | 2 placeholder areas. Real areas come from the design team. |
+| 3 | Difficulty | exists | 6 modes from the design board, Sofa to Nightmare Mode. A ladder with XP gems, no numbers. Freeze-frame title card on each pick. |
+| 4 | Starting area | exists | 5 areas from the design board. The class picks the default area. The scene swatches are placeholders. |
 | 5 | Summary | exists | Class, gear (equipment), difficulty, area. Tap a row to change it. LET'S GO (or SAVE when editing). |
 | 6 | Hub | exists | The character, equipped gear icons, level and XP bar, week streak, today's workout card. |
-| 7 | Workout | exists | Exercises from the class pool, each with a set target. Tap, long-press, swipe, add, remove, ↺. Tally marks. |
+| 7 | Workout | exists | Exercise strip, the area's world scene and the active exercise card. Tap the object = +1 set, hold = −1. Swipe, add, remove, ↺. Area marks stay in the world. |
 | 8 | Reward | exists | XP on each card. CRITICAL SET message. Freeze-frame intro card for level-ups; bursts for achievements and new gear. |
 | 9 | Past sessions | exists | Training days (sets per exercise against the target, time, class, area, XP) and old saves. |
 | 10 | Gear | exists | Items per slot (head, top, bottom, shoes, weapon). Locked items show their level. |
@@ -73,8 +73,10 @@ the whole setup from the menu (EDIT CHARACTER).
 
 1. **Character.**
    - Pick male or female. Sliders: height, muscle size, fat %. The user never types a weight or a height.
-   - Sprites: mood board body sliders (fat 0/50/100 × muscle 0/50/100 per sex). The app shows the
-     nearest frame for in-between values and stretches the sprite vertically for height.
+   - Sprites: the design team's 5×5 body atlas (`assets/body/body_atlas.png`, a copy of
+     `docs/moodboard/creator/body_atlas.png`). Fat and muscle each have stops at 0/25/50/75/100,
+     per sex. The app shows the nearest cell for in-between values.
+   - The HEIGHT slider stretches the sprite vertically (owner decision D11).
      Nearest-neighbour scaling only. Gear never changes the body.
 2. **Class select** (design: `docs/moodboard/README.md` "Class select").
    - Kicker `STEP 2 OF 5 · THE SWOLEMANCER'S PATHS`, title CHOOSE YOUR PATH, subline "What do you train with?".
@@ -96,8 +98,40 @@ the whole setup from the menu (EDIT CHARACTER).
      It closes after 1.8 s or on a tap. A new pick restarts it. Reduced motion: no slam or slide.
    - NEXT: DIFFICULTY.
    - Note: the design shows a preview body per class; the app keeps the body the user made in step 1.
-3. **Difficulty.** 12 levels with our own fantasy names (placeholders, `lib/game/content.dart`).
-4. **Starting area.** Placeholders. Later: background, palette and set-mark style.
+3. **Difficulty** (design: `docs/moodboard/README.md` "Difficulty").
+   - 6 modes, names in `lib/game/content.dart`: Sofa, Warm-up, Sweat, Pain, Brutal, Nightmare Mode.
+   - A vertical ladder, the hardest mode on top. Each rung has a diamond in its rarity colour and
+     XP gems. The ladder shows no numbers.
+   - A detail card: "DIFFICULTY n OF 6", who the mode is for, and the XP gems.
+   - Each pick shows the freeze-frame title card over the detail card (the same card as in step 2).
+   - The numbers per mode are in `lib/game/rules.dart`:
+
+     | Mode | Exercises | Target sets | XP multiplier | Streak N (days per week) |
+     |---|---|---|---|---|
+     | Sofa | 3 | 2 | 1.0 | 2 |
+     | Warm-up | 3 | 3 | 1.2 | 2 |
+     | Sweat | 4 | 3 | 1.4 | 2 |
+     | Pain | 5 | 4 | 1.6 | 3 |
+     | Brutal | 6 | 4 | 1.8 | 3 |
+     | Nightmare | 8 | 5 | 2.0 | 4 |
+
+   - NEXT: STARTING AREA.
+4. **Starting area** (design: `docs/moodboard/README.md` "Starting areas").
+   - 5 areas. Each area has an object to hit, a set-mark style and a stamp for every 5th set:
+
+     | Area | Object | Set marks | Stamp | Default for |
+     |---|---|---|---|---|
+     | Riptide Shore | treasure chest | shells | PEARL! | — |
+     | Gainsgard Keep | wall | tally marks | SLASHED! | Plate Paladin |
+     | Rustbelt Flats | barrel | spray-painted Xs | TAGGED! | Scrapper |
+     | Arcade Underpass | punch machine | tickets | COMBO! | Bargain Bruiser |
+     | Frostbite Summit | ice block | flags up a slope | SUMMIT! | Cablemancer |
+
+   - The class picks the default area until the user picks one. The user can choose any area.
+   - Each area card shows a scene swatch (dark sky, light floor, the object).
+     The default area shows "YOUR PATH'S HOME".
+   - The scenes and objects are placeholders (colours and emoji) until the pixel art exists.
+   - NEXT: READY?.
 5. **Summary.** LET'S GO saves the profile. If old sessions were upgraded, the welcome burst shows their XP.
 
 ## 4. Play
@@ -115,19 +149,37 @@ the whole setup from the menu (EDIT CHARACTER).
 
 ### 4.2 Workout
 
+Design: `docs/moodboard/README.md` "Workout screen", with the owner's rules (`docs/decisions.md`).
+
 - A workout has a set number of exercises from the class exercise **pool**: 3 at the easiest
-  difficulty, 8 at the hardest. Each exercise has a **target** number of working sets from the
-  difficulty. The pools are placeholders, all in `lib/game/content.dart`. The first exercise moves
-  along the pool each day.
-- One card per exercise, with "sets / target". Tap: one more working set. Long-press: one set less.
-- **Swipe** a card left or right: switch it for the next or previous pool exercise that is not on
-  another card. **↺** on a switched card returns it to the exercise the workout first gave.
-- **+ ADD EXERCISE** adds a card from the rest of the pool. **✕** removes a card (kept in the
-  session as removed).
-- Switch, ↺ and ✕ work only on a card with no sets (take the sets away first). Skipping = doing no sets.
-- The mark is a plain tally mark for now. Themed marks per starting area (shells, wall scratches) come later.
-- On the first workout a hint says: working sets only, warm-up sets do not count.
+  difficulty, 8 at the hardest (§3). Each exercise has a **target** number of working sets from
+  the difficulty. The pools are placeholders, all in `lib/game/content.dart`. The first exercise
+  moves along the pool each day.
+- **Header:** "TODAY'S WORKOUT · <AREA>" and ◀ HUB.
+- **Exercise strip:** one card per exercise. Each card shows the name, the target slots as Xs
+  (filled in rarity colours), +n for sets over the target, and a status: NOW, NEXT UP or CRUSHED.
+  Tap a card to make it the active exercise.
+- **World scene:** the area's scene with the lifter and the area's object.
+  - TAP THE OBJECT: one working set of the active exercise.
+  - HOLD THE OBJECT: take the last set back.
+  - Each set shakes the scene in hard steps (320 ms). A starburst says "+1 SET", "CRUSHED!" at
+    the target, or the area's stamp on every 5th set.
+  - The marks stay in the world, in the area's mark style, in groups of five.
+  - At the target, the strip moves to the next unfinished exercise after 0.8 s.
+- **Active exercise card** (below the scene): sets / target and XP.
+  - **Swipe** the card left or right: switch to the next or previous pool exercise that is not
+    in the workout yet. **↺** returns a switched exercise to the one the workout first gave.
+  - **✕** removes the exercise (kept in the session as removed).
+  - Switch, ↺ and ✕ work only on an exercise with no sets (take the sets away first).
+    Skipping = doing no sets.
+- **+ ADD EXERCISE** adds an exercise from the rest of the pool.
+- **Tips:** the area's tap hint and the XP per set. On the first workout a tip also says:
+  working sets only, warm-up sets do not count.
+- The scenes and objects are placeholders (colours and emoji) until the pixel art exists.
+- Reduced motion: no shake and no bob.
 - ◀ HUB (or Android back) goes back to the hub.
+- Not used from the design board: the I WORKED button, the running clock and "SESSION n"
+  (owner decisions D6 and D7 in `docs/decisions.md`). There is one session per calendar day (§4.4).
 
 ### 4.3 XP, level, gear, achievements
 
@@ -135,7 +187,7 @@ The numbers come from `docs/rules.md` (draft v1). They are all in `lib/game/rule
 
 | Source | XP |
 |---|---|
-| Working set | 10 × difficulty multiplier (1.0 → 2.0). Sets above the target ×1.5, up to 2× the target; beyond that 0. |
+| Working set | 10 × difficulty multiplier (1.0 → 2.0, 6 modes). Sets above the target ×1.5, up to 2× the target; beyond that 0. |
 | Critical set | 3% chance, ×2, "CRITICAL SET!!!". The roll is repeatable (seed: date, exercise, set number). |
 | Streak bonus | +5% set XP per streak week in a row (the weeks before this one), max +25%. |
 | First set of the day | +50. |
@@ -185,7 +237,7 @@ There is no I WORKED button. The calendar day decides:
 |---|---|
 | First launch with old-app data | The upgrade scene. SAVE BACKUP & UPGRADE opens Android's "Save as". Only if the file is saved: old workout days become legacy sessions with XP, then the old keys are deleted. Cancel or NOT NOW: nothing changes, the scene comes back on the next launch. |
 | App closed during a workout | The marks are saved. Open the app the same day to continue. |
-| Wrong mark | Long-press the exercise card. |
+| Wrong mark | Hold the area's object in the workout scene. |
 | Restore a backup | Replace all game data. Old version-2 backups go through the same migration (legacy sessions + XP, no profile, so the setup runs again). Old-app keys on the phone are only deleted by the upgrade. |
 
 ## 7. Data

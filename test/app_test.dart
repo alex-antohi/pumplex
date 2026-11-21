@@ -14,6 +14,7 @@ import 'package:gym_app/store.dart';
 import 'package:gym_app/views/intro.dart';
 import 'package:gym_app/views/scene.dart';
 import 'package:gym_app/views/sprite.dart';
+import 'package:gym_app/views/workout.dart';
 
 // Seven days logged by the OLD app: 4 workouts, 3 rest days, and one
 // date with two workouts.
@@ -138,6 +139,58 @@ void main() {
     expect(items.map((i) => i.id).toSet().length, items.length);
     expect(achievements.map((a) => a.id).toSet().length, achievements.length);
     expect(GearSlot.values.every((s) => items.any((i) => i.slot == s)), isTrue);
+  });
+
+  test('design data: 6 difficulty modes, 5 areas, one default area per class', () {
+    expect(difficulties.map((d) => d.id), ['sofa', 'warmup', 'sweat', 'pain', 'brutal', 'nightmare']);
+    expect(difficulties.every((d) => d.name.endsWith('Mode')), isTrue);
+    expect([for (final r in difficultyRules) r.xpMultiplier], [1.0, 1.2, 1.4, 1.6, 1.8, 2.0]);
+    expect(areas.length, 5);
+    expect(areas.map((a) => a.marks).toSet(), MarkStyle.values.toSet()); // every mark style used
+    for (final c in gameClasses) {
+      expect(areas.where((a) => a.defaultFor == c.id).length, 1, reason: c.id);
+      expect(defaultAreaFor(c.id).defaultFor, c.id);
+    }
+    expect(defaultAreaFor('warrior').id, 'castle');
+    expect(areaById('nope').id, areas.first.id);
+  });
+
+  testWidgets('every area mark style draws, grouped in fives', (t) async {
+    for (final style in MarkStyle.values) {
+      for (final n in [0, 1, 5, 12]) {
+        await t.pumpWidget(MaterialApp(
+          theme: pumplexTheme(Brightness.light),
+          home: Center(child: SetMarks(style: style, count: n, color: Colors.pink)),
+        ));
+        expect(t.takeException(), isNull, reason: '$style $n');
+      }
+    }
+  });
+
+  testWidgets('the workout: CRUSHED! at the target, the area stamp on every 5th set', (t) async {
+    _phone(t);
+    final (store, _) = await _store(setUp: true); // Gainsgard Keep: SLASHED!
+    store.addSet(0); // level-ups and achievements happen here, not on screen
+    store.addSet(0);
+    store.takeUnlocks();
+    await t.pumpWidget(GymApp(store: store));
+    await _frames(t);
+    await t.tap(find.byKey(const ValueKey('hub-workout')));
+    await _frames(t);
+    expect(find.text('SCRATCH THE WALL'), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('world-object'))); // 3rd set = target
+    await t.pump(const Duration(milliseconds: 100));
+    expect(find.text('CRUSHED!'), findsOneWidget);
+    await _frames(t, 40);
+    await t.tap(find.byKey(const ValueKey('strip-0'))); // back to the first exercise
+    await _frames(t, 4);
+    await t.tap(find.byKey(const ValueKey('world-object')));
+    await _frames(t, 4);
+    await t.tap(find.byKey(const ValueKey('world-object'))); // 5th set
+    await t.pump(const Duration(milliseconds: 100));
+    expect(find.text('SLASHED!'), findsOneWidget);
+    expect(store.todayExercises[0].sets, 5);
+    await _frames(t, 80);
   });
 
   test('sprites: nearest drawn frame for slider values', () {

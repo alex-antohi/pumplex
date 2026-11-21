@@ -35,7 +35,10 @@ class _Nav extends StatelessWidget {
             child: BrutalButton(
               color: p.pink,
               onTap: onNext,
-              child: Text(next, textAlign: TextAlign.center, style: display(24, p.on)),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(next, maxLines: 1, softWrap: false, textAlign: TextAlign.center, style: display(24, p.on)),
+              ),
             ),
           ),
         ],
@@ -397,7 +400,7 @@ String gems(int i) => '◆' * (i + 1);
 /// title card covers it).
 Rect difficultyCardRect(Size area) {
   final ladderBottom = 92 + area.height * 0.46;
-  return Rect.fromLTRB(16, ladderBottom + 10, area.width - 22, area.height - 84);
+  return Rect.fromLTRB(16, ladderBottom + 10, area.width - 22, area.height - 96);
 }
 
 /// Setup step 3 (docs/moodboard/README.md "Difficulty"): a six-rung ladder,
@@ -652,7 +655,7 @@ class _AreaCard extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        margin: const EdgeInsets.only(bottom: 14),
+        margin: const EdgeInsets.only(bottom: 10),
         transform: Matrix4.translationValues(selected ? 6 : 0, 0, 0),
         decoration: BoxDecoration(
           color: selected ? accent : p.panel,
@@ -663,8 +666,8 @@ class _AreaCard extends StatelessWidget {
           children: [
             // Scene swatch: dark sky, light floor, the object.
             SizedBox(
-              width: 74,
-              height: 74,
+              width: 60,
+              height: 60,
               child: Column(
                 children: [
                   Expanded(child: Container(color: Color(area.sky))),
@@ -673,8 +676,8 @@ class _AreaCard extends StatelessWidget {
                       color: Color(area.floor),
                       alignment: Alignment.topCenter,
                       child: Transform.translate(
-                        offset: const Offset(0, -14),
-                        child: Text(area.object, style: const TextStyle(fontSize: 26)),
+                        offset: const Offset(0, -11),
+                        child: Text(area.object, style: const TextStyle(fontSize: 22)),
                       ),
                     ),
                   ),
@@ -690,7 +693,7 @@ class _AreaCard extends StatelessWidget {
                   children: [
                     Text(area.name.toUpperCase(), style: display(19, selected ? p.on : p.ink)),
                     const SizedBox(height: 3),
-                    Text(area.line, style: mono(11, selected ? p.on : p.ink)),
+                    Text(area.line, maxLines: 1, overflow: TextOverflow.ellipsis, style: mono(10.5, selected ? p.on : p.ink)),
                     if (isDefault) ...[
                       const SizedBox(height: 5),
                       Tag('Your path\'s home', bg: kNight, fg: accent, size: 11, angle: 0),

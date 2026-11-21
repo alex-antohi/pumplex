@@ -11,13 +11,19 @@ The plan is in [docs/app-brief.md](docs/app-brief.md) and
 ## What works now
 
 - **First launch:** a WoW-style character screen (sex, height, muscle, fat %
-  sliders), class by equipment, difficulty, starting area and LET'S GO.
+  sliders; sprite from the 5×5 body atlas), class by equipment, difficulty,
+  starting area and LET'S GO.
+- **Difficulty:** 6 modes from the design board (Sofa to Nightmare Mode) on a
+  ladder with XP gems. Harder modes give more exercises, sets and XP.
+- **Starting areas:** 5 areas from the design board (Riptide Shore, Gainsgard
+  Keep, Rustbelt Flats, Arcade Underpass, Frostbite Summit). The class picks
+  the default area; the user can pick any.
 - **Hub:** the 2D character (tap it to change the body sliders; changes are
   kept as a history), the level and XP bar, today's workout.
-- **Workout:** exercises from the class pool (how many depends on the
-  difficulty). Tap = one working set, long-press = one less, swipe = switch
-  the exercise, add or remove cards. No reps, no kilos.
-  XP = sets × XP per set × difficulty.
+- **Workout:** an exercise strip and the area's world scene. Tap the object =
+  one working set, hold = one less; the marks stay in the world. Swipe the
+  active card to switch the exercise, add or remove exercises. No reps, no
+  kilos, no I WORKED button, no clock. XP = sets × XP per set × difficulty.
 - **Free-form sessions:** one session per calendar day, no buttons to start
   or stop. The rule is in [docs/app-flow.md](docs/app-flow.md) §4.4.
 - The whole app is one screen: views change with a camera zoom or slide.

@@ -382,28 +382,34 @@ class _WorldState extends State<_World> with SingleTickerProviderStateMixin {
           final floorTop = box.maxHeight * 0.55;
           final objectSize = min(box.maxWidth * 0.26, box.maxHeight * 0.34);
           final objectCenter = Offset(box.maxWidth * 0.7, floorTop + (box.maxHeight - floorTop) * 0.3);
+          final hintTop = objectCenter.dy - objectSize - 50;
+          final hintWidth = box.maxWidth * 0.56;
+          final hintLeft = min(objectCenter.dx - hintWidth / 2, box.maxWidth - hintWidth - 10);
           return Stack(
             children: [
               Positioned.fill(child: Container(color: Color(a.sky))),
               Positioned(left: 0, right: 0, top: floorTop, bottom: 0, child: Container(color: Color(a.floor))),
-              // Marks that stay in the world (the count), top right.
+              // Marks that stay in the world (the count), top right, above
+              // the hint (they never run into it: the box clips).
               Positioned(
                 right: 10,
-                top: 10,
+                top: 8,
                 width: box.maxWidth * 0.5,
-                height: floorTop - 20,
+                height: max(0, hintTop - 12),
                 child: e == null
                     ? const SizedBox()
-                    : Align(
-                        alignment: Alignment.topRight,
-                        child: SetMarks(style: a.marks, count: e.sets, color: accent, key: const ValueKey('marks')),
+                    : ClipRect(
+                        child: Align(
+                          alignment: Alignment.topRight,
+                          child: SetMarks(style: a.marks, count: e.sets, color: accent, key: const ValueKey('marks')),
+                        ),
                       ),
               ),
               // The hint, bobbing in hard steps.
               Positioned(
-                left: objectCenter.dx - box.maxWidth * 0.3,
-                width: box.maxWidth * 0.6,
-                top: objectCenter.dy - objectSize - 46,
+                left: hintLeft,
+                width: hintWidth,
+                top: hintTop,
                 child: AnimatedBuilder(
                   animation: _bob,
                   builder: (context, child) => Transform.translate(
@@ -417,7 +423,7 @@ class _WorldState extends State<_World> with SingleTickerProviderStateMixin {
                         const SizedBox(height: 3),
                         Text(
                           '${exerciseName(e.exerciseId).toUpperCase()} · SET ${e.sets + 1} OF ${e.targetSets}',
-                          style: mono(10, Colors.white),
+                          style: mono(12, Colors.white),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -544,7 +550,7 @@ class SetMarks extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = Pal.of(context);
     return CustomPaint(
-      size: Size(150, 22.0 * ((count + 9) ~/ 10).clamp(1, 6)),
+      size: Size(146, 22.0 * ((count + 9) ~/ 10).clamp(1, 6)),
       painter: _Marks(style, count, color, p.ink, [for (var k = 0; k < 5; k++) rarity(p, k)]),
     );
   }
@@ -572,7 +578,8 @@ class _Marks extends CustomPainter {
     const cell = 14.0, gap = 6.0, row = 22.0;
     for (var i = 0; i < n && i < 60; i++) {
       final group = i ~/ 5, k = i % 5;
-      final x = size.width - ((group % 2) * (5 * cell + gap) + (5 - k) * cell);
+      // Read left to right: two groups of five per row, then the next row.
+      final x = (group % 2) * (5 * cell + gap) + k * cell;
       final y = (group ~/ 2) * row + 2;
       final fifth = k == 4;
       switch (style) {

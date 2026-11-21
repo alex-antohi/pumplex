@@ -29,6 +29,7 @@ class LevelBar extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
+                width: double.infinity,
                 height: 22,
                 decoration: BoxDecoration(
                   color: kNight,
