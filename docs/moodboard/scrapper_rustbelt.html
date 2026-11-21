@@ -1,0 +1,1002 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scrapper in Rustbelt Flats · 5 takes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Space+Mono:wght@400;700&amp;display=swap" rel="stylesheet">
+<!--
+  Board 10, "Scrapper × Rustbelt Flats": one class in one area, five takes.
+  Every take is a 172 x 224 pixel canvas drawn by hand (no images except the lifter frames
+  from animation/female_fat0_muscle0, the closest body to the Scrapper's F 0/25), shown at 2x
+  with nearest-neighbour scaling. Ambient motion runs on a 100 ms hard step, never eased.
+  The barrel is the real action (tap = +1 set, hold 550 ms = take it back).
+  Everything else on the canvas is a useless interaction on purpose.
+-->
+<style>
+:root {
+  --bg: #12061f; --surface: #1f0d36; --raised: #2a1148; --ink: #0b0414; --text: #f6eeff; --muted: #c9b8e8; --line: #4b2a7a;
+  --pink: #ff5fb0; --lime: #c6ff3d; --orange: #ffa033; --violet: #a77bff; --sky: #3fd2ff;
+  --display: Anton, Impact, "Arial Narrow", sans-serif;
+  --body: "Space Mono", ui-monospace, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: radial-gradient(rgba(167,123,255,.10) 2px, transparent 2.5px) 0 0 / 22px 22px, var(--bg);
+  color: var(--text); font-family: var(--body); font-size: 13px; line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+}
+button { font: inherit; color: inherit; }
+.wrap { max-width: 1960px; margin: 0 auto; padding: 40px 16px 64px; }
+.head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 32px; margin-bottom: 36px; }
+.kicker { margin: 0; font-weight: 700; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+h1 { margin: 6px 0 0; font-family: var(--display); font-weight: 400; font-size: clamp(36px, 6vw, 60px); line-height: .95; letter-spacing: 1px; text-transform: uppercase; text-shadow: 3px 3px 0 var(--orange), 6px 6px 0 #724eb2; }
+h1 span { display: inline-block; cursor: pointer; }
+h1 span.hop { animation: hop .3s steps(3, end); }
+.sub { margin: 10px 0 0; color: var(--muted); max-width: 64ch; }
+.waste { background: var(--ink); border: 3px solid var(--lime); padding: 8px 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; font-size: 12px; }
+.waste b { font-family: var(--display); font-weight: 400; font-size: 28px; color: var(--lime); margin-right: 6px; vertical-align: -3px; }
+.waste small { display: block; color: var(--muted); font-size: 10px; }
+
+.takes { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 384px), 1fr)); gap: 36px 28px; }
+.take { background: var(--surface); border: 4px solid var(--ink); box-shadow: 8px 8px 0 var(--c); padding: 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.take header { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.take .no { background: var(--c); color: var(--ink); font-family: var(--display); font-size: 14px; letter-spacing: 1px; padding: 2px 8px 1px; border: 2px solid var(--ink); }
+.take h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 30px; line-height: 1; letter-spacing: 1px; text-transform: uppercase; color: var(--c); text-shadow: 2px 2px 0 var(--ink); }
+.take .tag { width: 100%; margin: 0; color: var(--muted); font-style: italic; }
+
+.stage { position: relative; width: 100%; max-width: 344px; aspect-ratio: 172 / 224; border: 4px solid var(--ink); box-shadow: 5px 5px 0 var(--c); box-sizing: content-box; overflow: hidden; user-select: none; -webkit-user-select: none; }
+.stage canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; image-rendering: crisp-edges; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.stage.shake { animation: shake .32s steps(6, end); }
+.hint { position: absolute; left: -4px; top: 8px; z-index: 3; padding: 4px 10px 3px; border: 3px solid var(--ink); background: var(--c); color: var(--ink); font-family: var(--display); font-size: 15px; letter-spacing: 1px; line-height: 1; transform: rotate(-2deg); animation: nudge 1.4s steps(2, end) infinite; pointer-events: none; }
+.fx { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+.bubble { position: absolute; transform: translate(-50%, -100%); background: var(--ink); color: var(--text); border: 2px solid var(--c); padding: 3px 7px 2px; font-weight: 700; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; white-space: nowrap; animation: pop .18s steps(3, end) both; }
+.bubble::after { content: ""; position: absolute; left: 50%; bottom: -7px; margin-left: -3px; border: 3px solid transparent; border-top: 4px solid var(--c); }
+.burst { position: absolute; width: 92px; height: 92px; margin: -46px 0 0 -46px; display: flex; align-items: center; justify-content: center; animation: burst .5s steps(5, end) both; }
+.burst::before, .burst::after { content: ""; position: absolute; inset: 0; clip-path: polygon(50% 0,61% 30%,93% 18%,74% 45%,100% 62%,68% 66%,72% 100%,50% 76%,28% 100%,32% 66%,0 62%,26% 45%,7% 18%,39% 30%); }
+.burst::before { background: var(--ink); }
+.burst::after { inset: 7px; background: var(--fx); }
+.burst b { position: relative; z-index: 1; font-family: var(--display); font-weight: 400; font-size: 17px; line-height: 1; color: var(--ink); transform: rotate(-8deg); text-align: center; }
+.toast { position: absolute; left: 8px; right: 8px; bottom: 8px; z-index: 5; background: var(--ink); border: 3px solid var(--lime); padding: 6px 10px; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; animation: pop .18s steps(3, end) both; }
+
+.meta { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-weight: 700; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+.meta b { color: var(--text); }
+.pokes { display: flex; flex-wrap: wrap; gap: 6px; }
+.pokes button { appearance: none; min-height: 36px; padding: 4px 10px; background: var(--ink); border: 2px solid var(--line); color: var(--muted); font-weight: 700; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; }
+.pokes button.real { border-color: var(--lime); color: var(--lime); }
+.pokes button:hover { border-color: var(--c); color: var(--text); }
+.pokes button:active { transform: translate(2px, 2px); }
+.pokes button:focus-visible { outline: 3px dashed var(--text); outline-offset: 2px; }
+.notes { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; color: var(--muted); font-size: 12px; }
+.notes li::before { content: "\25A0  "; color: var(--c); }
+.notes b { color: var(--text); }
+
+.award { position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: repeating-linear-gradient(-55deg, rgba(11,4,20,.88) 0 12px, rgba(11,4,20,.74) 12px 24px); cursor: pointer; }
+.award .slam { font-family: var(--display); font-size: clamp(28px, 7vw, 48px); letter-spacing: 1px; text-transform: uppercase; line-height: 1; color: var(--ink); background: var(--lime); border: 4px solid var(--ink); box-shadow: 6px 6px 0 var(--ink); padding: 6px 14px 4px; transform: rotate(-6deg); animation: slam .42s steps(6, end) both; text-align: center; }
+.award .s2 { font-weight: 700; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; color: var(--lime); background: var(--ink); padding: 4px 10px; transform: rotate(-3deg); animation: slide .3s steps(4, end) .3s both; }
+.foot { margin-top: 40px; color: var(--muted); font-size: 12px; max-width: 90ch; }
+.foot b { color: var(--text); }
+
+@keyframes shake { 20% { transform: translate(-5px, 2px); } 40% { transform: translate(5px, -2px); } 60% { transform: translate(-3px, -1px); } 80% { transform: translate(2px, 2px); } 100% { transform: none; } }
+@keyframes nudge { 50% { transform: rotate(-2deg) translateY(-3px); } }
+@keyframes pop { 0% { opacity: 0; transform: translate(-50%, -100%) scale(.5); } 100% { opacity: 1; } }
+.toast { animation-name: tpop; }
+@keyframes tpop { 0% { opacity: 0; transform: translateY(8px); } 100% { opacity: 1; } }
+@keyframes burst { 0% { transform: scale(.3) rotate(-20deg); opacity: 0; } 40% { transform: scale(1.15); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes slam { 0% { transform: rotate(-6deg) scale(2.2); opacity: 0; } 100% { transform: rotate(-6deg) scale(1); opacity: 1; } }
+@keyframes slide { 0% { transform: rotate(-3deg) translateX(-60px); opacity: 0; } 100% { transform: rotate(-3deg); opacity: 1; } }
+@keyframes hop { 50% { transform: translateY(-10px) rotate(-6deg); } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div>
+      <p class="kicker">Moodboard · board 10 · class × area study</p>
+      <h1 id="title" aria-label="Scrapper in Rustbelt Flats"></h1>
+      <p class="sub">One class in its home area, five takes. More pixels, more motion, and a pile of things to poke that do nothing useful at all.
+        Only the barrel counts: <b>tap = +1 set</b>, <b>hold = take it back</b>.</p>
+    </div>
+    <div class="waste" role="status" aria-live="polite"><b id="waste">0</b>useless taps<small id="wasteRank">Rank: still productive</small></div>
+  </div>
+  <div class="takes" id="takes"></div>
+  <p class="foot">
+    <b>How it's built.</b> Each scene is a 172 × 224 canvas painted pixel by pixel with flat three-tone colours and a 1 px ink line, shown at 2×.
+    Ambient loops tick on a 100 ms hard step. The lifter uses the idle and PR-flex frames from <b>animation/female_fat0_muscle0</b>
+    (closest body to the Scrapper's F 0/25 until class outfits exist). Light floor behind the lifter, dark sky above, neon only on reactive props and records.
+    With reduced motion turned on, ambient loops and explosions stop; taps still count and the props still answer.
+    The drive-in radio makes sound only after you tap it.
+  </p>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var W = 172, H = 224, FLOOR = 168, FEET = 190, BX = 116, BY = 162, BW = 22, BH = 28;
+  var SIGN = { x: 92, y: 50, w: 76, h: 44 };
+  var LX = -6, LY = FEET - 72;
+  var INK = "#0b0414", TEXT = "#f6eeff", MUTED = "#c9b8e8", LINE = "#4b2a7a", BG = "#12061f", SURF = "#1f0d36", RAISED = "#2a1148",
+    PINK = "#ff5fb0", PINKH = "#ff98c2", PINKL = "#a63e84", LIME = "#c6ff3d", LIMEH = "#dcfb7b", LIMEL = "#849b42",
+    OR = "#ffa033", ORH = "#ffc075", ORL = "#a6643c", VIO = "#a77bff", VIOL = "#724eb2", SKY = "#3fd2ff", SKYH = "#88dff3", SKYL = "#3681b2",
+    RUST = "#a6643c", RUSTD = "#6b5033", BROWN = "#4b2d19", MESA = "#3b2230", MESAH = "#6b4a5e", DUST = "#ecd7d0", SAND = "#ad9293",
+    PLUM = "#3a2a52", PLUMH = "#593597", STONE = "#8672a5", SHADOW = "rgba(11,4,20,.45)";
+  var LADDER = [MUTED, LIME, SKY, VIO, OR, PINK];
+  var RM = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var STAR = [[50,0],[61,30],[93,18],[74,45],[100,62],[68,66],[72,100],[50,76],[28,100],[32,66],[0,62],[26,45],[7,18],[39,30]];
+
+  function hash(n) { n = Math.imul(n ^ 0x9e3779b9, 0x85ebca6b); n ^= n >>> 13; n = Math.imul(n, 0xc2b2ae35); n ^= n >>> 16; return (n >>> 0) / 4294967296; }
+  function mod(a, b) { return ((a % b) + b) % b; }
+  function pickOf(list, i) { return list[mod(i, list.length)]; }
+  function rnd(list) { return list[Math.floor(Math.random() * list.length)]; }
+
+  /* ---------- painter: whole-pixel drawing on a logical canvas ---------- */
+  function Painter(ctx) { this.c = ctx; this.ox = 0; this.oy = 0; }
+  Painter.prototype = {
+    r: function (x, y, w, h, col) {
+      x = Math.round(x + this.ox); y = Math.round(y + this.oy); w = Math.round(w); h = Math.round(h);
+      if (w <= 0 || h <= 0) return; this.c.fillStyle = col; this.c.fillRect(x, y, w, h);
+    },
+    px: function (x, y, col) { this.r(x, y, 1, 1, col); },
+    circ: function (cx, cy, rad, col) {
+      for (var dy = -rad; dy <= rad; dy++) {
+        var dx = Math.floor(Math.sqrt(rad * rad - dy * dy) + 0.35);
+        this.r(cx - dx, cy + dy, 2 * dx + 1, 1, typeof col === "function" ? col(cy + dy) : col);
+      }
+    },
+    ell: function (cx, cy, rx, ry, col) {
+      if (ry <= 0) { this.r(cx - rx, cy, 2 * rx + 1, 1, col); return; }
+      for (var dy = -ry; dy <= ry; dy++) {
+        var dx = Math.floor(rx * Math.sqrt(Math.max(0, 1 - (dy * dy) / (ry * ry))) + 0.35);
+        this.r(cx - dx, cy + dy, 2 * dx + 1, 1, col);
+      }
+    },
+    line: function (x0, y0, x1, y1, col, th) {
+      th = th || 1; x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);
+      var dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1, err = dx + dy, o = Math.floor(th / 2);
+      for (var guard = 0; guard < 600; guard++) {
+        this.r(x0 - o, y0 - o, th, th, col);
+        if (x0 === x1 && y0 === y1) break;
+        var e2 = 2 * err;
+        if (e2 >= dy) { err += dy; x0 += sx; }
+        if (e2 <= dx) { err += dx; y0 += sy; }
+      }
+    },
+    poly: function (pts, col) {
+      var minY = Infinity, maxY = -Infinity, i, n = pts.length;
+      for (i = 0; i < n; i++) { minY = Math.min(minY, pts[i][1]); maxY = Math.max(maxY, pts[i][1]); }
+      for (var y = Math.floor(minY); y < Math.ceil(maxY); y++) {
+        var yc = y + 0.5, xs = [];
+        for (i = 0; i < n; i++) {
+          var a = pts[i], b = pts[(i + 1) % n];
+          if ((a[1] <= yc && b[1] > yc) || (b[1] <= yc && a[1] > yc)) xs.push(a[0] + (yc - a[1]) / (b[1] - a[1]) * (b[0] - a[0]));
+        }
+        xs.sort(function (m, q) { return m - q; });
+        for (var k = 0; k + 1 < xs.length; k += 2) { var xa = Math.round(xs[k]), xb = Math.round(xs[k + 1]); this.r(xa, y, xb - xa, 1, col); }
+      }
+    },
+    /* draw fn 4 times offset in ink (the 1 px outline), then once in its own colours */
+    ink: function (fn, k) {
+      var o = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+      for (var i = 0; i < 4; i++) { this.ox = o[i][0]; this.oy = o[i][1]; fn(k || INK); }
+      this.ox = 0; this.oy = 0; fn(null);
+    }
+  };
+
+  /* ---------- shared scenery ---------- */
+  function bands(p, list) { list.forEach(function (b) { p.r(0, b[0], W, b[1] - b[0], b[2]); }); }
+  function stars(p, t, n, ymax, seed) {
+    for (var i = 0; i < n; i++) {
+      var x = Math.floor(hash(seed + i * 3) * W), y = Math.floor(hash(seed + i * 3 + 1) * ymax);
+      var tw = (Math.floor(t / 600) + i) % 5; if (tw === 0) continue;
+      var col = hash(seed + i * 3 + 2) > 0.6 ? TEXT : MUTED;
+      p.px(x, y, col);
+      if (hash(i * 7 + seed) > 0.85 && tw === 2) { p.px(x - 1, y, MUTED); p.px(x + 1, y, MUTED); p.px(x, y - 1, MUTED); p.px(x, y + 1, MUTED); }
+    }
+  }
+  function mesa(p, xl0, xr0, top, xl1, xr1, bot, col, hi, shimT) {
+    var tk = shimT == null ? 0 : Math.floor(shimT / 150);
+    for (var y = top; y < bot; y++) {
+      var u = (y - top) / (bot - top), xl = Math.round(xl0 + (xl1 - xl0) * u), xr = Math.round(xr0 + (xr1 - xr0) * u);
+      var s = (shimT != null && y > bot - 14) ? mod((y >> 1) + tk, 3) - 1 : 0;
+      p.r(xl - 1 + s, y, xr - xl + 2, 1, INK); p.r(xl + s, y, xr - xl, 1, col);
+      if (hi) p.r(xl + s, y, 2, 1, hi);
+    }
+    p.r(xl0, top - 1, xr0 - xl0, 1, INK);
+    if (hi) p.r(xl0 + 1, top, xr0 - xl0 - 2, 2, hi);
+  }
+  function farGround(p, col) { p.r(0, 148, W, 1, INK); p.r(0, 149, W, 3, DUST); p.r(0, 152, W, FLOOR - 152, col); }
+  function floorBase(p, base, hi) { p.r(0, FLOOR, W, H - FLOOR, base); p.r(0, FLOOR - 1, W, 1, INK); p.r(0, FLOOR, W, 2, hi); }
+  function pebbles(p, seed, n) {
+    for (var i = 0; i < n; i++) {
+      var x = Math.floor(hash(seed + i * 2) * W), y = FLOOR + 6 + Math.floor(hash(seed + i * 2 + 1) * (H - FLOOR - 10));
+      p.r(x, y, 2, 1, BROWN); if (i % 3 === 0) p.px(x, y - 1, ORH);
+    }
+  }
+  function drawX(p, x, y, col, i) {
+    p.ink(function (k) {
+      for (var j = 0; j < 6; j++) { p.r(x + j, y + j, 2, 1, k || col); p.r(x + 5 - j, y + j, 2, 1, k || col); }
+      p.r(x + 3, y + 6, 1, 1 + (i * 7) % 3 + 1, k || col);
+    });
+  }
+  function sign(p, S, now) {
+    var s = SIGN;
+    [s.x + 6, s.x + s.w - 9].forEach(function (x) { p.ink(function (k) { p.r(x, s.y + s.h, 3, FLOOR + 6 - (s.y + s.h), k || BROWN); }); });
+    p.ink(function (k) { p.r(s.x, s.y, s.w, s.h, k || RUSTD); });
+    p.r(s.x, s.y, s.w, 2, RUST); p.r(s.x, s.y + s.h - 3, s.w, 3, BROWN); p.r(s.x, s.y + 2, 2, s.h - 5, RUST);
+    for (var i = 0; i < 9; i++) p.circ(s.x + 6 + Math.floor(hash(i + 40) * (s.w - 12)), s.y + 6 + Math.floor(hash(i + 60) * (s.h - 12)), 1 + (i % 2), i % 3 ? BROWN : RUST);
+    p.px(s.x + 3, s.y + 4, MUTED); p.px(s.x + s.w - 4, s.y + 4, MUTED); p.px(s.x + 3, s.y + s.h - 5, MUTED); p.px(s.x + s.w - 4, s.y + s.h - 5, MUTED);
+    for (var n = 0; n < S.sets; n++) {
+      var col = LADDER[Math.min(n, LADDER.length - 1)];
+      var e = now - S.setAt;
+      if (n === S.sets - 1 && e < 360 && Math.floor(e / 90) % 2 === 0) col = TEXT;
+      drawX(p, s.x + 4 + (n % 6) * 12, s.y + 6 + Math.floor(n / 6) * 18, col, n);
+    }
+  }
+  function barrel(p, x, y, phase) {
+    x = Math.round(x);
+    for (var yy = 0; yy < BH; yy++) for (var xx = 0; xx < BW; xx++) {
+      if ((xx === 0 || xx === BW - 1) && (yy === 0 || yy === BH - 1)) continue;
+      var col, edge = xx === 0 || xx === BW - 1 || yy === 0 || yy === BH - 1;
+      if (edge || yy === 3 || yy === BH - 4) col = INK;
+      else if (yy <= 2 || yy >= BH - 3 || yy === 13 || yy === 14) col = yy === 1 ? ORH : ORL;
+      else col = (((xx + yy + phase) >> 2) & 1) ? INK : OR;
+      if (!edge && col === OR && xx <= 2) col = ORH;
+      if (!edge && col === OR && xx >= BW - 3) col = ORL;
+      p.px(x + xx, y + yy, col);
+    }
+  }
+  function ring(p, x, y, w, h) {
+    var per = [], i;
+    for (i = 0; i < w; i++) { per.push([x + i, y]); per.push([x + i, y + h - 1]); }
+    for (i = 0; i < h; i++) { per.push([x, y + i]); per.push([x + w - 1, y + i]); }
+    per.forEach(function (q) { if (((q[0] + q[1]) >> 1) & 1) p.px(q[0], q[1], TEXT); });
+  }
+  function boom(p, e) {
+    var k = Math.min(5, Math.floor(e / 100)), cx = BX + 11, cy = BY + 14;
+    var size = [16, 30, 38, 34, 22, 10][k];
+    function starAt(sz, col) { p.poly(STAR.map(function (q) { return [cx + (q[0] / 100 - 0.5) * sz, cy + (q[1] / 100 - 0.5) * sz]; }), col); }
+    [[-8, -6], [9, -10], [0, -16]].forEach(function (o, i) {
+      var r = [3, 6, 8, 8, 6, 3][k] - i; if (r < 1) return;
+      p.circ(cx + o[0], cy + o[1] - k * 3, r + 1, INK); p.circ(cx + o[0], cy + o[1] - k * 3, r, PLUMH);
+    });
+    if (k < 5) { starAt(size + 4, INK); starAt(size, OR); p.circ(cx, cy, Math.max(1, Math.round(size / 5)), ORH); }
+    [[-1.2, -2.2], [1, -2.6], [1.8, -1], [-1.8, -1.2], [0.4, -3], [-0.6, -2.8]].forEach(function (v, i) {
+      var x = cx + v[0] * k * 7, y = cy + v[1] * k * 7 + k * k * 1.6;
+      p.r(x - 2, y - 2, 4, 4, INK); p.r(x - 1, y - 1, 2, 2, i % 2 ? OR : RUST);
+    });
+  }
+
+  /* ---------- lifter frames ---------- */
+  var IMG = {};
+  ["idle_0_rest", "idle_1_out", "pr_flex_0_dip", "pr_flex_1_air2", "pr_flex_2_air4", "pr_flex_3_land", "pr_flex_4_hold", "pr_flex_5_rest"].forEach(function (n) {
+    var im = new Image(); im.src = "animation/female_fat0_muscle0/" + n + ".png"; IMG[n] = im;
+  });
+  var IDLE = [["idle_0_rest", 420], ["idle_1_out", 300], ["idle_1_out", 260], ["idle_0_rest", 300]];
+  var FLEX = [["pr_flex_0_dip", 120], ["pr_flex_1_air2", 90], ["pr_flex_2_air4", 120], ["pr_flex_1_air2", 90], ["pr_flex_3_land", 90], ["pr_flex_4_hold", 700], ["pr_flex_5_rest", 400]];
+  var FLEX_MS = 1610;
+  function frameAt(seq, e) {
+    var total = 0, i; for (i = 0; i < seq.length; i++) total += seq[i][1];
+    e = mod(e, total);
+    for (i = 0; i < seq.length; i++) { if (e < seq[i][1]) return seq[i][0]; e -= seq[i][1]; }
+    return seq[0][0];
+  }
+  var LIFTER_LINES = ["BUILT FROM STAIRS AND SPITE", "THESE GUNS ARE HOMEMADE", "DON'T TOUCH THE PUMP", "40 BURPEES FOR THIS", "HELD TOGETHER WITH TAPE", "FLEX OF SPITE!", "NO GYM. NO PROBLEM.", "THAT TICKLES"];
+
+  /* ---------- radio (drive-in take only, after a tap) ---------- */
+  var AC = null;
+  function radio(on, S) {
+    clearInterval(S.radioTimer);
+    if (!on) return;
+    try {
+      AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+      var notes = [392, 494, 587, 494, 440, 523, 659, 523, 392, 330, 392, 494, 523, 494, 440, 392], i = 0;
+      S.radioTimer = setInterval(function () {
+        var o = AC.createOscillator(), g = AC.createGain(), at = AC.currentTime;
+        o.type = "square"; o.frequency.value = notes[i++ % notes.length];
+        g.gain.setValueAtTime(0.035, at); g.gain.setValueAtTime(0, at + 0.18);
+        o.connect(g); g.connect(AC.destination); o.start(at); o.stop(at + 0.2);
+      }, 250);
+    } catch (err) { /* no audio: the notes still float */ }
+  }
+
+  /* =====================================================================
+     THE FIVE TAKES
+     Each: init(S), tick(S,now,dt), back/ground/mid/front(p,t,S,now), spots(S,now,t), keys.
+     t = ambient clock (frozen at 0 with reduced motion), now = real clock.
+     ===================================================================== */
+  var TAKES = [];
+
+  /* ---- 1. HIGH NOON ---- */
+  TAKES.push({
+    id: "noon", name: "High Noon", color: OR, tag: "Sun's out, guns homemade.",
+    notes: ["<b>Striped noon sun</b> with stepping rays and heat shimmer on the mesa bases.",
+      "<b>A vulture</b> circles on a 24-step loop. A <b>tumbleweed</b> rolls through every 8 s.",
+      "<b>Useless:</b> poke the cactus (5 pokes = cactus flex), shoo the vulture (it drops a feather that stays), boing the tumbleweed."],
+    init: function (S) { S.cac = { n: 0, ouch: -9e9, flex: -9e9 }; S.feathers = []; S.boing = -9e9; },
+    vult: function (t) {
+      var k = Math.floor(t / 160) % 24, a = k / 24 * Math.PI * 2;
+      return { x: Math.round(112 + Math.cos(a) * 30), y: Math.round(26 + Math.sin(a) * 9), dir: -Math.sin(a) > 0 ? 1 : -1, flap: Math.floor(t / 250) % 2 };
+    },
+    tumble: function (t, S, now) {
+      var e = t % 8000, step = Math.floor(e / 100), x = W + 14 - step * ((W + 40) / 80);
+      var hop = [0, 1, 3, 4, 3, 1, 0, 0][step % 8], extra = 0, b = now - S.boing;
+      if (b < 900) extra = Math.round(30 * Math.sin(Math.PI * Math.floor(b / 90) / 10));
+      return { x: Math.round(x), y: 204 - hop - extra, rot: step % 4 };
+    },
+    back: function (p, t, S, now) {
+      bands(p, [[0, 60, SURF], [60, 104, RAISED], [104, 149, "#4a2a5a"]]);
+      var cx = 34, cy = 44, R = 17;
+      p.circ(cx, cy, R + 1, INK);
+      p.circ(cx, cy, R, function (y) { return ((y - (cy - R)) % 6 < 4) ? (y < cy - R + 3 ? ORH : OR) : (y < 60 ? SURF : RAISED); });
+      var tk = Math.floor(t / 400) % 2;
+      for (var a = 0; a < 8; a++) {
+        var an = a * Math.PI / 4 + (tk ? Math.PI / 8 : 0);
+        [22, 25].forEach(function (d) { p.r(Math.round(cx + Math.cos(an) * d) - 1, Math.round(cy + Math.sin(an) * d) - 1, 2, 2, ORH); });
+      }
+      var v = this.vult(t);
+      p.ink(function (k) {
+        p.r(v.x - 2, v.y, 5, 3, k || PLUM);
+        if (v.flap) { p.r(v.x - 8, v.y - 3, 6, 2, k || PLUM); p.r(v.x + 3, v.y - 3, 6, 2, k || PLUM); }
+        else { p.r(v.x - 9, v.y + 1, 7, 2, k || PLUM); p.r(v.x + 3, v.y + 1, 7, 2, k || PLUM); }
+      });
+      p.r(v.x + (v.dir > 0 ? 3 : -3), v.y - 1, 2, 2, PINKH);
+      mesa(p, 4, 52, 112, -12, 80, 149, MESA, MESAH, t);
+      mesa(p, 124, 176, 122, 108, 184, 149, MESA, MESAH, t);
+      farGround(p, MESA);
+    },
+    ground: function (p, t) {
+      floorBase(p, RUST, ORH);
+      p.line(120, 208, 136, 214, BROWN); p.line(136, 214, 150, 211, BROWN); p.line(20, 214, 34, 209, BROWN); p.line(34, 209, 40, 212, BROWN);
+      pebbles(p, 7, 16);
+      p.ink(function (k) { p.r(148, 196, 8, 5, k || DUST); p.r(144, 195, 4, 2, k || DUST); p.r(156, 195, 4, 2, k || DUST); });
+      p.px(150, 198, INK); p.px(153, 198, INK); p.r(150, 201, 4, 1, SAND);
+    },
+    mid: function (p, t, S, now) {
+      var fx = now - S.cac.flex < 2000, ouch = now - S.cac.ouch < 900;
+      p.ink(function (k) {
+        p.r(74, 138, 10, 52, k || PLUM);
+        if (fx) { p.r(64, 150, 10, 5, k || PLUM); p.r(64, 136, 5, 19, k || PLUM); p.r(61, 139, 4, 5, k || PLUM); p.r(84, 146, 10, 5, k || PLUM); p.r(89, 132, 5, 19, k || PLUM); p.r(93, 135, 4, 5, k || PLUM); }
+        else { p.r(66, 160, 8, 5, k || PLUM); p.r(66, 148, 5, 17, k || PLUM); p.r(84, 154, 8, 5, k || PLUM); p.r(87, 142, 5, 17, k || PLUM); }
+        p.r(77, 134, 4, 3, k || PINK);
+      });
+      p.r(76, 139, 2, 50, PLUMH); p.r(78, 134, 2, 1, PINKH);
+      for (var y = 142; y < 188; y += 5) { p.px(73, y, MUTED); p.px(84, y + 2, MUTED); }
+      if (ouch) {
+        p.px(76, 149, ORH); p.px(77, 150, ORH); p.px(76, 151, ORH); p.px(81, 149, ORH); p.px(80, 150, ORH); p.px(81, 151, ORH); p.r(78, 154, 2, 2, INK);
+      } else if (t % 3000 < 150) { p.r(76, 150, 2, 1, OR); p.r(80, 150, 2, 1, OR); }
+      else { p.r(76, 149, 2, 2, OR); p.r(80, 149, 2, 2, OR); }
+      if (fx) p.r(77, 155, 4, 1, INK);
+    },
+    front: function (p, t, S, now) {
+      var tw = this.tumble(t, S, now);
+      p.ell(tw.x, 211, 7, 1, SHADOW);
+      p.circ(tw.x, tw.y, 8, INK); p.circ(tw.x, tw.y, 7, BROWN);
+      for (var i = 0; i < 4; i++) {
+        var an = i * Math.PI / 4 + tw.rot * Math.PI / 8;
+        p.line(tw.x - Math.cos(an) * 6, tw.y - Math.sin(an) * 6, tw.x + Math.cos(an) * 6, tw.y + Math.sin(an) * 6, i % 2 ? RUST : RUSTD);
+      }
+      p.px(tw.x - 3, tw.y - 4, ORH); p.px(tw.x + 2, tw.y - 5, ORH);
+      S.feathers.forEach(function (f) {
+        var e = RM ? 9e9 : now - f.at, x = f.x, y = f.land;
+        if (e < 2400) { var st = Math.floor(e / 100); y = f.y + (f.land - f.y) * st / 24; x = f.x + [0, 2, 3, 2, 0, -2, -3, -2][Math.floor(e / 150) % 8]; }
+        p.ink(function (k) { p.r(x, y, 6, 2, k || MUTED); }); p.r(x, y + 1, 6, 1, STONE); p.px(x + 6, y + 1, INK);
+      });
+    },
+    spots: function (S, now, t) {
+      var v = this.vult(t), tw = this.tumble(t, S, now);
+      return [
+        { id: "vulture", x: v.x - 10, y: v.y - 7, w: 20, h: 14, tap: function (S, now, api) {
+          S.feathers.push({ x: v.x, y: v.y + 3, at: now, land: 198 + Math.floor(Math.random() * 18) }); if (S.feathers.length > 6) S.feathers.shift();
+          api.bubble(v.x, v.y - 6, rnd(["SKRAA!", "NOT DEAD YET?", "JUST CHECKING", "CAW. CAW.", "I'LL WAIT"]));
+        } },
+        { id: "tumble", x: tw.x - 10, y: tw.y - 10, w: 20, h: 20, tap: function (S, now, api) { S.boing = now; api.bubble(tw.x, tw.y - 12, rnd(["BOING", "BOIIING", "WHEE", "TUMBLE ON"])); } },
+        { id: "cactus", x: 62, y: 130, w: 34, h: 60, tap: function (S, now, api) {
+          S.cac.n++; S.cac.ouch = now;
+          if (S.cac.n % 5 === 0) { S.cac.flex = now; api.bubble(79, 128, "CACTUS GAINS!"); }
+          else api.bubble(79, 130, pickOf(["OW.", "RUDE.", "SPINES. HELLO?", "STOP. POKING."], S.cac.n - 1));
+        } }
+      ];
+    },
+    keys: [["Poke the cactus", "cactus"], ["Shoo the vulture", "vulture"], ["Boing the tumbleweed", "tumble"]]
+  });
+
+  /* ---- 2. DUSK DRIVE-IN ---- */
+  var MOVIES = ["SQUAT SAGA", "LOVE & LUNGES", "STATIC: THE MOVIE", "INTERMISSION"];
+  function wireY(x) { return x < 84 ? 20 + Math.round(36 * (x / 84) * (1 - x / 84)) : 20 + Math.round(40 * ((x - 84) / 88) * (1 - (x - 84) / 88)); }
+  TAKES.push({
+    id: "drivein", name: "Dusk Drive-In", color: PINK, tag: "Tonight's feature: you, sweating.",
+    notes: ["<b>Half-sunk striped sun</b>, a drive-in screen playing 4 looping pixel films, a wire full of birds, fireflies.",
+      "<b>The wrecked car</b> bounces to the beat while the radio is on, and the lifter breathes double-time.",
+      "<b>Useless:</b> switch the movie, shoo the birds (they come back), turn on the radio (real chiptune, tap again to stop)."],
+    init: function (S) {
+      S.radio = false; S.radioTimer = null; S.ch = 0; S.chAt = -9e9;
+      S.birds = [16, 30, 52, 122, 146].map(function (x) { return { x: x, a: -9e9, dir: 1 }; });
+    },
+    bird: function (b, now) {
+      var e = now - b.a, y0 = wireY(b.x) - 1;
+      if (e < 1000) { var u = RM ? 1 : Math.floor(e / 100) / 10; return { x: b.x + b.dir * 50 * u, y: y0 - 40 * u, fly: true, gone: RM }; }
+      if (e < 3500) return { gone: true };
+      if (e < 4500) { var w = 1 - Math.floor((e - 3500) / 100) / 10; return { x: b.x + b.dir * 50 * w, y: y0 - 40 * w, fly: true, gone: RM }; }
+      return { x: b.x, y: y0, fly: false };
+    },
+    back: function (p, t, S, now) {
+      bands(p, [[0, 40, BG], [40, 78, RAISED], [78, 108, LINE], [108, 149, PINKL]]);
+      stars(p, t, 18, 40, 200);
+      var cx = 112, cy = 150, R = 26;
+      p.circ(cx, cy, R + 1, INK);
+      p.circ(cx, cy, R, function (y) { return ((y - (cy - R)) % 5 < 3) ? (y < cy - R + 3 ? ORH : OR) : (y < 108 ? LINE : PINKL); });
+      mesa(p, 0, 40, 118, -10, 60, 149, SURF, null);
+      mesa(p, 140, 176, 124, 130, 190, 149, SURF, null);
+      farGround(p, MESA);
+      // drive-in screen
+      p.ink(function (k) { p.r(12, 92, 3, 62, k || BROWN); p.r(60, 92, 3, 62, k || BROWN); });
+      p.ink(function (k) { p.r(4, 46, 68, 48, k || MUTED); });
+      var sx = 6, sy = 48, sw = 64, sh = 44, i, x, y;
+      var ch = (now - S.chAt < 200) ? 2 : S.ch;
+      if (ch === 0) {
+        p.r(sx, sy, sw, sh, RAISED); p.r(sx, sy + 36, sw, 8, PLUM);
+        var f = Math.floor(t / 400) % 2;
+        p.circ(38, 58 + f * 3, 3, TEXT); p.r(37, 62 + f * 3, 3, 12 - f * 3, TEXT);
+        p.r(34, 74, 2, 10, TEXT); p.r(41, 74, 2, 10, TEXT); if (f) { p.r(33, 76, 3, 2, TEXT); p.r(41, 76, 3, 2, TEXT); }
+        p.r(24, 62 + f * 3, 28, 2, TEXT); p.r(22, 58 + f * 3, 3, 10, PINK); p.r(51, 58 + f * 3, 3, 10, PINK);
+      } else if (ch === 1) {
+        p.r(sx, sy, sw, sh, PLUM);
+        var off = Math.floor(t / 150) % 14;
+        [[16 + off, 1], [54 - off, -1]].forEach(function (h) {
+          var hx = h[0], hy = 66;
+          p.r(hx - 4, hy - 3, 3, 2, PINK); p.r(hx + 1, hy - 3, 3, 2, PINK); p.r(hx - 5, hy - 1, 10, 3, PINK); p.r(hx - 3, hy + 2, 6, 2, PINK); p.r(hx - 1, hy + 4, 2, 1, PINK);
+          p.px(hx - 3, hy - 2, PINKH);
+        });
+        if (off > 11) for (i = 0; i < 6; i++) p.px(30 + i * 2, 54 - (i % 2) * 2, PINKH);
+      } else if (ch === 2) {
+        var tk = Math.floor(t / 80);
+        for (y = 0; y < sh; y += 2) for (x = 0; x < sw; x += 2) { var hv = hash(x * 31 + y * 17 + tk * 977); p.r(sx + x, sy + y, 2, 2, hv > 0.66 ? TEXT : hv > 0.33 ? STONE : INK); }
+      } else {
+        for (i = 0; i < 6; i++) p.r(sx + i * 11, sy, 11, 32, LADDER[i]);
+        p.r(sx, sy + 32, sw, 12, INK); p.r(sx + 8, sy + 36, 48, 4, TEXT);
+      }
+      p.r(sx, sy, sw, 1, MUTED);
+      // pole, wire, birds
+      p.ink(function (k) { p.r(82, 14, 3, FLOOR - 14, k || BROWN); p.r(74, 19, 20, 2, k || BROWN); });
+      for (x = 0; x < W; x++) if (x < 82 || x > 84) p.px(x, wireY(x), INK);
+      var self = this;
+      S.birds.forEach(function (b, n) {
+        var q = self.bird(b, now); if (q.gone) return;
+        var bx = Math.round(q.x), by = Math.round(q.y), peck = !q.fly && (Math.floor(t / 700) + n) % 6 === 0 ? 1 : 0;
+        p.ink(function (k) { p.r(bx - 2, by - 3, 5, 3, k || PLUM); p.r(bx + 2, by - 4 + peck, 2, 2, k || PLUM); });
+        p.r(bx - 1, by - 1, 3, 1, MUTED); p.px(bx + 4, by - 3 + peck, OR);
+        if (q.fly) { if (Math.floor(now / 100) % 2) p.r(bx - 4, by - 6, 4, 3, INK); else p.r(bx - 5, by - 1, 4, 1, INK); }
+      });
+    },
+    ground: function (p) {
+      floorBase(p, RUST, ORH);
+      for (var x = 0; x < W; x += 6) { p.r(x, 200, 3, 1, BROWN); p.r(x + 3, 211, 3, 1, BROWN); }
+      p.ink(function (k) { p.r(26, 152, 2, 14, k || BROWN); p.r(24, 150, 6, 4, k || PLUM); p.r(46, 152, 2, 14, k || BROWN); p.r(44, 150, 6, 4, k || PLUM); });
+      pebbles(p, 30, 10);
+    },
+    mid: function (p, t, S, now) {
+      var b = S.radio && !RM ? Math.floor(now / 250) % 2 : 0;
+      p.ink(function (k) { p.r(62, 158 - b, 52, 14, k || RUSTD); p.poly([[72, 158 - b], [78, 148 - b], [100, 148 - b], [106, 158 - b]], k || RUSTD); });
+      p.r(62, 158 - b, 52, 1, RUST);
+      p.poly([[75, 157 - b], [79, 151 - b], [88, 151 - b], [88, 157 - b]], RAISED);
+      p.poly([[90, 157 - b], [90, 151 - b], [99, 151 - b], [103, 157 - b]], RAISED);
+      p.line(92, 152 - b, 97, 156 - b, STONE);
+      p.r(89, 159 - b, 1, 12, INK); p.circ(70, 164 - b, 2, BROWN); p.circ(98, 166 - b, 1, BROWN);
+      p.r(110, 160 - b, 3, 3, (hash(Math.floor(t / 300)) > 0.3) ? ORH : BROWN);
+      p.r(111, 168 - b, 4, 2, MUTED);
+      p.line(64, 158 - b, 60, 144 - b, MUTED);
+      [72, 104].forEach(function (wx) { p.circ(wx, 172, 5, INK); p.circ(wx, 172, 2, PLUM); p.px(wx - 1, 171, STONE); });
+      if (S.radio) {
+        for (var i = 0; i < 4; i++) {
+          var ph = (Math.floor((RM ? 0 : now) / 100) + i * 5) % 20, y = 150 - ph * 2, x = 80 + [0, 3, 5, 3][(ph >> 1) % 4] + i * 5, col = i % 2 ? PINK : LIME;
+          p.ink(function (k) { p.r(x, y, 2, 2, k || col); p.r(x + 1, y - 5, 1, 5, k || col); p.r(x + 2, y - 5, 2, 1, k || col); });
+        }
+      }
+    },
+    front: function (p, t) {
+      for (var i = 0; i < 7; i++) {
+        if ((Math.floor(t / 300) + i) % 4 === 0) continue;
+        var x = Math.round(hash(i + 300) * W + Math.sin(Math.floor(t / 200) / 4.5 + i) * 8), y = Math.round(178 + hash(i + 309) * 36 + Math.cos(Math.floor(t / 200) / 3.5 + i) * 4);
+        p.px(x, y, PINKH); if ((Math.floor(t / 300) + i) % 4 === 2) { p.px(x - 1, y, PINK); p.px(x + 1, y, PINK); p.px(x, y - 1, PINK); p.px(x, y + 1, PINK); }
+      }
+    },
+    tick: function (S) { S.vibe = S.radio; },
+    spots: function (S, now) {
+      var self = this, out = [];
+      S.birds.forEach(function (b) {
+        var q = self.bird(b, now); if (q.gone || q.fly) return;
+        out.push({ id: "bird", x: b.x - 6, y: q.y - 9, w: 13, h: 12, tap: function (S, now, api) { b.a = now; b.dir = Math.random() > 0.5 ? 1 : -1; api.bubble(b.x, q.y - 6, rnd(["TWEET", "RUDE", "BYE", "PEEP!"])); } });
+      });
+      out.push({ id: "screen", x: 4, y: 46, w: 68, h: 48, tap: function (S, now, api) { S.ch = (S.ch + 1) % 4; S.chAt = now; api.bubble(38, 44, "NOW SHOWING: " + MOVIES[S.ch]); } });
+      out.push({ id: "car", x: 58, y: 142, w: 58, h: 36, tap: function (S, now, api) {
+        S.radio = !S.radio; radio(S.radio, S); api.bubble(88, 140, S.radio ? "NOW PLAYING: PUMP FM" : "RADIO OFF");
+      } });
+      return out;
+    },
+    keys: [["Change the movie", "screen"], ["Shoo a bird", "bird"], ["Radio on / off", "car"]],
+    stop: function (S) { radio(false, S); }
+  });
+
+  /* ---- 3. DUST DEVIL ---- */
+  TAKES.push({
+    id: "dust", name: "Dust Devil", color: VIO, tag: "Leg day, but the weather is also doing legs.",
+    notes: ["<b>A wind storm:</b> 30 dust streaks blowing on two depths, a pale sun behind the haze, dune ripples on the floor.",
+      "<b>A dust devil</b> wanders the far flats. A lime <b>lizard</b> lives on the rock and keeps a chalk tally.",
+      "<b>Useless:</b> feed the dust devil (it grows, then poofs), make the lizard do push-ups, flip the windsock (the whole storm turns around)."],
+    init: function (S) { S.wind = 1; S.wpos = 0; S.flip = -9e9; S.devil = { x: 120, boost: -9e9, reset: true }; S.liz = { at: -9e9, total: 0 }; },
+    tick: function (S, now, dt) {
+      if (RM) return;
+      S.wpos += dt * S.wind * 0.04;
+      S.devil.x += dt * S.wind * 0.006;
+      if (S.devil.x > 156) S.devil.x = 60; if (S.devil.x < 60) S.devil.x = 156;
+      if (!S.devil.reset && now - S.devil.boost >= 1700) { S.devil.x = 60 + Math.random() * 90; S.devil.reset = true; }
+    },
+    devilScale: function (S, now) { var e = now - S.devil.boost; return e < 1200 ? 1 + Math.floor(e / 200) / 6 : 1; },
+    streaks: function (p, S, n, ylo, yhi, seed, front) {
+      for (var i = 0; i < n; i++) {
+        var y = ylo + Math.floor(hash(seed + i * 5) * (yhi - ylo)), len = (front ? 12 : 6) + Math.floor(hash(seed + i * 5 + 1) * 14), sp = 0.6 + hash(seed + i * 5 + 2) * 1.2;
+        var x = Math.round(mod(hash(seed + i * 5 + 3) * (W + 40) + Math.floor(S.wpos) * sp, W + 40) - 20);
+        p.r(x, y, len, 1, hash(seed + i * 5 + 4) > 0.5 ? DUST : SAND);
+      }
+    },
+    back: function (p, t, S, now) {
+      bands(p, [[0, 50, MESA], [50, 100, "#4a2a48"], [100, 138, MESAH], [138, 149, SAND]]);
+      p.circ(40, 56, 11, "#5a3a5a"); p.circ(40, 56, 10, "#d9bfb8"); p.circ(37, 53, 4, DUST);
+      this.streaks(p, S, 22, 6, 140, 500, false);
+      mesa(p, -8, 40, 110, -20, 70, 149, MESA, MESAH);
+      mesa(p, 118, 170, 120, 104, 182, 149, MESA, MESAH);
+      farGround(p, MESA);
+      var d = S.devil, e = now - d.boost, s = this.devilScale(S, now), dx = Math.round(d.x), tk = Math.floor(t / 100);
+      if (!d.reset && e >= 1200 && e < 1700) {
+        var k = Math.floor((e - 1200) / 100);
+        [[-6, 0], [6, -2], [0, -8], [-10, -10], [10, -12]].forEach(function (o) { var r = [3, 6, 8, 6, 3][k]; p.circ(dx + o[0], 160 + o[1] - k * 2, r + 1, INK); p.circ(dx + o[0], 160 + o[1] - k * 2, r, SAND); });
+      } else if (d.reset || e < 1200) {
+        var h = Math.round(34 * s);
+        for (var r = 0; r < h; r++) {
+          var y = 166 - r, wd = Math.round((2 + r * 0.42) * Math.min(s, 1.6)), off = Math.round(Math.sin(r * 0.35 + tk * 0.9) * 2 * s);
+          p.r(dx - wd - 1 + off, y, 1, 1, INK); p.r(dx + wd + off, y, 1, 1, INK);
+          p.r(dx - wd + off, y, 2 * wd, 1, ((r + tk) >> 1) % 2 ? DUST : SAND);
+          if (r === h - 1) p.r(dx - wd + off, y - 1, 2 * wd, 1, INK);
+        }
+        for (var i = 0; i < 3; i++) { var a = tk * 0.8 + i * 2.1; p.r(dx + Math.round(Math.cos(a) * (6 + i * 3) * s), Math.round(160 - i * 8 * s), 2, 2, BROWN); }
+        p.ell(dx, 166, Math.round(6 * s), 2, SAND);
+      }
+    },
+    ground: function (p) {
+      floorBase(p, RUST, ORH);
+      [180, 190, 202, 214].forEach(function (y, n) { for (var x = -4; x < W; x += 9) { var yy = y + ((x >> 3) + n) % 2; p.r(x, yy, 5, 1, ORH); p.r(x, yy + 1, 5, 1, BROWN); } });
+    },
+    mid: function (p, t, S, now) {
+      p.ink(function (k) { p.poly([[62, 192], [66, 180], [74, 176], [90, 177], [98, 184], [100, 192]], k || PLUM); });
+      p.r(68, 180, 16, 2, PLUMH); p.r(66, 183, 2, 6, PLUMH);
+      var n = Math.min(S.liz.total, 15);
+      for (var i = 0; i < n; i++) p.r(70 + i * 2 + Math.floor(i / 5) * 2, 185, 1, 4, TEXT);
+      var e = now - S.liz.at, down = (!RM && e < 1500) ? Math.floor(e / 250) % 2 : 0;
+      p.ink(function (k) {
+        p.r(74, 172 + down, 12, 3, k || LIME); p.r(86, 171 + down, 4, 3, k || LIME); p.r(68, 174 + down, 6, 1, k || LIME); p.r(65, 175, 3, 1, k || LIME);
+        p.r(76, 175, 1, 1 - down + 1, k || LIME); p.r(84, 175, 1, 1 - down + 1, k || LIME);
+      });
+      p.r(75, 172 + down, 10, 1, LIMEH); p.r(76, 174 + down, 8, 1, LIMEL); p.px(88, 172 + down, INK);
+      if (t % 4000 < 200) p.r(90, 173 + down, 3, 1, PINK);
+      // windsock
+      p.ink(function (k) { p.r(150, 110, 2, 62, k || MUTED); });
+      var drooped = now - S.flip < 300, dir = S.wind;
+      p.ink(function (k) {
+        for (var j = 0; j < 5; j++) {
+          var hgt = 8 - j, x = dir > 0 ? 152 + j * 3 : 147 - j * 3, wav = RM ? 0 : Math.round(Math.sin(Math.floor(t / 120) + j));
+          if (drooped) p.r(150 + (j % 2), 112 + j * 3, 3 + (j % 2), 3, k || (j % 2 ? TEXT : OR));
+          else p.r(x, 111 + j / 2 + wav, 3, hgt, k || (j % 2 ? TEXT : OR));
+        }
+      });
+    },
+    front: function (p, t, S) { this.streaks(p, S, 9, 172, 222, 800, true); },
+    spots: function (S, now) {
+      var s = this.devilScale(S, now), d = S.devil;
+      return [
+        { id: "devil", x: d.x - 10 * s, y: 166 - 34 * s, w: 20 * s, h: 34 * s, tap: function (S, now, api) {
+          if (!d.reset) return; d.boost = now; d.reset = false; api.bubble(d.x, 126, rnd(["WHOOOSH", "LEG DAY TORNADO", "SPIN TO WIN"]));
+        } },
+        { id: "lizard", x: 62, y: 164, w: 40, h: 30, tap: function (S, now, api) {
+          if (now - S.liz.at < 1600) return; S.liz.at = now; S.liz.total += 3;
+          api.bubble(80, 166, "1"); setTimeout(function () { api.bubble(80, 166, "2"); }, 500); setTimeout(function () { api.bubble(80, 166, "3! LIZARD GAINS"); }, 1000);
+        } },
+        { id: "sock", x: S.wind > 0 ? 144 : 130, y: 104, w: 28, h: 70, tap: function (S, now, api) { S.wind *= -1; S.flip = now; api.bubble(150, 106, S.wind > 0 ? "WIND: THAT WAY" : "WIND: OTHER WAY"); } }
+      ];
+    },
+    keys: [["Feed the dust devil", "devil"], ["Lizard push-ups", "lizard"], ["Flip the windsock", "sock"]]
+  });
+
+  /* ---- 4. MIDNIGHT SCRAPYARD ---- */
+  var JUNK = ["HUBCAP", "SPOON", "A DUMBBELL?!"];
+  var CHANNELS = ["STATIC", "COLOUR BARS", "PUMP TV", "FLEX CHANNEL", "NO SIGNAL"];
+  var TVS = [{ x: 66, y: 172 }, { x: 90, y: 172 }, { x: 78, y: 154 }];
+  TAKES.push({
+    id: "scrap", name: "Midnight Scrapyard", color: SKY, tag: "Open all night. Like your excuses. Not anymore.",
+    notes: ["<b>Moon with craters</b>, 40 twinkling stars, junk-pile hills, a crane with a blinking tip light.",
+      "<b>Three junk TVs</b> each run their own channel. Glowing eyes blink inside the tyre stack.",
+      "<b>Useless:</b> swing the magnet (it picks up junk, then drops it all with a clang), flick TV channels, knock on the tyres (a rat runs for it)."],
+    init: function (S) { S.mag = { kick: -9e9, items: [], dropped: [] }; S.tv = [0, 1, 2]; S.tvAt = [-9e9, -9e9, -9e9]; S.rat = -9e9; },
+    magnet: function (S, now, t) {
+      var amp = 0.18 + 0.5 * Math.max(0, 1 - (now - S.mag.kick) / 4000), tq = Math.floor(t / 120) * 120;
+      var ang = RM ? 0 : amp * Math.sin(tq / 1700 * 2 * Math.PI);
+      return { x: Math.round(44 + Math.sin(ang) * 52), y: Math.round(27 + Math.cos(ang) * 52) };
+    },
+    junk: function (p, kind, x, y) {
+      if (kind === 0) { p.circ(x, y, 3, INK); p.circ(x, y, 2, MUTED); p.px(x, y, STONE); }
+      else if (kind === 1) { p.ink(function (k) { p.r(x - 1, y - 3, 2, 3, k || MUTED); p.r(x - 0, y, 1, 4, k || MUTED); }); }
+      else { p.ink(function (k) { p.r(x - 3, y, 7, 1, k || TEXT); p.r(x - 4, y - 2, 2, 5, k || PINK); p.r(x + 3, y - 2, 2, 5, k || PINK); }); }
+    },
+    back: function (p, t, S, now) {
+      bands(p, [[0, 96, BG], [96, 149, SURF]]);
+      stars(p, t, 40, 96, 900);
+      p.circ(28, 30, 12, INK); p.circ(28, 30, 11, MUTED);
+      p.circ(31, 34, 2, STONE); p.circ(24, 26, 2, STONE); p.circ(34, 25, 1, STONE); p.circ(22, 35, 1, STONE);
+      p.r(21, 22, 4, 1, TEXT); p.r(19, 24, 2, 3, TEXT);
+      p.ink(function (k) { p.poly([[-4, 149], [10, 128], [22, 132], [30, 120], [46, 126], [60, 118], [66, 149]], k || RAISED); });
+      p.ink(function (k) { p.poly([[100, 149], [110, 130], [124, 134], [134, 118], [150, 124], [160, 112], [176, 120], [176, 149]], k || RAISED); });
+      p.ink(function (k) { p.r(32, 110, 8, 12, k || LINE); }); p.r(33, 115, 6, 1, INK); p.px(38, 112, MUTED);
+      p.ink(function (k) { p.r(140, 110, 14, 5, k || LINE); p.r(143, 106, 8, 4, k || LINE); }); p.circ(143, 116, 2, INK); p.circ(152, 116, 2, INK);
+      farGround(p, PLUM);
+      // crane
+      p.ink(function (k) { p.r(70, 26, 2, 140, k || OR); p.r(77, 26, 2, 140, k || OR); p.r(24, 22, 126, 1, k || OR); p.r(24, 26, 126, 1, k || OR); });
+      for (var y = 30; y < 162; y += 8) p.line(72, y, 76, y + 7, ORL);
+      for (var x = 26; x < 148; x += 6) p.line(x, 23, x + 3, 25, ORL);
+      p.ink(function (k) { p.r(118, 27, 18, 8, k || PLUM); p.r(68, 16, 12, 8, k || OR); });
+      p.r(118, 27, 18, 1, PLUMH); p.r(70, 18, 4, 3, SKYH);
+      p.r(23, 19, 2, 2, Math.floor(t / 600) % 2 ? PINK : PINKL);
+      p.r(41, 27, 7, 3, MUTED);
+      var m = this.magnet(S, now, t), self = this;
+      p.line(44, 30, m.x, m.y - 4, MUTED);
+      p.ink(function (k) { p.r(m.x - 8, m.y - 2, 16, 5, k || PLUM); });
+      p.r(m.x - 8, m.y - 2, 16, 1, PLUMH); p.r(m.x - 8, m.y + 2, 16, 1, SKYL); p.r(m.x - 1, m.y - 4, 2, 2, MUTED);
+      if (now - S.mag.kick < 300 && Math.floor(now / 60) % 2) { p.px(m.x - 10, m.y, SKYH); p.px(m.x + 9, m.y, SKYH); }
+      S.mag.items.forEach(function (kind, i) { self.junk(p, kind, m.x - 5 + i * 5, m.y + 6); });
+    },
+    ground: function (p, t, S, now) {
+      floorBase(p, RUST, ORH);
+      p.ell(30, 212, 10, 2, BROWN); p.ell(140, 216, 8, 2, BROWN); p.px(26, 211, PLUMH); p.px(137, 215, PLUMH);
+      for (var i = 0; i < 12; i++) p.px(Math.floor(hash(i + 70) * W), FLOOR + 6 + Math.floor(hash(i + 90) * 50), MUTED);
+      var self = this;
+      S.mag.dropped.forEach(function (d) {
+        var e = RM ? 9e9 : now - d.at, y = d.land;
+        if (e < 400) y = d.y0 + (d.land - d.y0) * Math.floor(e / 80) / 5;
+        self.junk(p, d.kind, d.x, y);
+      });
+    },
+    mid: function (p, t, S, now) {
+      var self = this;
+      TVS.forEach(function (tv, i) {
+        var x = tv.x, y = tv.y;
+        p.ink(function (k) { p.r(x, y, 22, 18, k || PLUM); });
+        p.r(x, y, 22, 1, PLUMH); p.px(x + 18, y + 5, MUTED); p.px(x + 18, y + 9, MUTED); p.r(x + 17, y + 13, 3, 1, INK);
+        var sx = x + 2, sy = y + 2, sw = 14, sh = 13, ch = now - S.tvAt[i] < 160 ? 0 : S.tv[i], tk = Math.floor(t / 90), a, b;
+        p.r(sx - 1, sy - 1, sw + 2, sh + 2, INK);
+        if (ch === 0) { for (b = 0; b < sh; b++) for (a = 0; a < sw; a++) { var hv = hash(a * 13 + b * 71 + tk * 331 + i * 7); p.px(sx + a, sy + b, hv > 0.6 ? TEXT : hv > 0.3 ? STONE : INK); } }
+        else if (ch === 1) { for (a = 0; a < 6; a++) p.r(sx + Math.floor(a * sw / 6), sy, Math.ceil(sw / 6), sh - 3, LADDER[a]); p.r(sx, sy + sh - 3, sw, 3, INK); }
+        else if (ch === 2) { p.r(sx, sy, sw, sh, SKYL); p.r(sx + 4, sy + 4, 2, 2, INK); p.r(sx + 9, sy + 4, 2, 2, INK); p.r(sx + 3, sy + 8, 1, 1, INK); p.r(sx + 4, sy + 9, 6, 1, INK); p.r(sx + 10, sy + 8, 1, 1, INK); if (tk % 20 < 2) p.r(sx + 4, sy + 5, 7, 1, SKYL); }
+        else if (ch === 3) { var up = Math.floor(t / 400) % 2; p.r(sx, sy, sw, sh, RAISED); p.r(sx + 6, sy + 3, 2, 2, TEXT); p.r(sx + 6, sy + 5, 2, 5, TEXT); p.r(sx + 3, sy + (up ? 2 : 5), 2, 3, TEXT); p.r(sx + 9, sy + (up ? 2 : 5), 2, 3, TEXT); p.r(sx + 4, sy + 5, 6, 1, TEXT); p.r(sx + 5, sy + 10, 1, 3, TEXT); p.r(sx + 8, sy + 10, 1, 3, TEXT); }
+        else { p.r(sx, sy, sw, sh, SKY); p.r(sx + 1, sy + 5, sw - 2, 3, INK); p.r(sx + 2, sy + 6, 3, 1, TEXT); p.r(sx + 7, sy + 6, 5, 1, TEXT); }
+        if (i === 2) { p.line(x + 11, y - 1, x + 5, y - 9, MUTED); p.line(x + 11, y - 1, x + 17, y - 8, MUTED); p.px(x + 5, y - 10, PINK); }
+      });
+      [186, 178, 170].forEach(function (cy) { p.ell(157, cy, 13, 4, INK); p.ell(157, cy, 12, 3, "#2a1a3a"); for (var q = 0; q < 5; q++) p.px(147 + q * 5, cy, PLUMH); });
+      p.ell(157, 168, 6, 2, INK);
+      if (now - S.rat > 5000) { if (t % 2600 >= 160) { p.px(155, 168, LIME); p.px(159, 168, LIME); } else { p.r(154, 168, 2, 1, LIMEL); p.r(158, 168, 2, 1, LIMEL); } }
+    },
+    front: function (p, t, S, now) {
+      var e = now - S.rat;
+      if (e < 1500 && !RM) {
+        var x = Math.round(150 - Math.floor(e / 100) * 12), y = 204, leg = Math.floor(e / 100) % 2;
+        p.ink(function (k) { p.r(x, y, 7, 3, k || STONE); p.r(x - 2, y + 1, 2, 2, k || STONE); });
+        p.r(x + 7, y + 2, 4, 1, PINK); p.px(x - 1, y + 1, INK); p.px(x + 1, y - 1, PINKH);
+        p.px(x + 1 + leg, y + 3, INK); p.px(x + 5 - leg, y + 3, INK);
+      }
+    },
+    spots: function (S, now, t) {
+      var m = this.magnet(S, now, t), out = [];
+      out.push({ id: "magnet", x: m.x - 11, y: m.y - 7, w: 22, h: 16, tap: function (S, now, api) {
+        S.mag.kick = now;
+        if (S.mag.items.length < 3) { var kind = S.mag.items.length; S.mag.items.push(kind); api.bubble(m.x, m.y - 8, "CLANK! GOT A " + JUNK[kind]); }
+        else {
+          S.mag.items.forEach(function (kind, i) { S.mag.dropped.push({ kind: kind, x: m.x - 5 + i * 5, y0: m.y + 6, land: 196 + i * 5 + Math.floor(Math.random() * 6), at: now }); });
+          S.mag.dropped = S.mag.dropped.slice(-9); S.mag.items = []; api.bubble(m.x, m.y - 8, "CLANG CLANG CLANG");
+        }
+      } });
+      TVS.forEach(function (tv, i) {
+        out.push({ id: "tv", x: tv.x, y: tv.y, w: 22, h: 18, tap: function (S, now, api) { S.tv[i] = (S.tv[i] + 1) % 5; S.tvAt[i] = now; api.bubble(tv.x + 11, tv.y - 2, CHANNELS[S.tv[i]]); } });
+      });
+      out.push({ id: "tyres", x: 142, y: 160, w: 30, h: 32, tap: function (S, now, api) {
+        if (now - S.rat > 5000) { S.rat = now; api.bubble(157, 160, "SQUEAK!"); } else api.bubble(157, 160, "NOBODY HOME");
+      } });
+      return out;
+    },
+    keys: [["Swing the magnet", "magnet"], ["Change a channel", "tv"], ["Knock on the tyres", "tyres"]]
+  });
+
+  /* ---- 5. TOXIC DAWN ---- */
+  TAKES.push({
+    id: "toxic", name: "Toxic Dawn", color: LIME, tag: "The sunrise is glowing. Don't ask why.",
+    notes: ["<b>A lime sun</b> in a five-band dawn, drifting pink clouds, a coyote on the mesa, a rusty wind pump.",
+      "<b>Mutant flowers</b> with eyes and a bubbling acid puddle.",
+      "<b>Useless:</b> spin the wind pump (keep tapping to overclock it: a blade flies off), open the flowers, make the coyote howl (the lifter answers), poke the puddle."],
+    init: function (S) {
+      S.mill = { ang: 0, speed: 1, fly: null }; S.coy = -9e9; S.pud = -9e9;
+      S.fl = [{ x: 66, b: 194, at: -9e9 }, { x: 100, b: 196, at: -9e9 }, { x: 158, b: 192, at: -9e9 }];
+    },
+    tick: function (S, now, dt) {
+      S.mill.speed = Math.max(1, S.mill.speed - dt * 0.0012);
+      if (!RM) S.mill.ang += dt * 0.002 * S.mill.speed;
+    },
+    back: function (p, t, S, now) {
+      bands(p, [[0, 36, SURF], [36, 72, RAISED], [72, 100, VIOL], [100, 128, PINKL], [128, 149, LIMEL]]);
+      stars(p, t, 14, 36, 1300);
+      p.circ(140, 142, 14, INK);
+      p.circ(140, 142, 13, function (y) { return ((y - 129) % 5 < 3) ? (y < 132 ? "#f2ffc4" : LIMEH) : (y < 128 ? PINKL : LIMEL); });
+      for (var i = 0; i < 3; i++) {
+        var x = Math.round(mod(hash(i + 50) * (W + 40) - Math.floor(t / 400), W + 40) - 20), y = 20 + i * 22;
+        p.ink(function (k) { p.r(x, y, 22, 4, k || PINKH); p.r(x + 5, y - 3, 10, 3, k || PINKH); });
+        p.r(x, y + 3, 22, 1, PINK); p.r(x + 6, y - 3, 6, 1, TEXT);
+      }
+      mesa(p, 0, 44, 106, -10, 62, 149, MESA, MESAH);
+      var howl = now - S.coy < 1400;
+      p.r(16, 100, 12, 4, INK); p.r(17, 104, 1, 2, INK); p.r(26, 104, 1, 2, INK); p.r(12, 99, 4, 2, INK); p.r(10, 98, 2, 1, INK);
+      if (howl) { p.r(28, 95, 4, 5, INK); p.r(30, 91, 2, 4, INK); p.px(28, 94, INK); p.px(29, 96, LIME); }
+      else { p.r(28, 97, 4, 4, INK); p.px(29, 96, INK); p.r(32, 99, 2, 2, INK); p.px(30, 98, LIME); }
+      farGround(p, MESA);
+      // wind pump
+      p.line(74, 80, 64, 168, MUTED, 2); p.line(82, 80, 92, 168, MUTED, 2);
+      for (var yy = 92; yy < 166; yy += 14) p.line(70 - (yy - 80) / 9, yy, 86 + (yy - 80) / 9, yy + 12, STONE);
+      var qa = Math.round(S.mill.ang / (Math.PI / 16)) * (Math.PI / 16), cx = 78, cy = 72, missing = -1, fly = S.mill.fly;
+      if (fly && now - fly.at < 2500) missing = fly.i;
+      p.r(80, 70, 14, 2, MUTED); p.ink(function (k) { p.r(92, 64, 4, 10, k || ORL); });
+      for (var b = 0; b < 8; b++) { if (b === missing) continue; var a = qa + b * Math.PI / 4; p.line(cx, cy, cx + Math.cos(a) * 17, cy + Math.sin(a) * 17, INK, 4); }
+      for (b = 0; b < 8; b++) { if (b === missing) continue; a = qa + b * Math.PI / 4; p.line(cx, cy, cx + Math.cos(a) * 16, cy + Math.sin(a) * 16, b % 2 ? TEXT : MUTED, 2); }
+      p.circ(cx, cy, 3, INK); p.circ(cx, cy, 2, ORL);
+      if (fly && now - fly.at < 2000) {
+        var e = now - fly.at, fx = cx + Math.floor(e / 100) * 6, fy = cy - Math.floor(e / 100) * 7 + Math.pow(Math.floor(e / 100), 2) * 0.9, fa = Math.floor(e / 100) * 0.8;
+        p.line(fx - Math.cos(fa) * 7, fy - Math.sin(fa) * 7, fx + Math.cos(fa) * 7, fy + Math.sin(fa) * 7, INK, 4);
+        p.line(fx - Math.cos(fa) * 6, fy - Math.sin(fa) * 6, fx + Math.cos(fa) * 6, fy + Math.sin(fa) * 6, TEXT, 2);
+      }
+    },
+    ground: function (p, t, S, now) {
+      floorBase(p, RUST, ORH);
+      p.ell(30, 214, 9, 2, LIMEL); p.ell(120, 218, 6, 1, LIMEL);
+      pebbles(p, 444, 12);
+      p.ell(155, 208, 14, 4, INK); p.ell(155, 208, 13, 3, LIMEL); p.ell(155, 207, 10, 2, LIME);
+      p.r(147 + Math.floor(t / 250) % 4 * 3, 206, 3, 1, LIMEH);
+      for (var i = 0; i < 3; i++) {
+        var ph = (Math.floor(t / 120) + i * 7) % 14, bx = 149 + i * 6;
+        if (ph < 10) p.r(bx, 205 - Math.floor(ph / 2), 2, 2, LIMEH);
+        else if (ph === 10) { p.px(bx - 1, 200, LIMEH); p.px(bx + 2, 200, LIMEH); p.px(bx, 198, LIMEH); }
+      }
+      var e = now - S.pud;
+      if (e < 700 && !RM) { var k = Math.floor(e / 100); for (var d = 0; d < 5; d++) { var dx = 155 + (d - 2) * k * 3, dy = 204 - k * 6 + k * k * 1.1; p.r(dx, dy, 2, 2, d % 2 ? LIME : LIMEH); } }
+    },
+    mid: function (p, t, S, now) {
+      S.fl.forEach(function (f, i) {
+        var sway = Math.floor(t / 600 + i) % 2, cx = f.x + sway, cy = f.b - 15, open = now - f.at < 2500;
+        p.ink(function (k) { p.r(f.x, f.b - 12, 1, 12, k || LIMEL); p.r(f.x - 3, f.b - 6, 3, 1, k || LIMEL); p.r(f.x + 1, f.b - 9, 3, 1, k || LIMEL); });
+        if (open) {
+          var r = RM ? 4 : Math.min(4, 1 + Math.floor((now - f.at) / 80));
+          for (var a = 0; a < 6; a++) p.circ(cx + Math.round(Math.cos(a * Math.PI / 3) * r), cy + Math.round(Math.sin(a * Math.PI / 3) * r), 3, INK);
+          for (a = 0; a < 6; a++) p.circ(cx + Math.round(Math.cos(a * Math.PI / 3) * r), cy + Math.round(Math.sin(a * Math.PI / 3) * r), 2, a % 2 ? PINK : PINKH);
+          p.circ(cx, cy, 3, INK); p.circ(cx, cy, 2, TEXT);
+          var look = now - S.boomAt < 1200 ? (cx < BX ? 1 : -1) : (Math.floor(t / 700) % 2 ? 1 : -1);
+          if (t % 2200 < 120) p.r(cx - 2, cy, 5, 1, INK); else p.r(cx + look - (look > 0 ? 0 : 1), cy - 1, 2, 2, INK);
+        } else {
+          p.ink(function (k) { p.r(cx - 2, cy - 2, 4, 5, k || PINKL); }); p.r(cx - 1, cy - 2, 2, 1, PINK); p.px(cx - 2, cy, PINK);
+        }
+      });
+    },
+    front: function () {},
+    spots: function (S) {
+      var out = [
+        { id: "coyote", x: 8, y: 86, w: 30, h: 22, tap: function (S, now, api) {
+          if (now - S.coy < 1400) return; S.coy = now; api.bubble(28, 88, "AWOOOOO");
+          setTimeout(function () { api.bubble(34, 120, "...awoo?"); }, 700);
+        } },
+        { id: "mill", x: 58, y: 52, w: 40, h: 40, tap: function (S, now, api) {
+          S.mill.speed += 1.6;
+          if (S.mill.speed >= 8) { S.mill.fly = { at: now, i: Math.floor(Math.random() * 8) }; S.mill.speed = 2; api.bubble(78, 50, "OVERCLOCKED!"); }
+          else api.bubble(78, 50, pickOf(["WHIRR", "WHIRRR", "FASTER", "IT'S MAKING A NOISE"], Math.floor(S.mill.speed / 1.6) - 1));
+        } },
+        { id: "puddle", x: 138, y: 200, w: 34, h: 14, tap: function (S, now, api) { S.pud = now; api.bubble(155, 198, rnd(["DON'T DRINK THAT", "BLORP", "IT'S WARM", "NOT A PRE-WORKOUT"])); } }
+      ];
+      S.fl.forEach(function (f) {
+        out.push({ id: "flower", x: f.x - 7, y: f.b - 24, w: 14, h: 24, tap: function (S, now, api) { f.at = now; api.bubble(f.x, f.b - 22, rnd(["HELLO", "FEED ME REPS", "I SEE YOU", "BLINK.", "NICE CALVES"])); } });
+      });
+      return out;
+    },
+    keys: [["Spin the wind pump", "mill"], ["Open a flower", "flower"], ["Make the coyote howl", "coyote"], ["Poke the puddle", "puddle"]]
+  });
+
+  /* =====================================================================
+     STAGE: shared lifter, barrel, sign, input and effects
+     ===================================================================== */
+  var totalUseless = 0;
+  var RANKS = [[0, "Rank: still productive"], [10, "Rank: certified poker"], [25, "Rank: professional dawdler"], [50, "Rank: master of nothing"], [100, "Rank: useless legend"], [250, "Rank: please go lift"]];
+  function wasted(n) {
+    totalUseless += n;
+    document.getElementById("waste").textContent = totalUseless;
+    var rank = RANKS[0][1], hit = null;
+    RANKS.forEach(function (r) { if (totalUseless >= r[0]) rank = r[1]; if (totalUseless === r[0] && r[0] > 0) hit = r[1]; });
+    document.getElementById("wasteRank").textContent = rank;
+    if (hit) award(hit.replace("Rank: ", ""), totalUseless + " TAPS THAT LOGGED NOTHING");
+  }
+  function award(name, sub) {
+    var f = document.createElement("div");
+    f.className = "award"; f.setAttribute("role", "dialog"); f.setAttribute("aria-label", name);
+    f.innerHTML = '<div class="slam"></div><div class="s2"></div>';
+    f.firstChild.textContent = name; f.lastChild.textContent = sub;
+    var done = false; function close() { if (done) return; done = true; f.remove(); }
+    f.addEventListener("click", close); document.body.appendChild(f); setTimeout(close, 1800);
+  }
+
+  function Stage(def, host) {
+    var self = this;
+    this.def = def;
+    var art = document.createElement("article");
+    art.className = "take"; art.style.setProperty("--c", def.color);
+    var no = TAKES.indexOf(def) + 1;
+    art.innerHTML =
+      '<header><span class="no">TAKE ' + no + '</span><h2></h2><p class="tag"></p></header>' +
+      '<div class="stage"><canvas role="img"></canvas><div class="hint">BLOW UP THE BARREL</div><div class="fx"></div></div>' +
+      '<div class="meta"><span>Sets <b data-sets>0</b> / 12</span><span>Useless here <b data-useless>0</b></span></div>' +
+      '<div class="pokes"></div><ul class="notes"></ul>';
+    art.querySelector("h2").textContent = def.name;
+    art.querySelector(".tag").textContent = def.tag;
+    art.querySelector(".notes").innerHTML = def.notes.map(function (n) { return "<li>" + n + "</li>"; }).join("");
+    host.appendChild(art);
+    this.stage = art.querySelector(".stage"); this.fx = art.querySelector(".fx");
+    this.setsEl = art.querySelector("[data-sets]"); this.uselessEl = art.querySelector("[data-useless]");
+    var cv = this.cv = art.querySelector("canvas");
+    cv.width = W; cv.height = H;
+    cv.setAttribute("aria-label", "Scrapper in Rustbelt Flats, " + def.name + ". The barrel logs a set; the props are for poking.");
+    this.ctx = cv.getContext("2d"); this.ctx.imageSmoothingEnabled = false;
+    this.p = new Painter(this.ctx);
+    var S = this.S = { sets: 0, setAt: -9e9, boomAt: -9e9, flexAt: -9e9, useless: 0, vibe: false };
+    def.init(S);
+    this.api = {
+      bubble: function (x, y, text) { self.bubble(x, y, text); }
+    };
+
+    var pokes = art.querySelector(".pokes");
+    function btn(label, real, fn) { var b = document.createElement("button"); b.type = "button"; b.textContent = label; if (real) b.className = "real"; b.onclick = fn; pokes.appendChild(b); }
+    btn("Blow up the barrel", true, function () { self.setTap(performance.now()); });
+    btn("Take one back", true, function () { self.undo(); });
+    btn("Poke the lifter", false, function () { self.poke(performance.now()); });
+    def.keys.forEach(function (k) {
+      btn(k[0], false, function () {
+        var now = performance.now(), list = def.spots(S, now, RM ? 0 : now).filter(function (s) { return s.id === k[1]; });
+        if (!list.length) { self.bubble(86, 120, "NOT RIGHT NOW"); return; }
+        self.useless(); list[Math.floor(Math.random() * list.length)].tap(S, now, self.api);
+      });
+    });
+
+    // pointer: tap anything, hold the barrel to undo
+    var down = null, holdTimer = null, held = false;
+    function at(e) { var r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; }
+    cv.addEventListener("pointerdown", function (e) {
+      if (e.button) return;
+      var q = at(e), now = performance.now(); down = self.hit(q.x, q.y, now); held = false;
+      if (down && down.id === "barrel") holdTimer = setTimeout(function () { held = true; self.undo(); }, 550);
+    });
+    cv.addEventListener("pointerup", function () {
+      clearTimeout(holdTimer);
+      if (down && !held) self.activate(down, performance.now());
+      down = null;
+    });
+    cv.addEventListener("pointerleave", function () { clearTimeout(holdTimer); down = null; cv.style.cursor = ""; });
+    cv.addEventListener("pointercancel", function () { clearTimeout(holdTimer); down = null; });
+    cv.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+    cv.addEventListener("pointermove", function (e) { var q = at(e); cv.style.cursor = self.hit(q.x, q.y, performance.now()) ? "pointer" : "default"; });
+  }
+  Stage.prototype.allSpots = function (now) {
+    var t = RM ? 0 : now;
+    return this.def.spots(this.S, now, t).concat([
+      { id: "barrel", x: BX - 3, y: BY - 3, w: BW + 6, h: BH + 6 },
+      { id: "lifter", x: 10, y: 126, w: 48, h: 64 }
+    ]);
+  };
+  Stage.prototype.hit = function (x, y, now) {
+    var list = this.allSpots(now);
+    for (var i = 0; i < list.length; i++) {
+      var s = list[i], w = Math.max(16, s.w), h = Math.max(16, s.h), sx = s.x - (w - s.w) / 2, sy = s.y - (h - s.h) / 2;
+      if (x >= sx && x < sx + w && y >= sy && y < sy + h) return s;
+    }
+    return null;
+  };
+  Stage.prototype.activate = function (s, now) {
+    if (s.id === "barrel") return this.setTap(now);
+    if (s.id === "lifter") return this.poke(now);
+    this.useless(); s.tap(this.S, now, this.api);
+  };
+  Stage.prototype.useless = function () { this.S.useless++; this.uselessEl.textContent = this.S.useless; wasted(1); };
+  Stage.prototype.poke = function (now) {
+    this.useless();
+    if (now - this.S.flexAt < FLEX_MS) return;
+    this.S.flexAt = now; this.bubble(34, 116, rnd(LIFTER_LINES));
+  };
+  Stage.prototype.setTap = function (now) {
+    var S = this.S;
+    if (!RM && now - S.boomAt < 1100) return;
+    S.boomAt = now;
+    var label;
+    if (S.sets < 12) { S.sets++; S.setAt = now; label = S.sets % 5 === 0 ? "TAGGED!" : "+1 SET"; }
+    else label = "SIGN FULL!";
+    this.setsEl.textContent = S.sets;
+    var b = document.createElement("div");
+    b.className = "burst"; b.style.left = ((BX + 11) / W * 100) + "%"; b.style.top = ((BY - 22) / H * 100) + "%";
+    b.style.setProperty("--fx", LADDER[Math.min(Math.max(S.sets - 1, 0), 5)]);
+    b.innerHTML = "<b></b>"; b.firstChild.textContent = label;
+    this.fx.appendChild(b); setTimeout(function () { b.remove(); }, 650);
+    if (!RM) { var st = this.stage; st.classList.remove("shake"); void st.offsetWidth; st.classList.add("shake"); }
+  };
+  Stage.prototype.undo = function () {
+    var S = this.S, old = this.fx.querySelector(".toast"); if (old) old.remove();
+    var t = document.createElement("div"); t.className = "toast"; t.setAttribute("role", "status");
+    if (S.sets > 0) { S.sets--; S.setAt = -9e9; t.textContent = "Set taken back. " + S.sets + " left."; }
+    else t.textContent = "Nothing to take back.";
+    this.setsEl.textContent = S.sets;
+    this.fx.appendChild(t); setTimeout(function () { t.remove(); }, 1600);
+  };
+  Stage.prototype.bubble = function (x, y, text) {
+    var b = document.createElement("div");
+    b.className = "bubble"; b.textContent = text;
+    b.style.left = Math.max(14, Math.min(86, x / W * 100)) + "%"; b.style.top = Math.max(8, y / H * 100) + "%";
+    this.fx.appendChild(b); setTimeout(function () { b.remove(); }, 1400);
+    var all = this.fx.querySelectorAll(".bubble"); if (all.length > 3) all[0].remove();
+  };
+  Stage.prototype.draw = function (now, dt) {
+    var S = this.S, d = this.def, p = this.p, t = RM ? 0 : now;
+    if (d.tick) d.tick(S, now, dt);
+    p.c.clearRect(0, 0, W, H);
+    d.back(p, t, S, now);
+    d.ground(p, t, S, now);
+    sign(p, S, now);
+    d.mid(p, t, S, now);
+    // lifter
+    p.ell(34, FEET, 22, 2, SHADOW);
+    var pose, fe = now - S.flexAt;
+    if (fe < FLEX_MS) pose = frameAt(FLEX, fe);
+    else pose = RM ? "idle_0_rest" : frameAt(IDLE, now * (S.vibe ? 2 : 1));
+    var img = IMG[pose], bob = S.vibe && !RM && Math.floor(now / 250) % 2 ? -1 : 0;
+    if (img && img.complete && img.naturalWidth) p.c.drawImage(img, LX, LY + bob);
+    // barrel
+    var e = now - S.boomAt;
+    if (!RM && e < 600) boom(p, e);
+    else if (!RM && e < 1100) { var k = Math.floor((e - 600) / 100); p.ell(BX + 11, FEET, 12, 2, SHADOW); barrel(p, BX + (W + 2 - BX) * (1 - (k + 1) / 5), BY, k * 3); }
+    else {
+      p.ell(BX + 11, FEET, 12, 2, SHADOW); barrel(p, BX, BY, 0);
+      if (RM || Math.floor(now / 700) % 2) ring(p, BX - 4, BY - 4, BW + 8, BH + 8);
+    }
+    d.front(p, t, S, now);
+  };
+
+  /* ---------- boot ---------- */
+  var host = document.getElementById("takes");
+  var stages = TAKES.map(function (def) { return new Stage(def, host); });
+  var last = performance.now();
+  function frame(now) {
+    var dt = Math.min(100, now - last); last = now;
+    stages.forEach(function (s) { s.draw(now, dt); });
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+  window.addEventListener("pagehide", function () { stages.forEach(function (s) { if (s.def.stop) s.def.stop(s.S); }); });
+
+  // the title letters hop when you poke them. Counts as useless, obviously.
+  var title = document.getElementById("title");
+  "SCRAPPER IN RUSTBELT FLATS".split("").forEach(function (ch) {
+    var s = document.createElement("span"); s.textContent = ch === " " ? " " : ch; s.setAttribute("aria-hidden", "true");
+    s.addEventListener("click", function () { s.classList.remove("hop"); void s.offsetWidth; s.classList.add("hop"); wasted(1); });
+    title.appendChild(s);
+  });
+
+  window.__board = { stages: stages, TAKES: TAKES }; // for debugging in the console
+})();
+</script>
+</body>
+</html>

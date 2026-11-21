@@ -251,12 +251,12 @@
       <div class="men-list">
         <button class="men-row men-bad" type="button" id="men-restart">
           <span class="men-ico" data-icon="skull" aria-hidden="true"></span>
-          <span class="men-txt"><b>RESTART SETUP</b><small>New lifter, new class. Wipes everything here.</small></span>
+          <span class="men-txt"><b>RESTART SETUP</b><small>New lifter, new path. Your sessions and XP stay.</small></span>
         </button>
       </div>
     </div>
 
-    <p class="men-ver"><b>PUMPLEX v0.3</b> DESIGN DEMO<br>ALL DATA STAYS ON THIS PHONE</p>
+    <p class="men-ver"><b id="men-ver">PUMPLEX</b> DESIGN DEMO<br>ALL DATA STAYS ON THIS PHONE</p>
   </section>
 
   <footer class="foot men-foot">
@@ -280,11 +280,11 @@
   <div class="men-scrim" id="men-restart-sheet" hidden>
     <div class="men-sheet men-sheet-bad" role="alertdialog" aria-modal="true" aria-labelledby="men-rx-t" aria-describedby="men-rx-d">
       <span class="men-warn"><span data-icon="skull" aria-hidden="true"></span>DANGER ZONE</span>
-      <h2 id="men-rx-t">START OVER FROM ZERO?</h2>
+      <h2 id="men-rx-t">RUN THE SETUP AGAIN?</h2>
       <p id="men-rx-d"></p>
       <div class="men-acts">
         <button class="btn ghost" type="button" data-close>KEEP IT</button>
-        <button class="btn men-hot" type="button" id="men-restart-ok">WIPE IT</button>
+        <button class="btn men-hot" type="button" id="men-restart-ok">RESTART</button>
       </div>
     </div>
   </div>
@@ -310,8 +310,9 @@
 
   /* ---------- live copy ---------- */
   var s = PX.get();
-  var n = (s.sessions || []).length;
-  var lv = PX.levelInfo(s.xp || 0);
+  var n = (s.sessions || []).filter(function (x) { return !x.legacy; }).length;
+  var lv = PX.game().level;
+  $("men-ver").textContent = "PUMPLEX " + PX.VERSION;
   var k = PX.cls();
   $("men-profile-sub").textContent = "LV " + lv.level + " " + lv.title + (k ? " · " + k.name : "");
   $("men-history-sub").textContent = n ? n + (n === 1 ? " session" : " sessions") + " logged. Read-only." : "Nothing logged yet. The floor is waiting.";
@@ -410,10 +411,14 @@
     busy($("men-restore"), "UNPACKING", function () { PX.toast("RESTORED"); });
   };
 
-  $("men-rx-d").innerHTML = "<strong>Your lifter, class, area" + (n ? " and all " + n + " sessions" : "") +
-    " go in the bin.</strong> No undo. Save a backup first if you want them back.";
+  /* brief 4.7 and data-schema: logged sessions are kept; the setup choices change, the history does not */
+  $("men-rx-d").innerHTML = "<strong>You pick a new body, path, difficulty and world.</strong> " +
+    (n ? "All " + n + " sessions, your XP and your gear stay." : "Nothing logged yet, so nothing to lose.");
   $("men-restart").onclick = function () { openSheet("men-restart-sheet"); };
-  $("men-restart-ok").onclick = function () { PX.reset(); PX.go("preloader"); };
+  $("men-restart-ok").onclick = function () {
+    PX.save({ setupDone: false, cls: null, difficulty: null, area: null, current: null });
+    PX.go("character");
+  };
 })();
 </script>
 </body>

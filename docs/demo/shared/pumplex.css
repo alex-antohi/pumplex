@@ -311,3 +311,53 @@ html.chaos .phone { animation: px-shake .5s steps(6, end) infinite; }
 @media (max-width: 1099px), (max-height: 700px) { .demo-bar { display: none; } }
 
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* XP gems: difficulty as a picture, never a number (moodboard "Difficulty") */
+.gems { display: inline-flex; gap: 2px; vertical-align: middle; }
+.gems i { display: block; width: var(--gem-s, 14px); height: var(--gem-s, 14px); color: var(--raised); }
+.gems i.on { color: var(--gem-c, var(--lime)); }
+.gems svg { display: block; width: 100%; height: 100%; filter: drop-shadow(1px 1px 0 var(--ink)); }
+/* mastery stars on exercise cards (rules.md §4.1) */
+.stars { display: inline-flex; gap: 1px; vertical-align: middle; }
+.stars i { display: block; width: var(--star-s, 10px); height: var(--star-s, 10px); color: var(--raised); }
+.stars i.on { color: var(--orange); }
+.stars svg { display: block; width: 100%; height: 100%; }
+/* setup screens opened from the profile to change one choice */
+.edit-kicker { color: var(--lime); }
+
+/* ---------- swipe picker (class, difficulty): one big card, swipe or tap the arrows ---------- */
+.swp { position: relative; display: flex; flex-direction: column; gap: var(--s3); }
+.swp-view { position: relative; touch-action: pan-y; user-select: none; cursor: grab; }
+.swp-view:active { cursor: grabbing; }
+.swp-card { position: relative; will-change: transform; }
+.swp-card.is-drag { transition: none; }
+.swp-card.in-next { animation: swp-in-next .22s steps(4, end); }
+.swp-card.in-prev { animation: swp-in-prev .22s steps(4, end); }
+@keyframes swp-in-next { 0% { transform: translateX(70%) rotate(4deg); opacity: 0; } 100% { transform: none; opacity: 1; } }
+@keyframes swp-in-prev { 0% { transform: translateX(-70%) rotate(-4deg); opacity: 0; } 100% { transform: none; opacity: 1; } }
+.swp-arrow {
+  position: absolute; top: 50%; z-index: 5; margin-top: -22px;
+  width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+  background: var(--ink); color: var(--text); border: 3px solid var(--swp-c, var(--line)); box-shadow: 3px 3px 0 var(--ink);
+  cursor: pointer; padding: 0;
+}
+.swp-arrow svg { width: 20px; height: 20px; }
+.swp-arrow.is-prev { left: -10px; }
+.swp-arrow.is-next { right: -4px; }
+.swp-arrow.is-next svg { transform: scaleX(-1); }
+.swp-arrow:active { transform: translate(3px, 3px); box-shadow: none; }
+.swp-arrow:focus-visible { outline: 3px dashed var(--text); outline-offset: 3px; }
+.swp-arrow[disabled] { opacity: .25; cursor: default; }
+.swp-dots { display: flex; justify-content: center; align-items: center; gap: var(--s2); }
+.swp-dots button { appearance: none; width: 28px; height: 28px; padding: 0; background: transparent; border: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.swp-dots button::before { content: ""; width: 12px; height: 12px; background: var(--raised); border: 2px solid var(--ink); box-shadow: 0 0 0 2px var(--line); }
+.swp-dots button[aria-current="true"]::before { width: 22px; background: var(--dot-c, var(--lime)); box-shadow: 0 0 0 2px var(--ink); }
+.swp-dots button:focus-visible { outline: 3px dashed var(--text); }
+.swp-hint { margin: 0; text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+
+/* compact fixed header for the setup steps (no big title scrolling under the top bar) */
+.topbar.setup-top { align-items: center; padding-bottom: var(--s1); }
+.setup-top .setup-t { flex: 1; min-width: 0; }
+.setup-top .title { font-size: 24px; margin: 1px 0 0; text-shadow: 2px 2px 0 var(--pink), 4px 4px 0 var(--violet-lo); white-space: nowrap; }
+.setup-top .setup-k { display: flex; align-items: center; justify-content: space-between; gap: var(--s2); }
+.setup-top .setup-k .steps i { width: 18px; height: 7px; }

@@ -37,7 +37,8 @@ Read before you design a screen:
 07 hub --START TRAINING--> 08 workout --I WORKED--> 09 reward --BACK TO HUB--> 07 hub
 07 hub -> 10 history, 11 profile, 12 menu (each has a back/close to 07)
 11 profile -> may link to 10 history
-12 menu: backup / restore (fake, toast), chaos mode, cel shader, RESTART SETUP (-> 02, keeps nothing)
+12 menu: backup / restore (fake, toast), chaos mode, cel shader, RESTART SETUP (-> 02, keeps sessions, XP and gear)
+11 profile: change path / difficulty / world / body opens that one setup screen with ?edit=1 and returns to 11
 ```
 
 Use `PX.go("<id>")` for every jump. Never hard-code a file name.

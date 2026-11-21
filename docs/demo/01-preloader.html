@@ -142,7 +142,7 @@
   <section class="screen">
     <div class="pre-top">
       <p class="kicker">Offline · <b>Single player</b></p>
-      <p class="kicker">v0.1</p>
+      <p class="kicker" id="pre-ver"></p>
     </div>
 
     <div class="pre-logo">
@@ -183,13 +183,14 @@
   var phone = document.querySelector(".pre");
 
   /* the lifter: whatever body the player built (default body for a new player) */
+  document.getElementById("pre-ver").textContent = PX.VERSION;
   PX.sprite(document.getElementById("pre-body"), s.character, 3);
 
   /* who's loading: new player vs returning */
   var who = document.getElementById("pre-who");
   var k = PX.cls();
   if (s.setupDone && k) {
-    var lv = PX.levelInfo(s.xp || 0);
+    var lv = PX.game().level;
     who.textContent = "Welcome back · LV " + lv.level + " " + k.name;
     who.style.setProperty("--tag-c", PX.c(k.color));
   } else {

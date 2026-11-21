@@ -169,7 +169,7 @@
   var sessions = /[?&]test=empty\b/.test(q) ? [] : (s.sessions || []).slice();
   /* ?test=areas: show each card in a different area so every mark style is visible (display only, not saved). */
   if (/[?&]test=areas\b/.test(q)) sessions = sessions.map(function (x, i) {
-    var y = {}; for (var k in x) y[k] = x[k]; y.area = PX.AREA_ORDER[i % PX.AREA_ORDER.length]; return y;
+    var y = {}; for (var k in x) y[k] = x[k]; y.areaId = PX.AREA_ORDER[i % PX.AREA_ORDER.length]; return y;
   });
   sessions.sort(function (a, b) { return b.start - a.start; });
 
@@ -203,13 +203,14 @@
   }
 
   /* ---------- summary: short messages, not a stat table ---------- */
-  var totalMs = 0, totalSets = 0;
-  sessions.forEach(function (x) { totalMs += Math.max(0, (x.end || x.start) - x.start); totalSets += PX.totalSets(x.sets || {}); });
-  var mins = Math.round(totalMs / 6e4), h = Math.floor(mins / 60), m = mins % 60;
-  var effort = (h ? h + "H " : "") + m + "M";
+  var G = PX.game();
+  var totalMin = 0, totalSets = 0;
+  sessions.forEach(function (x) { totalMin += x.minutes || 0; totalSets += PX.sessionSets(x); });
+  var effort = PX.fmtMinutes(totalMin);
+  var legacyN = sessions.filter(function (x) { return x.legacy; }).length, total = sessions.length - legacyN;
   document.getElementById("his-head").hidden = false;
   document.getElementById("his-sum").innerHTML =
-    "<b>" + sessions.length + "</b> SESSION" + (sessions.length === 1 ? "" : "S") + " · <b>" + effort + "</b> OF PURE EFFORT";
+    "<b>" + total + "</b> SESSION" + (total === 1 ? "" : "S") + (legacyN ? " + " + legacyN + " FROM THE OLD APP" : "") + " · <b>" + effort + "</b> OF PURE EFFORT";
   var quips = [
     totalSets + " working sets. Zero spreadsheets.",
     totalSets + " sets logged. The barrels have filed a complaint.",
@@ -250,7 +251,7 @@
 
   /* ---------- groups: THIS WEEK (since Monday) / EARLIER ---------- */
   var now = new Date(), monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7)).getTime();
-  var html = "", lastGroup = null, total = sessions.length;
+  var html = "", lastGroup = null, total = sessions.filter(function (x) { return !x.legacy; }).length, seen = 0;
   var groupCounts = { week: 0, earlier: 0 };
   sessions.forEach(function (x) { groupCounts[x.start >= monday ? "week" : "earlier"]++; });
 
@@ -262,17 +263,25 @@
         n + " SESSION" + (n === 1 ? "" : "S") + "</small></div>";
       lastGroup = grp;
     }
-    var ar = PX.area(x.area) || PX.area("rustbelt");
-    var plan = PX.workout(x.cls), sets = x.sets || {}, names = [], targets = {}, target = 0;
-    plan.forEach(function (e) { names.push(e.name); targets[e.name] = e.target; target += e.target; });
-    for (var k in sets) if (names.indexOf(k) < 0) { names.push(k); targets[k] = 0; }
-    var done = PX.totalSets(sets), v = verdict(done, target);
-    var took = x.end ? PX.fmtClock(x.end - x.start) : "--:--";
-    var number = total - idx, open = idx === 0, bodyId = "his-b-" + esc(x.id || idx);
-
+    var ar = PX.area(x.areaId) || PX.area("rustbelt");
+    var xpRow = G.byDate[x.date] || { total: 0 };
+    if (x.legacy) {
+      /* brief 4.7: old sessions are kept and turned into XP */
+      html += '<article class="his-card his-legacy" data-open="false" style="--area-c:var(--muted);--area-floor:#3a2a52"><div class="his-tog">' +
+        '<span class="his-row1"><span><span class="his-no">OLD APP</span><span class="his-date">' + PX.fmtDate(x.date) + "</span></span>" +
+        '<span class="his-xp">+' + xpRow.total + " <small>XP</small></span></span>" +
+        '<span class="his-meta"><span class="his-took">FROM BEFORE THE GAME · KEPT AS XP</span></span></div></article>';
+      return;
+    }
+    seen++;
+    var exs = PX.live(x.exercises), target = 0;
+    exs.forEach(function (e) { target += e.targetSets; });
+    var done = PX.sessionSets(x), v = verdict(done, target);
+    var took = PX.fmtMinutes(x.minutes || 0);
+    var number = total - seen + 1, open = seen === 1, bodyId = "his-b-" + esc(x.date);
     var strip = "", rows = "";
-    names.forEach(function (name) {
-      var n = sets[name] || 0;
+    exs.forEach(function (e) {
+      var name = PX.exercise(e.exerciseId).name, n = e.sets || 0;
       if (n) strip += '<span class="his-sgrp">' + marks(ar.id, n) + "</span>";
       rows += '<div class="his-ex' + (n ? "" : " zero") + '"><b>' + esc(name) +
         "<small>" + (n ? n + " SET" + (n === 1 ? "" : "S") : "SKIPPED") + "</small></b>" +
@@ -283,8 +292,8 @@
       '<article class="his-card" data-open="' + open + '" style="--area-c:' + PX.c(ar.color) + ";--area-floor:" + ar.floor + '">' +
         '<button class="his-tog" type="button" aria-expanded="' + open + '" aria-controls="' + bodyId + '">' +
           '<span class="his-row1"><span><span class="his-no">SESSION ' + number + '</span>' +
-            '<span class="his-date">' + PX.fmtDate(x.start) + "</span></span>" +
-            '<span class="his-xp">+' + (x.xp || 0) + " <small>XP</small></span></span>" +
+            '<span class="his-date">' + PX.fmtDate(x.date) + "</span></span>" +
+            '<span class="his-xp">+' + xpRow.total + " <small>XP</small></span></span>" +
           '<span class="his-meta"><span class="his-took">' + PX.icon("history") + took + "</span>" +
             '<span class="nametag his-area">' + esc(ar.name) + "</span>" +
             '<svg class="his-chev" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 8h4v3h3v3h2v-3h3V8h4v3h-3v3h-3v3h-4v-3H7v-3H4z"/></svg></span>' +
