@@ -226,10 +226,30 @@ on props that react (torches, neon signs) and on clothes (rule 3).
 | **Frostbite Summit** (optional) | Snowy peaks, aurora bands in violet and sky blue | `#1a0b3b`, peaks `#2a1148` | snow `#c9b8e8` | sky `#3fd2ff` | A **flag** planted one step higher up the slope per set, so you can see the climb. | Cablemancer |
 
 Mark behaviour (all areas):
-- One tap = one working set (brief 4.5). The mark lands in about 200 ms with hard-stepped motion, no easing.
-- A long-press takes the last mark back (app-flow §4.2). On the board an UNDO button stands in for it.
+- One tap = one working set (brief 4.5). The mark lands in about 200–300 ms with **weight**: shells and tokens drop in, chalk scratches top-down,
+  spray and flags pop in. All motion is hard-stepped (CSS `steps()`), with no easing.
+- **Every tap is an event:** the set box shakes (320 ms) and a starburst in the area colour says **+1 SET**.
+- **Every 5th mark gets its own stamp:** PEARL! (beach), SLASHED! (keep), TAGGED! (rustbelt), COMBO! (arcade), SUMMIT! (summit).
+- A long-press takes the last mark back (app-flow §4.2). On the board an UNDO button stands in for it. Undo has no burst.
 - Marks group in fives so you can count them without numbers (rule 3). The board caps the demo at 12.
-- With reduced motion turned on, marks appear without moving.
+- With reduced motion turned on, nothing shakes, drops or loops, and marks just appear.
+
+Set boxes (180 px tall, themed, each with a stencilled name plate):
+
+| Area | Box | Details |
+| --- | --- | --- |
+| Riptide Shore | **Pouch of shells** on speckled sand | A drawstring rope pouch that grows as it fills. Ridged pink shells, and a shiny sky-blue pearl every 5th. |
+| Gainsgard Keep | **Tally wall** | Stone bricks, a torch with a pool of warm light. Big chalk strokes with chalk dust; the 5th is a diagonal slash. |
+| Rustbelt Flats | **Scrap sign** | A rusty riveted plate under a hazard-stripe band. Each X has paint drips in its rarity colour. A spray can at the side shows the *next* colour. |
+| Arcade Underpass | **Token machine** | An "INSERT SET" marquee, a 7-segment counter with ghost `88` digits, and a glass coin tube that fills from the bottom. |
+| Frostbite Summit | **The climb** | A snowy slope up to a pink summit flag. Each set plants a flag one step higher; flag colours climb the rarity ladder. |
+
+Scene details (all flat CSS shapes as placeholders for pixel art; the lifter has a ground shadow):
+- **Riptide Shore:** twinkling stars, a cratered moon and its reflection on the sea, a palm island on the horizon, rolling foam (stepped), speckled sand with a crab and a starfish, a swaying palm tree.
+- **Gainsgard Keep:** an arched moonlit window with a light beam, hanging chains, banners with dumbbell emblems, flickering torches with light pools, a dumbbell rack, a pink runner rug on flagstones.
+- **Rustbelt Flats:** banded dusk sky, a striped setting sun, mesas, a leaning telephone pole with a sagging wire, a cactus with blinking orange eyes (from the reference), a car wreck, a hazard barrel, tyres, cracked ground.
+- **Arcade Underpass:** a riveted bridge deck, graffiti (SWOLE, GAINZ), torn posters, a flickering OPEN 24/7 sign and a pink arrow, an arcade cabinet with a flickering screen, a puddle reflecting neon, a cone, road markings.
+- **Frostbite Summit:** stars, three drifting aurora bands, layered snowy peaks, snowy pines, a cabin with a lit window, falling snow (stepped), drifts and footprints.
 
 The class link is the drawio's "Background changes" edge (Character Creation → Starting Area). The class picks the
 default area, and the player can still choose any area.

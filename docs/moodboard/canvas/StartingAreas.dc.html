@@ -13,55 +13,94 @@
 <style>
 body{margin:0}
 a{color:#c6ff3d}a:hover{color:#dcfb7b}
-.spr2{position:absolute;left:22px;bottom:26px;width:104px;height:128px;background-image:url(../creator/body_atlas.png);background-repeat:no-repeat;background-size:520px 1280px;image-rendering:pixelated}
-.btn{height:44px;padding:0 14px;border:3px solid #0b0414;font-family:Anton,Impact,sans-serif;font-size:18px;letter-spacing:1px;cursor:pointer}
-.btn:focus-visible{outline:3px dashed #f6eeff;outline-offset:2px}
-.btn:active{transform:translate(3px,3px)}
-@keyframes drop{0%{transform:translateY(-26px)}60%{transform:translateY(3px)}100%{transform:translateY(0)}}
-@keyframes pop{0%{transform:scale(1.8) rotate(-8deg);opacity:0}100%{transform:scale(1) rotate(-8deg);opacity:1}}
+.scene{position:relative;height:270px;overflow:hidden;border:4px solid #0b0414}
+.scene>*{position:absolute}
+.ink{border:3px solid #0b0414}
+.spr2{left:20px;bottom:24px;width:104px;height:128px;background-image:url(../creator/body_atlas.png);background-repeat:no-repeat;background-size:520px 1280px;image-rendering:pixelated;z-index:5}
+.shadow{left:26px;bottom:18px;width:92px;height:10px;background:rgba(11,4,20,.45);border-radius:50%;z-index:4}
+.stars{position:absolute;inset:0;background-image:radial-gradient(#f6eeff 1px,transparent 1.6px),radial-gradient(#c9b8e8 1px,transparent 1.6px);background-size:41px 31px,67px 47px;background-position:5px 7px,23px 19px;animation:twinkle 2.4s steps(2,end) infinite}
+@keyframes twinkle{50%{background-position:5px 7px,24px 19px;opacity:.6}}
+@keyframes waves{to{background-position:30px 0}}
+@keyframes flick{0%,100%{transform:scaleY(1)}33%{transform:scaleY(.8) translateX(1px)}66%{transform:scaleY(1.12) translateX(-1px)}}
+@keyframes neon{0%,86%,100%{opacity:1}88%{opacity:.25}90%{opacity:1}93%{opacity:.4}}
+@keyframes blink{0%,90%,100%{transform:scaleY(1)}94%{transform:scaleY(.1)}}
+@keyframes snow{to{background-position:0 54px,12px 90px}}
+@keyframes sway{50%{transform:skewX(-6deg)}}
+@keyframes drift{to{transform:translateX(-18px) skewY(-6deg)}}
+.box{position:relative;height:180px;box-sizing:border-box;border:4px solid #0b0414;overflow:hidden}
+.plate{position:absolute;left:-4px;top:10px;z-index:3;padding:4px 12px 3px;border:3px solid #0b0414;font-family:Anton,Impact,sans-serif;font-size:16px;letter-spacing:1px;line-height:1;color:#0b0414;transform:rotate(-2deg)}
+.shake{animation:shake .32s steps(6,end)}
+@keyframes shake{20%{transform:translate(-4px,2px)}40%{transform:translate(4px,-2px)}60%{transform:translate(-3px,-1px)}80%{transform:translate(2px,2px)}100%{transform:none}}
+.burst{position:absolute;right:10px;top:8px;z-index:6;width:104px;height:104px;display:flex;align-items:center;justify-content:center;animation:burst .5s steps(5,end) both}
+.burst::before,.burst::after{content:"";position:absolute;inset:0;clip-path:polygon(50% 0,61% 30%,93% 18%,74% 45%,100% 62%,68% 66%,72% 100%,50% 76%,28% 100%,32% 66%,0 62%,26% 45%,7% 18%,39% 30%)}
+.burst::before{background:#0b0414}
+.burst::after{inset:7px;background:var(--fx)}
+.burst span{position:relative;z-index:1;font-family:Anton,Impact,sans-serif;font-size:19px;line-height:1;color:#0b0414;text-align:center;transform:rotate(-8deg)}
+@keyframes burst{0%{transform:scale(.2) rotate(-40deg)}60%{transform:scale(1.15) rotate(6deg)}100%{transform:scale(1) rotate(0)}}
+@keyframes drop{0%{transform:translateY(-60px)}60%{transform:translateY(4px)}100%{transform:translateY(0)}}
+@keyframes pop{0%{transform:scale(2.2) rotate(-14deg);opacity:0}100%{transform:scale(1) rotate(-8deg);opacity:1}}
 @keyframes scratch{0%{transform:scaleY(0)}100%{transform:scaleY(1)}}
-.shell{width:20px;height:15px;background:#ff5fb0;border:2px solid #0b0414;border-radius:50% 50% 3px 3px;box-shadow:inset 0 -4px 0 #a63e84;animation:drop .22s steps(4,end) both}
-.pearl{width:16px;height:16px;background:#88dff3;border:2px solid #0b0414;border-radius:50%;box-shadow:inset -4px -4px 0 #3681b2;animation:drop .22s steps(4,end) both}
-.stroke{width:4px;height:30px;background:#f6eeff;transform-origin:top;animation:scratch .18s steps(3,end) both}
-.slash{position:absolute;left:-6px;top:12px;width:40px;height:4px;background:#f6eeff;transform:rotate(-28deg)}
-.spray{font-family:Anton,Impact,sans-serif;font-size:34px;line-height:1;transform:rotate(-8deg);text-shadow:2px 2px 0 #0b0414;animation:pop .2s steps(4,end) both}
-.coin{width:30px;height:7px;background:#ffa033;border:2px solid #0b0414;box-shadow:inset 0 -2px 0 #a6643c;animation:drop .2s steps(4,end) both}
-.flag{position:absolute;width:16px;height:24px;animation:pop .2s steps(4,end) both}
-.flag i{position:absolute;left:0;bottom:0;width:3px;height:24px;background:#f6eeff;border-right:1px solid #0b0414}
-.flag b{position:absolute;left:3px;top:0;width:12px;height:9px;background:#3fd2ff;border:1px solid #0b0414}
-@media (prefers-reduced-motion:reduce){.shell,.pearl,.stroke,.spray,.coin,.flag{animation:none}}
+.shell{width:26px;height:20px;border:3px solid #0b0414;border-radius:50% 50% 4px 4px;background:repeating-linear-gradient(90deg,#ff5fb0 0 4px,#ff98c2 4px 6px);box-shadow:inset 0 -5px 0 #a63e84;animation:drop .3s steps(5,end) both}
+.pearl{width:22px;height:22px;border:3px solid #0b0414;border-radius:50%;background:#88dff3;box-shadow:inset -6px -6px 0 #3681b2,inset 4px 4px 0 #f6eeff;animation:drop .3s steps(5,end) both}
+.stroke{width:6px;height:46px;background:#f6eeff;box-shadow:2px 0 0 #c9b8e8;transform-origin:top;animation:scratch .2s steps(3,end) both}
+.slash{position:absolute;left:-10px;top:18px;width:58px;height:6px;background:#f6eeff;box-shadow:0 2px 0 #c9b8e8;transform:rotate(-28deg);animation:scratch .2s steps(3,end) both}
+.dust{position:absolute;left:4px;bottom:-12px;width:40px;height:8px;background-image:radial-gradient(#f6eeff 1.2px,transparent 1.6px);background-size:7px 5px;opacity:.7}
+.tag{position:relative;display:inline-flex;flex-direction:column;align-items:center;animation:pop .22s steps(4,end) both}
+.tag b{font-family:Anton,Impact,sans-serif;font-weight:400;font-size:46px;line-height:.9;transform:rotate(-8deg);text-shadow:3px 3px 0 #0b0414}
+.tag i{width:5px;margin-top:-4px}
+.coin{width:34px;height:5px;border:2px solid #0b0414;background:#ffa033;box-shadow:inset 0 -3px 0 #a6643c,inset 0 2px 0 #ffc075;animation:drop .26s steps(5,end) both}
+.flag{position:absolute;width:20px;height:30px;animation:pop .22s steps(4,end) both;z-index:2}
+.flag i{position:absolute;left:0;bottom:0;width:3px;height:30px;background:#f6eeff;border:1px solid #0b0414}
+.flag b{position:absolute;left:4px;top:0;width:15px;height:11px;border:2px solid #0b0414}
+.btn{height:48px;padding:0 14px;border:3px solid #0b0414;font-family:Anton,Impact,sans-serif;font-size:20px;letter-spacing:1px;cursor:pointer}
+.btn:focus-visible{outline:3px dashed #f6eeff;outline-offset:2px}
+.btn:active{transform:translate(3px,3px);box-shadow:none !important}
+@media (prefers-reduced-motion:reduce){.stars,.shell,.pearl,.stroke,.slash,.tag,.coin,.flag,.burst,.shake,.anim{animation:none !important}}
 </style>
 </helmet>
-<div style="width: 1736px; height: 1000px; box-sizing: border-box; padding: 48px 56px; background: #12061f; color: #f6eeff; font-family: 'Space Mono', monospace; display: flex; flex-direction: column; gap: 28px">
+<div style="width: 1736px; height: 1120px; overflow: hidden; box-sizing: border-box; padding: 48px 56px; background: #12061f; color: #f6eeff; font-family: 'Space Mono', monospace; display: flex; flex-direction: column; gap: 28px">
 
   <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 24px">
     <div style="display: flex; flex-direction: column; gap: 6px">
       <h1 style="margin: 0; font-family: Anton, Impact, sans-serif; font-weight: 400; letter-spacing: 1px; font-size: 56px; line-height: 1; text-transform: uppercase; text-shadow: 3px 3px 0 #ffa033, 6px 6px 0 #ff5fb0">Starting areas</h1>
       <p style="margin: 0; font-size: 15px; color: #c9b8e8">Setup step 4 · each area sets the look, the palette and the set mark (brief 4.5, 4.6)</p>
     </div>
-    <p style="margin: 0; font-size: 13px; color: #c9b8e8; text-align: right">Tap + SET to drop a mark. UNDO stands in for the long-press.<br>Lighter floor behind the lifter: the ink outline reads on every area.</p>
+    <p style="margin: 0; font-size: 13px; color: #c9b8e8; text-align: right">Tap + SET: the box shakes, a mark lands, a burst says so. Every 5th mark gets its own stamp.<br>UNDO stands in for the long-press. Lighter floor behind the lifter on every area.</p>
   </div>
 
   <div style="display: flex; gap: 24px; align-items: flex-start">
 
-    <!-- RIPTIDE SHORE -->
     <div style="flex: 0 0 304px; display: flex; flex-direction: column; gap: 12px">
       <div style="display: flex; flex-direction: column; gap: 2px">
         <span style="font-family: Anton, Impact, sans-serif; font-size: 30px; line-height: 1; letter-spacing: 1px; color: #ff5fb0">RIPTIDE SHORE</span>
         <span style="font-size: 12px; color: #c9b8e8">Night beach, violet sea. The brief’s beach.</span>
       </div>
-      <div role="img" aria-label="Riptide Shore scene: night sky with a moon, violet sea with blue foam, pale sand, a lifter standing on the sand" style="position: relative; height: 230px; overflow: hidden; border: 4px solid #0b0414; box-shadow: 6px 6px 0 #ff5fb0; background: #12061f">
-        <div style="position: absolute; right: 34px; top: 26px; width: 38px; height: 38px; background: #f6eeff; border: 3px solid #0b0414; box-shadow: inset -9px -6px 0 #c9b8e8"></div>
-        <div style="position: absolute; left: 0; right: 0; bottom: 58px; height: 74px; background: #2a1148; border-top: 4px solid #3fd2ff"></div>
-        <div style="position: absolute; left: 0; right: 0; bottom: 96px; height: 3px; background: repeating-linear-gradient(90deg, #3fd2ff 0 14px, transparent 14px 30px)"></div>
-        <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 58px; background: #ad9293; border-top: 4px solid #0b0414; box-shadow: inset 0 6px 0 #ecd7d0"></div>
+      <div class="scene" role="img" aria-label="Riptide Shore: starry night, a moon over a violet sea with its reflection, a palm island, foam rolling in, pale sand with a crab and a starfish, a palm tree, a lifter on the sand" style="background: #12061f; box-shadow: 6px 6px 0 #ff5fb0">
+        <div class="stars"></div>
+        <div style="right: 40px; top: 24px; width: 44px; height: 44px; border-radius: 50%; background: #f6eeff; border: 3px solid #0b0414; box-shadow: inset -10px -6px 0 #c9b8e8, inset 6px 8px 0 -3px #ecd7d0"></div>
+        <div style="left: 0; right: 0; bottom: 60px; height: 90px; background-color: #2a1148; background-image: repeating-linear-gradient(0deg, transparent 0 9px, #3a2a52 9px 11px); border-top: 3px solid #0b0414"></div>
+        <div style="right: 46px; bottom: 76px; width: 34px; height: 72px; background: repeating-linear-gradient(0deg, #c9b8e8 0 3px, transparent 3px 9px); clip-path: polygon(30% 0, 70% 0, 100% 100%, 0 100%); opacity: .8"></div>
+        <div style="left: 150px; bottom: 147px; width: 56px; height: 8px; background: #1f0d36; border-radius: 50% 50% 0 0"></div>
+        <div style="left: 174px; bottom: 152px; width: 4px; height: 26px; background: #1f0d36; transform: rotate(8deg)"></div>
+        <div style="left: 162px; bottom: 172px; width: 34px; height: 14px; background: #1f0d36; clip-path: polygon(50% 40%, 100% 100%, 70% 50%, 50% 0, 30% 50%, 0 100%)"></div>
+        <div class="anim" style="left: 0; right: 0; bottom: 60px; height: 8px; background: repeating-linear-gradient(90deg, #3fd2ff 0 16px, #88dff3 16px 20px, transparent 20px 30px); border-top: 2px solid #0b0414; animation: waves 1.6s steps(6,end) infinite"></div>
+        <div class="anim" style="left: 0; right: 0; bottom: 104px; height: 3px; background: repeating-linear-gradient(90deg, #3fd2ff 0 10px, transparent 10px 34px); opacity: .7; animation: waves 2.4s steps(6,end) infinite reverse"></div>
+        <div style="left: 0; right: 0; bottom: 0; height: 62px; background-color: #ad9293; background-image: radial-gradient(#8a6f73 1.2px, transparent 1.8px), radial-gradient(#ecd7d0 1px, transparent 1.5px); background-size: 13px 9px, 19px 11px; border-top: 4px solid #0b0414; box-shadow: inset 0 8px 0 #6b5033"></div>
+        <div style="right: 70px; bottom: 16px; width: 18px; height: 18px; background: #ff5fb0; clip-path: polygon(50% 0, 62% 36%, 100% 38%, 70% 60%, 80% 100%, 50% 76%, 20% 100%, 30% 60%, 0 38%, 38% 36%)"></div>
+        <div style="right: 120px; bottom: 30px; width: 22px; height: 10px; background: #ffa033; border: 2px solid #0b0414; border-radius: 6px 6px 2px 2px; box-shadow: -8px -2px 0 -4px #ffa033, 8px -2px 0 -4px #ffa033"></div>
+        <div style="right: 18px; bottom: 50px; width: 14px; height: 120px; background: repeating-linear-gradient(0deg, #6b5033 0 10px, #4b2d19 10px 12px); border: 3px solid #0b0414; transform: rotate(6deg); transform-origin: bottom"></div>
+        <div class="anim" style="right: -14px; bottom: 156px; width: 90px; height: 46px; background: #4b2a7a; border: 0; clip-path: polygon(50% 40%, 100% 70%, 62% 52%, 90% 100%, 50% 58%, 10% 100%, 38% 52%, 0 70%, 50% 40%, 30% 0, 50% 30%, 70% 0); animation: sway 2s steps(2,end) infinite"></div>
+        <div style="right: 26px; bottom: 156px; width: 10px; height: 10px; border-radius: 50%; background: #6b5033; border: 2px solid #0b0414; box-shadow: 10px 2px 0 -2px #6b5033"></div>
+        <div class="shadow"></div>
         <div class="spr2" style="background-position: {{bp.riptide}}"></div>
       </div>
-      <div style="height: 132px; box-sizing: border-box; padding: 12px; background: #1f0d36; border: 3px solid #0b0414; display: flex; flex-direction: column; gap: 6px">
-        <span style="font-size: 11px; font-weight: 700">SHELLS IN THE POUCH · 5TH IS A PEARL</span>
-        <div style="flex: 1 1 auto; display: flex; flex-wrap: wrap; align-content: flex-end; gap: 4px; padding: 8px 10px; background: #6b5033; border: 3px solid #0b0414; border-radius: 0 0 36px 36px; box-shadow: inset 0 4px 0 #a6643c">
+      <div class="box {{shake.riptide}}" style="background-color: #ad9293; background-image: radial-gradient(#8a6f73 1.2px, transparent 1.8px); background-size: 11px 8px; box-shadow: 6px 6px 0 #ff5fb0">
+        <span class="plate" style="background: #ff5fb0">POUCH OF SHELLS</span>
+        <div style="position: absolute; left: 50%; bottom: 10px; width: 210px; height: {{pouchH}}; transform: translateX(-50%); background: #6b5033; border: 4px solid #0b0414; border-radius: 26% 26% 48% 48% / 18% 18% 62% 62%; box-shadow: inset -12px -8px 0 #4b2d19, inset 8px 6px 0 #a6643c; display: flex; flex-wrap: wrap; justify-content: center; align-content: flex-end; gap: 3px; padding: 18px 16px 16px; box-sizing: border-box">
           <sc-for list="{{riptide}}" as="m" hint-placeholder-count="3"><span class="{{m.cls}}"></span></sc-for>
         </div>
+        <div style="position: absolute; left: 50%; bottom: calc({{pouchH}} + 2px); width: 150px; height: 8px; transform: translateX(-50%); background: repeating-linear-gradient(90deg, #ecd7d0 0 6px, #ad9293 6px 9px); border: 2px solid #0b0414"></div>
+        <sc-if value="{{fx.riptide}}" hint-placeholder-val="{{ false }}"><div class="burst" style="--fx: #ff5fb0"><span>{{burst.riptide}}</span></div></sc-if>
       </div>
       <div style="display: flex; gap: 10px">
         <button type="button" class="btn" onClick="{{add.riptide}}" aria-label="Add a set on Riptide Shore" style="flex: 1 1 auto; background: #ff5fb0; color: #0b0414; box-shadow: 4px 4px 0 #0b0414">+ SET</button>
@@ -73,35 +112,54 @@ a{color:#c6ff3d}a:hover{color:#dcfb7b}
         <div style="display: flex; flex-direction: column; gap: 3px"><div style="height: 22px; background: #ad9293; border: 2px solid #4b2a7a"></div><span style="font-size: 10px; color: #c9b8e8">#ad9293</span></div>
         <div style="display: flex; flex-direction: column; gap: 3px"><div style="height: 22px; background: #ff5fb0; border: 2px solid #4b2a7a"></div><span style="font-size: 10px; color: #c9b8e8">#ff5fb0</span></div>
       </div>
-      <span style="font-size: 12px; color: #c9b8e8">Default for: <b style="color: #f6eeff">any path</b> (the neutral pick)</span>
+      <span style="font-size: 12px; color: #c9b8e8">Default for: <b style="color: #f6eeff">any path</b> · 5th shell is a PEARL</span>
     </div>
 
-    <!-- GAINSGARD KEEP -->
     <div style="flex: 0 0 304px; display: flex; flex-direction: column; gap: 12px">
       <div style="display: flex; flex-direction: column; gap: 2px">
         <span style="font-family: Anton, Impact, sans-serif; font-size: 30px; line-height: 1; letter-spacing: 1px; color: #ffa033">GAINSGARD KEEP</span>
         <span style="font-size: 12px; color: #c9b8e8">Torch-lit stone hall. The brief’s castle.</span>
       </div>
-      <div role="img" aria-label="Gainsgard Keep scene: stone brick wall, two banners, two torches, pale flagstone floor, a lifter standing on it" style="position: relative; height: 230px; overflow: hidden; border: 4px solid #0b0414; box-shadow: 6px 6px 0 #ffa033; background-color: #3a2a52; background-image: repeating-linear-gradient(0deg, #2a1148 0 3px, transparent 3px 26px), repeating-linear-gradient(90deg, #2a1148 0 3px, transparent 3px 44px)">
-        <div style="position: absolute; left: 150px; top: 0; width: 36px; height: 92px; background: #a77bff; border: 3px solid #0b0414; border-top: 0; clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 84%, 0 100%)"></div>
-        <div style="position: absolute; left: 226px; top: 0; width: 36px; height: 92px; background: #ff5fb0; border: 3px solid #0b0414; border-top: 0; clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 84%, 0 100%)"></div>
-        <div style="position: absolute; left: 132px; top: 108px; width: 8px; height: 22px; background: #6b5033; border: 2px solid #0b0414"></div>
-        <div style="position: absolute; left: 128px; top: 92px; width: 16px; height: 16px; background: #ffa033; border: 2px solid #0b0414; box-shadow: inset 0 -5px 0 #ff5fb0"></div>
-        <div style="position: absolute; left: 272px; top: 108px; width: 8px; height: 22px; background: #6b5033; border: 2px solid #0b0414"></div>
-        <div style="position: absolute; left: 268px; top: 92px; width: 16px; height: 16px; background: #ffa033; border: 2px solid #0b0414; box-shadow: inset 0 -5px 0 #ff5fb0"></div>
-        <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 58px; background-color: #8672a5; background-image: repeating-linear-gradient(90deg, #593597 0 3px, transparent 3px 52px); border-top: 4px solid #0b0414; box-shadow: inset 0 6px 0 #ad8ed6"></div>
+      <div class="scene" role="img" aria-label="Gainsgard Keep: stone hall with an arched moonlit window and a beam of light, hanging chains, two banners with dumbbell emblems, flickering torches, a dumbbell rack, a runner rug on flagstones, a lifter on the rug" style="background-color: #3a2a52; background-image: repeating-linear-gradient(0deg, #2a1148 0 3px, transparent 3px 26px), repeating-linear-gradient(90deg, #2a1148 0 3px, transparent 3px 44px); box-shadow: 6px 6px 0 #ffa033">
+        <div style="left: 128px; top: 18px; width: 64px; height: 96px; background-color: #1a0b3b; background-image: radial-gradient(#f6eeff 1px, transparent 1.6px); background-size: 13px 17px; border: 4px solid #0b0414; border-radius: 32px 32px 0 0; box-shadow: inset 0 0 0 4px #4b2a7a"></div>
+        <div style="left: 157px; top: 22px; width: 6px; height: 92px; background: #0b0414"></div>
+        <div style="left: 132px; top: 62px; width: 56px; height: 5px; background: #0b0414"></div>
+        <div style="left: 110px; top: 118px; width: 110px; height: 106px; background: rgba(201,184,232,.13); clip-path: polygon(22% 0, 78% 0, 100% 100%, 0 100%)"></div>
+        <div style="left: 96px; top: 0; width: 4px; height: 70px; background: repeating-linear-gradient(0deg, #8672a5 0 6px, #0b0414 6px 8px)"></div>
+        <div style="left: 222px; top: 0; width: 4px; height: 54px; background: repeating-linear-gradient(0deg, #8672a5 0 6px, #0b0414 6px 8px)"></div>
+        <div style="left: 30px; top: 0; width: 46px; height: 104px; background: #a77bff; clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 84%, 0 100%); box-shadow: inset 6px 0 0 #c8a9f3, inset -6px 0 0 #724eb2"></div>
+        <div style="left: 44px; top: 34px; width: 18px; height: 6px; background: #0b0414; box-shadow: -6px 0 0 0 #0b0414, 6px 0 0 0 #0b0414, -6px -4px 0 0 #0b0414, -6px 4px 0 0 #0b0414, 6px -4px 0 0 #0b0414, 6px 4px 0 0 #0b0414"></div>
+        <div style="left: 244px; top: 0; width: 46px; height: 104px; background: #ff5fb0; clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 84%, 0 100%); box-shadow: inset 6px 0 0 #ff98c2, inset -6px 0 0 #a63e84"></div>
+        <div style="left: 258px; top: 34px; width: 18px; height: 6px; background: #0b0414; box-shadow: -6px 0 0 0 #0b0414, 6px 0 0 0 #0b0414, -6px -4px 0 0 #0b0414, -6px 4px 0 0 #0b0414, 6px -4px 0 0 #0b0414, 6px 4px 0 0 #0b0414"></div>
+        <div style="left: 88px; top: 132px; width: 44px; height: 44px; border-radius: 50%; background: rgba(255,160,51,.16)"></div>
+        <div style="left: 104px; top: 150px; width: 10px; height: 26px; background: #6b5033; border: 2px solid #0b0414"></div>
+        <div class="anim" style="left: 100px; top: 128px; width: 18px; height: 22px; background: #ffa033; border: 2px solid #0b0414; border-radius: 50% 50% 20% 20%; box-shadow: inset 0 -8px 0 #ff5fb0, inset 0 5px 0 #ffc075; transform-origin: bottom; animation: flick .5s steps(3,end) infinite"></div>
+        <div style="left: 196px; top: 132px; width: 44px; height: 44px; border-radius: 50%; background: rgba(255,160,51,.16)"></div>
+        <div style="left: 212px; top: 150px; width: 10px; height: 26px; background: #6b5033; border: 2px solid #0b0414"></div>
+        <div class="anim" style="left: 208px; top: 128px; width: 18px; height: 22px; background: #ffa033; border: 2px solid #0b0414; border-radius: 50% 50% 20% 20%; box-shadow: inset 0 -8px 0 #ff5fb0, inset 0 5px 0 #ffc075; transform-origin: bottom; animation: flick .6s steps(3,end) infinite .2s"></div>
+        <div style="right: 10px; bottom: 62px; width: 50px; height: 56px; border: 3px solid #0b0414; border-bottom: 0; background: repeating-linear-gradient(0deg, transparent 0 16px, #6b5033 16px 20px)"></div>
+        <div style="right: 18px; bottom: 98px; width: 34px; height: 4px; background: #c9b8e8; border: 1px solid #0b0414; box-shadow: -3px -4px 0 0 #0b0414, 31px -4px 0 0 #0b0414"></div>
+        <div style="right: 18px; bottom: 78px; width: 34px; height: 4px; background: #c9b8e8; border: 1px solid #0b0414; box-shadow: -3px -5px 0 1px #0b0414, 31px -5px 0 1px #0b0414"></div>
+        <div style="left: 0; right: 0; bottom: 0; height: 62px; background-color: #8672a5; background-image: repeating-linear-gradient(90deg, #593597 0 3px, transparent 3px 52px), repeating-linear-gradient(0deg, #593597 0 3px, transparent 3px 20px); border-top: 4px solid #0b0414; box-shadow: inset 0 6px 0 #ad8ed6"></div>
+        <div style="left: 0; bottom: 6px; width: 200px; height: 30px; background: #a63e84; border: 3px solid #0b0414; box-shadow: inset 0 0 0 3px #ffa033; transform: skewX(-20deg); transform-origin: bottom left"></div>
+        <div class="shadow"></div>
         <div class="spr2" style="background-position: {{bp.keep}}"></div>
       </div>
-      <div style="height: 132px; box-sizing: border-box; padding: 12px; background-color: #3a2a52; background-image: repeating-linear-gradient(0deg, #2a1148 0 2px, transparent 2px 22px); border: 3px solid #0b0414; display: flex; flex-direction: column; gap: 6px">
-        <span style="font-size: 11px; font-weight: 700">CHALK SCRATCHES · 4 + A SLASH</span>
-        <div style="flex: 1 1 auto; display: flex; flex-wrap: wrap; align-content: center; gap: 18px; padding: 0 8px">
+      <div class="box {{shake.keep}}" style="background-color: #3a2a52; background-image: repeating-linear-gradient(0deg, #2a1148 0 3px, transparent 3px 26px), repeating-linear-gradient(90deg, #2a1148 0 3px, transparent 3px 52px); box-shadow: 6px 6px 0 #ffa033">
+        <span class="plate" style="background: #ffa033">TALLY WALL</span>
+        <div style="position: absolute; left: -40px; top: -40px; width: 180px; height: 180px; border-radius: 50%; background: rgba(255,160,51,.12)"></div>
+        <div style="position: absolute; left: 10px; top: 20px; width: 8px; height: 22px; background: #6b5033; border: 2px solid #0b0414"></div>
+        <div class="anim" style="position: absolute; left: 7px; top: 2px; width: 14px; height: 18px; background: #ffa033; border: 2px solid #0b0414; border-radius: 50% 50% 20% 20%; box-shadow: inset 0 -6px 0 #ff5fb0; transform-origin: bottom; animation: flick .5s steps(3,end) infinite"></div>
+        <div style="position: absolute; left: 34px; right: 12px; top: 48px; bottom: 14px; display: flex; flex-wrap: wrap; align-content: center; gap: 22px 26px">
           <sc-for list="{{keep}}" as="g" hint-placeholder-count="1">
-            <div style="position: relative; display: flex; gap: 5px; height: 30px">
+            <div style="position: relative; display: flex; gap: 6px; height: 46px">
               <sc-for list="{{g.strokes}}" as="s" hint-placeholder-count="3"><span class="stroke"></span></sc-for>
               <sc-if value="{{g.slash}}" hint-placeholder-val="{{ false }}"><span class="slash"></span></sc-if>
+              <span class="dust"></span>
             </div>
           </sc-for>
         </div>
+        <sc-if value="{{fx.keep}}" hint-placeholder-val="{{ false }}"><div class="burst" style="--fx: #ffa033"><span>{{burst.keep}}</span></div></sc-if>
       </div>
       <div style="display: flex; gap: 10px">
         <button type="button" class="btn" onClick="{{add.keep}}" aria-label="Add a set in Gainsgard Keep" style="flex: 1 1 auto; background: #ffa033; color: #0b0414; box-shadow: 4px 4px 0 #0b0414">+ SET</button>
@@ -109,32 +167,52 @@ a{color:#c6ff3d}a:hover{color:#dcfb7b}
       </div>
       <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px">
         <div style="display: flex; flex-direction: column; gap: 3px"><div style="height: 22px; background: #3a2a52; border: 2px solid #4b2a7a"></div><span style="font-size: 10px; color: #c9b8e8">#3a2a52</span></div>
-        <div style="display: flex; flex-direction: column; gap: 3px"><div style="height: 22px; background: #4b2a7a; border: 2px solid #4b2a7a"></div><span style="font-size: 10px; color: #c9b8e8">#4b2a7a</span></div>
+        <div style="display: flex; flex-direction: column; gap: 3px"><div style="height: 22px; background: #a63e84; border: 2px solid #4b2a7a"></div><span style="font-size: 10px; color: #c9b8e8">#a63e84</span></div>
         <div style="display: flex; flex-direction: column; gap: 3px"><div style="height: 22px; background: #8672a5; border: 2px solid #4b2a7a"></div><span style="font-size: 10px; color: #c9b8e8">#8672a5</span></div>
         <div style="display: flex; flex-direction: column; gap: 3px"><div style="height: 22px; background: #ffa033; border: 2px solid #4b2a7a"></div><span style="font-size: 10px; color: #c9b8e8">#ffa033</span></div>
       </div>
-      <span style="font-size: 12px; color: #c9b8e8">Default for: <b style="color: #c6ff3d">PLATE PALADIN</b></span>
+      <span style="font-size: 12px; color: #c9b8e8">Default for: <b style="color: #c6ff3d">PLATE PALADIN</b> · 5th scratch is a SLASH</span>
     </div>
 
-    <!-- RUSTBELT FLATS -->
     <div style="flex: 0 0 304px; display: flex; flex-direction: column; gap: 12px">
       <div style="display: flex; flex-direction: column; gap: 2px">
         <span style="font-family: Anton, Impact, sans-serif; font-size: 30px; line-height: 1; letter-spacing: 1px; color: #ffa033">RUSTBELT FLATS</span>
         <span style="font-size: 12px; color: #c9b8e8">Junkyard wasteland, rust pushed to violet.</span>
       </div>
-      <div role="img" aria-label="Rustbelt Flats scene: dusk sky, dusty horizon, violet mesas, a scrap fence, rust-coloured ground, a lifter standing on it" style="position: relative; height: 230px; overflow: hidden; border: 4px solid #0b0414; box-shadow: 6px 6px 0 #ffa033; background: #1f0d36">
-        <div style="position: absolute; left: 0; right: 0; bottom: 58px; height: 14px; background: #ecd7d0"></div>
-        <div style="position: absolute; left: 20px; bottom: 72px; width: 120px; height: 54px; background: #3b2230; border: 3px solid #0b0414; border-bottom: 0; clip-path: polygon(12% 0, 88% 0, 100% 100%, 0 100%)"></div>
-        <div style="position: absolute; left: 170px; bottom: 72px; width: 90px; height: 84px; background: #3b2230; border: 3px solid #0b0414; border-bottom: 0; clip-path: polygon(18% 0, 82% 0, 100% 100%, 0 100%)"></div>
-        <div style="position: absolute; left: 150px; bottom: 58px; width: 140px; height: 40px; background-color: #6b5033; background-image: repeating-linear-gradient(90deg, #4b2d19 0 4px, transparent 4px 22px); border: 3px solid #0b0414"></div>
-        <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 58px; background: #a6643c; border-top: 4px solid #0b0414; box-shadow: inset 0 6px 0 #ffc075"></div>
+      <div class="scene" role="img" aria-label="Rustbelt Flats: banded dusk sky with a striped setting sun, violet mesas, a leaning telephone pole with a sagging wire, a cactus with blinking orange eyes, a rusted car wreck, a hazard-striped barrel, tyres, cracked rust ground, a lifter on it" style="background: #1f0d36; box-shadow: 6px 6px 0 #ffa033">
+        <div style="left: 0; right: 0; top: 70px; height: 50px; background: #2a1148"></div>
+        <div style="left: 0; right: 0; top: 120px; height: 40px; background: #3b2230"></div>
+        <div style="left: 108px; top: 74px; width: 96px; height: 48px; border-radius: 48px 48px 0 0; background: repeating-linear-gradient(0deg, #ffa033 0 7px, #1f0d36 7px 10px); border: 3px solid #0b0414; border-bottom: 0"></div>
+        <div style="left: 0; right: 0; bottom: 62px; height: 12px; background: #ecd7d0; border-top: 2px solid #0b0414"></div>
+        <div style="left: 10px; bottom: 74px; width: 120px; height: 66px; background: #3b2230; border: 3px solid #0b0414; border-bottom: 0; clip-path: polygon(14% 0, 86% 0, 100% 100%, 0 100%); box-shadow: inset 6px 0 0 #6b4a5e"></div>
+        <div style="left: 196px; bottom: 74px; width: 96px; height: 92px; background: #3b2230; border: 3px solid #0b0414; border-bottom: 0; clip-path: polygon(20% 0, 80% 0, 100% 100%, 0 100%); box-shadow: inset 6px 0 0 #6b4a5e"></div>
+        <div style="left: 240px; bottom: 60px; width: 6px; height: 160px; background: #4b2d19; border: 2px solid #0b0414; transform: rotate(-5deg)"></div>
+        <div style="left: 222px; top: 26px; width: 44px; height: 5px; background: #4b2d19; border: 2px solid #0b0414; transform: rotate(-5deg)"></div>
+        <div style="left: -40px; top: 26px; width: 280px; height: 50px; border-bottom: 2px solid #0b0414; border-radius: 0 0 50% 50%"></div>
+        <div style="left: 150px; bottom: 60px; width: 20px; height: 60px; background: #3a2a52; border: 3px solid #0b0414; border-radius: 10px 10px 0 0"></div>
+        <div style="left: 136px; bottom: 82px; width: 14px; height: 24px; background: #3a2a52; border: 3px solid #0b0414; border-right: 0; border-radius: 8px 0 0 0"></div>
+        <div class="anim" style="left: 155px; bottom: 98px; width: 4px; height: 4px; background: #ffa033; box-shadow: 7px 0 0 #ffa033; animation: blink 3s steps(1,end) infinite"></div>
+        <div style="right: 12px; bottom: 50px; width: 96px; height: 34px; background: #6b5033; border: 3px solid #0b0414; border-radius: 16px 22px 4px 4px; box-shadow: inset 0 -8px 0 #4b2d19; background-image: radial-gradient(#a6643c 3px, transparent 4px); background-size: 19px 13px"></div>
+        <div style="right: 40px; bottom: 76px; width: 40px; height: 18px; background: #1a0b3b; border: 3px solid #0b0414; border-radius: 10px 10px 0 0; box-shadow: inset 0 0 0 3px #3a2a52"></div>
+        <div style="right: 18px; bottom: 44px; width: 18px; height: 18px; border-radius: 50%; border: 5px solid #0b0414; background: #3a2a52; box-sizing: border-box"></div>
+        <div style="right: 84px; bottom: 44px; width: 18px; height: 18px; border-radius: 50%; border: 5px solid #0b0414; background: #3a2a52; box-sizing: border-box"></div>
+        <div style="left: 128px; bottom: 20px; width: 30px; height: 40px; border: 3px solid #0b0414; background: repeating-linear-gradient(45deg, #ffa033 0 6px, #0b0414 6px 12px); border-radius: 4px; box-shadow: inset 0 4px 0 #a6643c, inset 0 -4px 0 #a6643c"></div>
+        <div style="left: 0; right: 0; bottom: 0; height: 62px; background: #a6643c; border-top: 4px solid #0b0414; box-shadow: inset 0 6px 0 #ffc075; z-index: 0"></div>
+        <div style="left: 150px; bottom: 6px; width: 120px; height: 30px; border-top: 2px solid #4b2d19; border-left: 2px solid #4b2d19; transform: skewX(40deg)"></div>
+        <div style="left: 160px; bottom: 34px; width: 22px; height: 12px; border: 3px solid #0b0414; border-radius: 50%; background: #3a2a52; box-shadow: 18px -2px 0 -2px #3a2a52"></div>
+        <div class="shadow"></div>
         <div class="spr2" style="background-position: {{bp.rust}}"></div>
       </div>
-      <div style="height: 132px; box-sizing: border-box; padding: 12px; background: #1f0d36; border: 3px solid #0b0414; display: flex; flex-direction: column; gap: 6px">
-        <span style="font-size: 11px; font-weight: 700">SPRAY AN X ON THE SCRAP SIGN</span>
-        <div style="flex: 1 1 auto; display: flex; flex-wrap: wrap; align-content: center; gap: 2px 8px; padding: 4px 12px; background-color: #6b5033; background-image: radial-gradient(#0b0414 2px, transparent 2.5px); background-size: 100% 100%; background-position: 6px 6px; border: 3px solid #0b0414; box-shadow: inset 0 -6px 0 #4b2d19">
-          <sc-for list="{{rust}}" as="m" hint-placeholder-count="3"><span class="spray" style="color: {{m.color}}">X</span></sc-for>
+      <div class="box {{shake.rust}}" style="background: #1f0d36; box-shadow: 6px 6px 0 #ffa033">
+        <span class="plate" style="background: #ffa033">SCRAP SIGN</span>
+        <div style="position: absolute; left: 0; right: 0; top: 0; height: 12px; background: repeating-linear-gradient(-45deg, #ffa033 0 10px, #0b0414 10px 20px)"></div>
+        <div style="position: absolute; left: 12px; right: 56px; top: 44px; bottom: 12px; background-color: #6b5033; background-image: radial-gradient(#4b2d19 6px, transparent 7px), radial-gradient(#a6643c 3px, transparent 4px); background-size: 47px 37px, 23px 29px; border: 3px solid #0b0414; box-shadow: inset 0 -6px 0 #4b2d19, inset 6px 0 0 #a6643c; display: flex; flex-wrap: wrap; align-content: center; justify-content: center; gap: 0 10px; padding: 4px 8px; box-sizing: border-box">
+          <sc-for list="{{rust}}" as="m" hint-placeholder-count="3"><span class="tag"><b style="color: {{m.color}}">X</b><i style="height: {{m.drip}}; background: {{m.color}}"></i></span></sc-for>
         </div>
+        <div style="position: absolute; left: 18px; top: 50px; width: 6px; height: 6px; border-radius: 50%; background: #c9b8e8; border: 1px solid #0b0414; box-shadow: 216px 0 0 #c9b8e8, 0 104px 0 #c9b8e8, 216px 104px 0 #c9b8e8"></div>
+        <div style="position: absolute; right: 12px; bottom: 14px; width: 30px; height: 62px; background: {{rustNext}}; border: 3px solid #0b0414; border-radius: 8px 8px 3px 3px; box-shadow: inset -6px 0 0 rgba(11,4,20,.35)"></div>
+        <div style="position: absolute; right: 21px; bottom: 76px; width: 12px; height: 10px; background: #c9b8e8; border: 3px solid #0b0414"></div>
+        <sc-if value="{{fx.rust}}" hint-placeholder-val="{{ false }}"><div class="burst" style="--fx: {{burstColor.rust}}"><span>{{burst.rust}}</span></div></sc-if>
       </div>
       <div style="display: flex; gap: 10px">
         <button type="button" class="btn" onClick="{{add.rust}}" aria-label="Add a set on Rustbelt Flats" style="flex: 1 1 auto; background: #ffa033; color: #0b0414; box-shadow: 4px 4px 0 #0b0414">+ SET</button>
@@ -149,27 +227,44 @@ a{color:#c6ff3d}a:hover{color:#dcfb7b}
       <span style="font-size: 12px; color: #c9b8e8">Default for: <b style="color: #ffa033">SCRAPPER</b> · X colour climbs the rarity ladder</span>
     </div>
 
-    <!-- ARCADE UNDERPASS -->
     <div style="flex: 0 0 304px; display: flex; flex-direction: column; gap: 12px">
       <div style="display: flex; flex-direction: column; gap: 2px">
         <span style="font-family: Anton, Impact, sans-serif; font-size: 30px; line-height: 1; letter-spacing: 1px; color: #c6ff3d">ARCADE UNDERPASS</span>
         <span style="font-size: 12px; color: #c9b8e8">Polka dots, neon signs, under the bridge.</span>
       </div>
-      <div role="img" aria-label="Arcade Underpass scene: dark wall with pink polka dots, a lime neon sign, bridge pillars, violet concrete floor, a lifter standing on it" style="position: relative; height: 230px; overflow: hidden; border: 4px solid #0b0414; box-shadow: 6px 6px 0 #c6ff3d; background-color: #12061f; background-image: radial-gradient(rgba(255,95,176,.22) 2.5px, transparent 3px); background-size: 24px 24px">
-        <div style="position: absolute; left: 0; right: 0; top: 0; height: 26px; background: #2a1148; border-bottom: 4px solid #0b0414"></div>
-        <div style="position: absolute; right: 14px; top: 26px; width: 26px; bottom: 58px; background: #2a1148; border: 3px solid #0b0414; border-bottom: 0"></div>
-        <div style="position: absolute; left: 150px; top: 52px; padding: 6px 10px; border: 3px solid #c6ff3d; box-shadow: 0 0 0 3px #0b0414, inset 0 0 0 3px #0b0414; font-family: Anton, Impact, sans-serif; font-size: 20px; line-height: 1; letter-spacing: 2px; color: #c6ff3d">OPEN 24/7</div>
-        <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 58px; background-color: #724eb2; background-image: repeating-linear-gradient(90deg, #593597 0 3px, transparent 3px 60px); border-top: 4px solid #0b0414; box-shadow: inset 0 6px 0 #a77bff"></div>
+      <div class="scene" role="img" aria-label="Arcade Underpass: riveted bridge deck overhead, dotted wall with graffiti tags and torn posters, a flickering lime OPEN 24/7 sign and a pink arrow sign, an arcade cabinet, a traffic cone, a puddle reflecting neon, a lifter on the concrete" style="background-color: #12061f; background-image: radial-gradient(rgba(255,95,176,.22) 2.5px, transparent 3px); background-size: 24px 24px; box-shadow: 6px 6px 0 #c6ff3d">
+        <div style="left: 0; right: 0; top: 0; height: 30px; background-color: #2a1148; background-image: radial-gradient(#8672a5 2px, transparent 2.5px); background-size: 16px 30px; background-position: 4px 0; border-bottom: 4px solid #0b0414"></div>
+        <div style="left: 0; right: 0; top: 30px; height: 14px; background: repeating-linear-gradient(90deg, transparent 0 22px, #2a1148 22px 26px)"></div>
+        <div style="right: 12px; top: 30px; width: 26px; bottom: 60px; background: repeating-linear-gradient(0deg, #2a1148 0 18px, #1f0d36 18px 20px); border: 3px solid #0b0414; border-bottom: 0"></div>
+        <div style="left: 12px; top: 58px; width: 40px; height: 52px; background: #f6eeff; border: 3px solid #0b0414; transform: rotate(-4deg); clip-path: polygon(0 0, 100% 0, 100% 80%, 76% 100%, 0 100%); box-shadow: inset 0 18px 0 #ff5fb0"></div>
+        <div style="left: 58px; top: 70px; font-family: Anton, Impact, sans-serif; font-size: 30px; line-height: 1; color: transparent; -webkit-text-stroke: 2px #ff5fb0; transform: rotate(-10deg)">SWOLE</div>
+        <div style="left: 30px; top: 118px; font-family: Anton, Impact, sans-serif; font-size: 22px; line-height: 1; color: #3fd2ff; transform: rotate(4deg); text-shadow: 2px 2px 0 #0b0414; opacity: .85">GAINZ</div>
+        <div class="anim" style="left: 150px; top: 58px; padding: 6px 10px; border: 3px solid #c6ff3d; box-shadow: 0 0 0 3px #0b0414, inset 0 0 0 3px #0b0414; font-family: Anton, Impact, sans-serif; font-size: 22px; line-height: 1; letter-spacing: 2px; color: #c6ff3d; animation: neon 3.2s steps(1,end) infinite">OPEN 24/7</div>
+        <div style="left: 170px; top: 104px; width: 64px; height: 20px; background: #ff5fb0; border: 3px solid #0b0414; clip-path: polygon(0 20%, 70% 20%, 70% 0, 100% 50%, 70% 100%, 70% 80%, 0 80%)"></div>
+        <div style="right: 46px; bottom: 58px; width: 56px; height: 112px; background: #2a1148; border: 3px solid #0b0414; box-shadow: inset 6px 0 0 #4b2a7a"></div>
+        <div style="right: 46px; bottom: 156px; width: 56px; height: 14px; background: #ff5fb0; border: 3px solid #0b0414"></div>
+        <div class="anim" style="right: 54px; bottom: 116px; width: 40px; height: 32px; background-color: #0b0414; background-image: repeating-linear-gradient(0deg, #c6ff3d 0 3px, transparent 3px 8px); border: 3px solid #0b0414; animation: neon 2.2s steps(1,end) infinite"></div>
+        <div style="right: 58px; bottom: 96px; width: 8px; height: 8px; border-radius: 50%; background: #ff5fb0; border: 2px solid #0b0414; box-shadow: 14px 0 0 #3fd2ff, 26px 0 0 #ffa033"></div>
+        <div style="left: 0; right: 0; bottom: 0; height: 62px; background-color: #724eb2; background-image: repeating-linear-gradient(90deg, #593597 0 3px, transparent 3px 60px); border-top: 4px solid #0b0414; box-shadow: inset 0 6px 0 #a77bff"></div>
+        <div style="left: 0; right: 0; bottom: 10px; height: 4px; background: repeating-linear-gradient(90deg, #c6ff3d 0 22px, transparent 22px 40px)"></div>
+        <div style="left: 136px; bottom: 18px; width: 90px; height: 20px; border-radius: 50%; background: #2a1148; border: 2px solid #0b0414; background-image: repeating-linear-gradient(0deg, transparent 0 4px, #c6ff3d 4px 5px); opacity: .9"></div>
+        <div style="right: 12px; bottom: 26px; width: 24px; height: 34px; background: repeating-linear-gradient(0deg, #ffa033 0 8px, #f6eeff 8px 12px); border: 3px solid #0b0414; clip-path: polygon(35% 0, 65% 0, 100% 100%, 0 100%)"></div>
+        <div class="shadow"></div>
         <div class="spr2" style="background-position: {{bp.arcade}}"></div>
       </div>
-      <div style="height: 132px; box-sizing: border-box; padding: 12px; background: #1f0d36; border: 3px solid #0b0414; display: flex; gap: 14px; align-items: stretch">
-        <div style="display: flex; flex-direction: column; gap: 6px; flex: 1 1 auto">
-          <span style="font-size: 11px; font-weight: 700">TOKEN IN THE TUBE</span>
-          <div role="status" aria-label="Set counter" style="margin-top: auto; align-self: flex-start; padding: 4px 10px; background: #0b0414; border: 3px solid #c6ff3d; font-family: 'Space Mono', monospace; font-size: 30px; font-weight: 700; line-height: 1; letter-spacing: 4px; color: #c6ff3d">{{arcade.led}}</div>
+      <div class="box {{shake.arcade}}" style="background: #2a1148; box-shadow: 6px 6px 0 #c6ff3d">
+        <div style="position: absolute; left: 0; right: 0; top: 0; height: 32px; background: #ff5fb0; border-bottom: 4px solid #0b0414; display: flex; align-items: center; justify-content: center; font-family: Anton, Impact, sans-serif; font-size: 18px; letter-spacing: 3px; color: #0b0414">INSERT SET</div>
+        <div style="position: absolute; left: 16px; top: 52px; display: flex; flex-direction: column; gap: 10px">
+          <div role="status" aria-label="Sets in this exercise" style="position: relative; padding: 6px 12px; background: #0b0414; border: 4px solid #c6ff3d; box-shadow: 4px 4px 0 #0b0414">
+            <span style="position: absolute; left: 12px; top: 6px; font-family: 'Space Mono', monospace; font-size: 48px; font-weight: 700; line-height: 1; letter-spacing: 6px; color: rgba(198,255,61,.12)">88</span>
+            <span style="position: relative; font-family: 'Space Mono', monospace; font-size: 48px; font-weight: 700; line-height: 1; letter-spacing: 6px; color: #c6ff3d">{{arcadeLed}}</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px"><span style="width: 8px; height: 26px; background: #0b0414; border: 3px solid #8672a5"></span><span style="font-size: 11px; font-weight: 700; color: #c9b8e8">TOKENS ONLY · NO REFUNDS</span></div>
         </div>
-        <div style="width: 44px; display: flex; flex-direction: column-reverse; align-items: center; gap: 1px; padding: 4px 0; background: rgba(63,210,255,.12); border: 3px solid #3fd2ff; box-shadow: 0 0 0 3px #0b0414">
-          <sc-for list="{{arcade.coins}}" as="m" hint-placeholder-count="3"><span class="coin"></span></sc-for>
+        <div style="position: absolute; right: 22px; top: 44px; bottom: 12px; width: 52px; display: flex; flex-direction: column-reverse; align-items: center; gap: 1px; padding: 4px 0; background: rgba(63,210,255,.14); border: 3px solid #3fd2ff; box-shadow: 0 0 0 3px #0b0414, inset 8px 0 0 rgba(246,238,255,.16)">
+          <sc-for list="{{arcade}}" as="m" hint-placeholder-count="3"><span class="coin"></span></sc-for>
         </div>
+        <sc-if value="{{fx.arcade}}" hint-placeholder-val="{{ false }}"><div class="burst" style="--fx: #c6ff3d; right: 86px"><span>{{burst.arcade}}</span></div></sc-if>
       </div>
       <div style="display: flex; gap: 10px">
         <button type="button" class="btn" onClick="{{add.arcade}}" aria-label="Add a set in Arcade Underpass" style="flex: 1 1 auto; background: #c6ff3d; color: #0b0414; box-shadow: 4px 4px 0 #0b0414">+ SET</button>
@@ -181,28 +276,45 @@ a{color:#c6ff3d}a:hover{color:#dcfb7b}
         <div style="display: flex; flex-direction: column; gap: 3px"><div style="height: 22px; background: #724eb2; border: 2px solid #4b2a7a"></div><span style="font-size: 10px; color: #c9b8e8">#724eb2</span></div>
         <div style="display: flex; flex-direction: column; gap: 3px"><div style="height: 22px; background: #c6ff3d; border: 2px solid #4b2a7a"></div><span style="font-size: 10px; color: #c9b8e8">#c6ff3d</span></div>
       </div>
-      <span style="font-size: 12px; color: #c9b8e8">Default for: <b style="color: #3fd2ff">BARGAIN BRUISER</b></span>
+      <span style="font-size: 12px; color: #c9b8e8">Default for: <b style="color: #3fd2ff">BARGAIN BRUISER</b> · 5th token is a COMBO</span>
     </div>
 
-    <!-- FROSTBITE SUMMIT -->
     <div style="flex: 0 0 304px; display: flex; flex-direction: column; gap: 12px">
       <div style="display: flex; flex-direction: column; gap: 2px">
         <span style="font-family: Anton, Impact, sans-serif; font-size: 30px; line-height: 1; letter-spacing: 1px; color: #3fd2ff">FROSTBITE SUMMIT</span>
         <span style="font-size: 12px; color: #c9b8e8">Snowy peak, aurora in violet and sky. Optional.</span>
       </div>
-      <div role="img" aria-label="Frostbite Summit scene: night sky with violet and blue aurora bands, snow-capped peaks, pale snow floor, a lifter standing on it" style="position: relative; height: 230px; overflow: hidden; border: 4px solid #0b0414; box-shadow: 6px 6px 0 #3fd2ff; background: #1a0b3b">
-        <div style="position: absolute; left: -20px; right: -20px; top: 22px; height: 14px; background: #a77bff; opacity: .55; transform: skewY(-6deg)"></div>
-        <div style="position: absolute; left: -20px; right: -20px; top: 44px; height: 10px; background: #3fd2ff; opacity: .45; transform: skewY(-6deg)"></div>
-        <div style="position: absolute; left: 110px; bottom: 58px; width: 150px; height: 110px; background: #2a1148; clip-path: polygon(50% 0, 100% 100%, 0 100%)"></div>
-        <div style="position: absolute; left: 110px; bottom: 136px; width: 150px; height: 32px; background: #c9b8e8; clip-path: polygon(50% 0, 64% 44%, 56% 36%, 48% 52%, 40% 38%, 36% 44%)"></div>
-        <div style="position: absolute; left: 200px; bottom: 58px; width: 120px; height: 70px; background: #3a2a52; clip-path: polygon(50% 0, 100% 100%, 0 100%)"></div>
-        <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 58px; background: #c9b8e8; border-top: 4px solid #0b0414; box-shadow: inset 0 6px 0 #f6eeff"></div>
+      <div class="scene" role="img" aria-label="Frostbite Summit: starry sky with drifting aurora bands, layered snow-capped peaks, snowy pine trees, a small cabin with a lit window, falling snow, pale snow ground with drifts and footprints, a lifter in the snow" style="background: #1a0b3b; box-shadow: 6px 6px 0 #3fd2ff">
+        <div class="stars"></div>
+        <div class="anim" style="left: -30px; right: -30px; top: 20px; height: 16px; background: #a77bff; opacity: .5; transform: skewY(-6deg); animation: drift 4s steps(4,end) infinite alternate"></div>
+        <div class="anim" style="left: -30px; right: -30px; top: 42px; height: 10px; background: #3fd2ff; opacity: .45; transform: skewY(-6deg); animation: drift 3s steps(3,end) infinite alternate-reverse"></div>
+        <div class="anim" style="left: -30px; right: -30px; top: 58px; height: 6px; background: #c6ff3d; opacity: .25; transform: skewY(-6deg); animation: drift 5s steps(5,end) infinite alternate"></div>
+        <div style="left: -20px; bottom: 60px; width: 190px; height: 130px; background: #2a1148; clip-path: polygon(50% 0, 100% 100%, 0 100%)"></div>
+        <div style="left: -20px; bottom: 154px; width: 190px; height: 36px; background: #c9b8e8; clip-path: polygon(50% 0, 64% 40%, 57% 34%, 50% 50%, 43% 34%, 36% 40%)"></div>
+        <div style="left: 120px; bottom: 60px; width: 200px; height: 104px; background: #3a2a52; clip-path: polygon(50% 0, 100% 100%, 0 100%)"></div>
+        <div style="left: 120px; bottom: 136px; width: 200px; height: 28px; background: #f6eeff; clip-path: polygon(50% 0, 63% 44%, 56% 36%, 50% 54%, 44% 36%, 37% 44%)"></div>
+        <div style="left: 150px; bottom: 60px; width: 34px; height: 60px; background: #1f0d36; clip-path: polygon(50% 0, 70% 30%, 60% 30%, 85% 62%, 70% 62%, 100% 100%, 0 100%, 30% 62%, 15% 62%, 40% 30%, 30% 30%)"></div>
+        <div style="left: 150px; bottom: 96px; width: 34px; height: 24px; background: #c9b8e8; clip-path: polygon(50% 0, 70% 30%, 50% 22%, 30% 30%)"></div>
+        <div style="left: 186px; bottom: 60px; width: 26px; height: 46px; background: #1f0d36; clip-path: polygon(50% 0, 70% 30%, 60% 30%, 85% 62%, 70% 62%, 100% 100%, 0 100%, 30% 62%, 15% 62%, 40% 30%, 30% 30%)"></div>
+        <div style="right: 18px; bottom: 60px; width: 62px; height: 38px; background: #4b2d19; border: 3px solid #0b0414; box-shadow: inset 0 -6px 0 #3b2230"></div>
+        <div style="right: 10px; bottom: 98px; width: 78px; height: 24px; background: #f6eeff; border: 3px solid #0b0414; clip-path: polygon(50% 0, 100% 100%, 0 100%)"></div>
+        <div style="right: 40px; bottom: 72px; width: 16px; height: 14px; background: #ffa033; border: 3px solid #0b0414; box-shadow: inset 0 0 0 2px #ffc075"></div>
+        <div class="anim" style="left: 0; right: 0; top: 0; bottom: 60px; background-image: radial-gradient(#f6eeff 1.4px, transparent 2px), radial-gradient(#c9b8e8 1px, transparent 1.6px); background-size: 37px 54px, 23px 45px; animation: snow 2.2s steps(9,end) infinite"></div>
+        <div style="left: 0; right: 0; bottom: 0; height: 62px; background: #c9b8e8; border-top: 4px solid #0b0414; box-shadow: inset 0 6px 0 #f6eeff"></div>
+        <div style="left: 150px; bottom: 30px; width: 90px; height: 16px; border-radius: 50%; background: #f6eeff"></div>
+        <div style="left: 140px; bottom: 14px; width: 6px; height: 4px; background: #8672a5; box-shadow: 14px -4px 0 #8672a5, 28px 0 0 #8672a5, 42px -4px 0 #8672a5, 56px 0 0 #8672a5"></div>
+        <div class="shadow"></div>
         <div class="spr2" style="background-position: {{bp.frost}}"></div>
       </div>
-      <div style="position: relative; height: 132px; box-sizing: border-box; padding: 12px; background: #1a0b3b; border: 3px solid #0b0414; overflow: hidden">
-        <span style="position: relative; z-index: 1; font-size: 11px; font-weight: 700">A FLAG UP THE SLOPE PER SET</span>
-        <div style="position: absolute; inset: 0; background: #c9b8e8; clip-path: polygon(0 100%, 100% 22%, 100% 100%)"></div>
-        <sc-for list="{{frost}}" as="m" hint-placeholder-count="3"><span class="flag" style="left: {{m.left}}; bottom: {{m.bottom}}"><i></i><b></b></span></sc-for>
+      <div class="box {{shake.frost}}" style="background: #1a0b3b; box-shadow: 6px 6px 0 #3fd2ff">
+        <span class="plate" style="background: #3fd2ff">THE CLIMB</span>
+        <div class="stars"></div>
+        <div style="position: absolute; inset: 0; background: #c9b8e8; clip-path: polygon(0 100%, 82% 14%, 100% 32%, 100% 100%)"></div>
+        <div style="position: absolute; inset: 0; background: #f6eeff; clip-path: polygon(0 100%, 82% 14%, 86% 18%, 6% 100%)"></div>
+        <div style="position: absolute; right: 30px; top: 0; width: 4px; height: 30px; background: #f6eeff; border: 1px solid #0b0414"></div>
+        <div style="position: absolute; right: 6px; top: 0; width: 24px; height: 16px; background: #ff5fb0; border: 2px solid #0b0414; clip-path: polygon(0 0, 100% 50%, 0 100%)"></div>
+        <sc-for list="{{frost}}" as="m" hint-placeholder-count="3"><span class="flag" style="left: {{m.left}}; bottom: {{m.bottom}}"><i></i><b style="background: {{m.color}}"></b></span></sc-for>
+        <sc-if value="{{fx.frost}}" hint-placeholder-val="{{ false }}"><div class="burst" style="--fx: #3fd2ff; right: auto; left: 12px; top: 40px"><span>{{burst.frost}}</span></div></sc-if>
       </div>
       <div style="display: flex; gap: 10px">
         <button type="button" class="btn" onClick="{{add.frost}}" aria-label="Add a set on Frostbite Summit" style="flex: 1 1 auto; background: #3fd2ff; color: #0b0414; box-shadow: 4px 4px 0 #0b0414">+ SET</button>
@@ -214,49 +326,71 @@ a{color:#c6ff3d}a:hover{color:#dcfb7b}
         <div style="display: flex; flex-direction: column; gap: 3px"><div style="height: 22px; background: #c9b8e8; border: 2px solid #4b2a7a"></div><span style="font-size: 10px; color: #c9b8e8">#c9b8e8</span></div>
         <div style="display: flex; flex-direction: column; gap: 3px"><div style="height: 22px; background: #3fd2ff; border: 2px solid #4b2a7a"></div><span style="font-size: 10px; color: #c9b8e8">#3fd2ff</span></div>
       </div>
-      <span style="font-size: 12px; color: #c9b8e8">Default for: <b style="color: #a77bff">CABLEMANCER</b></span>
+      <span style="font-size: 12px; color: #c9b8e8">Default for: <b style="color: #a77bff">CABLEMANCER</b> · flags climb the rarity ladder</span>
     </div>
   </div>
 
   <div style="display: flex; gap: 20px">
-    <div style="flex: 1 1 0; padding: 14px 16px; background: #1f0d36; border: 3px solid #0b0414; box-shadow: 5px 5px 0 #c6ff3d; display: flex; flex-direction: column; gap: 6px"><span style="font-family: Anton, Impact, sans-serif; font-size: 20px; letter-spacing: 1px">1 · Light floor, dark sky</span><span style="font-size: 13px; line-height: 1.5; color: #c9b8e8">Every area puts a pale floor (sand, flagstone, rust, concrete, snow) right behind the lifter. That fixes the readability finding: the #0b0414 outline had nothing to stand against on the dark grounds.</span></div>
-    <div style="flex: 1 1 0; padding: 14px 16px; background: #1f0d36; border: 3px solid #0b0414; box-shadow: 5px 5px 0 #3fd2ff; display: flex; flex-direction: column; gap: 6px"><span style="font-family: Anton, Impact, sans-serif; font-size: 20px; letter-spacing: 1px">2 · One tap, one mark</span><span style="font-size: 13px; line-height: 1.5; color: #c9b8e8">A mark lands in about 200 ms with hard-stepped motion, no easing. Marks group in fives so you can count them without numbers. A long-press takes the last one back (UNDO stands in for it here).</span></div>
-    <div style="flex: 1 1 0; padding: 14px 16px; background: #1f0d36; border: 3px solid #0b0414; box-shadow: 5px 5px 0 #ff5fb0; display: flex; flex-direction: column; gap: 6px"><span style="font-family: Anton, Impact, sans-serif; font-size: 20px; letter-spacing: 1px">3 · Neon means reward</span><span style="font-size: 13px; line-height: 1.5; color: #c9b8e8">Skies and walls stay dark. Only the marks, the props that react (torches, the neon sign) and the lifter’s clothes get neon. The pearl and the X colours borrow the rarity ladder.</span></div>
+    <div style="flex: 1 1 0; padding: 14px 16px; background: #1f0d36; border: 3px solid #0b0414; box-shadow: 5px 5px 0 #c6ff3d; display: flex; flex-direction: column; gap: 6px"><span style="font-family: Anton, Impact, sans-serif; font-size: 20px; letter-spacing: 1px">1 · Light floor, busy dark world</span><span style="font-size: 13px; line-height: 1.5; color: #c9b8e8">Each scene stacks sky, far shapes, props and a pale floor, with a ground shadow under the lifter. Small looping stepped animations (waves, torches, neon, cactus eyes, snow) make the world feel alive without stealing focus.</span></div>
+    <div style="flex: 1 1 0; padding: 14px 16px; background: #1f0d36; border: 3px solid #0b0414; box-shadow: 5px 5px 0 #3fd2ff; display: flex; flex-direction: column; gap: 6px"><span style="font-family: Anton, Impact, sans-serif; font-size: 20px; letter-spacing: 1px">2 · Every tap is an event</span><span style="font-size: 13px; line-height: 1.5; color: #c9b8e8">The mark lands with weight (drop, scratch, spray, clink, plant), the box shakes, and a starburst says +1 SET. Every 5th mark gets its own stamp: PEARL!, SLASHED!, TAGGED!, COMBO!, SUMMIT!. Long-press takes one back.</span></div>
+    <div style="flex: 1 1 0; padding: 14px 16px; background: #1f0d36; border: 3px solid #0b0414; box-shadow: 5px 5px 0 #ff5fb0; display: flex; flex-direction: column; gap: 6px"><span style="font-family: Anton, Impact, sans-serif; font-size: 20px; letter-spacing: 1px">3 · Neon means reward</span><span style="font-size: 13px; line-height: 1.5; color: #c9b8e8">Scenes stay dark violet. Neon goes on the marks, on props that react (torches, signs, the arcade screen) and on clothes. Spray paint and summit flags climb the rarity ladder: muted, lime, sky, violet, orange, pink.</span></div>
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1736,"height":1000}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1736,"height":1120}}'>
 class Component extends DCLogic {
   constructor(props) {
     super(props);
-    this.state = { riptide: 4, keep: 7, rust: 5, arcade: 6, frost: 4 };
+    this.state = { riptide: 4, keep: 7, rust: 5, arcade: 6, frost: 4, fx: null };
+    this.timer = null;
+  }
+  componentWillUnmount() {
+    clearTimeout(this.timer);
+  }
+  bump(k, delta) {
+    const next = Math.max(0, Math.min(12, this.state[k] + delta));
+    clearTimeout(this.timer);
+    this.setState({ [k]: next, fx: null }, () => {
+      if (delta < 0) return;
+      this.setState({ fx: k });
+      this.timer = setTimeout(() => this.setState({ fx: null }), 650);
+    });
   }
   renderVals() {
-    const s = this.state, MAX = 12;
+    const s = this.state, AREAS = ['riptide', 'keep', 'rust', 'arcade', 'frost'];
     const cell = (sex, fat, mus) => (-(fat / 25) * 104) + 'px ' + (-((sex === 'm' ? 0 : 5) + mus / 25) * 128) + 'px';
     const n = (k) => Array.from({ length: s[k] }, (_, i) => i);
-    const ladder = ['#c9b8e8', '#c6ff3d', '#3fd2ff', '#a77bff', '#ffa033'];
+    const ladder = ['#c9b8e8', '#c6ff3d', '#3fd2ff', '#a77bff', '#ffa033', '#ff5fb0'];
+    const rung = (i) => ladder[Math.min(i, ladder.length - 1)];
     const groups = [];
     for (let left = s.keep; left > 0; left -= 5) {
       const g = Math.min(5, left);
       groups.push({ strokes: Array.from({ length: Math.min(4, g) }, () => ({})), slash: g === 5 });
     }
-    const add = {}, undo = {};
-    for (const k of ['riptide', 'keep', 'rust', 'arcade', 'frost']) {
-      add[k] = () => this.setState({ [k]: Math.min(MAX, this.state[k] + 1) });
-      undo[k] = () => this.setState({ [k]: Math.max(0, this.state[k] - 1) });
+    const fifth = { riptide: 'PEARL!', keep: 'SLASHED!', rust: 'TAGGED!', arcade: 'COMBO!', frost: 'SUMMIT!' };
+    const add = {}, undo = {}, fx = {}, shake = {}, burst = {};
+    for (const k of AREAS) {
+      add[k] = () => this.bump(k, 1);
+      undo[k] = () => this.bump(k, -1);
+      fx[k] = s.fx === k;
+      shake[k] = s.fx === k ? 'shake' : '';
+      burst[k] = s[k] > 0 && s[k] % 5 === 0 ? fifth[k] : '+1 SET';
     }
     return {
-      add, undo,
+      add, undo, fx, shake, burst,
+      burstColor: { rust: rung(Math.max(0, s.rust - 1)) },
       bp: {
         riptide: cell('f', 50, 50), keep: cell('m', 75, 100), rust: cell('f', 0, 25),
         arcade: cell('m', 25, 50), frost: cell('f', 0, 75),
       },
       riptide: n('riptide').map((i) => ({ cls: i % 5 === 4 ? 'pearl' : 'shell' })),
+      pouchH: (96 + Math.min(4, Math.floor(s.riptide / 3)) * 8) + 'px',
       keep: groups,
-      rust: n('rust').map((i) => ({ color: i < 5 ? ladder[i] : '#ff5fb0' })),
-      arcade: { coins: n('arcade').map(() => ({})), led: String(s.arcade).padStart(2, '0') },
-      frost: n('frost').map((i) => ({ left: (14 + i * 22) + 'px', bottom: (6 + i * 7) + 'px' })),
+      rust: n('rust').map((i) => ({ color: rung(i), drip: (6 + (i * 7) % 11) + 'px' })),
+      rustNext: rung(s.rust),
+      arcade: n('arcade').map(() => ({})),
+      arcadeLed: String(s.arcade).padStart(2, '0'),
+      frost: n('frost').map((i) => ({ left: (12 + i * 19) + 'px', bottom: (4 + i * 11) + 'px', color: rung(i) })),
     };
   }
 }
