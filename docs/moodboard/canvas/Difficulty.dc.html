@@ -33,7 +33,7 @@ a{color:#c6ff3d}a:hover{color:#dcfb7b}
   <div style="display: flex; flex-direction: column; gap: 2px">
     <span style="font-size: 12px; color: #c9b8e8">STEP 3 OF 5 · DIFFICULTY</span>
     <h1 style="margin: 0; font-family: Anton, Impact, sans-serif; font-weight: 400; font-size: 36px; line-height: 1.05; letter-spacing: 1px; text-transform: uppercase; text-shadow: 2px 2px 0 #c6ff3d, 4px 4px 0 #ff5fb0">How hard do you go?</h1>
-    <span style="font-size: 13px; font-weight: 700">Climb to your rung. Higher rungs earn more XP.</span>
+    <span style="font-size: 13px; font-weight: 700">Pick a difficulty mode. Harder modes earn more XP.</span>
   </div>
 
   <div role="radiogroup" aria-label="Difficulty, from expert at the top to beginner at the bottom" style="position: relative; display: flex; flex-direction: column; gap: 8px; padding: 0 18px">
@@ -55,7 +55,7 @@ a{color:#c6ff3d}a:hover{color:#dcfb7b}
   <div class="climb" style="position: relative; display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; background: #1f0d36; border: 3px solid #0b0414; box-shadow: 6px 6px 0 {{p.color}}">
     <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px">
       <span style="font-family: Anton, Impact, sans-serif; font-size: 24px; line-height: 1; letter-spacing: 1px; color: {{p.color}}">{{p.name}}</span>
-      <span style="font-size: 11px; font-weight: 700; color: #c9b8e8">RUNG {{p.rung}} OF 6</span>
+      <span style="font-size: 11px; font-weight: 700; color: #c9b8e8">DIFFICULTY {{p.rung}} OF 6</span>
     </div>
     <span style="font-size: 13px; line-height: 1.45">{{p.who}}</span>
     <span style="display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; color: #c9b8e8">XP <span style="display: flex; gap: 3px"><sc-for list="{{p.gems}}" as="g" hint-placeholder-count="3"><span class="gem" style="background: {{g.c}}"></span></sc-for></span></span>
@@ -76,18 +76,18 @@ class Component extends DCLogic {
   constructor(props) {
     super(props);
     this.levels = [
-      { name: 'COUCH SPAWN', cardName: 'COUCH\nSPAWN', color: '#c9b8e8',
-        who: 'Never lifted, or not for years. Freshly respawned from the sofa.', joke: 'THE SOFA WILL REMEMBER YOU' },
-      { name: 'DUMBBELL SQUIRE', cardName: 'DUMBBELL\nSQUIRE', color: '#c6ff3d',
-        who: 'A few weeks to a few months in. Knows where the mats live.', joke: 'SQUIRE TODAY, LEGEND LATER' },
-      { name: 'REP RANGER', cardName: 'REP\nRANGER', color: '#3fd2ff',
-        who: 'Trains most weeks, for about a year. Has opinions about grip.', joke: 'RANGES REPS, NOT CATTLE' },
-      { name: 'GAIN WARLOCK', cardName: 'GAIN\nWARLOCK', color: '#a77bff',
-        who: 'About two years in. Summons the pump on demand.', joke: 'CASTS PUMP ON SELF' },
-      { name: 'BARBELL WARLORD', cardName: 'BARBELL\nWARLORD', color: '#ffa033',
-        who: 'Years of serious lifting. The squat rack fears them.', joke: 'CONQUERS RACKS, RETURNS PLATES' },
-      { name: 'ASCENDED SWOLEMANCER', cardName: 'ASCENDED\nSWOLEMANCER', color: '#ff5fb0',
-        who: 'Many years, competition level. Gyms whisper their name.', joke: 'HAS BEEN WARNED BY GRAVITY' },
+      { name: 'SOFA MODE', cardName: 'SOFA\nMODE', color: '#c9b8e8',
+        who: 'For: never lifted, or not for years. The gentlest workouts.', joke: 'THE SOFA WILL REMEMBER YOU' },
+      { name: 'WARM-UP MODE', cardName: 'WARM-UP\nMODE', color: '#c6ff3d',
+        who: 'For: a few weeks to a few months in. Easy, steady workouts.', joke: 'EVERY LEGEND STARTS HERE' },
+      { name: 'SWEAT MODE', cardName: 'SWEAT\nMODE', color: '#3fd2ff',
+        who: 'For: training most weeks, for about a year. Proper sweaty workouts.', joke: 'TOWEL STRONGLY RECOMMENDED' },
+      { name: 'PAIN MODE', cardName: 'PAIN\nMODE', color: '#a77bff',
+        who: 'For: about two years in. Hard workouts, real effort.', joke: 'OUCH, BUT MAKE IT GAINS' },
+      { name: 'BRUTAL MODE', cardName: 'BRUTAL\nMODE', color: '#ffa033',
+        who: 'For: years of serious lifting. Very hard workouts.', joke: 'THE RACK FEARS YOU NOW' },
+      { name: 'NIGHTMARE MODE', cardName: 'NIGHTMARE\nMODE', color: '#ff5fb0',
+        who: 'For: many years, competition level. The hardest workouts there are.', joke: 'GRAVITY FILED A COMPLAINT' },
     ];
     this.state = { i: 1, intro: false };
     this.timer = null;
@@ -107,7 +107,7 @@ class Component extends DCLogic {
       const on = i === s.i;
       return {
         name: l.name, color: l.color, on: on ? 'true' : 'false',
-        label: 'Rung ' + (i + 1) + ' of 6: ' + l.name.toLowerCase() + '. ' + l.who,
+        label: 'Difficulty ' + (i + 1) + ' of 6: ' + l.name.toLowerCase() + '. ' + l.who,
         bg: on ? l.color : '#1f0d36', fg: on ? '#0b0414' : '#f6eeff',
         sh: on ? '4px 4px 0 #ff5fb0' : 'none',
         gems: gems(i, on ? '#0b0414' : l.color),

@@ -285,28 +285,31 @@ For other areas, swap the scene and the action object. Everything else stays the
 **Reference board, not an app screen.** Brief 4.3: many levels from total beginner to years of lifting, fantasy names, Borderlands tone.
 Owner choices (21 Nov 2026): **6 levels**, a **vertical ladder** picker, XP shown as **gems with no numbers**, and names written here (proposals).
 
+**Naming rule (owner, 21 Nov 2026):** difficulty names must read as difficulty levels. They must not sound like classes or hint at
+classes (no Squire, Ranger, Warlock and so on). So every name is **`<WORD> MODE`**, the way games name difficulty.
+
 Screen, top to bottom (390×844 dp):
 
-1. `STEP 3 OF 5 · DIFFICULTY`, title **HOW HARD DO YOU GO?**, subline "Climb to your rung. Higher rungs earn more XP."
-2. **The ladder:** two wooden rails with 6 rung buttons between them (a radio group), expert at the top and beginner at the bottom.
+1. `STEP 3 OF 5 · DIFFICULTY`, title **HOW HARD DO YOU GO?**, subline "Pick a difficulty mode. Harder modes earn more XP."
+2. **The ladder:** two wooden rails with 6 rung buttons between them (a radio group), the hardest at the top and the easiest at the bottom.
    Each rung has a diamond in its rarity colour, the name, and 1–6 XP gems. The picked rung fills with its colour and gets a pink hard shadow.
-3. **Detail card:** the name in its colour, `RUNG n OF 6`, who it is for, and the XP gems. The card's shadow takes the level colour.
+3. **Detail card:** the name in its colour, `DIFFICULTY n OF 6`, who it is for, and the XP gems. The card's shadow takes the level colour.
 4. **NEXT: STARTING AREA**.
 
 Picking a rung plays the **freeze-frame title card** (same as Class select): a stencil slam of the name and a joke subtitle.
 It closes after 1.8 s or on tap.
 
-| Rung | Rarity colour | Name | Who it's for | Title-card joke | XP gems |
+| # | Rarity colour | Name | Who it's for | Title-card joke | XP gems |
 | --- | --- | --- | --- | --- | --- |
-| 1 | muted `#c9b8e8` | **COUCH SPAWN** | Never lifted, or not for years. Freshly respawned from the sofa. | THE SOFA WILL REMEMBER YOU | 1 |
-| 2 | lime `#c6ff3d` | **DUMBBELL SQUIRE** | A few weeks to a few months in. Knows where the mats live. | SQUIRE TODAY, LEGEND LATER | 2 |
-| 3 | sky `#3fd2ff` | **REP RANGER** | Trains most weeks, for about a year. Has opinions about grip. | RANGES REPS, NOT CATTLE | 3 |
-| 4 | violet `#a77bff` | **GAIN WARLOCK** | About two years in. Summons the pump on demand. | CASTS PUMP ON SELF | 4 |
-| 5 | orange `#ffa033` | **BARBELL WARLORD** | Years of serious lifting. The squat rack fears them. | CONQUERS RACKS, RETURNS PLATES | 5 |
-| 6 | pink `#ff5fb0` | **ASCENDED SWOLEMANCER** | Many years, competition level. Gyms whisper their name. | HAS BEEN WARNED BY GRAVITY | 6 |
+| 1 | muted `#c9b8e8` | **SOFA MODE** | Never lifted, or not for years. The gentlest workouts. | THE SOFA WILL REMEMBER YOU | 1 |
+| 2 | lime `#c6ff3d` | **WARM-UP MODE** | A few weeks to a few months in. Easy, steady workouts. | EVERY LEGEND STARTS HERE | 2 |
+| 3 | sky `#3fd2ff` | **SWEAT MODE** | Training most weeks, for about a year. Proper sweaty workouts. | TOWEL STRONGLY RECOMMENDED | 3 |
+| 4 | violet `#a77bff` | **PAIN MODE** | About two years in. Hard workouts, real effort. | OUCH, BUT MAKE IT GAINS | 4 |
+| 5 | orange `#ffa033` | **BRUTAL MODE** | Years of serious lifting. Very hard workouts. | THE RACK FEARS YOU NOW | 5 |
+| 6 | pink `#ff5fb0` | **NIGHTMARE MODE** | Many years, competition level. The hardest workouts there are. | GRAVITY FILED A COMPLAINT | 6 |
 
 - The gem count is a **picture of the XP multiplier**, not the number. The real multipliers come with the XP rules (brief §8, item 3).
 - The colours follow the rarity ladder from `borderlands-reference.md` §4, so harder reads as rarer.
-- "Ascended Swolemancer" uses the marketing draft's app name. Rename it if the app name changes.
+- Don't use **"Chaos mode"** (already an app menu feature) or Borderlands' own difficulty names.
 - The tone is loud and silly, never mean about bodies, as the reference asks.
 
