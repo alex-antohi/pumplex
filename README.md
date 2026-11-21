@@ -9,7 +9,7 @@ The plan is in [docs/app-brief.md](docs/app-brief.md) and
 ## What works now
 
 - **First launch:** a WoW-style character screen (sex, height, muscle, fat %
-  sliders, class by equipment), then difficulty, starting area and LET'S GO.
+  sliders), class by equipment, difficulty, starting area and LET'S GO.
 - **Hub:** the 2D character (tap it to change the body sliders; changes are
   kept as a history), the level and XP bar, today's workout.
 - **Workout:** exercises from the class pool (how many depends on the
@@ -19,9 +19,12 @@ The plan is in [docs/app-brief.md](docs/app-brief.md) and
 - **Free-form sessions:** one session per calendar day, no buttons to start
   or stop. The rule is in [docs/app-flow.md](docs/app-flow.md) §4.4.
 - The whole app is one screen: views change with a camera zoom or slide.
-- XP from sets (bonus over the target), training days, week streaks (N
-  training days per week) and achievements. Levels unlock gear (one item
-  per slot).
+- Class select ("CHOOSE YOUR PATH", design in `docs/moodboard/`) with the
+  freeze-frame intro card, also used for level-ups.
+- XP from `docs/rules.md`: sets × difficulty (×1.5 over the target, 0 past
+  2× the target), 3% critical sets, +50 for the first set of the day, a
+  week-streak bonus, achievements. Habitica level curve. Levels unlock gear
+  (one item per slot).
 - **Old-app data:** a one-time upgrade saves a backup file first, then
   turns the old sessions into XP and deletes the old kg / reps data.
 - Menu (⋮): edit character, save / restore a backup file, chaos mode,

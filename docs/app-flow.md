@@ -1,6 +1,6 @@
 # PUMPLEX app flow
 
-Date: 21 November 2026. Status: draft v5 (built on branch `claude/game-flow-2dbf96`).
+Date: 21 November 2026. Status: draft v6 (built on branch `claude/game-flow-2dbf96`).
 Read with [app-brief.md](app-brief.md), `data-schema.md`, `pumplex.drawio` and `docs/moodboard/`.
 
 Status key: **exists** = in the app now. **later** = waits for the design team or the rules table.
@@ -28,15 +28,16 @@ flowchart TD
     migrate -- saved --> setupDone
     migrate -- NOT NOW / no file --> setupDone
     old -- no --> setupDone{Setup done?}
-    setupDone -- no --> char[Character + class: sliders, class icons]
-    char --> diff[Difficulty: fantasy-named levels]
+    setupDone -- no --> char[Character: sliders]
+    char --> cls[Class: CHOOSE YOUR PATH, freeze-frame intro card]
+    cls --> diff[Difficulty: fantasy-named levels]
     diff --> area[Starting area]
     area --> summary[Summary: LET'S GO]
     summary --> hub
     setupDone -- yes --> hub[Hub: character, level, XP bar, week streak, today's workout]
 
     hub -- tap the workout card --> work[Workout: tap = +1 set, hold = -1, swipe = switch]
-    work -- each set --> xp[XP, level-up, achievement and gear bursts]
+    work -- each set --> xp[XP, critical sets, level-up intro card, achievement and gear bursts]
     work -- HUB --> hub
 
     hub -. PAST .-> history[Past sessions]
@@ -50,16 +51,17 @@ flowchart TD
 | # | Scene | Status | Purpose |
 |---|---|---|---|
 | 0 | Upgrade | exists | Only with old-app data. SAVE BACKUP & UPGRADE, or NOT NOW. |
-| 1 | Character + class | exists | WoW-style: the character large in the centre on a pedestal. Sex toggle, 🎲 random, class icons row, sliders for height, muscle and fat %. Changes live. |
-| 2 | Difficulty | exists | 12 fantasy-named levels. Shows exercises per workout and the XP multiplier. |
-| 3 | Starting area | exists | 2 placeholder areas. Real areas come from the design team. |
-| 4 | Summary | exists | Class, gear (equipment), difficulty, area. Tap a row to change it. LET'S GO (or SAVE when editing). |
-| 5 | Hub | exists | The character, equipped gear icons, level and XP bar, week streak, today's workout card. |
-| 6 | Workout | exists | Exercises from the class pool, each with a set target. Tap, long-press, swipe, add, remove, ↺. Tally marks. |
-| 7 | Reward | exists | XP on each card. Bursts for level-up, achievements and new gear. |
-| 8 | Past sessions | exists | Training days (sets per exercise against the target, time, class, area, XP) and old saves. |
-| 9 | Gear | exists | Items per slot (head, top, bottom, shoes, weapon). Locked items show their level. |
-| 10 | Menu | exists | Edit character, save / restore backup, chaos mode, cel shader. |
+| 1 | Character | exists | WoW-style: the character large in the centre on a pedestal. Sex toggle, 🎲 random, sliders for height, muscle and fat %. Changes live. |
+| 2 | Class select | exists | CHOOSE YOUR PATH: preview card (lifter, loadout, 3 tags), description, 4 class buttons, NEXT: DIFFICULTY. Freeze-frame intro card on each pick. |
+| 3 | Difficulty | exists | 12 fantasy-named levels. Shows exercises per workout and the XP multiplier. |
+| 4 | Starting area | exists | 2 placeholder areas. Real areas come from the design team. |
+| 5 | Summary | exists | Class, gear (equipment), difficulty, area. Tap a row to change it. LET'S GO (or SAVE when editing). |
+| 6 | Hub | exists | The character, equipped gear icons, level and XP bar, week streak, today's workout card. |
+| 7 | Workout | exists | Exercises from the class pool, each with a set target. Tap, long-press, swipe, add, remove, ↺. Tally marks. |
+| 8 | Reward | exists | XP on each card. CRITICAL SET message. Freeze-frame intro card for level-ups; bursts for achievements and new gear. |
+| 9 | Past sessions | exists | Training days (sets per exercise against the target, time, class, area, XP) and old saves. |
+| 10 | Gear | exists | Items per slot (head, top, bottom, shoes, weapon). Locked items show their level. |
+| 11 | Menu | exists | Edit character, save / restore backup, chaos mode, cel shader. |
 
 Removed: the preloader, START TRAINING and its clock, I WORKED / I RESTED and UNDO,
 the 7-day pattern, rest days, rest-day stats and the preview pages.
@@ -69,24 +71,34 @@ the 7-day pattern, rest days, rest-day stats and the preview pages.
 Show it on the first launch. The body sliders open again from the hub (tap the character) and
 the whole setup from the menu (EDIT CHARACTER).
 
-1. **Character + class.**
+1. **Character.**
    - Pick male or female. Sliders: height, muscle size, fat %. The user never types a weight or a height.
    - Sprites: mood board body sliders (fat 0/50/100 × muscle 0/50/100 per sex). The app shows the
      nearest frame for in-between values and stretches the sprite vertically for height.
      Nearest-neighbour scaling only. Gear never changes the body.
-   - "What do you train with?" One class per equipment type (working names in `lib/game/content.dart`):
+2. **Class select** (design: `docs/moodboard/README.md` "Class select").
+   - Kicker `STEP 2 OF 5 · THE SWOLEMANCER'S PATHS`, title CHOOSE YOUR PATH, subline "What do you train with?".
+   - Preview card: the user's lifter (from step 1), the class name in its colour, the loadout and
+     3 tags. No stat table. The card's hard shadow takes the class colour. Then the description.
+   - 4 class buttons (a radio group): name left, equipment right. One class per equipment type.
+     Proposed names, kept in `lib/game/content.dart` (the ids stay the same):
 
-     | Pick | Class (working name) |
-     |---|---|
-     | Nothing | Speedster: cardio, push-ups, burpees, sprints, jumps |
-     | A basic home gym | Rogue: floor work, some cardio, some weights |
-     | A lot of free weights | Warrior: burly strongman |
-     | A lot of machines | Mage: stringy and strong |
+     | Equipment | Class | Colour |
+     |---|---|---|
+     | No equipment | Scrapper | orange |
+     | Basic home gym | Bargain Bruiser | sky |
+     | Lots of free weights | Plate Paladin | lime |
+     | Lots of machines | Cablemancer | violet |
 
-     Until the class outfits are drawn, the class shows as the pedestal colour, a prop icon and a name tag.
-2. **Difficulty.** 12 levels with our own fantasy names (placeholders, `lib/game/content.dart`).
-3. **Starting area.** Placeholders. Later: background, palette and set-mark style.
-4. **Summary.** LET'S GO saves the profile. If old sessions were upgraded, the welcome burst shows their XP.
+   - Each pick shows the **freeze-frame intro card** over the preview card: the lifter goes greyscale
+     with high contrast, dark stripes cover the card, the class name slams in as a stencil tag
+     (−6°, from 2.2× in 6 hard steps over 420 ms), the joke subtitle slides in on an ink strip (−3°).
+     It closes after 1.8 s or on a tap. A new pick restarts it. Reduced motion: no slam or slide.
+   - NEXT: DIFFICULTY.
+   - Note: the design shows a preview body per class; the app keeps the body the user made in step 1.
+3. **Difficulty.** 12 levels with our own fantasy names (placeholders, `lib/game/content.dart`).
+4. **Starting area.** Placeholders. Later: background, palette and set-mark style.
+5. **Summary.** LET'S GO saves the profile. If old sessions were upgraded, the welcome burst shows their XP.
 
 ## 4. Play
 
@@ -119,20 +131,27 @@ the whole setup from the menu (EDIT CHARACTER).
 
 ### 4.3 XP, level, gear, achievements
 
-All numbers are in `lib/game/rules.dart` (placeholders until the rules table exists).
+The numbers come from `docs/rules.md` (draft v1). They are all in `lib/game/rules.dart`.
 
 | Source | XP |
 |---|---|
-| Working sets | sets × XP per set × difficulty multiplier. Sets over the target give extra XP each. |
-| Training day | A fixed bonus for each day with at least one working set. |
-| Streak | A bonus for each calendar week with at least N training days (N from the difficulty). |
+| Working set | 10 × difficulty multiplier (1.0 → 2.0). Sets above the target ×1.5, up to 2× the target; beyond that 0. |
+| Critical set | 3% chance, ×2, "CRITICAL SET!!!". The roll is repeatable (seed: date, exercise, set number). |
+| Streak bonus | +5% set XP per streak week in a row (the weeks before this one), max +25%. |
+| First set of the day | +50. |
 | Achievements | The XP of the achievement, once (placeholder list in `content.dart`). |
-| Legacy | A fixed XP for each old-app workout day (beta). |
+| Legacy | 150 for each old-app workout day (beta). |
 
-- Sets, day and streak XP are computed from the sessions, so a rule change updates them.
+- Sets, first-set and streak XP are computed from the sessions, so a rule change updates them.
   Achievement and legacy XP are saved as XP events when they happen.
-- The level comes from the total XP (level curve in `rules.dart`). Each level can unlock gear items.
-  A new item goes into its slot if the slot is empty. The user can equip one item per slot.
+- Level curve (Habitica): 25 × L for levels 1–4, 150 at level 5, then
+  round((0.25 L² + 10 L + 139.75) / 10) × 10. Note: rules.md lists 670 for level 30, but the
+  formula gives 660; the app follows the formula.
+- A level-up shows the freeze-frame intro card ("LEVEL n" and a joke line).
+- Each level can unlock gear items. A new item goes into its slot if the slot is empty. The user
+  can equip one item per slot.
+- Not built yet (later in rules.md): embers, mastery stars, the swap suggestion, the difficulty
+  climb, character stats, bounties, gear drops with rarity, new game+.
 - Each session stores the class, difficulty, area and exercise list it used, so its XP stays the
   same when the profile changes later (for example, after joining a gym).
 - A class, difficulty or area change applies to today's workout only if it has no sets yet (the plan

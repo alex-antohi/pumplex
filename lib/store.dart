@@ -399,36 +399,90 @@ class LogStore extends ChangeNotifier {
 
   // ------------------------------------------------------------------- XP
 
-  /// XP for the working sets of one session (with the over-target bonus).
-  static int setsXp(Session s) => s.exercises.fold(
-      0, (a, e) => a + xpForExercise(e.sets, e.targetSets, difficultyIndex(s.difficultyId)));
+  /// Streak weeks in a row that end the week before [week].
+  static int _runBefore(String week, Map<String, ({int days, int n})> weeks) {
+    var n = 0;
+    var w = dateKey(addDays(parseDateKey(week), -7));
+    while ((weeks[w]?.days ?? 0) >= (weeks[w]?.n ?? 999)) {
+      n++;
+      w = dateKey(addDays(parseDateKey(w), -7));
+    }
+    return n;
+  }
+
+  /// XP of one exercise in a session (docs/rules.md §1, set by set).
+  static int _exerciseXp(Session s, SessionExercise e, int streakWeeks) {
+    final d = difficultyIndex(s.difficultyId);
+    var xp = 0;
+    for (var n = 1; n <= e.sets; n++) {
+      xp += xpForSet(
+        setNumber: n,
+        target: e.targetSets,
+        difficulty: d,
+        critical: isCritical(s.date, e.exerciseId, n),
+        streakWeeks: streakWeeks,
+      );
+    }
+    return xp;
+  }
+
+  /// A session's set XP without the streak bonus, and the bonus alone.
+  ({int sets, int streak}) _sessionXp(Session s, Map<String, ({int days, int n})> weeks) {
+    final run = _runBefore(weekOf(s.date), weeks);
+    var base = 0, withStreak = 0;
+    for (final e in s.exercises) {
+      base += _exerciseXp(s, e, 0);
+      withStreak += _exerciseXp(s, e, run);
+    }
+    return (sets: base, streak: withStreak - base);
+  }
 
   /// All XP events: the saved ones (legacy, achievement) and the computed
-  /// ones (sets, day, streak). See lib/game/model.dart.
+  /// ones (sets, day = first set of the day, streak bonus). See
+  /// lib/game/model.dart.
   List<XpEvent> get xpEvents {
     final out = [..._events];
+    final weeks = _weeks;
     for (final s in _sessions.values) {
       if (s.legacy || s.totalSets == 0) continue;
       final at = s.lastMarkAt ?? '${s.date}T00:00:00';
-      out.add(XpEvent(at: at, source: 'sets', amount: setsXp(s), ref: s.date));
-      out.add(XpEvent(at: at, source: 'day', amount: xpPerTrainingDay, ref: s.date));
-    }
-    for (final e in _weeks.entries) {
-      if (e.value.days >= e.value.n) {
-        out.add(XpEvent(at: '${e.key}T00:00:00', source: 'streak', amount: xpPerStreakWeek, ref: e.key));
-      }
+      final xp = _sessionXp(s, weeks);
+      out.add(XpEvent(at: at, source: 'sets', amount: xp.sets, ref: s.date));
+      out.add(XpEvent(at: s.firstMarkAt ?? at, source: 'day', amount: xpFirstSetOfDay, ref: s.date));
+      if (xp.streak > 0) out.add(XpEvent(at: at, source: 'streak', amount: xp.streak, ref: s.date));
     }
     return out;
   }
 
   int get totalXp => xpEvents.fold(0, (a, e) => a + e.amount);
 
-  /// XP a session brought (sets + day bonus; legacy: its event).
-  int xpOfSession(Session s) => s.legacy
-      ? _events.where((e) => e.source == 'legacy' && e.ref == s.date).fold(0, (a, e) => a + e.amount)
-      : s.totalSets == 0
-          ? 0
-          : setsXp(s) + xpPerTrainingDay;
+  /// XP a session brought (sets, first-set bonus, streak; legacy: its event).
+  int xpOfSession(Session s) {
+    if (s.legacy) {
+      return _events.where((e) => e.source == 'legacy' && e.ref == s.date).fold(0, (a, e) => a + e.amount);
+    }
+    if (s.totalSets == 0) return 0;
+    final xp = _sessionXp(s, _weeks);
+    return xp.sets + xp.streak + xpFirstSetOfDay;
+  }
+
+  /// XP of today's card [i] so far (with criticals and the streak bonus).
+  int cardXp(int i) {
+    final s = todaySession;
+    if (s == null) return 0;
+    return _exerciseXp(s, s.exercises[i], _runBefore(weekOf(s.date), _weeks));
+  }
+
+  /// Streak weeks in a row before this week (today's XP bonus).
+  int get streakBonusWeeks => _runBefore(weekOf(_today), _weeks);
+
+  /// Whether the last set on today's card [i] was a critical set.
+  bool lastSetCritical(int i) {
+    final s = todaySession;
+    if (s == null) return false;
+    final e = s.exercises[i];
+    return e.sets > 0 && e.sets <= e.targetSets * overTargetCap && isCritical(s.date, e.exerciseId, e.sets);
+  }
 
   // ------------------------------------------------- achievements and gear
 

@@ -11,6 +11,7 @@ import 'package:gym_app/game/rules.dart';
 import 'package:gym_app/main.dart';
 import 'package:gym_app/pumplex.dart';
 import 'package:gym_app/store.dart';
+import 'package:gym_app/views/intro.dart';
 import 'package:gym_app/views/scene.dart';
 import 'package:gym_app/views/sprite.dart';
 
@@ -103,12 +104,28 @@ void main() {
 
   // ------------------------------------------------------------ fixed data
 
-  test('rules: XP per set, over-target bonus, level curve', () {
-    expect(xpForExercise(3, 3, 0), 3 * xpPerSet);
-    expect(xpForExercise(5, 3, 0), 5 * xpPerSet + 2 * xpPerExtraSet);
-    expect(xpForExercise(2, 3, _d), (2 * xpPerSet * rulesFor(_d).xpMultiplier).round());
-    expect(levelFor(0), (level: 1, into: 0, need: levelBaseXp));
-    expect(levelFor(levelBaseXp + 7), (level: 2, into: 7, need: xpToNext(2)));
+  test('rules table: set XP, over target, cap, critical, streak, level curve', () {
+    expect(difficultyRules.first.xpMultiplier, 1.0);
+    expect(difficultyRules.last.xpMultiplier, 2.0);
+    int set(int n, {bool crit = false, int streak = 0, int d = 0}) =>
+        xpForSet(setNumber: n, target: 3, difficulty: d, critical: crit, streakWeeks: streak);
+    expect(set(3), 10); // within the target
+    expect(set(4), 15); // above the target: ×1.5
+    expect(set(6), 15); // up to 2× the target
+    expect(set(7), 0); // beyond 2× the target
+    expect(set(1, crit: true), 20);
+    expect(set(1, streak: 2), 11); // +10%
+    expect(set(1, streak: 9), 13); // capped at +25% (12.5 rounds up)
+    expect(set(1, d: 11), 20);
+    expect(xpPerLegacySession, 150);
+    // Repeatable criticals, about 3% of sets.
+    expect(isCritical('2026-11-21', 'warrior.squat', 1), isCritical('2026-11-21', 'warrior.squat', 1));
+    final crits = [for (var i = 1; i <= 10000; i++) isCritical('2026-11-21', 'x', i)].where((c) => c).length;
+    expect(crits, inInclusiveRange(200, 400));
+    // Habitica level curve.
+    expect([for (final l in [1, 4, 5, 10, 20, 30, 40, 50]) xpToNext(l)], [25, 100, 150, 260, 440, 660, 940, 1260]); // rules.md says 670 at L30; its formula gives 660
+    expect(levelFor(0), (level: 1, into: 0, need: 25));
+    expect(levelFor(25 + 7), (level: 2, into: 7, need: 50));
   });
 
   test('fixed data: difficulty numbers, pools, ids', () {
@@ -248,36 +265,59 @@ void main() {
 
   // ------------------------------------------------------------------- XP
 
-  test('XP: sets (+ over target), training day, streak weeks', () async {
+  test('XP: sets (over target, criticals), first set of the day, streak bonus', () async {
     final (store, _) = await _store(setUp: true);
-    for (var i = 0; i < 5; i++) {
-      store.addSet(0); // 2 over the target of 3
+    for (var i = 0; i < 7; i++) {
+      store.addSet(0); // target 3: sets 4-6 ×1.5, set 7 gives 0
     }
-    final setsXp = xpForExercise(5, 3, _d);
-    final sources = {for (final e in store.xpEvents) e.source};
-    expect(sources, containsAll(['sets', 'day']));
-    expect(store.xpEvents.where((e) => e.source == 'sets').single.amount, setsXp);
+    int expected(Session s, int streak) => [
+          for (final e in s.exercises)
+            for (var n = 1; n <= e.sets; n++)
+              xpForSet(
+                  setNumber: n,
+                  target: e.targetSets,
+                  difficulty: _d,
+                  critical: isCritical(s.date, e.exerciseId, n),
+                  streakWeeks: streak),
+        ].fold(0, (a, b) => a + b);
+    final sat = store.todaySession!;
+    expect(store.xpEvents.where((e) => e.source == 'sets').single.amount, expected(sat, 0));
+    expect(store.xpEvents.where((e) => e.source == 'day').single.amount, xpFirstSetOfDay);
+    expect(store.cardXp(0), expected(sat, 0));
     expect(store.thisWeek, (days: 1, n: 2));
     expect(store.streakWeeks, 0);
 
-    // Sunday: 2nd training day this week -> streak week.
+    // Sunday: 2nd training day this week -> a streak week.
     _now = DateTime(2026, 11, 22, 9);
     store.addSet(0);
     expect(store.thisWeek, (days: 2, n: 2));
     expect(store.streakWeeks, 1);
-    expect(store.xpEvents.where((e) => e.source == 'streak').single.ref, '2026-11-16');
 
-    // Next week: Monday and Friday (days missed in between do not matter).
+    // Next week: Monday and Friday (missed days in between do not matter).
+    // Their sets get the +5% bonus for one streak week in a row.
     _now = DateTime(2026, 11, 23, 9);
-    store.addSet(0);
+    expect(store.streakBonusWeeks, 1);
+    for (var i = 0; i < 4; i++) {
+      store.addSet(0);
+    }
     expect(store.streakWeeks, 1); // last week still stands
     _now = DateTime(2026, 11, 27, 9);
     store.addSet(0);
     expect(store.streakWeeks, 2);
 
+    final s = store.sessions;
     final achievementXp = store.xpEvents.where((e) => e.source == 'achievement').fold(0, (a, e) => a + e.amount);
-    expect(store.totalXp,
-        setsXp + 3 * xpForExercise(1, 3, _d) + 4 * xpPerTrainingDay + 2 * xpPerStreakWeek + achievementXp);
+    expect(
+        store.totalXp,
+        expected(s['2026-11-21']!, 0) +
+            expected(s['2026-11-22']!, 0) +
+            expected(s['2026-11-23']!, 1) +
+            expected(s['2026-11-27']!, 1) +
+            4 * xpFirstSetOfDay +
+            achievementXp);
+    final streakXp = store.xpEvents.where((e) => e.source == 'streak').fold(0, (a, e) => a + e.amount);
+    expect(streakXp, expected(s['2026-11-23']!, 1) + expected(s['2026-11-27']!, 1)
+        - expected(s['2026-11-23']!, 0) - expected(s['2026-11-27']!, 0));
 
     // A week below N breaks the run of weeks.
     _now = DateTime(2026, 12, 10, 9);
@@ -295,8 +335,8 @@ void main() {
     store.addSet(0);
     expect(saved.length, (jsonDecode(prefs.getString('xp_events_v1')!) as List).length); // no repeat
 
-    while (levelFor(store.totalXp).level < 3) {
-      store.addSet(1);
+    for (var i = 1; levelFor(store.totalXp).level < 3; i = i % 3 + 1) {
+      store.addSet(i); // spread over cards: sets beyond 2× target give no XP
     }
     expect(store.gear.owned, containsAll(['head.sweatband', 'top.tank']));
     expect(store.gear.equipped['head'], 'head.sweatband'); // empty slot: auto-equipped
@@ -403,7 +443,7 @@ void main() {
     await _frames(t);
     expect(files.single, contains('Floor Press')); // the old data, saved first
     expect(prefs.containsKey('logs_v2'), isFalse);
-    expect(find.text('CHARACTER · STEP 1 OF 4'), findsOneWidget);
+    expect(find.text('CHARACTER · STEP 1 OF 5'), findsOneWidget);
     await t.pump(const Duration(seconds: 5));
   });
 
@@ -414,7 +454,7 @@ void main() {
     await _frames(t);
     await t.tap(find.text('NOT NOW'));
     await _frames(t);
-    expect(find.text('CHARACTER · STEP 1 OF 4'), findsOneWidget);
+    expect(find.text('CHARACTER · STEP 1 OF 5'), findsOneWidget);
     expect(prefs.getString('logs_v2'), _oldLogs);
   });
 
@@ -428,7 +468,7 @@ void main() {
       home: GameShell(store: store),
     ));
     await _frames(t);
-    expect(find.text('CHARACTER · STEP 1 OF 4'), findsOneWidget);
+    expect(find.text('CHARACTER · STEP 1 OF 5'), findsOneWidget);
     expect(_spriteAsset(t), 'assets/body/male/fat50_muscle50.png');
 
     await t.drag(find.byKey(const ValueKey('slider-MUSCLE')), const Offset(400, 0));
@@ -445,17 +485,47 @@ void main() {
     await _frames(t, 8);
     expect(t.getSize(find.byKey(const ValueKey('character-sprite'))).height, greaterThan(short));
 
-    await t.tap(find.text('FREE WEIGHTS'));
-    await _frames(t, 8);
-    expect(find.text('WARRIOR'), findsOneWidget);
-
     await t.tap(find.text('NEXT ▶'));
     await t.pump(const Duration(milliseconds: 200));
     // Mid-transition: both scenes are on screen (no blank frame).
-    expect(find.text('FREE WEIGHTS'), findsOneWidget);
-    expect(find.text('HOW HARD?'), findsWidgets);
+    expect(find.text('BUILD YOUR LIFTER'), findsOneWidget);
+    expect(find.text('CHOOSE YOUR PATH'), findsWidgets);
     await _frames(t);
-    expect(find.text('FREE WEIGHTS'), findsNothing);
+    expect(find.text('BUILD YOUR LIFTER'), findsNothing);
+    expect(find.text('CLASS · STEP 2 OF 5'), findsOneWidget);
+
+    // Class select: one class per equipment type; a pick shows the
+    // freeze-frame intro card and the frozen (greyscale) character.
+    expect(find.text('LOTS OF FREE WEIGHTS'), findsOneWidget);
+    await t.ensureVisible(find.byKey(const ValueKey('path-warrior')));
+    await _frames(t, 4);
+    await t.tap(find.byKey(const ValueKey('path-warrior')));
+    await t.pump(const Duration(milliseconds: 100));
+    expect(find.byKey(const ValueKey('intro-card')), findsOneWidget);
+    expect(find.text('OATH-SWORN TO THE BARBELL'), findsOneWidget);
+    expect(
+      find.ancestor(of: find.byKey(const ValueKey('character-sprite')), matching: find.byType(ColorFiltered)).evaluate()
+          .any((e) => (e.widget as ColorFiltered).colorFilter == freezeFilter),
+      isTrue,
+    );
+    await t.pump(introHold);
+    await _frames(t, 4);
+    expect(find.byKey(const ValueKey('intro-card')), findsNothing); // closes by itself
+    expect(find.text('A BARBELL, A RACK AND A WALL OF PLATES.'.toLowerCase()), findsNothing);
+    expect(find.text('A barbell, a rack and a wall of plates.'), findsOneWidget); // loadout
+    expect(find.text('STRONGMAN'), findsOneWidget); // tags
+    await t.ensureVisible(find.byKey(const ValueKey('path-mage')));
+    await t.tap(find.byKey(const ValueKey('path-mage')));
+    await t.pump(const Duration(milliseconds: 100));
+    await t.tap(find.byKey(const ValueKey('intro-card'))); // closes on a tap
+    await t.pump(const Duration(milliseconds: 100));
+    expect(find.byKey(const ValueKey('intro-card')), findsNothing);
+    await t.tap(find.byKey(const ValueKey('path-warrior')));
+    await t.pump(const Duration(milliseconds: 100));
+    await t.tap(find.text('NEXT: DIFFICULTY'));
+    await _frames(t);
+    expect(find.byKey(const ValueKey('intro-card')), findsNothing);
+    expect(find.text('HOW HARD?'), findsWidgets);
     await t.tap(find.byKey(const ValueKey('difficulty-d03')));
     await t.tap(find.text('NEXT ▶'));
     await _frames(t);
@@ -487,15 +557,26 @@ void main() {
     await t.tap(find.byKey(const ValueKey('hub-workout')));
     await _frames(t);
     final card = find.byKey(const ValueKey('card-0'));
-    for (var i = 0; i < 6; i++) {
+    await t.tap(card);
+    await _frames(t, 70); // level-up intro card and achievement burst
+    for (var i = 0; i < 5; i++) {
+      // A level-up card closes on the next tap: close it first.
+      if (find.byKey(const ValueKey('intro-card')).evaluate().isNotEmpty) {
+        await t.tap(find.byKey(const ValueKey('intro-card')));
+        await t.pump(const Duration(milliseconds: 80));
+      }
       await t.tap(card);
       await t.pump(const Duration(milliseconds: 80));
     }
+    if (find.byKey(const ValueKey('intro-card')).evaluate().isNotEmpty) {
+      await t.tap(find.byKey(const ValueKey('intro-card')));
+      await t.pump(const Duration(milliseconds: 80));
+    }
     await t.longPress(card);
-    await _frames(t, 70); // first-set achievement burst
+    await _frames(t, 70);
     expect(store.todayExercises[0].sets, 5);
     expect(find.text('5/3'), findsOneWidget);
-    expect(find.text('+${xpForExercise(5, 3, _d)} XP 🔥'), findsOneWidget);
+    expect(find.text('+${store.cardXp(0)} XP 🔥'), findsOneWidget);
 
     await t.tap(find.text('◀ HUB'));
     await _frames(t);
@@ -566,7 +647,7 @@ void main() {
     await _frames(t);
     await t.tap(find.byKey(const ValueKey('hub-character')));
     await _frames(t);
-    expect(find.text('CHARACTER · STEP 1 OF 4'), findsOneWidget);
+    expect(find.text('CHARACTER · STEP 1 OF 5'), findsOneWidget);
     await t.drag(find.byKey(const ValueKey('slider-FAT %')), const Offset(400, 0));
     await t.tap(find.text('NEXT ▶'));
     await _frames(t);
@@ -577,23 +658,21 @@ void main() {
     expect(find.text("TODAY'S WORKOUT"), findsOneWidget);
   });
 
-  testWidgets('levels up with a burst; gear unlocks and can be equipped', (t) async {
+  testWidgets('a level-up shows the freeze-frame card; gear unlocks and can be equipped', (t) async {
     _phone(t);
     final (store, _) = await _store(setUp: true);
     await t.pumpWidget(GymApp(store: store));
     await _frames(t);
     await t.tap(find.byKey(const ValueKey('hub-workout')));
     await _frames(t);
-    final card = find.byKey(const ValueKey('card-1'));
-    await t.tap(card);
-    await _frames(t, 70);
-    while (levelFor(store.totalXp).level == 1) {
-      await t.tap(card);
-      await t.pump(const Duration(milliseconds: 60));
-    }
+    await t.tap(find.byKey(const ValueKey('card-1'))); // first set: +50 and more
     await t.pump(const Duration(milliseconds: 600));
-    expect(find.text('LEVEL\nUP!!!'), findsOneWidget);
+    final level = levelFor(store.totalXp).level;
+    expect(level, greaterThan(1));
+    expect(find.byKey(const ValueKey('intro-card')), findsOneWidget);
+    expect(find.text('LEVEL $level'), findsOneWidget);
     await _frames(t, 70);
+    expect(find.byKey(const ValueKey('intro-card')), findsNothing);
     expect(store.gear.owned, contains('head.sweatband'));
 
     await t.tap(find.text('◀ HUB'));
@@ -646,7 +725,7 @@ void main() {
     await menu('🌀  CHAOS MODE: OFF');
     expect(store.chaos.value, isTrue);
     await menu('🧬  EDIT CHARACTER');
-    expect(find.text('CHARACTER · STEP 1 OF 4'), findsOneWidget);
+    expect(find.text('CHARACTER · STEP 1 OF 5'), findsOneWidget);
     expect(_spriteAsset(t), spriteAsset(_profile.character));
     await t.pump(const Duration(seconds: 5));
   });
@@ -675,6 +754,10 @@ void main() {
       await _frames(t, 10);
       await tapAndSettle(find.text('🧬  EDIT CHARACTER'));
       await tapAndSettle(find.text('NEXT ▶')); // editing: straight to the summary
+      await tapAndSettle(find.text('CLASS'));
+      await tapAndSettle(find.byKey(const ValueKey('path-rogue')));
+      await t.pump(introHold);
+      await tapAndSettle(find.text('NEXT ▶'));
       await tapAndSettle(find.text('DIFFICULTY'));
       await tapAndSettle(find.text('NEXT ▶'));
       await tapAndSettle(find.text('AREA'));

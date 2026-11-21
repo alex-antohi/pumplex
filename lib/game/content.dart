@@ -15,7 +15,9 @@ class Exercise {
   final ExerciseKind kind;
 }
 
-/// One class per equipment type (docs/app-brief.md §4.1).
+/// One class per equipment type (docs/app-brief.md §4.1). Names, copy and
+/// colours from docs/moodboard/README.md "Class select". The names are
+/// PROPOSALS from the design team; the ids never change.
 class GameClass {
   const GameClass({
     required this.id,
@@ -23,6 +25,9 @@ class GameClass {
     required this.equipment,
     required this.short,
     required this.style,
+    required this.loadout,
+    required this.tags,
+    required this.subtitle,
     required this.icon,
     required this.exercises,
   });
@@ -38,8 +43,17 @@ class GameClass {
   /// Two-word label under the class icon.
   final String short;
 
-  /// One line about the training style.
+  /// The class intro (RPG voice; hints at the equipment).
   final String style;
+
+  /// The gear the class trains with, in one line.
+  final String loadout;
+
+  /// Three training tags (no stat table: brief rule 3).
+  final List<String> tags;
+
+  /// Joke line on the freeze-frame intro card.
+  final String subtitle;
 
   /// Placeholder icon (emoji) until the design has class art.
   final String icon;
@@ -55,10 +69,14 @@ const _b = ExerciseKind.bodyweight, _w = ExerciseKind.weights, _m = ExerciseKind
 const gameClasses = <GameClass>[
   GameClass(
     id: 'speedy',
-    name: 'Speedster',
-    equipment: 'Nothing. Just me.',
+    name: 'Scrapper',
+    equipment: 'No equipment',
     short: 'NOTHING',
-    style: 'Cardio and bodyweight. Fast and light.',
+    style: 'No gym, no gear, no problem. Builds every workout out of floors, stairs and pure spite. '
+        'Homemade, held together with tape, and very loud about it.',
+    loadout: "Nothin'. Just you, the floor and the stairs.",
+    tags: ['CARDIO', 'BODYWEIGHT', 'SPRINTS'],
+    subtitle: 'BUILT FROM STAIRS AND SPITE',
     icon: '👟',
     exercises: [
       Exercise('speedy.pushups', 'Push-ups', _b),
@@ -75,10 +93,14 @@ const gameClasses = <GameClass>[
   ),
   GameClass(
     id: 'rogue',
-    name: 'Rogue',
-    equipment: 'A basic home gym.',
+    name: 'Bargain Bruiser',
+    equipment: 'Basic home gym',
     short: 'HOME GYM',
-    style: 'Floor work, some cardio, some weights.',
+    style: 'Kitted out from the clearance aisle. Every piece of gear is store-brand, slightly wobbly '
+        'and fully committed. Cheap kit, real gains.',
+    loadout: 'Two dumbbells, one mat, a kettlebell of unknown origin.',
+    tags: ['FLOOR WORK', 'SOME CARDIO', 'SOME WEIGHTS'],
+    subtitle: 'BUY ONE GAIN, GET ONE FREE',
     icon: '🗡️',
     exercises: [
       Exercise('rogue.goblet', 'Goblet squats', _w),
@@ -95,10 +117,14 @@ const gameClasses = <GameClass>[
   ),
   GameClass(
     id: 'warrior',
-    name: 'Warrior',
-    equipment: 'A lot of free weights.',
+    name: 'Plate Paladin',
+    equipment: 'Lots of free weights',
     short: 'FREE WEIGHTS',
-    style: 'Burly, bulky, strongman.',
+    style: 'Sworn to the barbell. Carries plates like holy relics and drops them like thunder. '
+        'Big, burly, unbothered.',
+    loadout: 'A barbell, a rack and a wall of plates.',
+    tags: ['STRONGMAN', 'BARBELL', 'HEAVY'],
+    subtitle: 'OATH-SWORN TO THE BARBELL',
     icon: '🛡️',
     exercises: [
       Exercise('warrior.squat', 'Back squats', _w),
@@ -115,10 +141,14 @@ const gameClasses = <GameClass>[
   ),
   GameClass(
     id: 'mage',
-    name: 'Mage',
-    equipment: 'A lot of machines.',
+    name: 'Cablemancer',
+    equipment: 'Lots of machines',
     short: 'MACHINES',
-    style: 'Stringy and strong.',
+    style: 'Bends steel cables and pin-stacks to their will. Thin as a wire, strong as the machine. '
+        'Never waits for the squat rack.',
+    loadout: 'Cables, pin-stacks and every machine in the building.',
+    tags: ['MACHINES', 'CABLES', 'LEAN POWER'],
+    subtitle: 'SPEAKS FLUENT PULLEY',
     icon: '🔮',
     exercises: [
       Exercise('mage.legpress', 'Leg press', _m),
@@ -260,4 +290,16 @@ final achievements = <Achievement>[
   Achievement('days_10', 'Regular', 'Train on 10 days.', 100, (s) => s.trainingDays >= 10),
   Achievement('streak_4', 'Month of Iron', 'Hit your week target 4 weeks in a row.', 200, (s) => s.bestStreakWeeks >= 4),
   Achievement('level_5', 'Getting Somewhere', 'Reach level 5.', 0, (s) => s.level >= 5),
+];
+
+/// Kicker line of the class-select step (design: marketing working name).
+const pathsKicker = "THE SWOLEMANCER'S PATHS";
+
+/// Joke lines for the level-up intro card (one per level, in turn).
+const levelUpLines = [
+  'MORE XP. SAME BAR.',
+  'THE MIRROR NOTICED.',
+  'GAINS ACQUIRED. RECEIPT LOST.',
+  'YOUR SHOES ARE IMPRESSED.',
+  'THE BAR FEARS YOU SLIGHTLY MORE.',
 ];

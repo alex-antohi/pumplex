@@ -275,7 +275,7 @@ class _WorkoutViewState extends State<WorkoutView> {
     final diff = store.todaySession == null
         ? store.difficulty
         : difficultyIndex(store.todaySession!.difficultyId);
-    final perSet = xpForExercise(1, 1, diff);
+    final perSet = (xpPerSet * rulesFor(diff).xpMultiplier).round();
     final firstTime = store.history.where((s) => !s.legacy).isEmpty;
     final list = store.todayExercises;
     final unused = store.unusedExercises;
@@ -308,6 +308,7 @@ class _WorkoutViewState extends State<WorkoutView> {
                     key: ValueKey('card-$i'),
                     slot: list[i],
                     difficulty: diff,
+                    xp: store.cardXp(i),
                     color: p.accents[i % p.accents.length],
                     onAdd: () => widget.onAdd(i),
                     onRemove: () => widget.onRemove(i),
@@ -375,6 +376,7 @@ class ExerciseCard extends StatefulWidget {
     super.key,
     required this.slot,
     required this.difficulty,
+    required this.xp,
     required this.color,
     required this.onAdd,
     required this.onRemove,
@@ -387,6 +389,9 @@ class ExerciseCard extends StatefulWidget {
 
   /// Difficulty index of today's session (for the XP on the card).
   final int difficulty;
+
+  /// XP this card brought today (criticals and streak bonus included).
+  final int xp;
   final Color color;
   final VoidCallback onAdd, onRemove, onReset, onDelete;
   final ValueChanged<int> onSwap;
@@ -497,7 +502,7 @@ class _ExerciseCardState extends State<ExerciseCard> {
                                   child: TallyMarks(count: count),
                                 ),
                         ),
-                        if (count > 0) Tag('+${xpForExercise(count, s.targetSets, widget.difficulty)} XP${count > s.targetSets ? ' 🔥' : ''}', bg: widget.color, fg: p.on, size: 13, angle: 3),
+                        if (count > 0) Tag('+${widget.xp} XP${count > s.targetSets * overTargetCap ? ' · MAX' : count > s.targetSets ? ' 🔥' : ''}', bg: widget.color, fg: p.on, size: 13, angle: 3),
                       ],
                     ),
                   ),

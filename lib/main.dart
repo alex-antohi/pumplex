@@ -9,6 +9,7 @@ import 'game/model.dart';
 import 'game/rules.dart';
 import 'pumplex.dart';
 import 'store.dart';
+import 'views/intro.dart';
 import 'views/play.dart';
 import 'views/scene.dart';
 import 'views/setup.dart';
@@ -47,7 +48,7 @@ class GymApp extends StatelessWidget {
 }
 
 /// Every view of the app. They are scenes of ONE screen (see GameShell).
-enum Scene { migrate, create, difficulty, area, summary, hub, workout, history, gear }
+enum Scene { migrate, create, classSelect, difficulty, area, summary, hub, workout, history, gear }
 
 /// Where the character stands in each scene, inside the content area.
 /// The views leave this rect free; the shell draws the one character there,
@@ -55,7 +56,8 @@ enum Scene { migrate, create, difficulty, area, summary, hub, workout, history, 
 Rect stageRect(Scene s, Size a) {
   final w = a.width, h = a.height;
   return switch (s) {
-    Scene.create => Rect.fromLTWH(0, 8, w, h * 0.36),
+    Scene.create => Rect.fromLTWH(0, 8, w, h * 0.42),
+    Scene.classSelect => Rect.fromLTWH(26, 132, w * 0.34, h * 0.25),
     Scene.difficulty || Scene.area => Rect.fromLTWH(12, 8, w * 0.30, h * 0.22),
     Scene.summary => Rect.fromLTWH(0, 10, w, h * 0.40),
     Scene.hub => Rect.fromLTWH(0, 6, w, h * 0.34),
@@ -182,6 +184,7 @@ class _GameShellState extends State<GameShell> {
     setState(() {
       _scene = to;
       _motion = motion;
+      _intro = null;
     });
   }
 
@@ -227,18 +230,36 @@ class _GameShellState extends State<GameShell> {
   void _addSet(int i) {
     final before = levelFor(_store.totalXp).level;
     _store.addSet(i);
+    if (_store.lastSetCritical(i)) {
+      HapticFeedback.heavyImpact();
+      _snack('CRITICAL SET!!! ×$critMultiplier XP');
+    }
     final after = levelFor(_store.totalXp).level;
     if (after > before) {
-      celebratePr(
-        context,
-        id: 'level-$after-${DateTime.now().microsecondsSinceEpoch}',
-        title: 'LEVEL\nUP!!!',
-        exercise: _store.gameClass.name,
-        big: 'LVL $after',
-        sub: 'MORE XP. SAME BAR. KEEP GOING.',
-      );
+      HapticFeedback.heavyImpact();
+      _showIntro((
+        title: 'LEVEL $after',
+        subtitle: levelUpLines[after % levelUpLines.length],
+        color: Pal.of(context).pink,
+      ));
     }
     setState(() {});
+  }
+
+  // ------------------------------------------------------- freeze-frame card
+
+  IntroSpec? _intro;
+  int _introRun = 0; // a new pick restarts the card
+
+  void _showIntro(IntroSpec spec) => setState(() {
+        _intro = spec;
+        _introRun++;
+      });
+
+  void _pickClass(String id) {
+    setState(() => _classId = id);
+    final c = classById(id);
+    _showIntro((title: c.name, subtitle: c.subtitle, color: classColor(Pal.of(context), id)));
   }
 
   void _removeSet(int i) => _store.removeSet(i);
@@ -326,10 +347,11 @@ class _GameShellState extends State<GameShell> {
     final l = levelFor(_store.totalXp).level;
     return switch (_scene) {
       Scene.migrate => 'OLD SAVE · ONE-TIME UPGRADE',
-      Scene.create => 'CHARACTER · STEP 1 OF 4',
-      Scene.difficulty => 'DIFFICULTY · STEP 2 OF 4',
-      Scene.area => 'STARTING AREA · STEP 3 OF 4',
-      Scene.summary => 'READY? · STEP 4 OF 4',
+      Scene.create => 'CHARACTER · STEP 1 OF 5',
+      Scene.classSelect => 'CLASS · STEP 2 OF 5',
+      Scene.difficulty => 'DIFFICULTY · STEP 3 OF 5',
+      Scene.area => 'STARTING AREA · STEP 4 OF 5',
+      Scene.summary => 'READY? · STEP 5 OF 5',
       Scene.hub => 'LVL $l · ${_store.gameClass.name.toUpperCase()} · ${areaById(_store.profile?.areaId).name.toUpperCase()}',
       Scene.workout => 'WORKOUT · ${_store.todaySession?.totalSets ?? 0} SETS · LVL $l',
       Scene.history => 'PAST SESSIONS · LVL $l',
@@ -341,7 +363,8 @@ class _GameShellState extends State<GameShell> {
   Scene? get _backTo => switch (_scene) {
         Scene.migrate => null,
         Scene.create => _editing ? Scene.hub : null,
-        Scene.difficulty => Scene.create,
+        Scene.classSelect => Scene.create,
+        Scene.difficulty => Scene.classSelect,
         Scene.area => Scene.difficulty,
         Scene.summary => Scene.area,
         Scene.workout || Scene.history || Scene.gear => Scene.hub,
@@ -366,9 +389,15 @@ class _GameShellState extends State<GameShell> {
         Scene.create => CreateView(
             stage: stage,
             character: _char,
-            classId: _classId,
             onCharacter: (c) => setState(() => _char = c),
-            onClass: (id) => setState(() => _classId = id),
+            onNext: () => _go(_editing ? Scene.summary : Scene.classSelect),
+          ),
+        Scene.classSelect => ClassView(
+            stage: stage,
+            classId: _classId,
+            editing: _editing,
+            onPick: _pickClass,
+            onBack: _back,
             onNext: () => _go(_editing ? Scene.summary : Scene.difficulty),
           ),
         Scene.difficulty => DifficultyView(
@@ -391,7 +420,7 @@ class _GameShellState extends State<GameShell> {
             difficultyId: _difficultyId,
             areaId: _areaId,
             editing: _editing,
-            onEdit: (step) => _go(const [Scene.create, Scene.difficulty, Scene.area][step], Motion.zoomOut),
+            onEdit: (step) => _go(const [Scene.create, Scene.classSelect, Scene.difficulty, Scene.area][step], Motion.zoomOut),
             onBack: _back,
             onGo: _finishSetup,
           ),
@@ -478,9 +507,34 @@ class _GameShellState extends State<GameShell> {
                           duration: const Duration(milliseconds: 560),
                           curve: Curves.easeInOutCubic,
                           child: IgnorePointer(
-                            child: CharacterSprite(character: char, classId: classId),
+                            // Frozen in greyscale while the intro card shows.
+                            child: ColorFiltered(
+                              colorFilter: _intro == null
+                                  ? const ColorFilter.mode(Colors.transparent, BlendMode.dst)
+                                  : freezeFilter,
+                              child: CharacterSprite(character: char, classId: classId),
+                            ),
                           ),
                         ),
+                        // Freeze-frame intro card: over the preview card on
+                        // the class step, over the whole view on level-ups.
+                        if (_intro != null)
+                          _scene == Scene.classSelect
+                              ? Positioned.fromRect(
+                                  rect: classCardRect(stage, box.maxWidth),
+                                  child: IntroCard(
+                                    key: ValueKey(_introRun),
+                                    spec: _intro!,
+                                    onDone: () => setState(() => _intro = null),
+                                  ),
+                                )
+                              : Positioned.fill(
+                                  child: IntroCard(
+                                    key: ValueKey(_introRun),
+                                    spec: _intro!,
+                                    onDone: () => setState(() => _intro = null),
+                                  ),
+                                ),
                       ],
                     );
                   }),
