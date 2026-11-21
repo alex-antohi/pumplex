@@ -81,3 +81,9 @@ Install with `adb install -r <apk>` (`-r` replaces the app and keeps its data;
 never uninstall first), or copy it to the phone and open it.
 
 Tests: `flutter test`.
+
+## Game moodboard
+
+The visual direction for the game side (pixel-art characters, palette, style
+rules, sprites) is in [`docs/moodboard/`](docs/moodboard/README.md). Read
+`docs/moodboard/README.md` before making game art or UI.
