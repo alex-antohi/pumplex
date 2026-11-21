@@ -23,7 +23,7 @@ Ask the owner before you design against a decision. Add each new decision here, 
 | D11 | Keep the height slider. | 21 Nov 2026 | Overrides the moodboard README line "No height slider". |
 | D12 | The user can open the body sliders again at any time. The app keeps a history of body changes. | 21 Nov 2026 | Hub: tap the character. |
 | D13 | Class, difficulty and starting area can all change later (for example, after joining a gym). Each session stores the class, difficulty and area it used. | 21 Nov 2026 | Summary, menu, history. |
-| D14 | Difficulty has many levels, from total beginner to years of lifting. Names are fantasy names in a Borderlands-like tone, but our own. Harder difficulty gives more XP. | 21 Nov 2026 | Difficulty. |
+| D14 | Difficulty has many levels, from total beginner to years of lifting. Names are fantasy names in a Borderlands-like tone, but our own. Harder difficulty gives more XP. | 21 Nov 2026 | Difficulty. The count is 6 (D28). |
 | D15 | A workout has a set number of exercises from the class pool: 3 at the easiest difficulty, 8 at the hardest. Each exercise has a target number of working sets from the difficulty. | 21 Nov 2026 | Workout. Pools: still open (D27). |
 | D16 | The user can switch an exercise for another from the class pool (swipe), add exercises, remove exercises and return a switched exercise to the first one. Skipping = doing no sets. | 21 Nov 2026 | Workout. |
 | D17 | One mark = one working set. A long-press takes the last set back. Warm-up sets do not count. | 21 Nov 2026 | Workout, every area. |
@@ -36,7 +36,8 @@ Ask the owner before you design against a decision. Add each new decision here, 
 | D24 | Keep the PUMPLEX look, chaos mode and the CEL SHADER mode. | 21 Nov 2026 | Menu, theme. |
 | D25 | On the class-select step, the preview shows the body the user made in step 1. There is no separate preview body per class. | 21 Nov 2026 | Class select. |
 | D26 | The app id stays `com.alex.gym_app`. Add no new code packages without the owner's OK. | 21 Nov 2026 | Code. |
-| D27 | Still open (not decided): how to measure progress, final class names, exercise pools, the achievements list, the gear list. Number of difficulty levels: the app now uses the design team's 6 modes; the owner has not confirmed the number. | 21 Nov 2026 | Ask the owner. |
+| D27 | Still open (not decided): how to measure progress, final class names, exercise pools, the achievements list, the gear list. | 21 Nov 2026 | Ask the owner. |
+| D28 | Difficulty has 6 levels: the design team's 6 modes (Sofa, Warm-up, Sweat, Pain, Brutal, Nightmare Mode). The names stay design proposals. | 21 Nov 2026 | Difficulty. Confirmed by the owner. |
 
 ## 2. Where the current boards conflict
 
@@ -56,7 +57,7 @@ Ask the owner before you design against a decision. Add each new decision here, 
 | All setup boards | Each step is a separate phone frame. There is no transition. | D23 | Specify the transition for each change of view. The character stays on screen between views. |
 
 Checked, no conflict: no board shows rest days or a weekly plan, except the Readability board above.
-Note: the Difficulty board has 6 modes, and the app now uses the same 6 modes. This agrees with D14. The owner sets the final count (D27).
+Note: the Difficulty board has 6 modes, and the app uses the same 6 modes (D28).
 Note: the app now has the starting areas, the difficulty modes and the workout layout from the design boards. The owner's rules apply: no I WORKED button, no clock, no "SESSION n", and the height slider stays.
 Note: the Workout board allows extra sets up to 9. That is fine, but sets beyond 2× the target give 0 XP (D19).
 
