@@ -52,7 +52,9 @@ class Session {
 /// tracking system stay in storage untouched ([_legacy]) and go into backup
 /// files as they are, so no data is lost.
 class LogStore extends ChangeNotifier {
-  LogStore(this._prefs) : chaos = ValueNotifier(_prefs.getBool('chaos') ?? false) {
+  LogStore(this._prefs)
+      : chaos = ValueNotifier(_prefs.getBool('chaos') ?? false),
+        cel = ValueNotifier(_prefs.getBool('cel') ?? false) {
     _sessions.addAll(_parseSessions(_prefs.getString(_sessionsKey)));
   }
 
@@ -71,6 +73,14 @@ class LogStore extends ChangeNotifier {
   void setChaos(bool on) {
     chaos.value = on;
     _prefs.setBool('chaos', on);
+  }
+
+  /// Cel shader mode (toon bands + ink outlines), remembered between launches.
+  final ValueNotifier<bool> cel;
+
+  void setCel(bool on) {
+    cel.value = on;
+    _prefs.setBool('cel', on);
   }
 
   static List<Session> _parseSessions(String? raw) {

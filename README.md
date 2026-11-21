@@ -16,7 +16,9 @@ The plan is in [docs/app-brief.md](docs/app-brief.md) and
 - Swipe right for past sessions, left to preview the next 6. The floating
   "↩ NOW" goes back.
 - Rest days show THE STATS™: workouts, rest days, time trained.
-- Menu (⋮): save / restore a backup file, chaos mode.
+- Menu (⋮): save / restore a backup file, chaos mode, **cel shader**
+  (`shaders/cel.frag`: flat toon bands and ink outlines over the whole app;
+  needs Impeller, which Android uses by default).
 
 The workout system (exercises from class, equipment and difficulty) is being
 rebuilt. The old fixed exercises, sets and reps were removed. Data logged with
@@ -36,3 +38,9 @@ The project path must be short (Windows 260-character limit). If the build
 fails on a long path, map the folder to a drive letter with `subst`.
 
 Tests: `flutter test`.
+
+## Game moodboard
+
+The visual direction for the game side (pixel-art characters, palette, style
+rules, sprites) is in [`docs/moodboard/`](docs/moodboard/README.md). Read
+`docs/moodboard/README.md` before making game art or UI.

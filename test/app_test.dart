@@ -117,6 +117,33 @@ void main() {
     expect(other.backupJson(), backup); // bad imports left data alone
   });
 
+  testWidgets('CEL SHADER toggles from the menu, is remembered, keeps the page', (t) async {
+    _phone(t);
+    final (store, prefs) = await _store();
+    await t.pumpWidget(GymApp(store: store));
+    await t.pump(const Duration(seconds: 3));
+    expect(store.cel.value, isFalse);
+
+    await t.tap(find.byIcon(Icons.more_vert));
+    for (var i = 0; i < 10; i++) {
+      await t.pump(const Duration(milliseconds: 50)); // let the menu open
+    }
+    await t.tap(find.text('🖍️  CEL SHADER: OFF'));
+    await t.pump(const Duration(milliseconds: 500));
+    expect(store.cel.value, isTrue);
+    expect(prefs.getBool('cel'), isTrue);
+    expect(find.byType(CelFilter), findsOneWidget);
+    expect(find.text('SESSION 8 · DAY 1/7 · NOW'), findsOneWidget);
+
+    await t.tap(find.byIcon(Icons.more_vert));
+    for (var i = 0; i < 10; i++) {
+      await t.pump(const Duration(milliseconds: 50)); // let the menu open
+    }
+    await t.tap(find.text('🖍️  CEL SHADER: ON!!!'));
+    await t.pump(const Duration(seconds: 5));
+    expect(store.cel.value, isFalse);
+  });
+
   testWidgets('app: swipe back and ahead, top bar keeps its height, I WORKED moves on', (t) async {
     _phone(t);
     final (store, _) = await _store();

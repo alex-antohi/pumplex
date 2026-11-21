@@ -1,0 +1,22 @@
+{
+  "grounds": {
+    "background": "#12061f",
+    "surface": "#1f0d36",
+    "surfaceRaised": "#2a1148",
+    "ink": "#0b0414",
+    "text": "#f6eeff",
+    "textMuted": "#c9b8e8",
+    "swatchBorder": "#4b2a7a"
+  },
+  "neons": {
+    "pink":   { "highlight": "#ff98c2", "base": "#ff5fb0", "shadow": "#a63e84" },
+    "lime":   { "highlight": "#dcfb7b", "base": "#c6ff3d", "shadow": "#849b42" },
+    "orange": { "highlight": "#ffc075", "base": "#ffa033", "shadow": "#a6643c" },
+    "violet": { "highlight": "#c8a9f3", "base": "#a77bff", "shadow": "#724eb2" },
+    "sky":    { "highlight": "#88dff3", "base": "#3fd2ff", "shadow": "#3681b2" }
+  },
+  "fonts": {
+    "display": "Anton (Google Fonts), fallback Impact, sans-serif; uppercase, letter-spacing 1px",
+    "body": "Space Mono 400/700 (Google Fonts), monospace"
+  }
+}

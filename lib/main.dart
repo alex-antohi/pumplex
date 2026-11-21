@@ -28,9 +28,13 @@ class GymApp extends StatelessWidget {
       theme: pumplexTheme(Brightness.light),
       darkTheme: pumplexTheme(Brightness.dark),
       builder: (context, child) => ValueListenableBuilder<bool>(
-        valueListenable: store.chaos,
-        child: child,
-        builder: (context, on, child) => ChaosFilter(on: on, child: child!),
+        valueListenable: store.cel,
+        child: ValueListenableBuilder<bool>(
+          valueListenable: store.chaos,
+          child: child,
+          builder: (context, on, child) => ChaosFilter(on: on, child: child!),
+        ),
+        builder: (context, on, child) => CelFilter(on: on, child: child!),
       ),
       home: SessionPager(store: store),
     );
@@ -116,6 +120,16 @@ class _SessionPagerState extends State<SessionPager> {
     if (!_store.undoComplete()) return;
     setState(() {});
     _goTo(_store.currentN - 1);
+  }
+
+  void _toggleCel() {
+    final on = !_store.cel.value;
+    _store.setCel(on);
+    if (on && !CelFilter.supported) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('CEL SHADER needs the Impeller renderer; this phone draws without it.')),
+      );
+    }
   }
 
   Future<void> _saveBackup() async {
@@ -214,6 +228,10 @@ class _SessionPagerState extends State<SessionPager> {
                         PopupMenuItem(
                           value: () => _store.setChaos(!_store.chaos.value),
                           child: Text(_store.chaos.value ? '🌀  CHAOS MODE: ON!!!' : '🌀  CHAOS MODE: OFF'),
+                        ),
+                        PopupMenuItem(
+                          value: _toggleCel,
+                          child: Text(_store.cel.value ? '🖍️  CEL SHADER: ON!!!' : '🖍️  CEL SHADER: OFF'),
                         ),
                       ],
                     ),
