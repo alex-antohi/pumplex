@@ -25,7 +25,8 @@ This folder is the copy in the repo. Use it as the reference when building game 
 | `creator/body_atlas.png` | 50-body atlas used by board 3, "Character creator": 5 fat steps × 5 muscle steps × 2 sexes, 52×64 cells. |
 | `animation/animation.json` | Frame order and per-frame milliseconds for every animation. Read this to play them. |
 | `animation/<sex>_fat<F>_muscle<M>/` | Per body: `<anim>_<i>_<pose>.png` frames (80×72), `<anim>_sheet.png` strips, `preview_3x.png` contact sheet. |
-| `canvas/` | Design-canvas source (`canvas.json`, `*.dc.html`), including the interactive Creator board, which only runs inside the canvas. Only needed to re-import into the canvas. |
+| `canvas/ClassSelect.dc.html` | Board 6, "Class select": setup step 2, picking a class by equipment. Interactive, runs only inside the canvas. The copy and layout are in "Class select" below. |
+| `canvas/` | Design-canvas source (`canvas.json`, `*.dc.html`), including the interactive Creator and Class select boards, which only run inside the canvas. Only needed to re-import into the canvas. |
 | `../../tools/moodboard/animate.mjs` | Regenerates every animation frame from the body sliders. `node tools/moodboard/animate.mjs` |
 | `../../tools/moodboard/boards.mjs` | Regenerates `animation.html`, `readability.html` and their canvas copies. Run after `animate.mjs`. |
 
@@ -143,3 +144,41 @@ Measured on a 390 dp wide phone (`readability.html`). These are observations, no
 - **Width budget.** On a 390 dp screen the body takes 40% of the width at 3× (156×192 dp), 53% at 4× (208×256 dp) and 67% at 5× (260×320 dp).
   At 5× nothing fits beside it.
 - On a 3× density phone (xxhdpi), one sprite pixel at 3× is 9×9 physical pixels.
+
+## Class select (setup step 2)
+
+Design for screen 3 in `docs/app-flow.md`, following brief 4.1: **class = your equipment**.
+The layout is a phone version of a classic RPG class picker. There is no stat
+table, because brief rule 3 says no tables of numbers. A **loadout** (gear) and
+three **training tags** take its place.
+
+Screen, top to bottom (390×844 dp):
+
+1. `STEP 2 OF 5 · CLASS` and the title **WHAT DO YOU TRAIN WITH?**
+2. Preview card: the lifter at 3× from `creator/body_atlas.png` (until there are class outfits, each class
+   shows a body that hints at it), the class name in its colour, the loadout line and 3 tags.
+   The card's hard shadow takes the class colour.
+3. A short description in the voice of an RPG class intro, which also hints at the equipment.
+4. Four class buttons (a radio group): class name on the left, equipment on the right. The picked one fills with its colour.
+5. **NEXT: DIFFICULTY**.
+
+| Equipment (brief 4.1) | Class | Colour | Loadout | Tags | Description |
+| --- | --- | --- | --- | --- | --- |
+| No equipment | **Zoomer** | sky `#3fd2ff` | Nothing. Just you, the floor and the stairs. | CARDIO · BODYWEIGHT · SPRINTS | No gym, no gear, no excuses left. Runs on stairs, floors and pure spite. Fast enough to outrun their own doubts. |
+| Basic home gym | **Scrapper** | orange `#ffa033` | Two dumbbells, one mat, a kettlebell of unknown origin. | FLOOR WORK · SOME CARDIO · SOME WEIGHTS | Trains in the garage between the bike and the boxes. Makes do with what is there, and makes gains anyway. |
+| Lots of free weights | **Plate Paladin** | lime `#c6ff3d` | A barbell, a rack and a wall of plates. | STRONGMAN · BARBELL · HEAVY | Sworn to the barbell. Carries plates like holy relics and drops them like thunder. Big, burly, unbothered. |
+| Lots of machines | **Cablemancer** | violet `#a77bff` | Cables, pin-stacks and every machine in the building. | MACHINES · CABLES · LEAN POWER | Bends steel cables and pin-stacks to their will. Thin as a wire, strong as the machine. Never waits for the squat rack. |
+
+Preview bodies (atlas cells): Zoomer F fat 0 / muscle 25 · Scrapper M 25 / 50 ·
+Plate Paladin M 75 / 100 · Cablemancer F 0 / 75.
+
+The names are **proposals**. Brief 4.1 says the final names come from the
+design phase. They copy the tone of Borderlands' class names (one punchy archetype word,
+often a mashup) but are our own. Other options:
+- **No equipment:** Burpee Bandit, Dashrat, Floor Phantom
+- **Basic home gym:** Garage Rogue, Basement Bandit
+- **Lots of free weights:** Ironclad, Platebreaker, Barbellion
+- **Lots of machines:** Pulley Assassin, Leg-Press Lich, Pinstack Witch
+
+Still open: class outfits (the preview uses the starter outfit), and the height
+slider from brief 4.2 (the Creator board has only fat and muscle).
