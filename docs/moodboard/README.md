@@ -1,4 +1,4 @@
-# PUMPLEX game moodboard (v0.1)
+# PUMPLEX game moodboard (v0.2)
 
 Visual direction for the PUMPLEX game side: pixel-art characters, cel-shaded,
 on the app's dark theme. These are **style tests**. Character classes are not
@@ -16,9 +16,16 @@ This folder is the copy in the repo. Use it as the reference when building game 
 | `palette.json` | Every colour and font, as machine-readable JSON. |
 | `game_look.html` | Board 1, "Game look v0.1": 4 test builds, 3 style rules, palette. Opens in a browser. |
 | `body_sliders.html` | Board 2, "Body sliders": a 3×3 fat × muscle grid for male and female. Opens in a browser. |
+| `animation.html` | Board 4, "Animation style test": idle, front squat and PR flex loops on 6 bodies, playing. Opens in a browser. |
+| `readability.html` | Board 5, "Phone readability": a lifter card on the real Heavy Lower page at 3×/4×/5×, the sprite on every app ground, a 1×–5× size ladder, findings. Opens in a browser. |
 | `builds/*.png` | 4 test-build sprites, 40×64 px. |
 | `body_sliders/{male,female}/fat{0,50,100}_muscle{0,50,100}.png` | 18 body-slider sprites, 52×64 px. |
-| `canvas/` | Original design-canvas source (`canvas.json`, `*.dc.html`). Only needed to re-import into the canvas. |
+| `creator/body_atlas.png` | 50-body atlas used by board 3, "Character creator": 5 fat steps × 5 muscle steps × 2 sexes, 52×64 cells. |
+| `animation/animation.json` | Frame order and per-frame milliseconds for every animation. Read this to play them. |
+| `animation/<sex>_fat<F>_muscle<M>/` | Per body: `<anim>_<i>_<pose>.png` frames (80×72), `<anim>_sheet.png` strips, `preview_3x.png` contact sheet. |
+| `canvas/` | Design-canvas source (`canvas.json`, `*.dc.html`), including the interactive Creator board, which only runs inside the canvas. Only needed to re-import into the canvas. |
+| `../../tools/moodboard/animate.mjs` | Regenerates every animation frame from the body sliders. `node tools/moodboard/animate.mjs` |
+| `../../tools/moodboard/boards.mjs` | Regenerates `animation.html`, `readability.html` and their canvas copies. Run after `animate.mjs`. |
 
 All sprites are transparent RGBA PNGs at native size. Scale them by whole
 numbers with nearest-neighbour sampling: the boards show builds at 5× and
@@ -89,3 +96,48 @@ Neons (highlight / base / shadow):
 - Sprite stage: `#2a1148` with a pink polka-dot grid
   (`radial-gradient(rgba(255,95,176,.22) 2px, transparent 2.5px)`, 20 px tiles).
 - Name tags: `#0b0414` box with a 2 px border in the outfit's neon.
+
+## Character creator atlas (`creator/body_atlas.png`)
+
+260×640 px, 52×64 cells, no gaps. Column = fat (0, 25, 50, 75, 100).
+Rows 0–4 = male, muscle 0, 25, 50, 75, 100; rows 5–9 = female, same order.
+Cell for (sex, fat, muscle): `x = fat/25 * 52`, `y = ((sex == female ? 5 : 0) + muscle/25) * 64`.
+The canvas's Creator board shows it at 4× with two 5-step sliders and a sex toggle.
+
+## Animation style test
+
+Three loops, each generated for 6 bodies (male and female at fat/muscle
+0/0, 50/50, 100/100) by `tools/moodboard/animate.mjs`. The script edits the
+body-slider pixels: it cuts repeated rows so the body sinks, bows the knees
+out, and cuts the arms out and redraws them. Outline, skin tones and outfit
+colours stay the same as the source.
+
+- **Frames:** 80×72 px. The 52×64 body sits at (14, 8), leaving room for the bar, the plates and raised arms.
+  Every pose for a body lines up on that same origin: just swap frames.
+- **Timing:** `animation/animation.json` → `animations.<name>.frames[] = {pose, ms}`.
+  `sheetOrder` lists the unique poses in the order they appear in `<name>_sheet.png`.
+  The loops repeat poses (e.g. squat `d2`/`d1` on the way up), so play the
+  `frames` list, not the sheet left to right.
+
+| Animation | Frames (pose ms) | Notes |
+| --- | --- | --- |
+| `idle` | rest 420 · out 300 · out 260 · rest 300 | Upper body sinks 1 px on the out-breath. |
+| `front_squat` | top 500 · d1 140 · d2 140 · d3 160 · bottom 260 · d2 90 · d1 90 | Heavy Lower main lift. Bar racked on the shoulders. Down slow, up fast. |
+| `pr_flex` | dip 120 · air2 90 · air4 120 · air2 90 · land 90 · hold 700 · rest 400 | For a new PR. Hop, then a double-biceps hold. |
+
+Rough spots that still need hand-drawn keyframes: the squat bottom on the skinniest
+bodies, the fists on the bar (plain blocks), and the flex forearms on fat-100 bodies (very wide).
+
+## Phone readability findings
+
+Measured on a 390 dp wide phone (`readability.html`). These are observations, not decisions:
+
+- **The ink outline disappears on dark grounds.** `#0b0414` against the dark bg, panels
+  and stage is only 1.03–1.22:1, so on dark the silhouette comes from skin and
+  clothes alone. On the light theme and on pink or lime buttons it reads strongly.
+- **Panel borders don't match the app.** In the app's dark theme, panel borders are
+  `#f6eeff` (the theme's `ink`, `lib/pumplex.dart`). Moodboard v0.1 draws panels with
+  `#0b0414` borders. Pick one before building game UI.
+- **Width budget.** On a 390 dp screen the body takes 40% of the width at 3× (156×192 dp), 53% at 4× (208×256 dp) and 67% at 5× (260×320 dp).
+  At 5× nothing fits beside it.
+- On a 3× density phone (xxhdpi), one sprite pixel at 3× is 9×9 physical pixels.

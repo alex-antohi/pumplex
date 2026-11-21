@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Character creator</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Space+Mono:wght@400;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#c6ff3d}a:hover{color:#dcfb7b}
+.spr{background-image:url(../creator/body_atlas.png);background-repeat:no-repeat;background-size:1040px 2560px;image-rendering:pixelated}
+.pxr{-webkit-appearance:none;appearance:none;width:100%;height:44px;background:transparent;margin:0;cursor:pointer}
+.pxr::-webkit-slider-runnable-track{height:14px;background:#2a1148;border:3px solid #0b0414}
+.pxr::-moz-range-track{height:14px;background:#2a1148;border:3px solid #0b0414}
+.pxr::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:32px;margin-top:-12px;background:#c6ff3d;border:3px solid #0b0414;box-shadow:3px 3px 0 #ff5fb0}
+.pxr::-moz-range-thumb{width:20px;height:26px;border-radius:0;background:#c6ff3d;border:3px solid #0b0414;box-shadow:3px 3px 0 #ff5fb0}
+.pxr:focus-visible{outline:3px dashed #f6eeff;outline-offset:2px}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; padding: 28px 24px; background: #12061f; color: #f6eeff; font-family: 'Space Mono', monospace; display: flex; flex-direction: column; gap: 18px">
+
+  <div style="display: flex; flex-direction: column; gap: 2px">
+    <span style="font-size: 12px; color: #c9b8e8">STEP 1 OF 3</span>
+    <h1 style="margin: 0; font-family: Anton, Impact, sans-serif; font-weight: 400; font-size: 36px; line-height: 1.05; letter-spacing: 1px; text-transform: uppercase; text-shadow: 2px 2px 0 #c6ff3d, 4px 4px 0 #ff5fb0">Build your lifter</h1>
+  </div>
+
+  <div style="height: 290px; display: flex; align-items: center; justify-content: center; background-color: #2a1148; background-image: radial-gradient(rgba(255,95,176,.22) 2px, transparent 2.5px); background-size: 20px 20px; border: 4px solid #0b0414; box-shadow: 6px 6px 0 #ff5fb0">
+    <div class="spr" role="img" aria-label="{{alt}}" style="width: 208px; height: 256px; background-position: {{pos}}"></div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 8px">
+    <span style="font-family: Anton, Impact, sans-serif; font-size: 18px; letter-spacing: 1px">BODY TYPE</span>
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+      <button type="button" onClick="{{pickM}}" aria-pressed="{{isM}}" style="height: 48px; font-family: Anton, Impact, sans-serif; font-size: 18px; letter-spacing: 1px; border: 3px solid #0b0414; cursor: pointer; background: {{mBg}}; color: {{mFg}}; box-shadow: {{mSh}}">MALE</button>
+      <button type="button" onClick="{{pickF}}" aria-pressed="{{isF}}" style="height: 48px; font-family: Anton, Impact, sans-serif; font-size: 18px; letter-spacing: 1px; border: 3px solid #0b0414; cursor: pointer; background: {{fBg}}; color: {{fFg}}; box-shadow: {{fSh}}">FEMALE</button>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 2px">
+    <div style="display: flex; justify-content: space-between; align-items: baseline">
+      <label for="fat" style="font-family: Anton, Impact, sans-serif; font-size: 18px; letter-spacing: 1px">FAT</label>
+      <span style="font-size: 14px; font-weight: 700; color: #ffa033">{{fatPct}}</span>
+    </div>
+    <input id="fat" class="pxr" type="range" min="0" max="4" step="1" value="{{fat}}" onChange="{{onFat}}">
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 2px">
+    <div style="display: flex; justify-content: space-between; align-items: baseline">
+      <label for="muscle" style="font-family: Anton, Impact, sans-serif; font-size: 18px; letter-spacing: 1px">MUSCLE</label>
+      <span style="font-size: 14px; font-weight: 700; color: #3fd2ff">{{musPct}}</span>
+    </div>
+    <input id="muscle" class="pxr" type="range" min="0" max="4" step="1" value="{{mus}}" onChange="{{onMus}}">
+  </div>
+
+  <button type="button" style="margin-top: auto; height: 56px; font-family: Anton, Impact, sans-serif; font-size: 22px; letter-spacing: 1px; background: #c6ff3d; color: #0b0414; border: 4px solid #0b0414; box-shadow: 6px 6px 0 #a77bff; cursor: pointer">NEXT: PICK A CLASS</button>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { sex: 'm', fat: 1, mus: 2 };
+  }
+  renderVals() {
+    const s = this.state;
+    const row = (s.sex === 'm' ? 0 : 5) + s.mus;
+    const on = { bg: '#c6ff3d', fg: '#0b0414', sh: '4px 4px 0 #ff5fb0' };
+    const off = { bg: '#1f0d36', fg: '#f6eeff', sh: 'none' };
+    const m = s.sex === 'm' ? on : off;
+    const f = s.sex === 'f' ? on : off;
+    return {
+      pos: (-s.fat * 208) + 'px ' + (-row * 256) + 'px',
+      alt: (s.sex === 'm' ? 'Male' : 'Female') + ' lifter, fat ' + (s.fat * 25) + ', muscle ' + (s.mus * 25),
+      fat: s.fat, mus: s.mus,
+      fatPct: (s.fat * 25) + ' / 100', musPct: (s.mus * 25) + ' / 100',
+      isM: s.sex === 'm' ? 'true' : 'false', isF: s.sex === 'f' ? 'true' : 'false',
+      mBg: m.bg, mFg: m.fg, mSh: m.sh, fBg: f.bg, fFg: f.fg, fSh: f.sh,
+      pickM: () => this.setState({ sex: 'm' }),
+      pickF: () => this.setState({ sex: 'f' }),
+      onFat: (e) => this.setState({ fat: Number(e.target.value) }),
+      onMus: (e) => this.setState({ mus: Number(e.target.value) }),
+    };
+  }
+}
+</script>
+</body>
+</html>
