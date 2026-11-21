@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Difficulty</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Space+Mono:wght@400;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#c6ff3d}a:hover{color:#dcfb7b}
+.rung{position:relative;z-index:2;height:52px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 12px;border:3px solid #0b0414;cursor:pointer;text-align:left}
+.rung:focus-visible,.cta:focus-visible,.freeze:focus-visible{outline:3px dashed #f6eeff;outline-offset:2px}
+.gem{width:10px;height:10px;transform:rotate(45deg);border:2px solid #0b0414;box-sizing:border-box}
+.rail{position:absolute;top:-10px;bottom:-10px;width:12px;background:repeating-linear-gradient(0deg,#6b5033 0 14px,#4b2d19 14px 16px);border:3px solid #0b0414;z-index:1}
+.cta{height:56px;border:4px solid #0b0414;font-family:Anton,Impact,sans-serif;font-size:22px;letter-spacing:1px;cursor:pointer}
+.freeze{background:repeating-linear-gradient(-55deg,rgba(11,4,20,.8) 0 12px,rgba(11,4,20,.66) 12px 24px)}
+.slam{transform:rotate(-6deg);animation:slam .42s steps(6,end) both}
+.sub{transform:rotate(-3deg);animation:tag .5s steps(5,end) both}
+.climb{animation:climb .3s steps(4,end) both}
+@keyframes slam{0%{transform:scale(2.2) rotate(-14deg);opacity:0}55%{transform:scale(.92) rotate(-5deg);opacity:1}75%{transform:scale(1.04) rotate(-7deg)}100%{transform:scale(1) rotate(-6deg)}}
+@keyframes tag{0%,40%{transform:translateX(-40px) rotate(-3deg);opacity:0}100%{transform:translateX(0) rotate(-3deg);opacity:1}}
+@keyframes climb{0%{transform:translateY(16px)}100%{transform:none}}
+@media (prefers-reduced-motion:reduce){.slam,.sub,.climb{animation:none}}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; box-sizing: border-box; padding: 24px 20px; background: #12061f; color: #f6eeff; font-family: 'Space Mono', monospace; display: flex; flex-direction: column; gap: 16px">
+
+  <div style="display: flex; flex-direction: column; gap: 2px">
+    <span style="font-size: 12px; color: #c9b8e8">STEP 3 OF 5 · DIFFICULTY</span>
+    <h1 style="margin: 0; font-family: Anton, Impact, sans-serif; font-weight: 400; font-size: 36px; line-height: 1.05; letter-spacing: 1px; text-transform: uppercase; text-shadow: 2px 2px 0 #c6ff3d, 4px 4px 0 #ff5fb0">How hard do you go?</h1>
+    <span style="font-size: 13px; font-weight: 700">Pick a difficulty mode. Harder modes earn more XP.</span>
+  </div>
+
+  <div role="radiogroup" aria-label="Difficulty, from expert at the top to beginner at the bottom" style="position: relative; display: flex; flex-direction: column; gap: 8px; padding: 0 18px">
+    <span class="rail" style="left: 0"></span>
+    <span class="rail" style="right: 0"></span>
+    <sc-for list="{{rungs}}" as="r" hint-placeholder-count="6">
+      <button type="button" class="rung" role="radio" aria-checked="{{r.on}}" aria-label="{{r.label}}" onClick="{{r.pick}}" style="background: {{r.bg}}; color: {{r.fg}}; box-shadow: {{r.sh}}">
+        <span style="display: flex; align-items: center; gap: 10px; min-width: 0">
+          <span style="flex: 0 0 14px; width: 14px; height: 14px; transform: rotate(45deg); background: {{r.color}}; border: 2px solid #0b0414"></span>
+          <span style="font-family: Anton, Impact, sans-serif; font-size: 18px; line-height: 1; letter-spacing: .5px; white-space: nowrap">{{r.name}}</span>
+        </span>
+        <span aria-hidden="true" style="display: flex; gap: 3px">
+          <sc-for list="{{r.gems}}" as="g" hint-placeholder-count="3"><span class="gem" style="background: {{g.c}}"></span></sc-for>
+        </span>
+      </button>
+    </sc-for>
+  </div>
+
+  <div class="climb" style="position: relative; display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; background: #1f0d36; border: 3px solid #0b0414; box-shadow: 6px 6px 0 {{p.color}}">
+    <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px">
+      <span style="font-family: Anton, Impact, sans-serif; font-size: 24px; line-height: 1; letter-spacing: 1px; color: {{p.color}}">{{p.name}}</span>
+      <span style="font-size: 11px; font-weight: 700; color: #c9b8e8">DIFFICULTY {{p.rung}} OF 6</span>
+    </div>
+    <span style="font-size: 13px; line-height: 1.45">{{p.who}}</span>
+    <span style="display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; color: #c9b8e8">XP <span style="display: flex; gap: 3px"><sc-for list="{{p.gems}}" as="g" hint-placeholder-count="3"><span class="gem" style="background: {{g.c}}"></span></sc-for></span></span>
+  </div>
+
+  <button type="button" class="cta" style="margin-top: auto; background: #c6ff3d; color: #0b0414; box-shadow: 6px 6px 0 #a77bff">NEXT: STARTING AREA</button>
+
+  <sc-if value="{{intro}}" hint-placeholder-val="{{ false }}">
+    <button type="button" class="freeze" onClick="{{dismiss}}" aria-label="Close the {{p.name}} title card" style="position: absolute; inset: 0; z-index: 20; border: 0; padding: 0 24px; cursor: pointer; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 14px; text-align: left">
+      <span class="slam" role="status" style="display: block; max-width: 100%; box-sizing: border-box; padding: 6px 14px 4px; background: {{p.color}}; border: 4px solid #0b0414; box-shadow: 6px 6px 0 #0b0414; font-family: Anton, Impact, sans-serif; font-size: 40px; line-height: 1; letter-spacing: 1px; color: #0b0414; white-space: pre-line">{{p.cardName}}</span>
+      <span class="sub" style="display: block; max-width: calc(100% - 18px); box-sizing: border-box; margin-left: 18px; padding: 5px 10px; background: #0b0414; border: 2px solid {{p.color}}; font-size: 14px; font-weight: 700; color: {{p.color}}">{{p.joke}}</span>
+    </button>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.levels = [
+      { name: 'SOFA MODE', cardName: 'SOFA\nMODE', color: '#c9b8e8',
+        who: 'For: never lifted, or not for years. The gentlest workouts.', joke: 'THE SOFA WILL REMEMBER YOU' },
+      { name: 'WARM-UP MODE', cardName: 'WARM-UP\nMODE', color: '#c6ff3d',
+        who: 'For: a few weeks to a few months in. Easy, steady workouts.', joke: 'EVERY LEGEND STARTS HERE' },
+      { name: 'SWEAT MODE', cardName: 'SWEAT\nMODE', color: '#3fd2ff',
+        who: 'For: training most weeks, for about a year. Proper sweaty workouts.', joke: 'TOWEL STRONGLY RECOMMENDED' },
+      { name: 'PAIN MODE', cardName: 'PAIN\nMODE', color: '#a77bff',
+        who: 'For: about two years in. Hard workouts, real effort.', joke: 'OUCH, BUT MAKE IT GAINS' },
+      { name: 'BRUTAL MODE', cardName: 'BRUTAL\nMODE', color: '#ffa033',
+        who: 'For: years of serious lifting. Very hard workouts.', joke: 'THE RACK FEARS YOU NOW' },
+      { name: 'NIGHTMARE MODE', cardName: 'NIGHTMARE\nMODE', color: '#ff5fb0',
+        who: 'For: many years, competition level. The hardest workouts there are.', joke: 'GRAVITY FILED A COMPLAINT' },
+    ];
+    this.state = { i: 1, intro: false };
+    this.timer = null;
+  }
+  componentWillUnmount() { clearTimeout(this.timer); }
+  pick(n) {
+    clearTimeout(this.timer);
+    this.setState({ i: n, intro: false }, () => {
+      this.setState({ intro: true });
+      this.timer = setTimeout(() => this.setState({ intro: false }), 1800);
+    });
+  }
+  renderVals() {
+    const s = this.state, L = this.levels;
+    const gems = (n, c) => Array.from({ length: n + 1 }, () => ({ c }));
+    const rungs = L.map((l, i) => ({ l, i })).reverse().map(({ l, i }) => {
+      const on = i === s.i;
+      return {
+        name: l.name, color: l.color, on: on ? 'true' : 'false',
+        label: 'Difficulty ' + (i + 1) + ' of 6: ' + l.name.toLowerCase() + '. ' + l.who,
+        bg: on ? l.color : '#1f0d36', fg: on ? '#0b0414' : '#f6eeff',
+        sh: on ? '4px 4px 0 #ff5fb0' : 'none',
+        gems: gems(i, on ? '#0b0414' : l.color),
+        pick: () => this.pick(i),
+      };
+    });
+    const l = L[s.i];
+    return {
+      rungs, intro: s.intro,
+      p: { name: l.name, cardName: l.cardName, color: l.color, who: l.who, joke: l.joke, rung: s.i + 1, gems: gems(s.i, l.color) },
+      dismiss: () => { clearTimeout(this.timer); this.setState({ intro: false }); },
+    };
+  }
+}
+</script>
+</body>
+</html>

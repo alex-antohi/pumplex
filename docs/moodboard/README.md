@@ -26,6 +26,9 @@ This folder is the copy in the repo. Use it as the reference when building game 
 | `animation/animation.json` | Frame order and per-frame milliseconds for every animation. Read this to play them. |
 | `animation/<sex>_fat<F>_muscle<M>/` | Per body: `<anim>_<i>_<pose>.png` frames (80×72), `<anim>_sheet.png` strips, `preview_3x.png` contact sheet. |
 | `canvas/ClassSelect.dc.html` | Board 6, "Class select": setup step 2, picking a class by equipment. Interactive, runs only inside the canvas. The copy and layout are in "Class select" below. |
+| `canvas/StartingAreas.dc.html` | Board 7, "Starting areas": setup step 4, five areas with scene, palette, default path and a working tap-to-mark demo. Interactive, runs only inside the canvas. Spec in "Starting areas" below. |
+| `canvas/Workout.dc.html` | Board 8, "Workout": the play screen (app-flow §4.2) in Rustbelt Flats for a Scrapper: exercise strip, barrel = one working set, long-press undo, I WORKED and a reward overlay. Interactive, runs only inside the canvas. Spec in "Workout screen" below. |
+| `canvas/Difficulty.dc.html` | Board 9, "Difficulty": setup step 3, a six-rung ladder of fantasy-named levels with XP gems and a title card. Interactive, runs only inside the canvas. Spec in "Difficulty" below. |
 | `canvas/` | Design-canvas source (`canvas.json`, `*.dc.html`), including the interactive Creator and Class select boards, which only run inside the canvas. Only needed to re-import into the canvas. |
 | `../../tools/moodboard/animate.mjs` | Regenerates every animation frame from the body sliders. `node tools/moodboard/animate.mjs` |
 | `../../tools/moodboard/boards.mjs` | Regenerates `animation.html`, `readability.html` and their canvas copies. Run after `animate.mjs`. |
@@ -202,5 +205,111 @@ often a mashup) but are our own. Other options:
 - **Lots of free weights:** Ironclad, Platebreaker, Barbellion
 - **Lots of machines:** Pulley Assassin, Leg-Press Lich, Pinstack Witch
 
-Still open: class outfits (the preview uses the starter outfit), and the height
-slider from brief 4.2 (the Creator board has only fat and muscle).
+Still open: class outfits (the preview uses the starter outfit).
+
+**No height slider.** Owner decision, 21 November 2026, overrides brief 4.2: character creation is body type + fat + muscle only.
+
+## Starting areas (setup step 4)
+
+**Reference board, not an app screen.** Like every board here, it shows the look and the behaviour for the Flutter build.
+Shapes are placeholders for pixel-art scenes.
+
+Brief 4.5–4.6: the area sets **the look, the palette and how a set is logged**. These five are proposals
+built from this moodboard (the violet night base and neons, `borderlands-reference.md` §4 rarity ladder and §9 wasteland tones,
+and the phone readability finding).
+
+### The action is the set
+
+There is **no + SET button**. Each area has one object to hit. Doing the action in the world logs one working set,
+and the result **stays in the world** as the count:
+
+| Area | Tap this | What happens | What stays (the count) | Every 5th | Default path |
+| --- | --- | --- | --- | --- | --- |
+| **Riptide Shore** (brief's beach) | Treasure chest on the sand | The lid flips open, a shell flies out in an arc | A loot pile of shells grows on the sand | a pearl flies out, **PEARL!** | any (neutral) |
+| **Gainsgard Keep** (brief's castle) | The stone wall | A chalk scratch is drawn top-down, chalk dust | Tally marks on the wall: 4 strokes, then a slash | **SLASHED!** | Plate Paladin |
+| **Rustbelt Flats** | Hazard-striped barrel | It explodes: starburst, smoke puffs, flying debris. A new barrel rolls in | A spray-painted X on the scrap sign, colour on the rarity ladder | **TAGGED!** | Scrapper |
+| **Arcade Underpass** | PUNCH-O-TRON boxing machine | The pad snaps back, the counter ticks | Tickets on the floor, plus the machine's LED counter | **COMBO!** | Bargain Bruiser |
+| **Frostbite Summit** | Ice block | It shatters into shards and reforms | A flag one step higher up the slope to the summit, rarity colours | **SUMMIT!** | Cablemancer |
+
+Every action:
+- The **whole scene shakes** (320 ms) and a starburst in the area colour says **+1 SET**, or the 5th-mark stamp.
+- The object shows it can be tapped: a dashed ring and a bobbing stencil hint (TAP THE CHEST, SCRATCH THE WALL, BLOW UP THE BARREL, PUNCH THE MACHINE, SMASH THE ICE).
+- All motion is hard-stepped (CSS `steps()`), with no easing, to match the pixel art. The action takes 0.4–0.7 s.
+- **Long-press the object** takes the last set back (app-flow §4.2). On the board an UNDO button stands in for it. Undo has no effect animation.
+- Records group in fives so you can count them without numbers (rule 3). The demo caps at 12.
+- With reduced motion turned on, nothing shakes, flies, explodes or loops. Records just appear.
+
+### Scenes
+
+**Rule for every area: a light floor behind the lifter, a dark sky above,** plus a ground shadow under the lifter.
+The `#0b0414` ink outline then has something light to stand against, which fixes the 1.03–1.22:1 contrast problem from the readability board.
+Neon only on the action object, the records, props that react (torches, neon signs) and clothes (rule 3).
+
+| Area | Sky / wall | Floor | Accent | Details |
+| --- | --- | --- | --- | --- |
+| Riptide Shore | `#12061f`, sea `#2a1148` | sand `#ad9293` | pink `#ff5fb0` | Twinkling stars, a cratered moon and its reflection, a palm island, rolling foam, a swaying palm, a starfish. |
+| Gainsgard Keep | `#3a2a52` bricks | flagstone `#8672a5` | orange `#ffa033` | An arched moonlit window with a light beam, a chain, banners with dumbbell emblems, a flickering torch, a dumbbell rack, a pink runner rug. |
+| Rustbelt Flats | `#1f0d36`, mesas `#3b2230`, dust `#ecd7d0` | rust `#a6643c` | orange | A striped setting sun, a mesa, a telephone pole with a sagging wire, a cactus with blinking orange eyes, a car wreck, tyres, cracks. |
+| Arcade Underpass | `#12061f` + pink dots | concrete `#724eb2` | lime `#c6ff3d` | A riveted bridge deck, graffiti (SWOLE, GAINZ), a torn poster, a flickering OPEN 24/7 sign, a neon puddle, road markings. |
+| Frostbite Summit | `#1a0b3b` | snow `#c9b8e8` | sky `#3fd2ff` | Stars, three drifting aurora bands, a snowy peak, a pine, a slope up to a pink summit flag, falling snow, footprints. |
+
+The class link is the drawio's "Background changes" edge (Character Creation → Starting Area). The class picks the
+default area, and the player can still choose any area. Lifters use `creator/body_atlas.png` at 2×.
+
+## Workout screen (play, app-flow §4.2)
+
+**Reference board, not an app screen.** Shown in Rustbelt Flats for a Scrapper (no equipment: push-ups, burpees, sprints).
+Owner choices (21 Nov 2026): an active-exercise strip, a set target per exercise, this area and class, and a simple reward overlay.
+
+Screen, top to bottom (390×844 dp):
+
+1. **Top bar:** `SESSION 14 · SCRAPPER`, the area name, and the running clock (`mm:ss` on an ink box with a lime border; it keeps running, as app-flow §4.2 says).
+2. **Exercise strip:** one card per exercise (3 here). Each card shows the name, **target slots** (outlined Xs, filled in rarity-ladder colours as sets land), `+n` for extra sets, and a status: NOW / NEXT UP / CRUSHED.
+   The active card is orange with a pink hard shadow. **Tap a card to switch** the active exercise.
+3. **The world:** the Rustbelt Flats scene with the lifter at 3×. A bobbing hint says **BLOW UP THE BARREL** with `<EXERCISE> · SET n OF t` under it.
+   The scrap sign shows the **active exercise's** Xs: filled ones in rarity colours, outlined ones still to do.
+4. **I WORKED** (lime, full width). It's disabled until at least one set is logged.
+
+Rules:
+- **Tap the barrel = one working set of the active exercise.** It explodes, the scene shakes, a new barrel rolls in, and an X lands on the sign. The burst says **+1 SET**, or **CRUSHED!** when the target is reached.
+- **Hold the barrel (550 ms) = take the last set back** (long-press, app-flow §4.2). On the board this works for real.
+- When an exercise reaches its target, the strip **moves to the next unfinished exercise** after 0.8 s. Extra sets are allowed (up to 9).
+- The **targets come from the app** (brief rule 4). 3 × 3 here is a placeholder until the workout lists per class exist (brief §8).
+- **First-workout tip** (app-flow §4.2), at the top of the scene: "ONLY WORKING SETS COUNT. WARM-UPS DON'T. HOLD THE BARREL TO TAKE ONE BACK." with an OK button.
+- **Reward overlay on I WORKED:** freeze-frame stripes, a **WORKOUT CRUSHED** stencil slam, `+[XP] XP` (placeholder: XP rules are still open, brief 4.8), the sets per exercise, the time, and **BACK TO HUB**.
+
+For other areas, swap the scene and the action object. Everything else stays the same (see "Starting areas").
+
+## Difficulty (setup step 3)
+
+**Reference board, not an app screen.** Brief 4.3: many levels from total beginner to years of lifting, fantasy names, Borderlands tone.
+Owner choices (21 Nov 2026): **6 levels**, a **vertical ladder** picker, XP shown as **gems with no numbers**, and names written here (proposals).
+
+**Naming rule (owner, 21 Nov 2026):** difficulty names must read as difficulty levels. They must not sound like classes or hint at
+classes (no Squire, Ranger, Warlock and so on). So every name is **`<WORD> MODE`**, the way games name difficulty.
+
+Screen, top to bottom (390×844 dp):
+
+1. `STEP 3 OF 5 · DIFFICULTY`, title **HOW HARD DO YOU GO?**, subline "Pick a difficulty mode. Harder modes earn more XP."
+2. **The ladder:** two wooden rails with 6 rung buttons between them (a radio group), the hardest at the top and the easiest at the bottom.
+   Each rung has a diamond in its rarity colour, the name, and 1–6 XP gems. The picked rung fills with its colour and gets a pink hard shadow.
+3. **Detail card:** the name in its colour, `DIFFICULTY n OF 6`, who it is for, and the XP gems. The card's shadow takes the level colour.
+4. **NEXT: STARTING AREA**.
+
+Picking a rung plays the **freeze-frame title card** (same as Class select): a stencil slam of the name and a joke subtitle.
+It closes after 1.8 s or on tap.
+
+| # | Rarity colour | Name | Who it's for | Title-card joke | XP gems |
+| --- | --- | --- | --- | --- | --- |
+| 1 | muted `#c9b8e8` | **SOFA MODE** | Never lifted, or not for years. The gentlest workouts. | THE SOFA WILL REMEMBER YOU | 1 |
+| 2 | lime `#c6ff3d` | **WARM-UP MODE** | A few weeks to a few months in. Easy, steady workouts. | EVERY LEGEND STARTS HERE | 2 |
+| 3 | sky `#3fd2ff` | **SWEAT MODE** | Training most weeks, for about a year. Proper sweaty workouts. | TOWEL STRONGLY RECOMMENDED | 3 |
+| 4 | violet `#a77bff` | **PAIN MODE** | About two years in. Hard workouts, real effort. | OUCH, BUT MAKE IT GAINS | 4 |
+| 5 | orange `#ffa033` | **BRUTAL MODE** | Years of serious lifting. Very hard workouts. | THE RACK FEARS YOU NOW | 5 |
+| 6 | pink `#ff5fb0` | **NIGHTMARE MODE** | Many years, competition level. The hardest workouts there are. | GRAVITY FILED A COMPLAINT | 6 |
+
+- The gem count is a **picture of the XP multiplier**, not the number. The real multipliers come with the XP rules (brief §8, item 3).
+- The colours follow the rarity ladder from `borderlands-reference.md` §4, so harder reads as rarer.
+- Don't use **"Chaos mode"** (already an app menu feature) or Borderlands' own difficulty names.
+- The tone is loud and silly, never mean about bodies, as the reference asks.
+

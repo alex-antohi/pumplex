@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Workout</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Space+Mono:wght@400;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#c6ff3d}a:hover{color:#dcfb7b}
+.scene{position:relative;height:540px;overflow:hidden;border:4px solid #0b0414;box-sizing:border-box}
+.scene>*{position:absolute}
+.spr3{left:4px;bottom:28px;width:156px;height:192px;background-image:url(../creator/body_atlas.png);background-repeat:no-repeat;background-size:780px 1920px;background-position:0 -1152px;image-rendering:pixelated;z-index:5}
+.shadow{left:14px;bottom:20px;width:136px;height:14px;background:rgba(11,4,20,.45);border-radius:50%;z-index:4}
+.hint{left:-4px;top:12px;z-index:8;display:flex;flex-direction:column;gap:2px;padding:6px 12px 5px;background:#ffa033;border:3px solid #0b0414;transform:rotate(-2deg);animation:nudge 1.4s steps(2,end) infinite}
+.hint b{font-family:Anton,Impact,sans-serif;font-weight:400;font-size:18px;letter-spacing:1px;line-height:1;color:#0b0414}
+.hint i{font-style:normal;font-family:'Space Mono',monospace;font-size:11px;font-weight:700;color:#0b0414}
+.hit{position:absolute;z-index:6;background:transparent;border:0;padding:0;margin:0;cursor:pointer;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+.hit>span{position:absolute;display:block}
+.hit:focus-visible{outline:3px dashed #f6eeff;outline-offset:4px}
+.ring{inset:-10px;border:3px dashed #f6eeff;opacity:.55;animation:ring 1.4s steps(2,end) infinite}
+.barrel{left:0;bottom:0;width:62px;height:84px;border:4px solid #0b0414;border-radius:6px;box-sizing:border-box;background:repeating-linear-gradient(45deg,#ffa033 0 9px,#0b0414 9px 18px);box-shadow:inset 0 8px 0 #a6643c,inset 0 -8px 0 #a6643c;animation:rollin .45s steps(5,end) both}
+.boom{animation:boom .6s steps(6,end) both;z-index:7}
+.star{clip-path:polygon(50% 0,61% 30%,93% 18%,74% 45%,100% 62%,68% 66%,72% 100%,50% 76%,28% 100%,32% 66%,0 62%,26% 45%,7% 18%,39% 30%)}
+.puff{border-radius:50%;background:#593597;border:3px solid #0b0414;animation:puff .6s steps(6,end) both}
+.debris{width:10px;height:10px;background:#a6643c;border:2px solid #0b0414;animation:debris .6s steps(6,end) both}
+.burst{position:absolute;z-index:9;width:110px;height:110px;display:flex;align-items:center;justify-content:center;animation:burst .5s steps(5,end) both;pointer-events:none}
+.burst::before,.burst::after{content:"";position:absolute;inset:0;clip-path:polygon(50% 0,61% 30%,93% 18%,74% 45%,100% 62%,68% 66%,72% 100%,50% 76%,28% 100%,32% 66%,0 62%,26% 45%,7% 18%,39% 30%)}
+.burst::before{background:#0b0414}
+.burst::after{inset:7px;background:var(--fx)}
+.burst b{position:relative;z-index:1;font-family:Anton,Impact,sans-serif;font-weight:400;font-size:19px;line-height:1;color:#0b0414;text-align:center;transform:rotate(-8deg)}
+.shake{animation:shake .32s steps(6,end)}
+.tag{display:inline-flex;flex-direction:column;align-items:center}
+.tag b{font-family:Anton,Impact,sans-serif;font-weight:400;font-size:34px;line-height:.9;transform:rotate(-8deg)}
+.tag i{width:4px;margin-top:-3px}
+.tag.on{animation:pop .22s steps(4,end) both}
+.tag.on b{text-shadow:2px 2px 0 #0b0414}
+.tag.off b{color:transparent;-webkit-text-stroke:2px rgba(236,215,208,.55)}
+.slot{font-family:Anton,Impact,sans-serif;font-size:20px;line-height:1}
+.slot.off{color:transparent;-webkit-text-stroke:1.5px currentColor;opacity:.6}
+.card{position:relative;height:96px;box-sizing:border-box;padding:8px 8px 6px;border:3px solid #0b0414;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;text-align:left;font-family:'Space Mono',monospace}
+.card:focus-visible,.cta:focus-visible,.x:focus-visible{outline:3px dashed #f6eeff;outline-offset:2px}
+.cta{height:60px;border:4px solid #0b0414;font-family:Anton,Impact,sans-serif;font-size:26px;letter-spacing:1px;cursor:pointer}
+.freeze{background:repeating-linear-gradient(-55deg,rgba(11,4,20,.86) 0 12px,rgba(11,4,20,.74) 12px 24px)}
+.slam{transform:rotate(-6deg);animation:slam .42s steps(6,end) both}
+@keyframes nudge{50%{transform:rotate(-2deg) translateY(-3px)}}
+@keyframes ring{50%{opacity:.15}}
+@keyframes blink{0%,90%,100%{transform:scaleY(1)}94%{transform:scaleY(.1)}}
+@keyframes rollin{0%{transform:translateX(160px) rotate(90deg)}100%{transform:none}}
+@keyframes boom{0%{transform:scale(.2)}35%{transform:scale(1.25)}100%{transform:scale(1.4);opacity:0}}
+@keyframes puff{0%{transform:scale(.3)}100%{transform:scale(1.6) translateY(-36px);opacity:0}}
+@keyframes debris{100%{transform:translate(var(--dx),var(--dy)) rotate(270deg);opacity:0}}
+@keyframes burst{0%{transform:scale(.2) rotate(-40deg)}60%{transform:scale(1.15) rotate(6deg)}100%{transform:scale(1) rotate(0)}}
+@keyframes shake{20%{transform:translate(-5px,2px)}40%{transform:translate(5px,-2px)}60%{transform:translate(-3px,-1px)}80%{transform:translate(2px,2px)}100%{transform:none}}
+@keyframes pop{0%{transform:scale(2.2) rotate(-14deg);opacity:0}100%{transform:scale(1) rotate(0);opacity:1}}
+@keyframes slam{0%{transform:scale(2.2) rotate(-14deg);opacity:0}55%{transform:scale(.92) rotate(-5deg);opacity:1}100%{transform:scale(1) rotate(-6deg)}}
+@media (prefers-reduced-motion:reduce){.hint,.ring,.barrel,.boom,.puff,.debris,.burst,.shake,.tag.on,.slam,.anim{animation:none !important}}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 844px; overflow: hidden; box-sizing: border-box; padding: 16px; background: #12061f; color: #f6eeff; font-family: 'Space Mono', monospace; display: flex; flex-direction: column; gap: 10px">
+
+  <div style="display: flex; justify-content: space-between; align-items: center; height: 48px">
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <span style="font-size: 11px; font-weight: 700; color: #c9b8e8">SESSION 14 · SCRAPPER</span>
+      <span style="font-family: Anton, Impact, sans-serif; font-size: 24px; line-height: 1; letter-spacing: 1px; color: #ffa033">RUSTBELT FLATS</span>
+    </div>
+    <div role="timer" aria-label="Workout time" style="padding: 6px 10px; background: #0b0414; border: 3px solid #c6ff3d; box-shadow: 4px 4px 0 #0b0414; font-family: 'Space Mono', monospace; font-size: 22px; font-weight: 700; line-height: 1; color: #c6ff3d">{{clock}}</div>
+  </div>
+
+  <div role="tablist" aria-label="Exercises" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+    <sc-for list="{{cards}}" as="c" hint-placeholder-count="3">
+      <button type="button" class="card" role="tab" aria-selected="{{c.on}}" aria-label="{{c.label}}" onClick="{{c.pick}}" style="background: {{c.bg}}; color: {{c.fg}}; box-shadow: {{c.sh}}">
+        <span style="font-family: Anton, Impact, sans-serif; font-size: 19px; line-height: 1; letter-spacing: 1px">{{c.name}}</span>
+        <span style="display: flex; gap: 4px; align-items: baseline">
+          <sc-for list="{{c.slots}}" as="s" hint-placeholder-count="3"><span class="slot {{s.cls}}" style="color: {{s.color}}">X</span></sc-for>
+          <span style="font-size: 11px; font-weight: 700">{{c.extra}}</span>
+        </span>
+        <span style="font-size: 10px; font-weight: 700">{{c.status}}</span>
+      </button>
+    </sc-for>
+  </div>
+
+  <div class="scene {{shake}}" style="background: #1f0d36; box-shadow: 6px 6px 0 #ffa033">
+    <span class="hint"><b>BLOW UP THE BARREL</b><i>{{hintSub}}</i></span>
+    <div style="left: 0; right: 0; top: 150px; height: 150px; background: #2a1148"></div>
+    <div style="left: 0; right: 0; top: 300px; height: 110px; background: #3b2230"></div>
+    <div style="left: 40px; top: 232px; width: 130px; height: 66px; border-radius: 66px 66px 0 0; background: repeating-linear-gradient(0deg, #ffa033 0 8px, #1f0d36 8px 12px); border: 3px solid #0b0414; border-bottom: 0"></div>
+    <div style="left: 0; right: 0; bottom: 78px; height: 14px; background: #ecd7d0; border-top: 2px solid #0b0414"></div>
+    <div style="left: -10px; bottom: 92px; width: 160px; height: 84px; background: #3b2230; border: 3px solid #0b0414; border-bottom: 0; clip-path: polygon(14% 0, 86% 0, 100% 100%, 0 100%); box-shadow: inset 6px 0 0 #6b4a5e"></div>
+    <div style="left: 128px; top: 60px; width: 7px; height: 400px; background: #4b2d19; border: 2px solid #0b0414; transform: rotate(-4deg)"></div>
+    <div style="left: 106px; top: 76px; width: 52px; height: 6px; background: #4b2d19; border: 2px solid #0b0414; transform: rotate(-4deg)"></div>
+    <div style="left: -20px; top: 76px; width: 420px; height: 70px; border-bottom: 2px solid #0b0414; border-radius: 0 0 50% 50%"></div>
+    <div style="left: 160px; bottom: 78px; width: 22px; height: 70px; background: #3a2a52; border: 3px solid #0b0414; border-radius: 11px 11px 0 0"></div>
+    <div style="left: 145px; bottom: 104px; width: 15px; height: 26px; background: #3a2a52; border: 3px solid #0b0414; border-right: 0; border-radius: 8px 0 0 0"></div>
+    <div class="anim" style="left: 166px; bottom: 124px; width: 4px; height: 4px; background: #ffa033; box-shadow: 7px 0 0 #ffa033; animation: blink 3s steps(1,end) infinite"></div>
+    <div style="right: 22px; bottom: 78px; width: 9px; height: 200px; background: #4b2d19; border: 2px solid #0b0414"></div>
+    <div style="right: 148px; bottom: 78px; width: 9px; height: 200px; background: #4b2d19; border: 2px solid #0b0414"></div>
+    <div style="right: 8px; top: 132px; width: 168px; height: 128px; box-sizing: border-box; background-color: #6b5033; background-image: radial-gradient(#4b2d19 6px, transparent 7px), radial-gradient(#a6643c 3px, transparent 4px); background-size: 47px 37px, 23px 29px; border: 4px solid #0b0414; box-shadow: inset 0 -6px 0 #4b2d19, inset 6px 0 0 #a6643c; display: flex; flex-direction: column; gap: 2px; padding: 6px 8px">
+      <span style="align-self: flex-start; padding: 2px 6px; background: #0b0414; font-family: Anton, Impact, sans-serif; font-size: 13px; letter-spacing: 1px; line-height: 1; color: #ffa033">{{activeName}}</span>
+      <span style="display: flex; flex-wrap: wrap; justify-content: center; gap: 0 8px">
+        <sc-for list="{{sign}}" as="m" hint-placeholder-count="3"><span class="tag {{m.cls}}"><b style="color: {{m.color}}">X</b><i style="height: {{m.drip}}; background: {{m.color}}"></i></span></sc-for>
+      </span>
+    </div>
+    <div style="right: 42px; bottom: 80px; width: 90px; height: 32px; background: #6b5033; border: 3px solid #0b0414; border-radius: 14px 18px 4px 4px; box-shadow: inset 0 -8px 0 #4b2d19; background-image: radial-gradient(#a6643c 3px, transparent 4px); background-size: 19px 13px"></div>
+    <div style="left: 0; right: 0; bottom: 0; height: 80px; background: #a6643c; border-top: 4px solid #0b0414; box-shadow: inset 0 6px 0 #ffc075"></div>
+    <div style="right: 20px; bottom: 10px; width: 120px; height: 32px; border-top: 2px solid #4b2d19; border-left: 2px solid #4b2d19; transform: skewX(40deg)"></div>
+    <div class="shadow"></div>
+    <div class="spr3" role="img" aria-label="Your lifter, a Scrapper"></div>
+    <button type="button" class="hit" onClick="{{tap}}" onPointerDown="{{press}}" onPointerUp="{{release}}" onPointerLeave="{{release}}" onContextMenu="{{noMenu}}" aria-label="{{hitLabel}}" style="left: 196px; bottom: 26px; width: 62px; height: 84px">
+      <span class="ring"></span>
+      <sc-if value="{{idle}}" hint-placeholder-val="{{ true }}"><span class="barrel"></span></sc-if>
+    </button>
+    <sc-if value="{{fx}}" hint-placeholder-val="{{ false }}">
+      <span class="puff" style="left: 182px; bottom: 80px; width: 46px; height: 46px"></span>
+      <span class="puff" style="left: 222px; bottom: 96px; width: 36px; height: 36px; animation-delay: .08s"></span>
+      <span class="boom star" style="left: 166px; bottom: 16px; width: 122px; height: 122px; background: #0b0414"></span>
+      <span class="boom star" style="left: 176px; bottom: 26px; width: 102px; height: 102px; background: #ffa033"></span>
+      <span class="boom" style="left: 200px; bottom: 50px; width: 54px; height: 54px; background: #ffc075; border-radius: 50%"></span>
+      <span class="debris" style="left: 222px; bottom: 76px; --dx: -80px; --dy: -110px"></span>
+      <span class="debris" style="left: 222px; bottom: 76px; --dx: 70px; --dy: -130px"></span>
+      <span class="debris" style="left: 222px; bottom: 76px; --dx: 100px; --dy: -40px; background: #ffa033"></span>
+      <span class="debris" style="left: 222px; bottom: 76px; --dx: -50px; --dy: -160px; background: #ffa033"></span>
+      <div class="burst" style="--fx: {{burstColor}}; left: 150px; bottom: 300px"><b>{{burstText}}</b></div>
+    </sc-if>
+    <sc-if value="{{tip}}" hint-placeholder-val="{{ true }}">
+      <div style="left: 8px; right: 8px; top: 70px; z-index: 8; display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 12px; background: #0b0414; border: 3px solid #c6ff3d">
+        <span style="flex: 1 1 auto; font-size: 11px; font-weight: 700; line-height: 1.35; color: #c6ff3d">ONLY WORKING SETS COUNT. WARM-UPS DON’T. HOLD THE BARREL TO TAKE ONE BACK.</span>
+        <button type="button" class="x" onClick="{{hideTip}}" aria-label="Close the tip" style="flex: 0 0 44px; height: 44px; background: #1f0d36; border: 3px solid #c6ff3d; color: #c6ff3d; font-family: Anton, Impact, sans-serif; font-size: 18px; cursor: pointer">OK</button>
+      </div>
+    </sc-if>
+  </div>
+
+  <button type="button" class="cta" onClick="{{finish}}" disabled="{{noSets}}" aria-label="I worked: finish the workout" style="margin-top: auto; background: #c6ff3d; color: #0b0414; box-shadow: 6px 6px 0 #ff5fb0; opacity: {{ctaOpacity}}">I WORKED</button>
+
+  <sc-if value="{{done}}" hint-placeholder-val="{{ false }}">
+    <div class="freeze" role="dialog" aria-label="Workout crushed" style="position: absolute; inset: 0; z-index: 20; display: flex; flex-direction: column; justify-content: center; gap: 18px; padding: 24px">
+      <span class="slam" style="align-self: flex-start; padding: 6px 14px 4px; background: #c6ff3d; border: 4px solid #0b0414; box-shadow: 6px 6px 0 #ff5fb0; font-family: Anton, Impact, sans-serif; font-size: 46px; line-height: 1; letter-spacing: 1px; color: #0b0414">WORKOUT<br>CRUSHED</span>
+      <span style="align-self: flex-start; margin-left: 18px; padding: 4px 10px; background: #0b0414; border: 2px solid #c6ff3d; font-size: 14px; font-weight: 700; color: #c6ff3d; transform: rotate(-3deg)">+[XP] XP · THE LEVEL BAR CLIMBS</span>
+      <div style="display: flex; flex-direction: column; gap: 8px; padding: 14px; background: #1f0d36; border: 3px solid #0b0414">
+        <sc-for list="{{cards}}" as="c" hint-placeholder-count="3">
+          <div style="display: flex; justify-content: space-between; align-items: center">
+            <span style="font-family: Anton, Impact, sans-serif; font-size: 20px; letter-spacing: 1px">{{c.name}}</span>
+            <span style="display: flex; gap: 4px"><sc-for list="{{c.slots}}" as="s" hint-placeholder-count="3"><span class="slot {{s.cls}}" style="color: {{s.color}}">X</span></sc-for><span style="font-size: 11px; font-weight: 700; color: #c9b8e8">{{c.extra}}</span></span>
+          </div>
+        </sc-for>
+        <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: #c9b8e8"><span>TIME</span><span>{{clock}}</span></div>
+      </div>
+      <span style="font-size: 12px; color: #c9b8e8">XP rules are still open (brief 4.8): [XP] is a placeholder.</span>
+      <button type="button" class="cta" onClick="{{closeReward}}" style="background: #ffa033; color: #0b0414; box-shadow: 6px 6px 0 #0b0414">BACK TO HUB</button>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.ex = [
+      { name: 'PUSH-UPS', target: 3 },
+      { name: 'BURPEES', target: 3 },
+      { name: 'SPRINTS', target: 3 },
+    ];
+    this.state = { sets: [1, 0, 0], active: 0, fx: false, tip: true, done: false, sec: 734 };
+    this.fxTimer = null; this.advTimer = null; this.lpTimer = null; this.tick = null; this.longFired = false;
+  }
+  componentDidMount() {
+    this.tick = setInterval(() => { if (!this.state.done) this.setState({ sec: this.state.sec + 1 }); }, 1000);
+  }
+  componentWillUnmount() {
+    clearInterval(this.tick); clearTimeout(this.fxTimer); clearTimeout(this.advTimer); clearTimeout(this.lpTimer);
+  }
+  add() {
+    const i = this.state.active, sets = this.state.sets.slice();
+    if (sets[i] >= 9) return;
+    sets[i] += 1;
+    clearTimeout(this.fxTimer); clearTimeout(this.advTimer);
+    this.setState({ sets, fx: false }, () => {
+      this.setState({ fx: true });
+      this.fxTimer = setTimeout(() => this.setState({ fx: false }), 700);
+      if (sets[i] === this.ex[i].target) {
+        const next = this.ex.findIndex((e, j) => j !== i && sets[j] < e.target);
+        if (next >= 0) this.advTimer = setTimeout(() => this.setState({ active: next }), 800);
+      }
+    });
+  }
+  undo() {
+    const i = this.state.active, sets = this.state.sets.slice();
+    if (sets[i] <= 0) return;
+    sets[i] -= 1;
+    clearTimeout(this.fxTimer); clearTimeout(this.advTimer);
+    this.setState({ sets, fx: false });
+  }
+  renderVals() {
+    const s = this.state, ladder = ['#c9b8e8', '#c6ff3d', '#3fd2ff', '#a77bff', '#ffa033', '#ff5fb0'];
+    const rung = (i) => ladder[Math.min(i, ladder.length - 1)];
+    const cards = this.ex.map((e, i) => {
+      const n = s.sets[i], on = i === s.active, crushed = n >= e.target;
+      const slots = Array.from({ length: e.target }, (_, j) => ({ cls: j < n ? '' : 'off', color: j < n ? rung(j) : (on ? '#0b0414' : '#c9b8e8') }));
+      return {
+        name: e.name, slots, on: on ? 'true' : 'false',
+        extra: n > e.target ? '+' + (n - e.target) : '',
+        status: crushed ? 'CRUSHED' : on ? 'NOW' : 'NEXT UP',
+        label: e.name + ', ' + n + ' of ' + e.target + ' sets' + (crushed ? ', crushed' : ''),
+        bg: on ? '#ffa033' : crushed ? '#2a1148' : '#1f0d36',
+        fg: on ? '#0b0414' : '#f6eeff',
+        sh: on ? '4px 4px 0 #ff5fb0' : 'none',
+        pick: () => this.setState({ active: i }),
+      };
+    });
+    const a = this.ex[s.active], n = s.sets[s.active];
+    const sign = Array.from({ length: Math.max(a.target, n) }, (_, j) => ({
+      cls: j < n ? 'on' : 'off', color: j < n ? rung(j) : 'transparent', drip: (5 + (j * 7) % 9) + 'px',
+    }));
+    const total = s.sets.reduce((x, y) => x + y, 0);
+    const mm = Math.floor(s.sec / 60), ss = s.sec % 60;
+    return {
+      cards, sign, activeName: a.name,
+      hintSub: a.name + ' · SET ' + Math.min(n + 1, 9) + (n < a.target ? ' OF ' + a.target : ' (EXTRA)'),
+      hitLabel: 'Blow up the barrel: log one working set of ' + a.name.toLowerCase() + '. Hold to take one back.',
+      clock: String(mm).padStart(2, '0') + ':' + String(ss).padStart(2, '0'),
+      fx: s.fx, idle: !s.fx, shake: s.fx ? 'shake' : '',
+      burstText: n === a.target ? 'CRUSHED!' : '+1 SET',
+      burstColor: rung(Math.max(0, n - 1)),
+      tip: s.tip, done: s.done,
+      noSets: total === 0, ctaOpacity: total === 0 ? '.5' : '1',
+      tap: () => { if (this.longFired) { this.longFired = false; return; } this.add(); },
+      press: () => { this.longFired = false; clearTimeout(this.lpTimer); this.lpTimer = setTimeout(() => { this.longFired = true; this.undo(); }, 550); },
+      release: () => clearTimeout(this.lpTimer),
+      noMenu: (e) => e.preventDefault(),
+      hideTip: () => this.setState({ tip: false }),
+      finish: () => { if (total > 0) this.setState({ done: true }); },
+      closeReward: () => this.setState({ done: false }),
+    };
+  }
+}
+</script>
+</body>
+</html>
