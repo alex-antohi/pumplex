@@ -130,8 +130,8 @@ int xpToNext(int level) {
 
 // ------------------------------------------------------------- character
 
-/// Slider stops that have drawn sprites (docs/moodboard/body_sliders).
-const spriteStops = [0, 50, 100];
+/// Slider stops that have drawn cells (docs/moodboard/creator/body_atlas.png).
+const spriteStops = [0, 25, 50, 75, 100];
 
 /// Default slider values for a new character (0..100).
 const defaultHeight = 50;

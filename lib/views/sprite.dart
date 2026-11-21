@@ -1,6 +1,7 @@
-// The 2D character: mood board body-slider sprites, nearest frame for the
-// slider values, stretched vertically for height. Pixel art only scales
-// with nearest-neighbour sampling (FilterQuality.none).
+// The 2D character: the mood board's body atlas (docs/moodboard/creator,
+// 5 fat × 5 muscle steps per sex), nearest cell for the slider values,
+// stretched vertically for height. Pixel art only scales with
+// nearest-neighbour sampling (FilterQuality.none).
 
 import 'dart:math';
 
@@ -11,20 +12,62 @@ import '../game/model.dart';
 import '../game/rules.dart';
 import '../pumplex.dart';
 
-/// Nearest slider stop that has a drawn sprite (0, 50 or 100).
+/// The body atlas: 260×640 px, 52×64 cells. Column = fat (0, 25, 50, 75,
+/// 100). Rows 0-4 = male muscle 0..100, rows 5-9 = female, same order.
+const bodyAtlas = 'assets/body/body_atlas.png';
+
+/// Nearest slider stop that has a drawn cell (0, 25, 50, 75 or 100).
 int nearestStop(int v) =>
     spriteStops.reduce((a, b) => (v - a).abs() <= (v - b).abs() ? a : b);
 
-/// Asset for [c]'s nearest frame.
-String spriteAsset(Character c) =>
-    'assets/body/${c.female ? 'female' : 'male'}/fat${nearestStop(c.fat)}_muscle${nearestStop(c.muscle)}.png';
+/// Atlas cell (column, row) for [c]'s nearest frame.
+(int, int) spriteCell(Character c) => (
+      spriteStops.indexOf(nearestStop(c.fat)),
+      (c.female ? spriteStops.length : 0) + spriteStops.indexOf(nearestStop(c.muscle)),
+    );
 
-/// Every sprite, to load them all before the first frame needs one.
-List<String> get allSpriteAssets => [
-      for (final sex in ['male', 'female'])
-        for (final f in spriteStops)
-          for (final m in spriteStops) 'assets/body/$sex/fat${f}_muscle$m.png',
-    ];
+/// Readable name of [c]'s frame, e.g. "female/fat0_muscle100".
+String spriteFrame(Character c) =>
+    '${c.female ? 'female' : 'male'}/fat${nearestStop(c.fat)}_muscle${nearestStop(c.muscle)}';
+
+/// Every image the character needs, to load before the first frame.
+List<String> get allSpriteAssets => const [bodyAtlas];
+
+/// One atlas cell drawn at [width] × [height] (nearest-neighbour).
+class AtlasSprite extends StatelessWidget {
+  const AtlasSprite({super.key, required this.frame, required this.cell, required this.width, required this.height});
+
+  final String frame;
+  final (int, int) cell;
+  final double width, height;
+
+  @override
+  Widget build(BuildContext context) {
+    final cols = spriteStops.length, rows = spriteStops.length * 2;
+    return SizedBox(
+      width: width,
+      height: height,
+      child: ClipRect(
+        child: OverflowBox(
+          alignment: FractionalOffset(cell.$1 / (cols - 1), cell.$2 / (rows - 1)),
+          minWidth: width * cols,
+          maxWidth: width * cols,
+          minHeight: height * rows,
+          maxHeight: height * rows,
+          child: Image.asset(
+            bodyAtlas,
+            width: width * cols,
+            height: height * rows,
+            fit: BoxFit.fill,
+            filterQuality: FilterQuality.none,
+            isAntiAlias: false,
+            gaplessPlayback: true,
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 double heightScale(int height) =>
     minHeightScale + (maxHeightScale - minHeightScale) * height / 100;
@@ -55,7 +98,7 @@ class _CharacterSpriteState extends State<CharacterSprite> with SingleTickerProv
   @override
   void didUpdateWidget(CharacterSprite old) {
     super.didUpdateWidget(old);
-    if (spriteAsset(old.character) != spriteAsset(widget.character) ||
+    if (spriteFrame(old.character) != spriteFrame(widget.character) ||
         old.classId != widget.classId) {
       _bounce.forward(from: 0);
     }
@@ -110,15 +153,12 @@ class _CharacterSpriteState extends State<CharacterSprite> with SingleTickerProv
               child: TweenAnimationBuilder<double>(
                 tween: Tween(end: heightScale(widget.character.height)),
                 duration: const Duration(milliseconds: 220),
-                builder: (context, h, _) => Image.asset(
-                  spriteAsset(widget.character),
+                builder: (context, h, _) => AtlasSprite(
                   key: const ValueKey('character-sprite'),
+                  frame: spriteFrame(widget.character),
+                  cell: spriteCell(widget.character),
                   width: w,
                   height: spriteHeight * s * h,
-                  fit: BoxFit.fill,
-                  filterQuality: FilterQuality.none,
-                  gaplessPlayback: true,
-                  isAntiAlias: false,
                 ),
               ),
             ),
