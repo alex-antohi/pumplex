@@ -11,6 +11,7 @@ import 'pumplex.dart';
 import 'store.dart';
 import 'views/intro.dart';
 import 'views/play.dart';
+import 'views/profile.dart';
 import 'views/scene.dart';
 import 'views/setup.dart';
 import 'views/sprite.dart';
@@ -49,7 +50,7 @@ class GymApp extends StatelessWidget {
 }
 
 /// Every view of the app. They are scenes of ONE screen (see GameShell).
-enum Scene { migrate, create, classSelect, difficulty, area, summary, hub, workout, history, gear }
+enum Scene { migrate, create, classSelect, difficulty, area, summary, hub, workout, history, gear, profile, menu }
 
 /// Where the character stands in each scene, inside the content area.
 /// The views leave this rect free; the shell draws the one character there,
@@ -66,6 +67,9 @@ Rect stageRect(Scene s, Size a) {
     Scene.migrate => Rect.fromLTWH(0, 10, w, h * 0.34),
     Scene.workout => workoutStage(a),
     Scene.history || Scene.gear => Rect.fromLTWH(w * 0.70, 6, w * 0.26, h * 0.17),
+    Scene.profile => Rect.fromLTWH(w * 0.60, 8, w * 0.36, h * 0.24),
+    // The menu covers the view; the character steps down out of the frame.
+    Scene.menu => Rect.fromLTWH(w * 0.70, h + 20, w * 0.26, h * 0.17),
   };
 }
 
@@ -224,11 +228,26 @@ class _GameShellState extends State<GameShell> {
   int get _legacyXp =>
       _store.xpEvents.where((e) => e.source == 'legacy').fold(0, (a, e) => a + e.amount);
 
-  void _editCharacter() {
+  void _editCharacter() => _editStep(0);
+
+  /// Opens one setup step to change it (0 body, 1 class, 2 difficulty,
+  /// 3 area). NEXT leads to the summary, which saves (D13).
+  void _editStep(int step) {
     _resetDraft();
     _editing = true;
-    _go(Scene.create, Motion.zoomOut);
+    _go(const [Scene.create, Scene.classSelect, Scene.difficulty, Scene.area][step], Motion.zoomOut);
   }
+
+  /// The scene the menu returns to.
+  Scene _menuFrom = Scene.hub;
+
+  void _openMenu() {
+    if (_scene == Scene.menu) return;
+    _menuFrom = _scene;
+    _go(Scene.menu, Motion.slideLeft);
+  }
+
+  void _closeMenu() => _go(_menuFrom, Motion.slideRight);
 
   // ---------------------------------------------------------------- workout
 
@@ -371,6 +390,8 @@ class _GameShellState extends State<GameShell> {
       Scene.workout => 'WORKOUT · ${_store.todaySession?.totalSets ?? 0} SETS · LVL $l',
       Scene.history => 'PAST SESSIONS · LVL $l',
       Scene.gear => 'GEAR · LVL $l',
+      Scene.profile => 'YOUR LIFTER · LVL $l ${levelTitle(l).toUpperCase()}',
+      Scene.menu => 'MENU',
     };
   }
 
@@ -382,13 +403,15 @@ class _GameShellState extends State<GameShell> {
         Scene.difficulty => Scene.classSelect,
         Scene.area => Scene.difficulty,
         Scene.summary => Scene.area,
-        Scene.workout || Scene.history || Scene.gear => Scene.hub,
+        Scene.workout || Scene.history || Scene.gear || Scene.profile => Scene.hub,
+        Scene.menu => _menuFrom,
         Scene.hub => null,
       };
 
   void _back() {
     final to = _backTo;
     if (to == null) return;
+    if (_scene == Scene.menu) return _closeMenu();
     if (_scene == Scene.create) _editing = false;
     _go(to, _scene == Scene.history ? Motion.slideLeft : Motion.zoomOut);
   }
@@ -452,6 +475,7 @@ class _GameShellState extends State<GameShell> {
             onHistory: () => _go(Scene.history, Motion.slideRight),
             onBody: _editCharacter,
             onGear: () => _go(Scene.gear),
+            onProfile: () => _go(Scene.profile),
           ),
         Scene.workout => WorkoutView(
             stage: stage,
@@ -462,9 +486,33 @@ class _GameShellState extends State<GameShell> {
             onBack: _back,
           ),
         Scene.history => HistoryView(stage: stage, store: _store, onBack: _back),
+        Scene.profile => ProfileView(
+            stage: stage,
+            store: _store,
+            onBack: _back,
+            onBody: _editCharacter,
+            onHistory: () => _go(Scene.history, Motion.slideRight),
+            onGear: () => _go(Scene.gear),
+            onEditStep: _editStep,
+          ),
+        Scene.menu => MenuView(
+            store: _store,
+            onClose: _closeMenu,
+            onProfile: _hasPlay ? () => _go(Scene.profile) : null,
+            onHistory: _hasPlay ? () => _go(Scene.history, Motion.slideRight) : null,
+            onEditCharacter: _hasPlay ? _editCharacter : null,
+            onSave: _saveBackup,
+            onRestore: _restoreBackup,
+            onCel: _toggleCel,
+          ),
       };
 
-  bool get _inSetup => _scene.index <= Scene.summary.index;
+  /// The profile exists and the menu was opened from play, not from setup.
+  bool get _hasPlay => _store.profile != null && !_isSetupScene(_menuFrom);
+
+  static bool _isSetupScene(Scene s) => s.index <= Scene.summary.index;
+
+  bool get _inSetup => _isSetupScene(_scene == Scene.menu ? _menuFrom : _scene);
 
   @override
   Widget build(BuildContext context) {
@@ -490,23 +538,12 @@ class _GameShellState extends State<GameShell> {
                 ),
                 _TopBar(
                   info: _info,
-                  menu: PopupMenuButton<VoidCallback>(
-                    icon: Icon(Icons.more_vert, color: p.ink, size: 28),
-                    onSelected: (action) => action(),
-                    itemBuilder: (context) => [
-                      if (profile != null && !_inSetup)
-                        PopupMenuItem(value: _editCharacter, child: const Text('🧬  EDIT CHARACTER')),
-                      PopupMenuItem(value: _saveBackup, child: const Text('💾  SAVE BACKUP FILE')),
-                      PopupMenuItem(value: _restoreBackup, child: const Text('♻️  RESTORE BACKUP FILE')),
-                      PopupMenuItem(
-                        value: () => _store.setChaos(!_store.chaos.value),
-                        child: Text(_store.chaos.value ? '🌀  CHAOS MODE: ON!!!' : '🌀  CHAOS MODE: OFF'),
-                      ),
-                      PopupMenuItem(
-                        value: _toggleCel,
-                        child: Text(_store.cel.value ? '🖍️  CEL SHADER: ON!!!' : '🖍️  CEL SHADER: OFF'),
-                      ),
-                    ],
+                  // Opens the full-screen menu (design screen 12).
+                  menu: IconButton(
+                    key: const ValueKey('menu-open'),
+                    tooltip: 'Menu',
+                    icon: Icon(_scene == Scene.menu ? Icons.close : Icons.more_vert, color: p.ink, size: 28),
+                    onPressed: _scene == Scene.menu ? _closeMenu : _openMenu,
                   ),
                 ),
                 Container(height: 6, color: p.violet),

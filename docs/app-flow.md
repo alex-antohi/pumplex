@@ -61,7 +61,8 @@ flowchart TD
 | 8 | Reward | exists | XP on each card. CRITICAL SET message. Freeze-frame intro card for level-ups; bursts for achievements and new gear. |
 | 9 | Past sessions | exists | Training days (sets per exercise against the target, time, class, area, XP) and old saves. |
 | 10 | Gear | exists | Items per slot (head, top, bottom, shoes, weapon). Locked items show their level. |
-| 11 | Menu | exists | Edit character, save / restore backup, chaos mode, cel shader. |
+| 11 | Menu | exists | Full screen (design demo 12): YOU (profile, past sessions, edit character), GAINS INSURANCE (save / restore backup), LOOK AND FEEL (chaos mode, cel shader, sound: placeholder). Opens from ⋮ on every view. |
+| 12 | Profile | exists | Design demo 11: level and level title, XP bar, the path (class, difficulty, world; tap one to change it), milestones (achievements), PAST SESSIONS, GEAR. Opens from ★ ME or the level bar on the hub. Tap the lifter to change the body. |
 
 Removed: the preloader, START TRAINING and its clock, I WORKED / I RESTED and UNDO,
 the 7-day pattern, rest days, rest-day stats and the preview pages.

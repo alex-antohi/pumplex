@@ -771,23 +771,31 @@ void main() {
     await t.pumpWidget(GymApp(store: store));
     await _frames(t);
 
-    Future<void> menu(String item) async {
-      await t.tap(find.byIcon(Icons.more_vert));
-      await _frames(t, 10); // let the menu open
-      await t.tap(find.text(item));
+    Future<void> menu(String key, {bool close = true}) async {
+      await t.tap(find.byKey(const ValueKey('menu-open')));
+      await _frames(t, 10); // let the menu slide in
+      // Scroll the item clear of a snack bar at the bottom.
+      await t.ensureVisible(find.byKey(ValueKey(key)));
+      await t.drag(find.byType(ListView).last, const Offset(0, -200));
+      await _frames(t, 4);
+      await t.tap(find.byKey(ValueKey(key)));
       await _frames(t, 10);
+      if (close) {
+        await t.tap(find.byKey(const ValueKey('menu-open'))); // the top-bar ✕
+        await _frames(t, 10);
+      }
     }
 
-    await menu('🖍️  CEL SHADER: OFF');
+    await menu('menu-cel');
     expect(store.cel.value, isTrue);
     expect(prefs.getBool('cel'), isTrue);
     expect(find.byType(CelFilter), findsOneWidget);
     expect(find.text("TODAY'S WORKOUT"), findsOneWidget);
-    await menu('🖍️  CEL SHADER: ON!!!');
+    await menu('menu-cel');
     expect(store.cel.value, isFalse);
-    await menu('🌀  CHAOS MODE: OFF');
+    await menu('menu-chaos');
     expect(store.chaos.value, isTrue);
-    await menu('🧬  EDIT CHARACTER');
+    await menu('menu-edit', close: false);
     expect(find.text('CHARACTER · STEP 1 OF 5'), findsOneWidget);
     expect(_spriteAsset(t), spriteFrame(_profile.character));
     await t.pump(const Duration(seconds: 5));
@@ -813,9 +821,22 @@ void main() {
       await tapAndSettle(find.text('HUB ▶'));
       await tapAndSettle(find.text('⚔ GEAR'));
       await tapAndSettle(find.text('◀ HUB'));
-      await t.tap(find.byIcon(Icons.more_vert));
-      await _frames(t, 10);
-      await tapAndSettle(find.text('🧬  EDIT CHARACTER'));
+      // Profile (design screen 11): change one setup step, then back.
+      await tapAndSettle(find.byKey(const ValueKey('hub-profile')));
+      expect(find.text('THE PATH'), findsOneWidget);
+      await tapAndSettle(find.byKey(const ValueKey('profile-difficulty')));
+      expect(find.text('DIFFICULTY · STEP 3 OF 5'), findsOneWidget);
+      await tapAndSettle(find.text('NEXT ▶'));
+      await tapAndSettle(find.text('SAVE ✔'));
+      await tapAndSettle(find.byKey(const ValueKey('hub-profile')));
+      await tapAndSettle(find.byKey(const ValueKey('profile-back')));
+      // Menu (design screen 12).
+      await tapAndSettle(find.byKey(const ValueKey('menu-open')));
+      expect(find.text('GAINS INSURANCE'), findsOneWidget);
+      await tapAndSettle(find.byKey(const ValueKey('menu-profile')));
+      await tapAndSettle(find.byKey(const ValueKey('profile-back')));
+      await tapAndSettle(find.byKey(const ValueKey('menu-open')));
+      await tapAndSettle(find.byKey(const ValueKey('menu-edit')));
       await tapAndSettle(find.text('NEXT ▶')); // editing: straight to the summary
       await tapAndSettle(find.text('CLASS'));
       await tapAndSettle(find.byKey(const ValueKey('path-rogue')));

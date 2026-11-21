@@ -56,6 +56,29 @@ Ask the owner before you design against a decision. Add each new decision here, 
 | README intro, `canvas/Main.dc.html`, `game_look.html` | "Character classes are not decided yet." "Classes TBD". | D8, D9 | Classes are decided: one per equipment type. Only the final names are open. |
 | All setup boards | Each step is a separate phone frame. There is no transition. | D23 | Specify the transition for each change of view. The character stays on screen between views. |
 
+### Design demo (`docs/demo/`, from branch `design/demo-flow`, checked 21 Nov 2026)
+
+The first build (branch `claude/game-flow-2dbf96`) follows the decisions, not the demo, in these places.
+
+| Demo screen / file | What it shows | Decision | What the build does | What design must change |
+|---|---|---|---|---|
+| `01-preloader.html` | A loading screen with a fake progress bar before every launch. | `app-flow.md` §2 removed the preloader (not a D number). | No preloader. The app opens on the hub or the creator. | **Ask the owner.** Keep it out, or add it as a new decision. |
+| `02-character.html` | Sex toggle, FAT and MUSCLE sliders only. | D10, D11 | Keeps the HEIGHT slider. | Add a HEIGHT slider. |
+| `03-class.html`, `shared/demo.js` `CLASSES[].body` | Each class shows its own preview body. | D25 | Shows the body from step 1. | Use the user's body. |
+| `04-difficulty.html`, `demo.js` `DIFFICULTIES` | **8** levels (Couch Larva … Swolemancer Prime), multipliers 1.0 to 2.25. | D28, D19 | Keeps the **6** modes (Sofa … Nightmare Mode), 1.0 to 2.0. | Go back to 6 levels. The names can change (D28). |
+| `07-hub.html` | A START TRAINING button. | D7 | The workout card (TRAIN ▶) opens the workout. | Remove START TRAINING. |
+| `08-workout.html` | `SESSION n` kicker, a running `mm:ss` clock, an I WORKED button, 3 fixed exercises, tap a card to switch. | D6, D7, D15, D16 | No counter, no clock, no I WORKED. 3 to 8 exercises, swipe to switch, add, remove, ↺. | Remove the counter, clock and button. Add swipe, add and remove. |
+| `09-reward.html` | A reward screen after I WORKED: LOOT DROP · SESSION n, TIME UNDER IRON, "n SESSIONS SURVIVED". | D7, D19 | No reward screen. XP on each set, CRITICAL SET, the freeze-frame card on a level-up. | Turn the loot look into the per-set and level-up rewards. |
+| `10-history.html` | Rows named `SESSION n`, total time "OF PURE EFFORT", START TRAINING in the empty state. | D7 | Rows by date. No session numbers. | Use dates. Remove START TRAINING. |
+| `12-menu.html` DANGER ZONE | RESTART SETUP: "WIPE IT" deletes the lifter and all sessions. | D13, D22 (no decision allows a full wipe) | Not built. EDIT CHARACTER changes the setup and keeps the XP. | **Ask the owner** if a full wipe is wanted. |
+| `12-menu.html` SOUND | A sound toggle. | None (no sound files yet) | A disabled SOUND row with a SOON tag (placeholder). | Deliver the sound pack. |
+| `shared/demo.js` XP | 10 XP per set × multiplier, level curve 50·L·(L−1). | D19 | Uses `docs/rules.md` (Habitica curve, bonuses, critical sets). | Use the rules table. |
+| `shared/demo.js` `WORKOUTS` | 3 fixed exercises per class. | D15 | 3 to 8 exercises from the class pool. | None for the demo. The pools are still open (D27). |
+| `BRIEF.md` "No emojis" | Pixel SVG icons only. | None (design rule) | The app still uses emoji as placeholders (areas, gear, milestones, buttons). | Deliver the pixel icon set. The app swaps them in. |
+
+Aligned and built from the demo: the Profile screen (`11-profile.html`: level title, the path, milestones, PAST SESSIONS),
+the full-screen menu (`12-menu.html`: YOU, GAINS INSURANCE, LOOK AND FEEL) and the level titles (Fresh Spawn … Mythic Meathead, design proposals).
+
 Checked, no conflict: no board shows rest days or a weekly plan, except the Readability board above.
 Note: the Difficulty board has 6 modes, and the app uses the same 6 modes (D28).
 Note: the app now has the starting areas, the difficulty modes and the workout layout from the design boards. The owner's rules apply: no I WORKED button, no clock, no "SESSION n", and the height slider stays.

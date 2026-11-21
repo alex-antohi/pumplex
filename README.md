@@ -35,7 +35,9 @@ The plan is in [docs/app-brief.md](docs/app-brief.md) and
   (one item per slot).
 - **Old-app data:** a one-time upgrade saves a backup file first, then
   turns the old sessions into XP and deletes the old kg / reps data.
-- Menu (⋮): edit character, save / restore a backup file, chaos mode,
+- **Profile** (design demo 11): level title, the path, milestones. Tap a
+  row to change the class, difficulty or world.
+- Full-screen menu (⋮, design demo 12): profile, past sessions, edit character, save / restore a backup file, chaos mode,
   **cel shader** (`shaders/cel.frag`; needs Impeller).
 
 Code map: game numbers in `lib/game/rules.dart`, names (classes, exercises,

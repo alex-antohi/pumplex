@@ -414,3 +414,17 @@ const levelUpLines = [
   'YOUR SHOES ARE IMPRESSED.',
   'THE BAR FEARS YOU SLIGHTLY MORE.',
 ];
+
+/// Level titles (design demo `docs/demo/shared/demo.js` LEVEL_TITLES).
+/// Design proposals; one title per level, the last one stays.
+const levelTitles = [
+  'Fresh Spawn',
+  'Sweat Rookie',
+  'Rep Goblin',
+  'Pump Raider',
+  'Iron Ronin',
+  'Gain Lord',
+  'Mythic Meathead',
+];
+
+String levelTitle(int level) => levelTitles[(level - 1).clamp(0, levelTitles.length - 1)];

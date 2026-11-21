@@ -68,11 +68,12 @@ class HubView extends StatelessWidget {
     required this.onHistory,
     required this.onBody,
     required this.onGear,
+    required this.onProfile,
   });
 
   final Rect stage;
   final LogStore store;
-  final VoidCallback onTrain, onHistory, onGear;
+  final VoidCallback onTrain, onHistory, onGear, onProfile;
 
   /// Opens the body sliders (tap on the character or ✎ BODY).
   final VoidCallback onBody;
@@ -95,7 +96,12 @@ class HubView extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        LevelBar(xp: store.totalXp),
+        // Tap the level to open the profile (design screen 11).
+        GestureDetector(
+          key: const ValueKey('hub-level'),
+          onTap: onProfile,
+          child: LevelBar(xp: store.totalXp),
+        ),
         const SizedBox(height: 14),
         _StreakRow(week: store.thisWeek, streak: store.streakWeeks),
         const SizedBox(height: 22),
@@ -181,10 +187,20 @@ class HubView extends StatelessWidget {
           top: stage.top + 60,
           child: BrutalButton(small: true, color: p.lime, onTap: onGear, child: const Text('⚔ GEAR')),
         ),
-        // What the character wears (icons until the gear sprites exist).
         Positioned(
           left: 14,
           top: stage.top + 60,
+          child: BrutalButton(
+              key: const ValueKey('hub-profile'),
+              small: true,
+              color: p.violet,
+              onTap: onProfile,
+              child: const Text('★ ME')),
+        ),
+        // What the character wears (icons until the gear sprites exist).
+        Positioned(
+          left: 14,
+          top: stage.top + 112,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
