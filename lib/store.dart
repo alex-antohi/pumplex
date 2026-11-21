@@ -135,7 +135,9 @@ typedef KeyedLog = ({String key, ExerciseLog log});
 /// Everything the app remembers, saved on the phone with shared_preferences:
 /// sessions done, sets logged per session, movement swaps.
 class LogStore extends ChangeNotifier {
-  LogStore(this._prefs) : chaos = ValueNotifier(_prefs.getBool('chaos') ?? false) {
+  LogStore(this._prefs)
+      : chaos = ValueNotifier(_prefs.getBool('chaos') ?? false),
+        cel = ValueNotifier(_prefs.getBool('cel') ?? false) {
     final raw = _prefs.getString(_logsKey);
     if (raw != null) {
       try {
@@ -169,6 +171,14 @@ class LogStore extends ChangeNotifier {
   void setChaos(bool on) {
     chaos.value = on;
     _prefs.setBool('chaos', on);
+  }
+
+  /// Cel shader mode (toon bands + ink outlines), remembered between launches.
+  final ValueNotifier<bool> cel;
+
+  void setCel(bool on) {
+    cel.value = on;
+    _prefs.setBool('cel', on);
   }
 
   // ---------------------------------------------------------------- parsing

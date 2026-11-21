@@ -3,6 +3,7 @@
 // type, things that spin for no reason.
 
 import 'dart:math';
+import 'dart:ui' as ui show FragmentProgram, FragmentShader, ImageFilter;
 import 'dart:ui' show lerpDouble;
 
 import 'package:flutter/material.dart';
@@ -1097,4 +1098,77 @@ class _ChaosFilterState extends State<ChaosFilter> with SingleTickerProviderStat
           child: child,
         ),
       );
+}
+
+/// Cel shader mode: flat toon colour bands and ink outlines over the whole
+/// app (`shaders/cel.frag`). Needs Impeller; elsewhere it draws normally.
+class CelFilter extends StatefulWidget {
+  const CelFilter({super.key, required this.on, required this.child});
+
+  final bool on;
+  final Widget child;
+
+  /// Whether this renderer can run a shader as an image filter.
+  static bool get supported => ui.ImageFilter.isShaderFilterSupported;
+
+  /// Light bands per colour, and outline thickness in logical pixels.
+  static const bands = 4.0;
+  static const thickness = 1.0;
+
+  static Future<ui.FragmentProgram>? _program;
+
+  @override
+  State<CelFilter> createState() => _CelFilterState();
+}
+
+class _CelFilterState extends State<CelFilter> {
+  ui.FragmentShader? _shader;
+
+  // Stand-in filter while off, so the tree shape never changes.
+  static final _identity = ui.ImageFilter.matrix(Matrix4.identity().storage);
+
+  void _load() {
+    if (!widget.on || _shader != null || !CelFilter.supported) return;
+    (CelFilter._program ??= ui.FragmentProgram.fromAsset('shaders/cel.frag')).then((program) {
+      if (mounted) setState(() => _shader = program.fragmentShader());
+    }, onError: (Object e) {
+      CelFilter._program = null; // try again next time it is switched on
+      debugPrint('CEL SHADER failed to load: $e');
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void didUpdateWidget(CelFilter oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _shader?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final shader = _shader;
+    final active = widget.on && shader != null;
+    if (active) {
+      // Uniforms 0-1 (u_size) are filled in by the engine.
+      shader
+        ..setFloat(2, CelFilter.bands)
+        ..setFloat(3, CelFilter.thickness * MediaQuery.devicePixelRatioOf(context));
+    }
+    return ImageFiltered(
+      enabled: active,
+      imageFilter: active ? ui.ImageFilter.shader(shader) : _identity,
+      child: widget.child,
+    );
+  }
 }

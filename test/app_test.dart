@@ -300,6 +300,29 @@ void main() {
     expect(store.currentN, 1);
   });
 
+  testWidgets('CEL SHADER toggles from the menu, is remembered, keeps the page', (t) async {
+    _phone(t);
+    final store = await _store();
+    await t.pumpWidget(GymApp(store: store));
+    await t.pump(const Duration(seconds: 3));
+    expect(store.cel.value, isFalse);
+
+    await t.tap(find.byIcon(Icons.more_vert));
+    await t.pump(const Duration(milliseconds: 500));
+    await t.tap(find.text('🖍️  CEL SHADER: OFF'));
+    await t.pump(const Duration(milliseconds: 500));
+    expect(store.cel.value, isTrue);
+    expect((await SharedPreferences.getInstance()).getBool('cel'), isTrue);
+    expect(find.byType(CelFilter), findsOneWidget);
+    expect(find.text('SESSION 8 · DAY 1/7 · NOW'), findsOneWidget);
+
+    await t.tap(find.byIcon(Icons.more_vert));
+    await t.pump(const Duration(milliseconds: 500));
+    await t.tap(find.text('🖍️  CEL SHADER: ON!!!'));
+    await t.pump(const Duration(seconds: 5));
+    expect(store.cel.value, isFalse);
+  });
+
   testWidgets('app opens on the current session, swipes back, I WORKED moves on', (t) async {
     _phone(t);
     final store = await _store();

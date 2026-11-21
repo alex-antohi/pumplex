@@ -40,6 +40,12 @@ Personal Android gym tracker for the conjugate program in
 - Menu (⋮): **Export CSV** for the last 7 / 30 / 90 days, all time, or picked
   dates (one row per set, dated by when the session was marked done).
   **Save / restore backup file** (sessions + logs + swaps). **Chaos mode**.
+- **Cel shader** (⋮ menu, remembered): a GLSL fragment shader
+  (`shaders/cel.frag`) over the whole app: brightness snapped to 4 flat toon
+  bands, punchier colours, and ink outlines from a Sobel edge pass. Band count
+  and outline thickness are at the top of `CelFilter` in `lib/pumplex.dart`.
+  Works with Chaos mode. Needs the Impeller renderer (Flutter's default on
+  Android); on phones without it the app draws normally and says so.
 
 ## One app per person
 
