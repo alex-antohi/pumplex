@@ -208,51 +208,47 @@ slider from brief 4.2 (the Creator board has only fat and muscle).
 
 ## Starting areas (setup step 4)
 
-Brief 4.5–4.6: the area sets **the look, the palette and the set mark**. These five are proposals
+**Reference board, not an app screen.** Like every board here, it shows the look and the behaviour for the Flutter build.
+Shapes are placeholders for pixel-art scenes.
+
+Brief 4.5–4.6: the area sets **the look, the palette and how a set is logged**. These five are proposals
 built from this moodboard (the violet night base and neons, `borderlands-reference.md` §4 rarity ladder and §9 wasteland tones,
 and the phone readability finding).
 
-**Rule for every area: a light floor behind the lifter, a dark sky above.** The lifter stands on
-a pale floor (sand, flagstone, rust, concrete, snow), so the `#0b0414` ink outline has something light to stand against.
-That fixes the 1.03–1.22:1 contrast problem from the readability board. Skies and walls stay dark. Neon only on the marks,
-on props that react (torches, neon signs) and on clothes (rule 3).
+### The action is the set
 
-| Area | Scene | Sky / wall | Floor | Accent | Set mark | Default path |
-| --- | --- | --- | --- | --- | --- | --- |
-| **Riptide Shore** (brief's beach) | Night beach, moon, violet sea with sky-blue foam | `#12061f`, sea `#2a1148` | sand `#ad9293` | pink `#ff5fb0` | A **shell** drops into a rope pouch. Every 5th is a **pearl** (`#88dff3`, the "pearlescent" tier). | any (neutral pick) |
-| **Gainsgard Keep** (brief's castle) | Stone brick hall, banners, two torches | `#3a2a52`, bricks `#2a1148` | flagstone `#8672a5` | orange `#ffa033` | **Chalk scratches** on the wall: 4 strokes, then a slash for 5. | Plate Paladin |
-| **Rustbelt Flats** | Junkyard wasteland: dust horizon, violet mesas, scrap fence | `#1f0d36`, mesas `#3b2230`, dust `#ecd7d0` | rust `#a6643c` | orange | A **spray-painted X** on a scrap sign. The colour climbs the rarity ladder: `#c9b8e8` → lime → sky → violet → orange, then pink. | Scrapper |
-| **Arcade Underpass** | The app's own look: pink polka dots, a lime "OPEN 24/7" sign, bridge pillar | `#12061f` + dots | concrete `#724eb2` | lime `#c6ff3d` | A **token** drops into a glass tube, and an LED counter ticks up (`07`). | Bargain Bruiser |
-| **Frostbite Summit** (optional) | Snowy peaks, aurora bands in violet and sky blue | `#1a0b3b`, peaks `#2a1148` | snow `#c9b8e8` | sky `#3fd2ff` | A **flag** planted one step higher up the slope per set, so you can see the climb. | Cablemancer |
+There is **no + SET button**. Each area has one object to hit. Doing the action in the world logs one working set,
+and the result **stays in the world** as the count:
 
-Mark behaviour (all areas):
-- One tap = one working set (brief 4.5). The mark lands in about 200–300 ms with **weight**: shells and tokens drop in, chalk scratches top-down,
-  spray and flags pop in. All motion is hard-stepped (CSS `steps()`), with no easing.
-- **Every tap is an event:** the set box shakes (320 ms) and a starburst in the area colour says **+1 SET**.
-- **Every 5th mark gets its own stamp:** PEARL! (beach), SLASHED! (keep), TAGGED! (rustbelt), COMBO! (arcade), SUMMIT! (summit).
-- A long-press takes the last mark back (app-flow §4.2). On the board an UNDO button stands in for it. Undo has no burst.
-- Marks group in fives so you can count them without numbers (rule 3). The board caps the demo at 12.
-- With reduced motion turned on, nothing shakes, drops or loops, and marks just appear.
+| Area | Tap this | What happens | What stays (the count) | Every 5th | Default path |
+| --- | --- | --- | --- | --- | --- |
+| **Riptide Shore** (brief's beach) | Treasure chest on the sand | The lid flips open, a shell flies out in an arc | A loot pile of shells grows on the sand | a pearl flies out, **PEARL!** | any (neutral) |
+| **Gainsgard Keep** (brief's castle) | The stone wall | A chalk scratch is drawn top-down, chalk dust | Tally marks on the wall: 4 strokes, then a slash | **SLASHED!** | Plate Paladin |
+| **Rustbelt Flats** | Hazard-striped barrel | It explodes: starburst, smoke puffs, flying debris. A new barrel rolls in | A spray-painted X on the scrap sign, colour on the rarity ladder | **TAGGED!** | Scrapper |
+| **Arcade Underpass** | PUNCH-O-TRON boxing machine | The pad snaps back, the counter ticks | Tickets on the floor, plus the machine's LED counter | **COMBO!** | Bargain Bruiser |
+| **Frostbite Summit** | Ice block | It shatters into shards and reforms | A flag one step higher up the slope to the summit, rarity colours | **SUMMIT!** | Cablemancer |
 
-Set boxes (180 px tall, themed, each with a stencilled name plate):
+Every action:
+- The **whole scene shakes** (320 ms) and a starburst in the area colour says **+1 SET**, or the 5th-mark stamp.
+- The object shows it can be tapped: a dashed ring and a bobbing stencil hint (TAP THE CHEST, SCRATCH THE WALL, BLOW UP THE BARREL, PUNCH THE MACHINE, SMASH THE ICE).
+- All motion is hard-stepped (CSS `steps()`), with no easing, to match the pixel art. The action takes 0.4–0.7 s.
+- **Long-press the object** takes the last set back (app-flow §4.2). On the board an UNDO button stands in for it. Undo has no effect animation.
+- Records group in fives so you can count them without numbers (rule 3). The demo caps at 12.
+- With reduced motion turned on, nothing shakes, flies, explodes or loops. Records just appear.
 
-| Area | Box | Details |
-| --- | --- | --- |
-| Riptide Shore | **Pouch of shells** on speckled sand | A drawstring rope pouch that grows as it fills. Ridged pink shells, and a shiny sky-blue pearl every 5th. |
-| Gainsgard Keep | **Tally wall** | Stone bricks, a torch with a pool of warm light. Big chalk strokes with chalk dust; the 5th is a diagonal slash. |
-| Rustbelt Flats | **Scrap sign** | A rusty riveted plate under a hazard-stripe band. Each X has paint drips in its rarity colour. A spray can at the side shows the *next* colour. |
-| Arcade Underpass | **Token machine** | An "INSERT SET" marquee, a 7-segment counter with ghost `88` digits, and a glass coin tube that fills from the bottom. |
-| Frostbite Summit | **The climb** | A snowy slope up to a pink summit flag. Each set plants a flag one step higher; flag colours climb the rarity ladder. |
+### Scenes
 
-Scene details (all flat CSS shapes as placeholders for pixel art; the lifter has a ground shadow):
-- **Riptide Shore:** twinkling stars, a cratered moon and its reflection on the sea, a palm island on the horizon, rolling foam (stepped), speckled sand with a crab and a starfish, a swaying palm tree.
-- **Gainsgard Keep:** an arched moonlit window with a light beam, hanging chains, banners with dumbbell emblems, flickering torches with light pools, a dumbbell rack, a pink runner rug on flagstones.
-- **Rustbelt Flats:** banded dusk sky, a striped setting sun, mesas, a leaning telephone pole with a sagging wire, a cactus with blinking orange eyes (from the reference), a car wreck, a hazard barrel, tyres, cracked ground.
-- **Arcade Underpass:** a riveted bridge deck, graffiti (SWOLE, GAINZ), torn posters, a flickering OPEN 24/7 sign and a pink arrow, an arcade cabinet with a flickering screen, a puddle reflecting neon, a cone, road markings.
-- **Frostbite Summit:** stars, three drifting aurora bands, layered snowy peaks, snowy pines, a cabin with a lit window, falling snow (stepped), drifts and footprints.
+**Rule for every area: a light floor behind the lifter, a dark sky above,** plus a ground shadow under the lifter.
+The `#0b0414` ink outline then has something light to stand against, which fixes the 1.03–1.22:1 contrast problem from the readability board.
+Neon only on the action object, the records, props that react (torches, neon signs) and clothes (rule 3).
+
+| Area | Sky / wall | Floor | Accent | Details |
+| --- | --- | --- | --- | --- |
+| Riptide Shore | `#12061f`, sea `#2a1148` | sand `#ad9293` | pink `#ff5fb0` | Twinkling stars, a cratered moon and its reflection, a palm island, rolling foam, a swaying palm, a starfish. |
+| Gainsgard Keep | `#3a2a52` bricks | flagstone `#8672a5` | orange `#ffa033` | An arched moonlit window with a light beam, a chain, banners with dumbbell emblems, a flickering torch, a dumbbell rack, a pink runner rug. |
+| Rustbelt Flats | `#1f0d36`, mesas `#3b2230`, dust `#ecd7d0` | rust `#a6643c` | orange | A striped setting sun, a mesa, a telephone pole with a sagging wire, a cactus with blinking orange eyes, a car wreck, tyres, cracks. |
+| Arcade Underpass | `#12061f` + pink dots | concrete `#724eb2` | lime `#c6ff3d` | A riveted bridge deck, graffiti (SWOLE, GAINZ), a torn poster, a flickering OPEN 24/7 sign, a neon puddle, road markings. |
+| Frostbite Summit | `#1a0b3b` | snow `#c9b8e8` | sky `#3fd2ff` | Stars, three drifting aurora bands, a snowy peak, a pine, a slope up to a pink summit flag, falling snow, footprints. |
 
 The class link is the drawio's "Background changes" edge (Character Creation → Starting Area). The class picks the
-default area, and the player can still choose any area.
-
-Scenes on the board are flat CSS shapes as placeholders for pixel-art backgrounds. Lifters use `creator/body_atlas.png` at 2×.
-
+default area, and the player can still choose any area. Lifters use `creator/body_atlas.png` at 2×.
