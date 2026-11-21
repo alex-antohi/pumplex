@@ -1,0 +1,130 @@
+{
+  "frameSize": [
+    80,
+    72
+  ],
+  "bodyOffset": [
+    14,
+    8
+  ],
+  "scaleHint": "whole numbers only, nearest-neighbour",
+  "bodies": [
+    "male_fat0_muscle0",
+    "male_fat50_muscle50",
+    "male_fat100_muscle100",
+    "female_fat0_muscle0",
+    "female_fat50_muscle50",
+    "female_fat100_muscle100"
+  ],
+  "animations": {
+    "idle": {
+      "note": "Breathing. Upper body sinks 1 px on the out-breath; feet never move.",
+      "loop": true,
+      "frames": [
+        {
+          "pose": "rest",
+          "ms": 420
+        },
+        {
+          "pose": "out",
+          "ms": 300
+        },
+        {
+          "pose": "out",
+          "ms": 260
+        },
+        {
+          "pose": "rest",
+          "ms": 300
+        }
+      ],
+      "sheetOrder": [
+        "rest",
+        "out"
+      ]
+    },
+    "front_squat": {
+      "note": "Heavy Lower main lift. Bar racked on the front of the shoulders, elbows forward. Down slow, up fast, pause at the top.",
+      "loop": true,
+      "frames": [
+        {
+          "pose": "top",
+          "ms": 500
+        },
+        {
+          "pose": "d1",
+          "ms": 140
+        },
+        {
+          "pose": "d2",
+          "ms": 140
+        },
+        {
+          "pose": "d3",
+          "ms": 160
+        },
+        {
+          "pose": "bottom",
+          "ms": 260
+        },
+        {
+          "pose": "d2",
+          "ms": 90
+        },
+        {
+          "pose": "d1",
+          "ms": 90
+        }
+      ],
+      "sheetOrder": [
+        "top",
+        "d1",
+        "d2",
+        "d3",
+        "bottom"
+      ]
+    },
+    "pr_flex": {
+      "note": "Plays on a new PR. Dip, hop, land in a double-biceps hold.",
+      "loop": true,
+      "frames": [
+        {
+          "pose": "dip",
+          "ms": 120
+        },
+        {
+          "pose": "air2",
+          "ms": 90
+        },
+        {
+          "pose": "air4",
+          "ms": 120
+        },
+        {
+          "pose": "air2",
+          "ms": 90
+        },
+        {
+          "pose": "land",
+          "ms": 90
+        },
+        {
+          "pose": "hold",
+          "ms": 700
+        },
+        {
+          "pose": "rest",
+          "ms": 400
+        }
+      ],
+      "sheetOrder": [
+        "dip",
+        "air2",
+        "air4",
+        "land",
+        "hold",
+        "rest"
+      ]
+    }
+  }
+}
