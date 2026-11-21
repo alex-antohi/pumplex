@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Starting areas</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Space+Mono:wght@400;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#c6ff3d}a:hover{color:#dcfb7b}
+.spr2{position:absolute;left:22px;bottom:26px;width:104px;height:128px;background-image:url(../creator/body_atlas.png);background-repeat:no-repeat;background-size:520px 1280px;image-rendering:pixelated}
+.btn{height:44px;padding:0 14px;border:3px solid #0b0414;font-family:Anton,Impact,sans-serif;font-size:18px;letter-spacing:1px;cursor:pointer}
+.btn:focus-visible{outline:3px dashed #f6eeff;outline-offset:2px}
+.btn:active{transform:translate(3px,3px)}
+@keyframes drop{0%{transform:translateY(-26px)}60%{transform:translateY(3px)}100%{transform:translateY(0)}}
+@keyframes pop{0%{transform:scale(1.8) rotate(-8deg);opacity:0}100%{transform:scale(1) rotate(-8deg);opacity:1}}
+@keyframes scratch{0%{transform:scaleY(0)}100%{transform:scaleY(1)}}
+.shell{width:20px;height:15px;background:#ff5fb0;border:2px solid #0b0414;border-radius:50% 50% 3px 3px;box-shadow:inset 0 -4px 0 #a63e84;animation:drop .22s steps(4,end) both}
+.pearl{width:16px;height:16px;background:#88dff3;border:2px solid #0b0414;border-radius:50%;box-shadow:inset -4px -4px 0 #3681b2;animation:drop .22s steps(4,end) both}
+.stroke{width:4px;height:30px;background:#f6eeff;transform-origin:top;animation:scratch .18s steps(3,end) both}
+.slash{position:absolute;left:-6px;top:12px;width:40px;height:4px;background:#f6eeff;transform:rotate(-28deg)}
+.spray{font-family:Anton,Impact,sans-serif;font-size:34px;line-height:1;transform:rotate(-8deg);text-shadow:2px 2px 0 #0b0414;animation:pop .2s steps(4,end) both}
+.coin{width:30px;height:7px;background:#ffa033;border:2px solid #0b0414;box-shadow:inset 0 -2px 0 #a6643c;animation:drop .2s steps(4,end) both}
+.flag{position:absolute;width:16px;height:24px;animation:pop .2s steps(4,end) both}
+.flag i{position:absolute;left:0;bottom:0;width:3px;height:24px;background:#f6eeff;border-right:1px solid #0b0414}
+.flag b{position:absolute;left:3px;top:0;width:12px;height:9px;background:#3fd2ff;border:1px solid #0b0414}
+@media (prefers-reduced-motion:reduce){.shell,.pearl,.stroke,.spray,.coin,.flag{animation:none}}
+</style>
+</helmet>
+<div style="width: 1736px; height: 1000px; box-sizing: border-box; padding: 48px 56px; background: #12061f; color: #f6eeff; font-family: 'Space Mono', monospace; display: flex; flex-direction: column; gap: 28px">
+
+  <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 24px">
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <h1 style="margin: 0; font-family: Anton, Impact, sans-serif; font-weight: 400; letter-spacing: 1px; font-size: 56px; line-height: 1; text-transform: uppercase; text-shadow: 3px 3px 0 #ffa033, 6px 6px 0 #ff5fb0">Starting areas</h1>
+      <p style="margin: 0; font-size: 15px; color: #c9b8e8">Setup step 4 · each area sets the look, the palette and the set mark (brief 4.5, 4.6)</p>
+    </div>
+    <p style="margin: 0; font-size: 13px; color: #c9b8e8; text-align: right">Tap + SET to drop a mark. UNDO stands in for the long-press.<br>Lighter floor behind the lifter: the ink outline reads on every area.</p>
+  </div>
+
+  <div style="display: flex; gap: 24px; align-items: flex-start">
+
+    <!-- RIPTIDE SHORE -->
+    <div style="flex: 0 0 304px; display: flex; flex-direction: column; gap: 12px">
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <span style="font-family: Anton, Impact, sans-serif; font-size: 30px; line-height: 1; letter-spacing: 1px; color: #ff5fb0">RIPTIDE SHORE</span>
+        <span style="font-size: 12px; color: #c9b8e8">Night beach, violet sea. The brief’s beach.</span>
+      </div>
+      <div role="img" aria-label="Riptide Shore scene: night sky with a moon, violet sea with blue foam, pale sand, a lifter standing on the sand" style="position: relative; height: 230px; overflow: hidden; border: 4px solid #0b0414; box-shadow: 6px 6px 0 #ff5fb0; background: #12061f">
+        <div style="position: absolute; right: 34px; top: 26px; width: 38px; height: 38px; background: #f6eeff; border: 3px solid #0b0414; box-shadow: inset -9px -6px 0 #c9b8e8"></div>
+        <div style="position: absolute; left: 0; right: 0; bottom: 58px; height: 74px; background: #2a1148; border-top: 4px solid #3fd2ff"></div>
+        <div style="position: absolute; left: 0; right: 0; bottom: 96px; height: 3px; background: repeating-linear-gradient(90deg, #3fd2ff 0 14px, transparent 14px 30px)"></div>
+        <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 58px; background: #ad9293; border-top: 4px solid #0b0414; box-shadow: inset 0 6px 0 #ecd7d0"></div>
+        <div class="spr2" style="background-position: {{bp.riptide}}"></div>
+      </div>
+      <div style="height: 132px; box-sizing: border-box; padding: 12px; background: #1f0d36; border: 3px solid #0b0414; display: flex; flex-direction: column; gap: 6px">
+        <span style="font-size: 11px; font-weight: 700">SHELLS IN THE POUCH · 5TH IS A PEARL</span>
+        <div style="flex: 1 1 auto; display: flex; flex-wrap: wrap; align-content: flex-end; gap: 4px; padding: 8px 10px; background: #6b5033; border: 3px solid #0b0414; border-radius: 0 0 36px 36px; box-shadow: inset 0 4px 0 #a6643c">
+          <sc-for list="{{riptide}}" as="m" hint-placeholder-count="3"><span class="{{m.cls}}"></span></sc-for>
+        </div>
+      </div>
+      <div style="display: flex; gap: 10px">
+        <button type="button" class="btn" onClick="{{add.riptide}}" aria-label="Add a set on Riptide Shore" style="flex: 1 1 auto; background: #ff5fb0; color: #0b0414; box-shadow: 4px 4px 0 #0b0414">+ SET</button>
+        <button type="button" class="btn" onClick="{{undo.riptide}}" aria-label="Remove a set on Riptide Shore" style="background: #1f0d36; color: #f6eeff">UNDO</button>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px">
+        <div style="display: flex; flex-direction: column; gap: 3px"><div style="height: 22px; background: #12061f; border: 2px solid #4b2a7a"></div><span style="font-size: 10px; color: #c9b8e8">#12061f</span></div>
+        <div style="display: flex; flex-direction: column; gap: 3px"><div style="height: 22px; background: #2a1148; border: 2px solid #4b2a7a"></div><span style="font-size: 10px; color: #c9b8e8">#2a1148</span></div>
+        <div style="display: flex; flex-direction: column; gap: 3px"><div style="height: 22px; background: #ad9293; border: 2px solid #4b2a7a"></div><span style="font-size: 10px; color: #c9b8e8">#ad9293</span></div>
+        <div style="display: flex; flex-direction: column; gap: 3px"><div style="height: 22px; background: #ff5fb0; border: 2px solid #4b2a7a"></div><span style="font-size: 10px; color: #c9b8e8">#ff5fb0</span></div>
+      </div>
+      <span style="font-size: 12px; color: #c9b8e8">Default for: <b style="color: #f6eeff">any path</b> (the neutral pick)</span>
+    </div>
+
+    <!-- GAINSGARD KEEP -->
+    <div style="flex: 0 0 304px; display: flex; flex-direction: column; gap: 12px">
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <span style="font-family: Anton, Impact, sans-serif; font-size: 30px; line-height: 1; letter-spacing: 1px; color: #ffa033">GAINSGARD KEEP</span>
+        <span style="font-size: 12px; color: #c9b8e8">Torch-lit stone hall. The brief’s castle.</span>
+      </div>
+      <div role="img" aria-label="Gainsgard Keep scene: stone brick wall, two banners, two torches, pale flagstone floor, a lifter standing on it" style="position: relative; height: 230px; overflow: hidden; border: 4px solid #0b0414; box-shadow: 6px 6px 0 #ffa033; background-color: #3a2a52; background-image: repeating-linear-gradient(0deg, #2a1148 0 3px, transparent 3px 26px), repeating-linear-gradient(90deg, #2a1148 0 3px, transparent 3px 44px)">
+        <div style="position: absolute; left: 150px; top: 0; width: 36px; height: 92px; background: #a77bff; border: 3px solid #0b0414; border-top: 0; clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 84%, 0 100%)"></div>
+        <div style="position: absolute; left: 226px; top: 0; width: 36px; height: 92px; background: #ff5fb0; border: 3px solid #0b0414; border-top: 0; clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 84%, 0 100%)"></div>
+        <div style="position: absolute; left: 132px; top: 108px; width: 8px; height: 22px; background: #6b5033; border: 2px solid #0b0414"></div>
+        <div style="position: absolute; left: 128px; top: 92px; width: 16px; height: 16px; background: #ffa033; border: 2px solid #0b0414; box-shadow: inset 0 -5px 0 #ff5fb0"></div>
+        <div style="position: absolute; left: 272px; top: 108px; width: 8px; height: 22px; background: #6b5033; border: 2px solid #0b0414"></div>
+        <div style="position: absolute; left: 268px; top: 92px; width: 16px; height: 16px; background: #ffa033; border: 2px solid #0b0414; box-shadow: inset 0 -5px 0 #ff5fb0"></div>
+        <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 58px; background-color: #8672a5; background-image: repeating-linear-gradient(90deg, #593597 0 3px, transparent 3px 52px); border-top: 4px solid #0b0414; box-shadow: inset 0 6px 0 #ad8ed6"></div>
+        <div class="spr2" style="background-position: {{bp.keep}}"></div>
+      </div>
+      <div style="height: 132px; box-sizing: border-box; padding: 12px; background-color: #3a2a52; background-image: repeating-linear-gradient(0deg, #2a1148 0 2px, transparent 2px 22px); border: 3px solid #0b0414; display: flex; flex-direction: column; gap: 6px">
+        <span style="font-size: 11px; font-weight: 700">CHALK SCRATCHES · 4 + A SLASH</span>
+        <div style="flex: 1 1 auto; display: flex; flex-wrap: wrap; align-content: center; gap: 18px; padding: 0 8px">
+          <sc-for list="{{keep}}" as="g" hint-placeholder-count="1">
+            <div style="position: relative; display: flex; gap: 5px; height: 30px">
+              <sc-for list="{{g.strokes}}" as="s" hint-placeholder-count="3"><span class="stroke"></span></sc-for>
+              <sc-if value="{{g.slash}}" hint-placeholder-val="{{ false }}"><span class="slash"></span></sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="display: flex; gap: 10px">
+        <button type="button" class="btn" onClick="{{add.keep}}" aria-label="Add a set in Gainsgard Keep" style="flex: 1 1 auto; background: #ffa033; color: #0b0414; box-shadow: 4px 4px 0 #0b0414">+ SET</button>
+        <button type="button" class="btn" onClick="{{undo.keep}}" aria-label="Remove a set in Gainsgard Keep" style="background: #1f0d36; color: #f6eeff">UNDO</button>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px">
+        <div style="display: flex; flex-direction: column; gap: 3px"><div style="height: 22px; background: #3a2a52; border: 2px solid #4b2a7a"></div><span style="font-size: 10px; color: #c9b8e8">#3a2a52</span></div>
+        <div style="display: flex; flex-direction: column; gap: 3px"><div style="height: 22px; background: #4b2a7a; border: 2px solid #4b2a7a"></div><span style="font-size: 10px; color: #c9b8e8">#4b2a7a</span></div>
+        <div style="display: flex; flex-direction: column; gap: 3px"><div style="height: 22px; background: #8672a5; border: 2px solid #4b2a7a"></div><span style="font-size: 10px; color: #c9b8e8">#8672a5</span></div>
+        <div style="display: flex; flex-direction: column; gap: 3px"><div style="height: 22px; background: #ffa033; border: 2px solid #4b2a7a"></div><span style="font-size: 10px; color: #c9b8e8">#ffa033</span></div>
+      </div>
+      <span style="font-size: 12px; color: #c9b8e8">Default for: <b style="color: #c6ff3d">PLATE PALADIN</b></span>
+    </div>
+
+    <!-- RUSTBELT FLATS -->
+    <div style="flex: 0 0 304px; display: flex; flex-direction: column; gap: 12px">
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <span style="font-family: Anton, Impact, sans-serif; font-size: 30px; line-height: 1; letter-spacing: 1px; color: #ffa033">RUSTBELT FLATS</span>
+        <span style="font-size: 12px; color: #c9b8e8">Junkyard wasteland, rust pushed to violet.</span>
+      </div>
+      <div role="img" aria-label="Rustbelt Flats scene: dusk sky, dusty horizon, violet mesas, a scrap fence, rust-coloured ground, a lifter standing on it" style="position: relative; height: 230px; overflow: hidden; border: 4px solid #0b0414; box-shadow: 6px 6px 0 #ffa033; background: #1f0d36">
+        <div style="position: absolute; left: 0; right: 0; bottom: 58px; height: 14px; background: #ecd7d0"></div>
+        <div style="position: absolute; left: 20px; bottom: 72px; width: 120px; height: 54px; background: #3b2230; border: 3px solid #0b0414; border-bottom: 0; clip-path: polygon(12% 0, 88% 0, 100% 100%, 0 100%)"></div>
+        <div style="position: absolute; left: 170px; bottom: 72px; width: 90px; height: 84px; background: #3b2230; border: 3px solid #0b0414; border-bottom: 0; clip-path: polygon(18% 0, 82% 0, 100% 100%, 0 100%)"></div>
+        <div style="position: absolute; left: 150px; bottom: 58px; width: 140px; height: 40px; background-color: #6b5033; background-image: repeating-linear-gradient(90deg, #4b2d19 0 4px, transparent 4px 22px); border: 3px solid #0b0414"></div>
+        <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 58px; background: #a6643c; border-top: 4px solid #0b0414; box-shadow: inset 0 6px 0 #ffc075"></div>
+        <div class="spr2" style="background-position: {{bp.rust}}"></div>
+      </div>
+      <div style="height: 132px; box-sizing: border-box; padding: 12px; background: #1f0d36; border: 3px solid #0b0414; display: flex; flex-direction: column; gap: 6px">
+        <span style="font-size: 11px; font-weight: 700">SPRAY AN X ON THE SCRAP SIGN</span>
+        <div style="flex: 1 1 auto; display: flex; flex-wrap: wrap; align-content: center; gap: 2px 8px; padding: 4px 12px; background-color: #6b5033; background-image: radial-gradient(#0b0414 2px, transparent 2.5px); background-size: 100% 100%; background-position: 6px 6px; border: 3px solid #0b0414; box-shadow: inset 0 -6px 0 #4b2d19">
+          <sc-for list="{{rust}}" as="m" hint-placeholder-count="3"><span class="spray" style="color: {{m.color}}">X</span></sc-for>
+        </div>
+      </div>
+      <div style="display: flex; gap: 10px">
+        <button type="button" class="btn" onClick="{{add.rust}}" aria-label="Add a set on Rustbelt Flats" style="flex: 1 1 auto; background: #ffa033; color: #0b0414; box-shadow: 4px 4px 0 #0b0414">+ SET</button>
+        <button type="button" class="btn" onClick="{{undo.rust}}" aria-label="Remove a set on Rustbelt Flats" style="background: #1f0d36; color: #f6eeff">UNDO</button>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px">
+        <div style="display: flex; flex-direction: column; gap: 3px"><div style="height: 22px; background: #1f0d36; border: 2px solid #4b2a7a"></div><span style="font-size: 10px; color: #c9b8e8">#1f0d36</span></div>
+        <div style="display: flex; flex-direction: column; gap: 3px"><div style="height: 22px; background: #3b2230; border: 2px solid #4b2a7a"></div><span style="font-size: 10px; color: #c9b8e8">#3b2230</span></div>
+        <div style="display: flex; flex-direction: column; gap: 3px"><div style="height: 22px; background: #a6643c; border: 2px solid #4b2a7a"></div><span style="font-size: 10px; color: #c9b8e8">#a6643c</span></div>
+        <div style="display: flex; flex-direction: column; gap: 3px"><div style="height: 22px; background: #ecd7d0; border: 2px solid #4b2a7a"></div><span style="font-size: 10px; color: #c9b8e8">#ecd7d0</span></div>
+      </div>
+      <span style="font-size: 12px; color: #c9b8e8">Default for: <b style="color: #ffa033">SCRAPPER</b> · X colour climbs the rarity ladder</span>
+    </div>
+
+    <!-- ARCADE UNDERPASS -->
+    <div style="flex: 0 0 304px; display: flex; flex-direction: column; gap: 12px">
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <span style="font-family: Anton, Impact, sans-serif; font-size: 30px; line-height: 1; letter-spacing: 1px; color: #c6ff3d">ARCADE UNDERPASS</span>
+        <span style="font-size: 12px; color: #c9b8e8">Polka dots, neon signs, under the bridge.</span>
+      </div>
+      <div role="img" aria-label="Arcade Underpass scene: dark wall with pink polka dots, a lime neon sign, bridge pillars, violet concrete floor, a lifter standing on it" style="position: relative; height: 230px; overflow: hidden; border: 4px solid #0b0414; box-shadow: 6px 6px 0 #c6ff3d; background-color: #12061f; background-image: radial-gradient(rgba(255,95,176,.22) 2.5px, transparent 3px); background-size: 24px 24px">
+        <div style="position: absolute; left: 0; right: 0; top: 0; height: 26px; background: #2a1148; border-bottom: 4px solid #0b0414"></div>
+        <div style="position: absolute; right: 14px; top: 26px; width: 26px; bottom: 58px; background: #2a1148; border: 3px solid #0b0414; border-bottom: 0"></div>
+        <div style="position: absolute; left: 150px; top: 52px; padding: 6px 10px; border: 3px solid #c6ff3d; box-shadow: 0 0 0 3px #0b0414, inset 0 0 0 3px #0b0414; font-family: Anton, Impact, sans-serif; font-size: 20px; line-height: 1; letter-spacing: 2px; color: #c6ff3d">OPEN 24/7</div>
+        <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 58px; background-color: #724eb2; background-image: repeating-linear-gradient(90deg, #593597 0 3px, transparent 3px 60px); border-top: 4px solid #0b0414; box-shadow: inset 0 6px 0 #a77bff"></div>
+        <div class="spr2" style="background-position: {{bp.arcade}}"></div>
+      </div>
+      <div style="height: 132px; box-sizing: border-box; padding: 12px; background: #1f0d36; border: 3px solid #0b0414; display: flex; gap: 14px; align-items: stretch">
+        <div style="display: flex; flex-direction: column; gap: 6px; flex: 1 1 auto">
+          <span style="font-size: 11px; font-weight: 700">TOKEN IN THE TUBE</span>
+          <div role="status" aria-label="Set counter" style="margin-top: auto; align-self: flex-start; padding: 4px 10px; background: #0b0414; border: 3px solid #c6ff3d; font-family: 'Space Mono', monospace; font-size: 30px; font-weight: 700; line-height: 1; letter-spacing: 4px; color: #c6ff3d">{{arcade.led}}</div>
+        </div>
+        <div style="width: 44px; display: flex; flex-direction: column-reverse; align-items: center; gap: 1px; padding: 4px 0; background: rgba(63,210,255,.12); border: 3px solid #3fd2ff; box-shadow: 0 0 0 3px #0b0414">
+          <sc-for list="{{arcade.coins}}" as="m" hint-placeholder-count="3"><span class="coin"></span></sc-for>
+        </div>
+      </div>
+      <div style="display: flex; gap: 10px">
+        <button type="button" class="btn" onClick="{{add.arcade}}" aria-label="Add a set in Arcade Underpass" style="flex: 1 1 auto; background: #c6ff3d; color: #0b0414; box-shadow: 4px 4px 0 #0b0414">+ SET</button>
+        <button type="button" class="btn" onClick="{{undo.arcade}}" aria-label="Remove a set in Arcade Underpass" style="background: #1f0d36; color: #f6eeff">UNDO</button>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px">
+        <div style="display: flex; flex-direction: column; gap: 3px"><div style="height: 22px; background: #12061f; border: 2px solid #4b2a7a"></div><span style="font-size: 10px; color: #c9b8e8">#12061f</span></div>
+        <div style="display: flex; flex-direction: column; gap: 3px"><div style="height: 22px; background: #2a1148; border: 2px solid #4b2a7a"></div><span style="font-size: 10px; color: #c9b8e8">#2a1148</span></div>
+        <div style="display: flex; flex-direction: column; gap: 3px"><div style="height: 22px; background: #724eb2; border: 2px solid #4b2a7a"></div><span style="font-size: 10px; color: #c9b8e8">#724eb2</span></div>
+        <div style="display: flex; flex-direction: column; gap: 3px"><div style="height: 22px; background: #c6ff3d; border: 2px solid #4b2a7a"></div><span style="font-size: 10px; color: #c9b8e8">#c6ff3d</span></div>
+      </div>
+      <span style="font-size: 12px; color: #c9b8e8">Default for: <b style="color: #3fd2ff">BARGAIN BRUISER</b></span>
+    </div>
+
+    <!-- FROSTBITE SUMMIT -->
+    <div style="flex: 0 0 304px; display: flex; flex-direction: column; gap: 12px">
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <span style="font-family: Anton, Impact, sans-serif; font-size: 30px; line-height: 1; letter-spacing: 1px; color: #3fd2ff">FROSTBITE SUMMIT</span>
+        <span style="font-size: 12px; color: #c9b8e8">Snowy peak, aurora in violet and sky. Optional.</span>
+      </div>
+      <div role="img" aria-label="Frostbite Summit scene: night sky with violet and blue aurora bands, snow-capped peaks, pale snow floor, a lifter standing on it" style="position: relative; height: 230px; overflow: hidden; border: 4px solid #0b0414; box-shadow: 6px 6px 0 #3fd2ff; background: #1a0b3b">
+        <div style="position: absolute; left: -20px; right: -20px; top: 22px; height: 14px; background: #a77bff; opacity: .55; transform: skewY(-6deg)"></div>
+        <div style="position: absolute; left: -20px; right: -20px; top: 44px; height: 10px; background: #3fd2ff; opacity: .45; transform: skewY(-6deg)"></div>
+        <div style="position: absolute; left: 110px; bottom: 58px; width: 150px; height: 110px; background: #2a1148; clip-path: polygon(50% 0, 100% 100%, 0 100%)"></div>
+        <div style="position: absolute; left: 110px; bottom: 136px; width: 150px; height: 32px; background: #c9b8e8; clip-path: polygon(50% 0, 64% 44%, 56% 36%, 48% 52%, 40% 38%, 36% 44%)"></div>
+        <div style="position: absolute; left: 200px; bottom: 58px; width: 120px; height: 70px; background: #3a2a52; clip-path: polygon(50% 0, 100% 100%, 0 100%)"></div>
+        <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 58px; background: #c9b8e8; border-top: 4px solid #0b0414; box-shadow: inset 0 6px 0 #f6eeff"></div>
+        <div class="spr2" style="background-position: {{bp.frost}}"></div>
+      </div>
+      <div style="position: relative; height: 132px; box-sizing: border-box; padding: 12px; background: #1a0b3b; border: 3px solid #0b0414; overflow: hidden">
+        <span style="position: relative; z-index: 1; font-size: 11px; font-weight: 700">A FLAG UP THE SLOPE PER SET</span>
+        <div style="position: absolute; inset: 0; background: #c9b8e8; clip-path: polygon(0 100%, 100% 22%, 100% 100%)"></div>
+        <sc-for list="{{frost}}" as="m" hint-placeholder-count="3"><span class="flag" style="left: {{m.left}}; bottom: {{m.bottom}}"><i></i><b></b></span></sc-for>
+      </div>
+      <div style="display: flex; gap: 10px">
+        <button type="button" class="btn" onClick="{{add.frost}}" aria-label="Add a set on Frostbite Summit" style="flex: 1 1 auto; background: #3fd2ff; color: #0b0414; box-shadow: 4px 4px 0 #0b0414">+ SET</button>
+        <button type="button" class="btn" onClick="{{undo.frost}}" aria-label="Remove a set on Frostbite Summit" style="background: #1f0d36; color: #f6eeff">UNDO</button>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px">
+        <div style="display: flex; flex-direction: column; gap: 3px"><div style="height: 22px; background: #1a0b3b; border: 2px solid #4b2a7a"></div><span style="font-size: 10px; color: #c9b8e8">#1a0b3b</span></div>
+        <div style="display: flex; flex-direction: column; gap: 3px"><div style="height: 22px; background: #2a1148; border: 2px solid #4b2a7a"></div><span style="font-size: 10px; color: #c9b8e8">#2a1148</span></div>
+        <div style="display: flex; flex-direction: column; gap: 3px"><div style="height: 22px; background: #c9b8e8; border: 2px solid #4b2a7a"></div><span style="font-size: 10px; color: #c9b8e8">#c9b8e8</span></div>
+        <div style="display: flex; flex-direction: column; gap: 3px"><div style="height: 22px; background: #3fd2ff; border: 2px solid #4b2a7a"></div><span style="font-size: 10px; color: #c9b8e8">#3fd2ff</span></div>
+      </div>
+      <span style="font-size: 12px; color: #c9b8e8">Default for: <b style="color: #a77bff">CABLEMANCER</b></span>
+    </div>
+  </div>
+
+  <div style="display: flex; gap: 20px">
+    <div style="flex: 1 1 0; padding: 14px 16px; background: #1f0d36; border: 3px solid #0b0414; box-shadow: 5px 5px 0 #c6ff3d; display: flex; flex-direction: column; gap: 6px"><span style="font-family: Anton, Impact, sans-serif; font-size: 20px; letter-spacing: 1px">1 · Light floor, dark sky</span><span style="font-size: 13px; line-height: 1.5; color: #c9b8e8">Every area puts a pale floor (sand, flagstone, rust, concrete, snow) right behind the lifter. That fixes the readability finding: the #0b0414 outline had nothing to stand against on the dark grounds.</span></div>
+    <div style="flex: 1 1 0; padding: 14px 16px; background: #1f0d36; border: 3px solid #0b0414; box-shadow: 5px 5px 0 #3fd2ff; display: flex; flex-direction: column; gap: 6px"><span style="font-family: Anton, Impact, sans-serif; font-size: 20px; letter-spacing: 1px">2 · One tap, one mark</span><span style="font-size: 13px; line-height: 1.5; color: #c9b8e8">A mark lands in about 200 ms with hard-stepped motion, no easing. Marks group in fives so you can count them without numbers. A long-press takes the last one back (UNDO stands in for it here).</span></div>
+    <div style="flex: 1 1 0; padding: 14px 16px; background: #1f0d36; border: 3px solid #0b0414; box-shadow: 5px 5px 0 #ff5fb0; display: flex; flex-direction: column; gap: 6px"><span style="font-family: Anton, Impact, sans-serif; font-size: 20px; letter-spacing: 1px">3 · Neon means reward</span><span style="font-size: 13px; line-height: 1.5; color: #c9b8e8">Skies and walls stay dark. Only the marks, the props that react (torches, the neon sign) and the lifter’s clothes get neon. The pearl and the X colours borrow the rarity ladder.</span></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1736,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { riptide: 4, keep: 7, rust: 5, arcade: 6, frost: 4 };
+  }
+  renderVals() {
+    const s = this.state, MAX = 12;
+    const cell = (sex, fat, mus) => (-(fat / 25) * 104) + 'px ' + (-((sex === 'm' ? 0 : 5) + mus / 25) * 128) + 'px';
+    const n = (k) => Array.from({ length: s[k] }, (_, i) => i);
+    const ladder = ['#c9b8e8', '#c6ff3d', '#3fd2ff', '#a77bff', '#ffa033'];
+    const groups = [];
+    for (let left = s.keep; left > 0; left -= 5) {
+      const g = Math.min(5, left);
+      groups.push({ strokes: Array.from({ length: Math.min(4, g) }, () => ({})), slash: g === 5 });
+    }
+    const add = {}, undo = {};
+    for (const k of ['riptide', 'keep', 'rust', 'arcade', 'frost']) {
+      add[k] = () => this.setState({ [k]: Math.min(MAX, this.state[k] + 1) });
+      undo[k] = () => this.setState({ [k]: Math.max(0, this.state[k] - 1) });
+    }
+    return {
+      add, undo,
+      bp: {
+        riptide: cell('f', 50, 50), keep: cell('m', 75, 100), rust: cell('f', 0, 25),
+        arcade: cell('m', 25, 50), frost: cell('f', 0, 75),
+      },
+      riptide: n('riptide').map((i) => ({ cls: i % 5 === 4 ? 'pearl' : 'shell' })),
+      keep: groups,
+      rust: n('rust').map((i) => ({ color: i < 5 ? ladder[i] : '#ff5fb0' })),
+      arcade: { coins: n('arcade').map(() => ({})), led: String(s.arcade).padStart(2, '0') },
+      frost: n('frost').map((i) => ({ left: (14 + i * 22) + 'px', bottom: (6 + i * 7) + 'px' })),
+    };
+  }
+}
+</script>
+</body>
+</html>

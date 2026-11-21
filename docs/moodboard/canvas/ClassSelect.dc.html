@@ -24,7 +24,7 @@ a{color:#c6ff3d}a:hover{color:#dcfb7b}
 @media (prefers-reduced-motion:reduce){.slam,.sub{animation:none}}
 </style>
 </helmet>
-<div style="width: 390px; height: 844px; box-sizing: border-box; padding: 24px 20px; background: #12061f; color: #f6eeff; font-family: 'Space Mono', monospace; display: flex; flex-direction: column; gap: 14px">
+<div style="width: 390px; height: 844px; overflow: hidden; box-sizing: border-box; padding: 24px 20px; background: #12061f; color: #f6eeff; font-family: 'Space Mono', monospace; display: flex; flex-direction: column; gap: 14px">
 
   <div style="display: flex; flex-direction: column; gap: 2px">
     <span style="font-size: 12px; color: #c9b8e8">STEP 2 OF 5 · THE SWOLEMANCER’S PATHS</span>
@@ -32,7 +32,7 @@ a{color:#c6ff3d}a:hover{color:#dcfb7b}
     <span style="font-size: 13px; font-weight: 700; color: #f6eeff">What do you train with?</span>
   </div>
 
-  <div class="{{c.frozen}}" style="position: relative; display: flex; gap: 12px; align-items: stretch; padding: 10px; background-color: #2a1148; background-image: radial-gradient(rgba(255,95,176,.22) 2px, transparent 2.5px); background-size: 20px 20px; border: 4px solid #0b0414; box-shadow: 6px 6px 0 {{c.color}}">
+  <div class="{{c.frozen}}" style="position: relative; overflow: hidden; flex: 0 0 auto; display: flex; gap: 12px; align-items: stretch; padding: 10px; background-color: #2a1148; background-image: radial-gradient(rgba(255,95,176,.22) 2px, transparent 2.5px); background-size: 20px 20px; border: 4px solid #0b0414; box-shadow: 6px 6px 0 {{c.color}}">
     <div class="spr" role="img" aria-label="{{c.alt}}" style="flex: 0 0 156px; width: 156px; height: 192px; background-position: {{c.pos}}"></div>
     <div style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 8px; min-width: 0">
       <span style="font-family: Anton, Impact, sans-serif; font-size: 24px; line-height: 1; letter-spacing: 1px; color: {{c.color}}">{{c.name}}</span>
@@ -46,8 +46,8 @@ a{color:#c6ff3d}a:hover{color:#dcfb7b}
     </div>
     <sc-if value="{{intro}}" hint-placeholder-val="{{ false }}">
       <button type="button" class="freeze" onClick="{{dismiss}}" aria-label="Close the {{c.name}} intro" style="position: absolute; inset: 0; border: 0; padding: 0 14px; cursor: pointer; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 10px; text-align: left">
-        <span class="slam" role="status" style="display: block; padding: 4px 12px 2px; background: {{c.color}}; border: 4px solid #0b0414; box-shadow: 5px 5px 0 #0b0414; font-family: Anton, Impact, sans-serif; font-size: 40px; line-height: 1; letter-spacing: 2px; color: #0b0414">{{c.name}}</span>
-        <span class="sub" style="display: block; margin-left: 18px; padding: 4px 10px; background: #0b0414; border: 2px solid {{c.color}}; font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; color: {{c.color}}">{{c.joke}}</span>
+        <span class="slam" role="status" style="display: block; max-width: 100%; box-sizing: border-box; overflow-wrap: anywhere; padding: 4px 12px 2px; background: {{c.color}}; border: 4px solid #0b0414; box-shadow: 5px 5px 0 #0b0414; font-family: Anton, Impact, sans-serif; font-size: 32px; line-height: 1; letter-spacing: 1px; color: #0b0414">{{c.name}}</span>
+        <span class="sub" style="display: block; max-width: calc(100% - 18px); box-sizing: border-box; margin-left: 18px; padding: 4px 10px; background: #0b0414; border: 2px solid {{c.color}}; font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; color: {{c.color}}">{{c.joke}}</span>
       </button>
     </sc-if>
   </div>

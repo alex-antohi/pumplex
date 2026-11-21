@@ -26,6 +26,7 @@ This folder is the copy in the repo. Use it as the reference when building game 
 | `animation/animation.json` | Frame order and per-frame milliseconds for every animation. Read this to play them. |
 | `animation/<sex>_fat<F>_muscle<M>/` | Per body: `<anim>_<i>_<pose>.png` frames (80×72), `<anim>_sheet.png` strips, `preview_3x.png` contact sheet. |
 | `canvas/ClassSelect.dc.html` | Board 6, "Class select": setup step 2, picking a class by equipment. Interactive, runs only inside the canvas. The copy and layout are in "Class select" below. |
+| `canvas/StartingAreas.dc.html` | Board 7, "Starting areas": setup step 4, five areas with scene, palette, default path and a working tap-to-mark demo. Interactive, runs only inside the canvas. Spec in "Starting areas" below. |
 | `canvas/` | Design-canvas source (`canvas.json`, `*.dc.html`), including the interactive Creator and Class select boards, which only run inside the canvas. Only needed to re-import into the canvas. |
 | `../../tools/moodboard/animate.mjs` | Regenerates every animation frame from the body sliders. `node tools/moodboard/animate.mjs` |
 | `../../tools/moodboard/boards.mjs` | Regenerates `animation.html`, `readability.html` and their canvas copies. Run after `animate.mjs`. |
@@ -204,3 +205,34 @@ often a mashup) but are our own. Other options:
 
 Still open: class outfits (the preview uses the starter outfit), and the height
 slider from brief 4.2 (the Creator board has only fat and muscle).
+
+## Starting areas (setup step 4)
+
+Brief 4.5–4.6: the area sets **the look, the palette and the set mark**. These five are proposals
+built from this moodboard (the violet night base and neons, `borderlands-reference.md` §4 rarity ladder and §9 wasteland tones,
+and the phone readability finding).
+
+**Rule for every area: a light floor behind the lifter, a dark sky above.** The lifter stands on
+a pale floor (sand, flagstone, rust, concrete, snow), so the `#0b0414` ink outline has something light to stand against.
+That fixes the 1.03–1.22:1 contrast problem from the readability board. Skies and walls stay dark. Neon only on the marks,
+on props that react (torches, neon signs) and on clothes (rule 3).
+
+| Area | Scene | Sky / wall | Floor | Accent | Set mark | Default path |
+| --- | --- | --- | --- | --- | --- | --- |
+| **Riptide Shore** (brief's beach) | Night beach, moon, violet sea with sky-blue foam | `#12061f`, sea `#2a1148` | sand `#ad9293` | pink `#ff5fb0` | A **shell** drops into a rope pouch. Every 5th is a **pearl** (`#88dff3`, the "pearlescent" tier). | any (neutral pick) |
+| **Gainsgard Keep** (brief's castle) | Stone brick hall, banners, two torches | `#3a2a52`, bricks `#2a1148` | flagstone `#8672a5` | orange `#ffa033` | **Chalk scratches** on the wall: 4 strokes, then a slash for 5. | Plate Paladin |
+| **Rustbelt Flats** | Junkyard wasteland: dust horizon, violet mesas, scrap fence | `#1f0d36`, mesas `#3b2230`, dust `#ecd7d0` | rust `#a6643c` | orange | A **spray-painted X** on a scrap sign. The colour climbs the rarity ladder: `#c9b8e8` → lime → sky → violet → orange, then pink. | Scrapper |
+| **Arcade Underpass** | The app's own look: pink polka dots, a lime "OPEN 24/7" sign, bridge pillar | `#12061f` + dots | concrete `#724eb2` | lime `#c6ff3d` | A **token** drops into a glass tube, and an LED counter ticks up (`07`). | Bargain Bruiser |
+| **Frostbite Summit** (optional) | Snowy peaks, aurora bands in violet and sky blue | `#1a0b3b`, peaks `#2a1148` | snow `#c9b8e8` | sky `#3fd2ff` | A **flag** planted one step higher up the slope per set, so you can see the climb. | Cablemancer |
+
+Mark behaviour (all areas):
+- One tap = one working set (brief 4.5). The mark lands in about 200 ms with hard-stepped motion, no easing.
+- A long-press takes the last mark back (app-flow §4.2). On the board an UNDO button stands in for it.
+- Marks group in fives so you can count them without numbers (rule 3). The board caps the demo at 12.
+- With reduced motion turned on, marks appear without moving.
+
+The class link is the drawio's "Background changes" edge (Character Creation → Starting Area). The class picks the
+default area, and the player can still choose any area.
+
+Scenes on the board are flat CSS shapes as placeholders for pixel-art backgrounds. Lifters use `creator/body_atlas.png` at 2×.
+
