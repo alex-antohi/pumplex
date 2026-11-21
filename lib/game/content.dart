@@ -1,8 +1,19 @@
-// PUMPLEX game content: every NAME of the game lives here (classes,
-// exercises, difficulty levels, starting areas). All are working names and
-// placeholders until the design team sends the real ones.
+// PUMPLEX fixed game data (docs/data-schema.md §3): every NAME of the game
+// lives here (classes, exercise pools, difficulty levels, starting areas,
+// gear items, achievements). All are working names and placeholders until
+// the design team sends the real ones. The numbers are in rules.dart.
 //
-// Ids are stored on the phone. Rename the names freely, but keep the ids.
+// Rule: never reuse or rename an id. Saved data points to it.
+
+enum ExerciseKind { bodyweight, weights, machine, cardio }
+
+class Exercise {
+  const Exercise(this.id, this.name, this.kind);
+
+  final String id;
+  final String name;
+  final ExerciseKind kind;
+}
 
 /// One class per equipment type (docs/app-brief.md §4.1).
 class GameClass {
@@ -34,17 +45,12 @@ class GameClass {
   final String icon;
 
   /// The class exercise POOL (placeholder, TBD by design). A workout takes
-  /// `workoutSize(difficulty)` of them (lib/game/rules.dart); the user can
-  /// swap, add and remove exercises from this pool.
+  /// `exercisesPerWorkout` of them (rules.dart); the user can swap, add
+  /// and remove exercises from this pool.
   final List<Exercise> exercises;
 }
 
-class Exercise {
-  const Exercise(this.id, this.name);
-
-  final String id;
-  final String name;
-}
+const _b = ExerciseKind.bodyweight, _w = ExerciseKind.weights, _m = ExerciseKind.machine, _c = ExerciseKind.cardio;
 
 const gameClasses = <GameClass>[
   GameClass(
@@ -55,14 +61,16 @@ const gameClasses = <GameClass>[
     style: 'Cardio and bodyweight. Fast and light.',
     icon: '👟',
     exercises: [
-      Exercise('speedy.pushups', 'Push-ups'),
-      Exercise('speedy.burpees', 'Burpees'),
-      Exercise('speedy.sprints', 'Sprints'),
-      Exercise('speedy.jumps', 'Jump squats'),
-      Exercise('speedy.lunges', 'Lunges'),
-      Exercise('speedy.plank', 'Plank'),
-      Exercise('speedy.climbers', 'Mountain climbers'),
-      Exercise('speedy.jacks', 'Jumping jacks'),
+      Exercise('speedy.pushups', 'Push-ups', _b),
+      Exercise('speedy.burpees', 'Burpees', _c),
+      Exercise('speedy.sprints', 'Sprints', _c),
+      Exercise('speedy.jumps', 'Jump squats', _b),
+      Exercise('speedy.lunges', 'Lunges', _b),
+      Exercise('speedy.plank', 'Plank', _b),
+      Exercise('speedy.climbers', 'Mountain climbers', _c),
+      Exercise('speedy.jacks', 'Jumping jacks', _c),
+      Exercise('speedy.squats', 'Air squats', _b),
+      Exercise('speedy.dips', 'Chair dips', _b),
     ],
   ),
   GameClass(
@@ -73,14 +81,16 @@ const gameClasses = <GameClass>[
     style: 'Floor work, some cardio, some weights.',
     icon: '🗡️',
     exercises: [
-      Exercise('rogue.goblet', 'Goblet squats'),
-      Exercise('rogue.pushups', 'Push-ups'),
-      Exercise('rogue.rows', 'Dumbbell rows'),
-      Exercise('rogue.climbers', 'Mountain climbers'),
-      Exercise('rogue.kbswing', 'Kettlebell swings'),
-      Exercise('rogue.press', 'Dumbbell press'),
-      Exercise('rogue.lunges', 'Dumbbell lunges'),
-      Exercise('rogue.burpees', 'Burpees'),
+      Exercise('rogue.goblet', 'Goblet squats', _w),
+      Exercise('rogue.pushups', 'Push-ups', _b),
+      Exercise('rogue.rows', 'Dumbbell rows', _w),
+      Exercise('rogue.climbers', 'Mountain climbers', _c),
+      Exercise('rogue.kbswing', 'Kettlebell swings', _w),
+      Exercise('rogue.press', 'Dumbbell press', _w),
+      Exercise('rogue.lunges', 'Dumbbell lunges', _w),
+      Exercise('rogue.burpees', 'Burpees', _c),
+      Exercise('rogue.curls', 'Dumbbell curls', _w),
+      Exercise('rogue.plank', 'Plank', _b),
     ],
   ),
   GameClass(
@@ -91,14 +101,16 @@ const gameClasses = <GameClass>[
     style: 'Burly, bulky, strongman.',
     icon: '🛡️',
     exercises: [
-      Exercise('warrior.squat', 'Back squats'),
-      Exercise('warrior.deadlift', 'Deadlifts'),
-      Exercise('warrior.bench', 'Bench press'),
-      Exercise('warrior.press', 'Overhead press'),
-      Exercise('warrior.row', 'Barbell rows'),
-      Exercise('warrior.frontsquat', 'Front squats'),
-      Exercise('warrior.rdl', 'Romanian deadlifts'),
-      Exercise('warrior.curls', 'Barbell curls'),
+      Exercise('warrior.squat', 'Back squats', _w),
+      Exercise('warrior.deadlift', 'Deadlifts', _w),
+      Exercise('warrior.bench', 'Bench press', _w),
+      Exercise('warrior.press', 'Overhead press', _w),
+      Exercise('warrior.row', 'Barbell rows', _w),
+      Exercise('warrior.frontsquat', 'Front squats', _w),
+      Exercise('warrior.rdl', 'Romanian deadlifts', _w),
+      Exercise('warrior.curls', 'Barbell curls', _w),
+      Exercise('warrior.pullups', 'Pull-ups', _b),
+      Exercise('warrior.dips', 'Dips', _b),
     ],
   ),
   GameClass(
@@ -109,14 +121,16 @@ const gameClasses = <GameClass>[
     style: 'Stringy and strong.',
     icon: '🔮',
     exercises: [
-      Exercise('mage.legpress', 'Leg press'),
-      Exercise('mage.pulldown', 'Lat pulldown'),
-      Exercise('mage.chest', 'Chest press'),
-      Exercise('mage.cablerow', 'Cable rows'),
-      Exercise('mage.legcurl', 'Leg curls'),
-      Exercise('mage.legext', 'Leg extensions'),
-      Exercise('mage.shoulder', 'Shoulder press machine'),
-      Exercise('mage.flyes', 'Pec deck'),
+      Exercise('mage.legpress', 'Leg press', _m),
+      Exercise('mage.pulldown', 'Lat pulldown', _m),
+      Exercise('mage.chest', 'Chest press', _m),
+      Exercise('mage.cablerow', 'Cable rows', _m),
+      Exercise('mage.legcurl', 'Leg curls', _m),
+      Exercise('mage.legext', 'Leg extensions', _m),
+      Exercise('mage.shoulder', 'Shoulder press machine', _m),
+      Exercise('mage.flyes', 'Pec deck', _m),
+      Exercise('mage.rower', 'Rowing machine', _c),
+      Exercise('mage.abs', 'Ab crunch machine', _m),
     ],
   ),
 ];
@@ -124,8 +138,18 @@ const gameClasses = <GameClass>[
 GameClass classById(String? id) =>
     gameClasses.firstWhere((c) => c.id == id, orElse: () => gameClasses.first);
 
-/// Difficulty levels, easiest first. The XP multipliers are in
-/// lib/game/rules.dart (same order). Our own names, Borderlands-like tone.
+/// Every exercise of every class, by id.
+final Map<String, Exercise> exercisesById = {
+  for (final c in gameClasses)
+    for (final e in c.exercises) e.id: e,
+};
+
+/// Display name of an exercise id (the id itself if it is unknown).
+String exerciseName(String id) => exercisesById[id]?.name ?? id;
+
+/// Difficulty levels, easiest first. The numbers (exercises, target sets,
+/// XP multiplier, streak N) are in rules.dart, same order. Our own names,
+/// Borderlands-like tone.
 class Difficulty {
   const Difficulty(this.id, this.name, this.line);
 
@@ -176,11 +200,64 @@ const areas = <Area>[
 
 Area areaById(String? id) => areas.firstWhere((a) => a.id == id, orElse: () => areas.first);
 
-/// Every exercise of every class, by id.
-final Map<String, Exercise> exercisesById = {
-  for (final c in gameClasses)
-    for (final e in c.exercises) e.id: e,
-};
+// ------------------------------------------------------------------- gear
 
-/// Display name of an exercise id (the id itself if it is unknown).
-String exerciseName(String id) => exercisesById[id]?.name ?? id;
+enum GearSlot { head, top, bottom, shoes, weapon }
+
+/// A gear item. The level unlocks it; the user equips one per slot.
+/// Placeholder icons until the design has gear sprites. The body never
+/// changes with gear.
+class Item {
+  const Item(this.id, this.name, this.slot, this.unlockLevel, this.icon);
+
+  final String id;
+  final String name;
+  final GearSlot slot;
+  final int unlockLevel;
+  final String icon;
+}
+
+const items = <Item>[
+  Item('head.sweatband', 'Sweatband of Mild Effort', GearSlot.head, 2, '🎽'),
+  Item('top.tank', 'Tank Top of Vanity', GearSlot.top, 3, '👕'),
+  Item('shoes.sneakers', 'Squeaky Sneakers', GearSlot.shoes, 4, '👟'),
+  Item('bottom.shorts', 'Shorts, Too Short', GearSlot.bottom, 5, '🩳'),
+  Item('weapon.shaker', 'Protein Shaker +1', GearSlot.weapon, 6, '🥤'),
+  Item('head.crown', 'Crown of Leg Day', GearSlot.head, 8, '👑'),
+  Item('weapon.kettlebell', 'Kettlebell of Doom', GearSlot.weapon, 10, '🔔'),
+  Item('top.cape', 'Cape of Unearned Confidence', GearSlot.top, 12, '🦸'),
+  Item('shoes.boots', 'Boots of Heavy Stomping', GearSlot.shoes, 15, '🥾'),
+  Item('bottom.belt', 'Belt of Brace Yourself', GearSlot.bottom, 18, '🎗️'),
+];
+
+Item? itemById(String? id) {
+  for (final i in items) {
+    if (i.id == id) return i;
+  }
+  return null;
+}
+
+// ----------------------------------------------------------- achievements
+
+/// What an achievement condition can look at (computed by the store).
+typedef AchievementStats = ({int totalSets, int trainingDays, int bestStreakWeeks, int level});
+
+class Achievement {
+  const Achievement(this.id, this.name, this.line, this.xp, this.met);
+
+  final String id;
+  final String name;
+  final String line;
+
+  /// XP when it unlocks (a number, so it belongs to the rules table later).
+  final int xp;
+  final bool Function(AchievementStats s) met;
+}
+
+final achievements = <Achievement>[
+  Achievement('first_set', 'First Blood', 'Mark your first working set.', 25, (s) => s.totalSets >= 1),
+  Achievement('sets_100', 'Century of Suffering', 'Do 100 working sets.', 150, (s) => s.totalSets >= 100),
+  Achievement('days_10', 'Regular', 'Train on 10 days.', 100, (s) => s.trainingDays >= 10),
+  Achievement('streak_4', 'Month of Iron', 'Hit your week target 4 weeks in a row.', 200, (s) => s.bestStreakWeeks >= 4),
+  Achievement('level_5', 'Getting Somewhere', 'Reach level 5.', 0, (s) => s.level >= 5),
+];

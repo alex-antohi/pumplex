@@ -19,14 +19,18 @@ The plan is in [docs/app-brief.md](docs/app-brief.md) and
 - **Free-form sessions:** one session per calendar day, no buttons to start
   or stop. The rule is in [docs/app-flow.md](docs/app-flow.md) §4.4.
 - The whole app is one screen: views change with a camera zoom or slide.
-- Old sessions (`sessions_v2`) give beta XP and show in PAST.
+- XP from sets (bonus over the target), training days, week streaks (N
+  training days per week) and achievements. Levels unlock gear (one item
+  per slot).
+- **Old-app data:** a one-time upgrade saves a backup file first, then
+  turns the old sessions into XP and deletes the old kg / reps data.
 - Menu (⋮): edit character, save / restore a backup file, chaos mode,
   **cel shader** (`shaders/cel.frag`; needs Impeller).
 
 Code map: game numbers in `lib/game/rules.dart`, names (classes, exercises,
-difficulties, areas) in `lib/game/content.dart`, the temporary data model in
-`lib/game/model.dart`, views in `lib/views/`. Old logged sets and swaps stay
-in storage and in backup files.
+difficulties, areas, gear, achievements) in `lib/game/content.dart`, the saved
+data (to `docs/data-schema.md`) in `lib/game/model.dart` and `lib/store.dart`,
+views in `lib/views/`.
 
 ## Build
 

@@ -84,6 +84,7 @@ The final class names come from the design phase.
 ### 4.7 Existing data
 
 - Keep the sessions that are logged now. Turn them into XP, for our beta testing.
+- Delete the old kg / reps sets and swaps, after a backup file (see `data-schema.md` §5).
 
 ### 4.8 Still open
 
@@ -114,10 +115,10 @@ The final class names come from the design phase.
 |---|---|
 | Fixed exercises, sets, reps, kg, rep-outs, PRs, swaps, CSV | Removed (21 Nov). |
 | Alex / Anca flavors | Removed. One app id: `com.alex.gym_app`. |
-| Old sessions (`sessions_v2`), backup | Kept. Old sessions give beta XP and show in history. |
+| Old sessions (`sessions_v2`), backup | One-time upgrade: backup file first, then legacy sessions with XP. |
 | 7-day pattern, START TRAINING, I WORKED / I RESTED, preloader | Removed (21 Nov). Free-form sessions, hub, set counting, XP and character creation built. |
 | CEL SHADER mode | Kept (`shaders/cel.frag`). |
-| Old logged sets and swaps | Kept in storage and in backups, untouched. |
+| Old logged sets and swaps | Deleted by the one-time upgrade, after its backup file (owner's decision, data-schema.md §5). |
 
 ## 8. Next documents
 

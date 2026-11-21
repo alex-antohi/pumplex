@@ -69,7 +69,7 @@ class CreateView extends StatelessWidget {
   void _random() {
     final r = Random();
     onCharacter(Character(
-      sex: r.nextBool() ? 'm' : 'f',
+      sex: r.nextBool() ? 'male' : 'female',
       height: r.nextInt(101),
       muscle: r.nextInt(101),
       fat: r.nextInt(101),
@@ -103,7 +103,7 @@ class CreateView extends StatelessWidget {
               Positioned(
                 left: 14,
                 top: stage.top + 6,
-                child: Column(children: [sexButton('m', '♂'), sexButton('f', '♀')]),
+                child: Column(children: [sexButton('male', '♂'), sexButton('female', '♀')]),
               ),
               Positioned(
                 right: 18,
@@ -405,7 +405,7 @@ class DifficultyView extends StatelessWidget {
                   leading: '${i + 1}',
                   title: difficulties[i].name,
                   line: difficulties[i].line,
-                  trailing: '×${difficultyMultipliers[i]} XP',
+                  trailing: '${rulesFor(i).exercisesPerWorkout} EX\n×${rulesFor(i).xpMultiplier} XP',
                   onTap: () => onPick(difficulties[i].id),
                 ),
             ],
@@ -542,6 +542,66 @@ class SummaryView extends StatelessWidget {
           ),
         ),
         _Nav(onBack: onBack, next: editing ? 'SAVE ✔' : "LET'S GO!!!", onNext: onGo),
+      ],
+    );
+  }
+}
+
+// --------------------------------------------------------------- migration
+
+/// One time, before the setup: the old app's data. A backup file is saved
+/// first; only then are the old sessions turned into XP and the old kg /
+/// reps data deleted (docs/data-schema.md §5).
+class MigrateView extends StatelessWidget {
+  const MigrateView({
+    super.key,
+    required this.stage,
+    required this.oldWorkouts,
+    required this.onUpgrade,
+    required this.onLater,
+  });
+
+  final Rect stage;
+  final int oldWorkouts;
+  final VoidCallback onUpgrade, onLater;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Pal.of(context);
+    return Column(
+      children: [
+        SizedBox(height: stage.bottom + 10),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 4, 24, 8),
+            children: [
+              Center(child: Tag('Old save found', bg: p.orange, fg: p.on, size: 20)),
+              const SizedBox(height: 16),
+              Terminal([
+                '$oldWorkouts OLD WORKOUT DAYS FOUND.',
+                'THEY BECOME XP: +$xpPerLegacySession EACH (BETA).',
+                'THE OLD KG AND REPS DATA GETS DELETED.',
+                'FIRST: SAVE A BACKUP FILE. NO FILE, NO CHANGE.',
+              ]),
+            ],
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.fromLTRB(16, 8, 22, 14 + MediaQuery.paddingOf(context).bottom),
+          child: Row(
+            children: [
+              BrutalButton(color: p.sky, onTap: onLater, child: const Text('NOT NOW')),
+              const SizedBox(width: 14),
+              Expanded(
+                child: BrutalButton(
+                  color: p.pink,
+                  onTap: onUpgrade,
+                  child: Text('SAVE BACKUP & UPGRADE', textAlign: TextAlign.center, style: display(19, p.on)),
+                ),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }

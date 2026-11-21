@@ -67,11 +67,12 @@ class HubView extends StatelessWidget {
     required this.onTrain,
     required this.onHistory,
     required this.onBody,
+    required this.onGear,
   });
 
   final Rect stage;
   final LogStore store;
-  final VoidCallback onTrain, onHistory;
+  final VoidCallback onTrain, onHistory, onGear;
 
   /// Opens the body sliders (tap on the character or ✎ BODY).
   final VoidCallback onBody;
@@ -95,6 +96,8 @@ class HubView extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         LevelBar(xp: store.totalXp),
+        const SizedBox(height: 14),
+        _StreakRow(week: store.thisWeek, streak: store.streakWeeks),
         const SizedBox(height: 22),
         // The workout card. Tapping it zooms the camera into the workout.
         GestureDetector(
@@ -115,7 +118,7 @@ class HubView extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 10),
-                  for (final s in store.todaySlots)
+                  for (final s in store.todayExercises.where((e) => !e.removed))
                     Padding(
                       padding: const EdgeInsets.only(bottom: 4),
                       child: Row(
@@ -173,6 +176,62 @@ class HubView extends StatelessWidget {
           top: stage.top + 8,
           child: BrutalButton(small: true, color: p.orange, onTap: onBody, child: const Text('✎ BODY')),
         ),
+        Positioned(
+          right: 18,
+          top: stage.top + 60,
+          child: BrutalButton(small: true, color: p.lime, onTap: onGear, child: const Text('⚔ GEAR')),
+        ),
+        // What the character wears (icons until the gear sprites exist).
+        Positioned(
+          left: 14,
+          top: stage.top + 60,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final id in store.gear.equipped.values)
+                if (itemById(id) != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(itemById(id)!.icon, style: const TextStyle(fontSize: 22)),
+                  ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// This week's training days against the target, and the streak.
+class _StreakRow extends StatelessWidget {
+  const _StreakRow({required this.week, required this.streak});
+
+  final ({int days, int n}) week;
+  final int streak;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Pal.of(context);
+    return Row(
+      children: [
+        for (var i = 0; i < week.n; i++)
+          Container(
+            width: 22,
+            height: 22,
+            margin: const EdgeInsets.only(right: 6),
+            decoration: BoxDecoration(
+              color: i < week.days ? p.orange : p.panel,
+              border: Border.all(color: p.ink, width: 3),
+            ),
+          ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            'THIS WEEK ${week.days}/${week.n} DAYS'
+            '${streak > 0 ? ' · 🔥 $streak WEEK${streak == 1 ? '' : 'S'}' : ''}',
+            style: mono(11.5, p.ink),
+          ),
+        ),
       ],
     );
   }
@@ -213,11 +272,12 @@ class _WorkoutViewState extends State<WorkoutView> {
     final p = Pal.of(context);
     final store = widget.store;
     final stage = widget.stage;
-    final perSet = xpForSets(1, store.todaySession == null
+    final diff = store.todaySession == null
         ? store.difficulty
-        : difficultyIndex(store.todaySession!.difficultyId));
-    final firstTime = store.sessions.isEmpty;
-    final slots = store.todaySlots;
+        : difficultyIndex(store.todaySession!.difficultyId);
+    final perSet = xpForExercise(1, 1, diff);
+    final firstTime = store.history.where((s) => !s.legacy).isEmpty;
+    final list = store.todayExercises;
     final unused = store.unusedExercises;
     return Column(
       children: [
@@ -241,13 +301,13 @@ class _WorkoutViewState extends State<WorkoutView> {
           child: ListView(
             padding: EdgeInsets.fromLTRB(16, 8, 24, 30 + MediaQuery.paddingOf(context).bottom),
             children: [
-              for (final (i, s) in slots.indexed)
+              for (final i in store.todayCards)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 18),
                   child: ExerciseCard(
                     key: ValueKey('card-$i'),
-                    slot: s,
-                    xpPerSet: perSet,
+                    slot: list[i],
+                    difficulty: diff,
                     color: p.accents[i % p.accents.length],
                     onAdd: () => widget.onAdd(i),
                     onRemove: () => widget.onRemove(i),
@@ -314,7 +374,7 @@ class ExerciseCard extends StatefulWidget {
   const ExerciseCard({
     super.key,
     required this.slot,
-    required this.xpPerSet,
+    required this.difficulty,
     required this.color,
     required this.onAdd,
     required this.onRemove,
@@ -323,8 +383,10 @@ class ExerciseCard extends StatefulWidget {
     required this.onDelete,
   });
 
-  final Slot slot;
-  final int xpPerSet;
+  final SessionExercise slot;
+
+  /// Difficulty index of today's session (for the XP on the card).
+  final int difficulty;
   final Color color;
   final VoidCallback onAdd, onRemove, onReset, onDelete;
   final ValueChanged<int> onSwap;
@@ -416,7 +478,7 @@ class _ExerciseCardState extends State<ExerciseCard> {
                           scale: Tween(begin: 1.8, end: 1.0).animate(CurvedAnimation(parent: a, curve: Curves.easeOutBack)),
                           child: FadeTransition(opacity: a, child: child),
                         ),
-                        child: Text('$count', key: ValueKey(count), style: display(36, p.ink)),
+                        child: Text('$count/${s.targetSets}', key: ValueKey(count), style: display(32, count >= s.targetSets && count > 0 ? p.pink : p.ink)),
                       ),
                     ],
                   ),
@@ -427,7 +489,7 @@ class _ExerciseCardState extends State<ExerciseCard> {
                       children: [
                         Expanded(
                           child: count == 0
-                              ? Text(s.switched ? 'SWITCHED · ↺ = BACK TO ${exerciseName(s.initialId!).toUpperCase()}'
+                              ? Text(s.switched ? 'SWITCHED · ↺ = BACK TO ${exerciseName(s.originalExerciseId).toUpperCase()}'
                                   : 'TAP WHEN A WORKING SET IS DONE', style: mono(11.5, p.ink), maxLines: 2)
                               : SingleChildScrollView(
                                   scrollDirection: Axis.horizontal,
@@ -435,7 +497,7 @@ class _ExerciseCardState extends State<ExerciseCard> {
                                   child: TallyMarks(count: count),
                                 ),
                         ),
-                        if (count > 0) Tag('+${count * widget.xpPerSet} XP', bg: widget.color, fg: p.on, size: 13, angle: 3),
+                        if (count > 0) Tag('+${xpForExercise(count, s.targetSets, widget.difficulty)} XP${count > s.targetSets ? ' 🔥' : ''}', bg: widget.color, fg: p.on, size: 13, angle: 3),
                       ],
                     ),
                   ),
@@ -488,9 +550,10 @@ class HistoryView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
+    final all = store.history;
+    final game = all.where((s) => !s.legacy).toList();
+    final legacy = all.where((s) => s.legacy).toList();
     final today = store.todaySession;
-    final game = [if (today != null && today.totalSets > 0) today, ...store.sessions.reversed];
-    final old = store.oldSessions.reversed.toList();
     return Column(
       children: [
         ConstrainedBox(
@@ -504,7 +567,7 @@ class HistoryView extends StatelessWidget {
                 const SizedBox(height: 10),
                 Text('PAST SESSIONS', style: display(26, p.ink)),
                 const SizedBox(height: 4),
-                Text('${game.length + old.length} IN THE BOOK', style: mono(11.5, p.pink)),
+                Text('${all.length} TRAINING DAYS IN THE BOOK', style: mono(11.5, p.pink)),
               ],
             ),
           ),
@@ -513,14 +576,14 @@ class HistoryView extends StatelessWidget {
           child: ListView(
             padding: EdgeInsets.fromLTRB(16, 8, 24, 30 + MediaQuery.paddingOf(context).bottom),
             children: [
-              if (game.isEmpty && old.isEmpty)
-                const Terminal(['NOTHING HERE YET.', 'THE BOOK IS HUNGRY. FEED IT SETS.']),
-              for (final s in game) _GameSessionTile(session: s, live: identical(s, today)),
-              if (old.isNotEmpty) ...[
+              if (all.isEmpty) const Terminal(['NOTHING HERE YET.', 'THE BOOK IS HUNGRY. FEED IT SETS.']),
+              for (final s in game)
+                _SessionTile(session: s, xp: store.xpOfSession(s), live: identical(s, today)),
+              if (legacy.isNotEmpty) ...[
                 const SizedBox(height: 8),
-                Shout('Old saves · +$xpPerOldWorkout XP each (beta)', color: p.violet),
+                Shout('Old saves · +$xpPerLegacySession XP each (beta)', color: p.violet),
                 const SizedBox(height: 10),
-                for (final s in old) _OldSessionTile(session: s),
+                for (final s in legacy) _LegacyTile(session: s),
               ],
             ],
           ),
@@ -530,16 +593,17 @@ class HistoryView extends StatelessWidget {
   }
 }
 
-class _GameSessionTile extends StatelessWidget {
-  const _GameSessionTile({required this.session, required this.live});
+class _SessionTile extends StatelessWidget {
+  const _SessionTile({required this.session, required this.xp, required this.live});
 
-  final GameSession session;
+  final Session session;
+  final int xp;
   final bool live;
 
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
-    final names = {for (final c in gameClasses) for (final e in c.exercises) e.id: e.name};
+    final took = session.duration;
     return Brutal(
       margin: const EdgeInsets.only(bottom: 16),
       shadow: live ? p.lime : p.violet,
@@ -554,26 +618,31 @@ class _GameSessionTile extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    (live ? 'NOW · ' : '') + shortDate(session.start).toUpperCase(),
+                    (live ? 'TODAY · ' : '') + shortDate(parseDateKey(session.date)).toUpperCase(),
                     style: display(19, p.ink),
                   ),
                 ),
-                Tag('+${LogStore.xpOf(session)} XP', bg: p.lime, fg: p.on, size: 13, angle: 2),
+                Tag('+$xp XP', bg: p.lime, fg: p.on, size: 13, angle: 2),
               ],
             ),
             const SizedBox(height: 4),
             Text(
-              '${session.totalSets} SETS · ⏱ ${fmtDuration(session.duration)} · ${classById(session.classId).name.toUpperCase()}',
+              '${session.totalSets} SETS${took == null ? '' : ' · ⏱ ${fmtDuration(took)}'} · '
+              '${classById(session.classId).name.toUpperCase()} · ${areaById(session.areaId).name.toUpperCase()}',
               style: mono(11.5, p.ink),
             ),
             const SizedBox(height: 6),
-            for (final e in session.sets.entries)
-              Row(
-                children: [
-                  Expanded(child: Text((names[e.key] ?? e.key).toUpperCase(), style: display(15, p.ink))),
-                  TallyMarks(count: e.value, height: 14),
-                ],
-              ),
+            for (final e in session.exercises)
+              if (e.sets > 0)
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text('${exerciseName(e.exerciseId).toUpperCase()}  ${e.sets}/${e.targetSets}',
+                          style: display(15, p.ink)),
+                    ),
+                    TallyMarks(count: e.sets, height: 14),
+                  ],
+                ),
           ],
         ),
       ),
@@ -581,8 +650,8 @@ class _GameSessionTile extends StatelessWidget {
   }
 }
 
-class _OldSessionTile extends StatelessWidget {
-  const _OldSessionTile({required this.session});
+class _LegacyTile extends StatelessWidget {
+  const _LegacyTile({required this.session});
 
   final Session session;
 
@@ -594,15 +663,109 @@ class _OldSessionTile extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          Text(session.rested ? '😴' : '💪', style: const TextStyle(fontSize: 18)),
+          const Text('💪', style: TextStyle(fontSize: 18)),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              '${shortDate(parseDateKey(session.date)).toUpperCase()} · ${session.rested ? 'RESTED' : 'WORKED'}$took',
+              '${shortDate(parseDateKey(session.date)).toUpperCase()} · OLD WORKOUT$took',
               style: mono(12.5, p.ink),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// -------------------------------------------------------------------- gear
+
+/// One item per slot. The level unlocks items; the body never changes.
+class GearView extends StatelessWidget {
+  const GearView({super.key, required this.stage, required this.store, required this.onBack});
+
+  final Rect stage;
+  final LogStore store;
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Pal.of(context);
+    final level = levelFor(store.totalXp).level;
+    final gear = store.gear;
+    return Column(
+      children: [
+        ConstrainedBox(
+          constraints: BoxConstraints(minHeight: stage.bottom + 4),
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(16, stage.top + 4, stage.width + 20, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                BrutalButton(small: true, color: p.sky, onTap: onBack, child: const Text('◀ HUB')),
+                const SizedBox(height: 10),
+                Text('GEAR', style: display(26, p.ink)),
+                const SizedBox(height: 4),
+                Text('LEVELS UNLOCK GEAR. ONE ITEM PER SLOT.', style: mono(11.5, p.pink)),
+              ],
+            ),
+          ),
+        ),
+        Expanded(
+          child: ListView(
+            padding: EdgeInsets.fromLTRB(16, 8, 24, 30 + MediaQuery.paddingOf(context).bottom),
+            children: [
+              for (final slot in GearSlot.values) ...[
+                Shout(slot.name, color: p.violet, size: 14),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    for (final it in items.where((i) => i.slot == slot))
+                      _ItemChip(
+                        item: it,
+                        owned: gear.owned.contains(it.id),
+                        equipped: gear.equipped[slot.name] == it.id,
+                        onTap: () => store.equip(slot, gear.equipped[slot.name] == it.id ? null : it.id),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+              ],
+              Terminal([
+                'YOU ARE LVL $level.',
+                'THE GEAR ART COMES FROM THE DESIGN TEAM. FOR NOW: ICONS.',
+              ]),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ItemChip extends StatelessWidget {
+  const _ItemChip({required this.item, required this.owned, required this.equipped, required this.onTap});
+
+  final Item item;
+  final bool owned, equipped;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Pal.of(context);
+    return Opacity(
+      opacity: owned ? 1 : 0.45,
+      child: BrutalButton(
+        key: ValueKey('item-${item.id}'),
+        small: true,
+        color: equipped ? p.lime : p.panel,
+        onTap: owned ? onTap : null,
+        child: Text(
+          owned
+              ? '${item.icon} ${item.name.toUpperCase()}${equipped ? ' ✔' : ''}'
+              : '🔒 LVL ${item.unlockLevel} · ${item.name.toUpperCase()}',
+        ),
       ),
     );
   }

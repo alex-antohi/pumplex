@@ -47,7 +47,7 @@ class GymApp extends StatelessWidget {
 }
 
 /// Every view of the app. They are scenes of ONE screen (see GameShell).
-enum Scene { create, difficulty, area, summary, hub, workout, history }
+enum Scene { migrate, create, difficulty, area, summary, hub, workout, history, gear }
 
 /// Where the character stands in each scene, inside the content area.
 /// The views leave this rect free; the shell draws the one character there,
@@ -59,7 +59,8 @@ Rect stageRect(Scene s, Size a) {
     Scene.difficulty || Scene.area => Rect.fromLTWH(12, 8, w * 0.30, h * 0.22),
     Scene.summary => Rect.fromLTWH(0, 10, w, h * 0.40),
     Scene.hub => Rect.fromLTWH(0, 6, w, h * 0.34),
-    Scene.workout || Scene.history => Rect.fromLTWH(w * 0.70, 6, w * 0.26, h * 0.17),
+    Scene.migrate => Rect.fromLTWH(0, 10, w, h * 0.34),
+    Scene.workout || Scene.history || Scene.gear => Rect.fromLTWH(w * 0.70, 6, w * 0.26, h * 0.17),
   };
 }
 
@@ -78,7 +79,9 @@ class GameShell extends StatefulWidget {
 class _GameShellState extends State<GameShell> {
   LogStore get _store => widget.store;
 
-  late Scene _scene = _store.profile == null ? Scene.create : Scene.hub;
+  late Scene _scene = _store.hasOldData ? Scene.migrate : _startScene;
+
+  Scene get _startScene => _store.profile == null ? Scene.create : Scene.hub;
   Motion _motion = Motion.zoomIn;
 
   // Setup draft (the profile is only saved on LET'S GO).
@@ -110,7 +113,26 @@ class _GameShellState extends State<GameShell> {
   }
 
   void _onStore() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    setState(() {});
+    // Achievements and gear: a burst for the first, a message for the rest.
+    final news = _store.takeUnlocks();
+    if (news.isEmpty) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final u = news.first;
+      celebratePr(
+        context,
+        id: 'unlock-${u.name}-${DateTime.now().microsecondsSinceEpoch}',
+        title: u.title,
+        exercise: u.name,
+        big: 'LVL ${levelFor(_store.totalXp).level}',
+        sub: u.sub,
+      );
+      if (news.length > 1) {
+        _snack('ALSO UNLOCKED: ${news.skip(1).map((n) => n.name.toUpperCase()).join(', ')}.');
+      }
+    });
   }
 
   @override
@@ -128,12 +150,31 @@ class _GameShellState extends State<GameShell> {
     _areaId = areaById(p?.areaId).id;
   }
 
-  /// The session rule, every time the app is opened.
+  /// One session per calendar day: on open, a new day shows a new workout.
   void _checkSession() {
-    final closed = _store.onAppOpened();
-    if (closed == null || !mounted) return;
-    setState(() {});
-    _snack('LAST SESSION BANKED: ${closed.totalSets} SETS · +${LogStore.xpOf(closed)} XP.');
+    if (mounted) setState(() {});
+  }
+
+  /// The one-time migration: backup file first, or nothing changes.
+  Future<void> _upgrade() async {
+    bool saved;
+    try {
+      saved = await saveTextFile(
+        name: 'pumplex_old_data_${dateKey(DateTime.now())}.json',
+        mime: 'application/json',
+        content: _store.oldBackupJson(),
+      );
+    } on PlatformException catch (e) {
+      if (mounted) _snack('COULD NOT SAVE: ${e.message}. YOUR OLD DATA IS SAFE.');
+      return;
+    }
+    if (!mounted) return;
+    if (!saved) {
+      _snack('NO BACKUP, NO UPGRADE. YOUR OLD DATA IS SAFE.');
+      return;
+    }
+    await _store.migrateOld();
+    if (mounted) _go(_startScene);
   }
 
   void _go(Scene to, [Motion motion = Motion.zoomIn]) {
@@ -167,12 +208,13 @@ class _GameShellState extends State<GameShell> {
         title: "LET'S\nGO!!!",
         exercise: classById(_classId).name,
         big: 'LVL ${levelFor(_store.totalXp).level}',
-        sub: _store.oldXp > 0
-            ? 'OLD SAVES FOUND: +${_store.oldXp} XP (BETA).'
-            : 'THE BAR IS WAITING.',
+        sub: _legacyXp > 0 ? 'OLD SAVES: +$_legacyXp XP (BETA).' : 'THE BAR IS WAITING.',
       );
     }
   }
+
+  int get _legacyXp =>
+      _store.xpEvents.where((e) => e.source == 'legacy').fold(0, (a, e) => a + e.amount);
 
   void _editCharacter() {
     _resetDraft();
@@ -203,7 +245,7 @@ class _GameShellState extends State<GameShell> {
 
   void _swap(int i, int dir) {
     if (_store.swap(i, dir)) return;
-    _snack(_store.setsAt(i) > 0
+    _snack(_store.todayExercises[i].sets > 0
         ? 'SETS ALREADY DONE HERE. HOLD TO TAKE THEM AWAY, OR ADD AN EXERCISE.'
         : 'NO OTHER EXERCISE LEFT IN THE POOL.');
   }
@@ -226,8 +268,8 @@ class _GameShellState extends State<GameShell> {
         content: _store.backupJson(),
       );
       if (saved && mounted) {
-        final n = _store.sessions.length + _store.oldSessions.length;
-        _snack('BACKUP OF $n SESSIONS SAVED. GAINS: INSURED.');
+        final n = _store.history.length;
+        _snack('BACKUP OF $n TRAINING DAYS SAVED. GAINS: INSURED.');
       }
     } on PlatformException catch (e) {
       if (mounted) _snack('COULD NOT SAVE: ${e.message}');
@@ -273,9 +315,9 @@ class _GameShellState extends State<GameShell> {
     if (!mounted) return;
     _resetDraft();
     _editing = false;
-    _go(_store.profile == null ? Scene.create : Scene.hub, Motion.zoomOut);
+    _go(_store.hasOldData ? Scene.migrate : _startScene, Motion.zoomOut);
     setState(() {});
-    _snack('RESTORED ${_store.sessions.length + _store.oldSessions.length} SESSIONS.');
+    _snack('RESTORED ${_store.history.length} TRAINING DAYS.');
   }
 
   // ------------------------------------------------------------------ build
@@ -283,6 +325,7 @@ class _GameShellState extends State<GameShell> {
   String get _info {
     final l = levelFor(_store.totalXp).level;
     return switch (_scene) {
+      Scene.migrate => 'OLD SAVE · ONE-TIME UPGRADE',
       Scene.create => 'CHARACTER · STEP 1 OF 4',
       Scene.difficulty => 'DIFFICULTY · STEP 2 OF 4',
       Scene.area => 'STARTING AREA · STEP 3 OF 4',
@@ -290,16 +333,18 @@ class _GameShellState extends State<GameShell> {
       Scene.hub => 'LVL $l · ${_store.gameClass.name.toUpperCase()} · ${areaById(_store.profile?.areaId).name.toUpperCase()}',
       Scene.workout => 'WORKOUT · ${_store.todaySession?.totalSets ?? 0} SETS · LVL $l',
       Scene.history => 'PAST SESSIONS · LVL $l',
+      Scene.gear => 'GEAR · LVL $l',
     };
   }
 
   /// Android back: one step back in the flow, never out of the app mid-flow.
   Scene? get _backTo => switch (_scene) {
+        Scene.migrate => null,
         Scene.create => _editing ? Scene.hub : null,
         Scene.difficulty => Scene.create,
         Scene.area => Scene.difficulty,
         Scene.summary => Scene.area,
-        Scene.workout || Scene.history => Scene.hub,
+        Scene.workout || Scene.history || Scene.gear => Scene.hub,
         Scene.hub => null,
       };
 
@@ -311,6 +356,13 @@ class _GameShellState extends State<GameShell> {
   }
 
   Widget _view(Scene s, Rect stage) => switch (s) {
+        Scene.migrate => MigrateView(
+            stage: stage,
+            oldWorkouts: _store.oldWorkoutCount,
+            onUpgrade: _upgrade,
+            onLater: () => _go(_startScene),
+          ),
+        Scene.gear => GearView(stage: stage, store: _store, onBack: _back),
         Scene.create => CreateView(
             stage: stage,
             character: _char,
@@ -349,6 +401,7 @@ class _GameShellState extends State<GameShell> {
             onTrain: () => _go(Scene.workout),
             onHistory: () => _go(Scene.history, Motion.slideRight),
             onBody: _editCharacter,
+            onGear: () => _go(Scene.gear),
           ),
         Scene.workout => WorkoutView(
             stage: stage,
