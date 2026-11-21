@@ -3,11 +3,16 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'dates.dart';
-import 'day_page.dart';
 import 'files.dart';
-import 'program.dart';
+import 'game/content.dart';
+import 'game/model.dart';
+import 'game/rules.dart';
 import 'pumplex.dart';
 import 'store.dart';
+import 'views/play.dart';
+import 'views/scene.dart';
+import 'views/setup.dart';
+import 'views/sprite.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,99 +41,170 @@ class GymApp extends StatelessWidget {
         ),
         builder: (context, on, child) => CelFilter(on: on, child: child!),
       ),
-      home: SessionPager(store: store),
+      home: GameShell(store: store),
     );
   }
 }
 
-/// One page per session: past ones to the right (swipe right to go back),
-/// the current one, then previews. The current session stays until
-/// I WORKED / I RESTED.
-class SessionPager extends StatefulWidget {
-  const SessionPager({super.key, required this.store});
+/// Every view of the app. They are scenes of ONE screen (see GameShell).
+enum Scene { create, difficulty, area, summary, hub, workout, history }
+
+/// Where the character stands in each scene, inside the content area.
+/// The views leave this rect free; the shell draws the one character there,
+/// so it glides from place to place when the scene changes.
+Rect stageRect(Scene s, Size a) {
+  final w = a.width, h = a.height;
+  return switch (s) {
+    Scene.create => Rect.fromLTWH(0, 8, w, h * 0.36),
+    Scene.difficulty || Scene.area => Rect.fromLTWH(12, 8, w * 0.30, h * 0.22),
+    Scene.summary => Rect.fromLTWH(0, 10, w, h * 0.40),
+    Scene.hub => Rect.fromLTWH(0, 6, w, h * 0.34),
+    Scene.workout || Scene.history => Rect.fromLTWH(w * 0.70, 6, w * 0.26, h * 0.17),
+  };
+}
+
+/// The whole app is this one screen. Views change with a camera move
+/// (SceneSwitcher) and the character moves with them. No routes are pushed,
+/// so nothing ever flashes blank.
+class GameShell extends StatefulWidget {
+  const GameShell({super.key, required this.store});
 
   final LogStore store;
 
   @override
-  State<SessionPager> createState() => _SessionPagerState();
+  State<GameShell> createState() => _GameShellState();
 }
 
-class _SessionPagerState extends State<SessionPager> {
+class _GameShellState extends State<GameShell> {
   LogStore get _store => widget.store;
 
-  /// Upcoming sessions you can swipe ahead to (read-only).
-  static const _preview = 6;
+  late Scene _scene = _store.profile == null ? Scene.create : Scene.hub;
+  Motion _motion = Motion.zoomIn;
 
-  late PageController _controller = PageController(initialPage: _store.currentN - 1);
-  late int _page = _store.currentN - 1;
-  int _generation = 0; // bumped after a restore to rebuild all pages
-  bool _loaded = false;
+  // Setup draft (the profile is only saved on LET'S GO).
+  late Character _char;
+  late String _classId, _difficultyId, _areaId;
+  bool _editing = false;
 
-  int get _n => _page + 1;
+  late final AppLifecycleListener _life;
+
+  @override
+  void initState() {
+    super.initState();
+    _resetDraft();
+    _life = AppLifecycleListener(onResume: _checkSession);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkSession());
+  }
+
+  bool _precached = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_precached) return;
+    _precached = true;
+    for (final a in allSpriteAssets) {
+      precacheImage(AssetImage(a), context);
+    }
+  }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _life.dispose();
     super.dispose();
   }
 
-  void _goTo(int page, {bool animate = true}) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_controller.hasClients) return;
-      if (animate && (page - _page).abs() <= 3) {
-        _controller.animateToPage(page,
-            duration: const Duration(milliseconds: 550), curve: Curves.easeOutBack);
-      } else {
-        _controller.jumpToPage(page);
-      }
+  void _resetDraft() {
+    final p = _store.profile;
+    _char = p?.character ?? const Character();
+    _classId = classById(p?.classId).id;
+    _difficultyId = difficulties[difficultyIndex(p?.difficultyId)].id;
+    _areaId = areaById(p?.areaId).id;
+  }
+
+  /// The session rule, every time the app is opened.
+  void _checkSession() {
+    final closed = _store.onAppOpened();
+    if (closed == null || !mounted) return;
+    setState(() {});
+    _snack('LAST SESSION BANKED: ${closed.totalSets} SETS · +${LogStore.xpOf(closed)} XP.');
+  }
+
+  void _go(Scene to, [Motion motion = Motion.zoomIn]) {
+    if (to == _scene) return;
+    setState(() {
+      _scene = to;
+      _motion = motion;
     });
   }
 
-  void _snack(String text, {SnackBarAction? action}) => ScaffoldMessenger.of(context)
+  void _snack(String text) => ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(
-      content: Text(text),
-      action: action,
-      duration: Duration(seconds: action == null ? 4 : 6),
+    ..showSnackBar(SnackBar(content: Text(text), duration: const Duration(seconds: 4)));
+
+  // ------------------------------------------------------------------ setup
+
+  void _finishSetup() {
+    _store.setProfile(Profile(
+      character: _char,
+      classId: _classId,
+      difficultyId: _difficultyId,
+      areaId: _areaId,
     ));
-
-  /// I WORKED / I RESTED on the current session.
-  void _complete() {
-    final n = _store.currentN;
-    final workout = program[_store.dayOf(n)];
-    final rested = workout == null;
-    _store.complete(rested: rested);
-    final took = _store.sessions.last.duration;
-    final next = program[_store.dayOf(_store.currentN)];
-    celebratePr(
-      context,
-      id: 'done-$n-${DateTime.now().microsecondsSinceEpoch}',
-      title: rested ? 'REST\nLOGGED' : 'DAY\nDONE!!!',
-      exercise: rested ? 'Rest day' : workout.title,
-      big: took == null ? 'SESSION $n' : '⏱ ${fmtDuration(took)}',
-      sub: 'NEXT UP: ${(next?.title ?? 'Rest day').toUpperCase()}.\nTHE BAR IS WAITING.',
-    );
-    setState(() {});
-    _goTo(_store.currentN - 1);
-    _snack(
-      rested ? 'REST DAY LOCKED IN.' : 'WORKOUT LOCKED IN.',
-      action: SnackBarAction(label: 'UNDO', textColor: kNight, onPressed: _undo),
-    );
+    final first = !_editing;
+    _editing = false;
+    _go(Scene.hub);
+    if (first) {
+      celebratePr(
+        context,
+        id: 'welcome-${DateTime.now().microsecondsSinceEpoch}',
+        title: "LET'S\nGO!!!",
+        exercise: classById(_classId).name,
+        big: 'LVL ${levelFor(_store.totalXp).level}',
+        sub: _store.oldXp > 0
+            ? 'OLD SAVES FOUND: +${_store.oldXp} XP (BETA).'
+            : 'THE BAR IS WAITING.',
+      );
+    }
   }
 
-  void _undo() {
-    if (!_store.undoComplete()) return;
-    setState(() {});
-    _goTo(_store.currentN - 1);
+  void _editCharacter() {
+    _resetDraft();
+    _editing = true;
+    _go(Scene.create, Motion.zoomOut);
   }
+
+  // ---------------------------------------------------------------- workout
+
+  void _addSet(Exercise e) {
+    final before = levelFor(_store.totalXp).level;
+    _store.addSet(e.id);
+    final after = levelFor(_store.totalXp).level;
+    if (after > before) {
+      celebratePr(
+        context,
+        id: 'level-$after-${DateTime.now().microsecondsSinceEpoch}',
+        title: 'LEVEL\nUP!!!',
+        exercise: _store.gameClass.name,
+        big: 'LVL $after',
+        sub: 'MORE XP. SAME BAR. KEEP GOING.',
+      );
+    }
+    setState(() {});
+  }
+
+  void _removeSet(Exercise e) {
+    _store.removeSet(e.id);
+    setState(() {});
+  }
+
+  // ------------------------------------------------------------------- menu
 
   void _toggleCel() {
     final on = !_store.cel.value;
     _store.setCel(on);
     if (on && !CelFilter.supported) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('CEL SHADER needs the Impeller renderer; this phone draws without it.')),
-      );
+      _snack('CEL SHADER needs the Impeller renderer; this phone draws without it.');
     }
   }
 
@@ -140,7 +216,8 @@ class _SessionPagerState extends State<SessionPager> {
         content: _store.backupJson(),
       );
       if (saved && mounted) {
-        _snack('BACKUP OF ${_store.sessions.length} SESSIONS SAVED. GAINS: INSURED.');
+        final n = _store.sessions.length + _store.oldSessions.length;
+        _snack('BACKUP OF $n SESSIONS SAVED. GAINS: INSURED.');
       }
     } on PlatformException catch (e) {
       if (mounted) _snack('COULD NOT SAVE: ${e.message}');
@@ -184,93 +261,167 @@ class _SessionPagerState extends State<SessionPager> {
       return;
     }
     if (!mounted) return;
-    final old = _controller;
-    setState(() {
-      _generation++;
-      _page = _store.currentN - 1;
-      _controller = PageController(initialPage: _page);
-    });
-    WidgetsBinding.instance.addPostFrameCallback((_) => old.dispose());
-    _snack('RESTORED ${_store.sessions.length} SESSIONS.');
+    _resetDraft();
+    _editing = false;
+    _go(_store.profile == null ? Scene.create : Scene.hub, Motion.zoomOut);
+    setState(() {});
+    _snack('RESTORED ${_store.sessions.length + _store.oldSessions.length} SESSIONS.');
   }
+
+  // ------------------------------------------------------------------ build
+
+  String get _info {
+    final l = levelFor(_store.totalXp).level;
+    return switch (_scene) {
+      Scene.create => 'CHARACTER · STEP 1 OF 4',
+      Scene.difficulty => 'DIFFICULTY · STEP 2 OF 4',
+      Scene.area => 'STARTING AREA · STEP 3 OF 4',
+      Scene.summary => 'READY? · STEP 4 OF 4',
+      Scene.hub => 'LVL $l · ${_store.gameClass.name.toUpperCase()} · ${areaById(_store.profile?.areaId).name.toUpperCase()}',
+      Scene.workout => 'WORKOUT · ${_store.open?.totalSets ?? 0} SETS · LVL $l',
+      Scene.history => 'PAST SESSIONS · LVL $l',
+    };
+  }
+
+  /// Android back: one step back in the flow, never out of the app mid-flow.
+  Scene? get _backTo => switch (_scene) {
+        Scene.create => _editing ? Scene.hub : null,
+        Scene.difficulty => Scene.create,
+        Scene.area => Scene.difficulty,
+        Scene.summary => Scene.area,
+        Scene.workout || Scene.history => Scene.hub,
+        Scene.hub => null,
+      };
+
+  void _back() {
+    final to = _backTo;
+    if (to == null) return;
+    if (_scene == Scene.create) _editing = false;
+    _go(to, _scene == Scene.history ? Motion.slideLeft : Motion.zoomOut);
+  }
+
+  Widget _view(Scene s, Rect stage) => switch (s) {
+        Scene.create => CreateView(
+            stage: stage,
+            character: _char,
+            classId: _classId,
+            onCharacter: (c) => setState(() => _char = c),
+            onClass: (id) => setState(() => _classId = id),
+            onNext: () => _go(Scene.difficulty),
+          ),
+        Scene.difficulty => DifficultyView(
+            stage: stage,
+            difficultyId: _difficultyId,
+            onPick: (id) => setState(() => _difficultyId = id),
+            onBack: _back,
+            onNext: () => _go(Scene.area),
+          ),
+        Scene.area => AreaView(
+            stage: stage,
+            areaId: _areaId,
+            onPick: (id) => setState(() => _areaId = id),
+            onBack: _back,
+            onNext: () => _go(Scene.summary),
+          ),
+        Scene.summary => SummaryView(
+            stage: stage,
+            classId: _classId,
+            difficultyId: _difficultyId,
+            areaId: _areaId,
+            editing: _editing,
+            onEdit: (step) => _go(const [Scene.create, Scene.difficulty, Scene.area][step], Motion.zoomOut),
+            onBack: _back,
+            onGo: _finishSetup,
+          ),
+        Scene.hub => HubView(
+            stage: stage,
+            store: _store,
+            onTrain: () => _go(Scene.workout),
+            onHistory: () => _go(Scene.history, Motion.slideRight),
+          ),
+        Scene.workout => WorkoutView(
+            stage: stage,
+            store: _store,
+            onAdd: _addSet,
+            onRemove: _removeSet,
+            onBack: _back,
+          ),
+        Scene.history => HistoryView(stage: stage, store: _store, onBack: _back),
+      };
+
+  bool get _inSetup => _scene.index <= Scene.summary.index;
 
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
-    final current = _store.currentN;
-    final n = _n.clamp(1, current + _preview);
-    final when = n == current
-        ? 'NOW'
-        : n > current
-            ? 'PREVIEW'
-            : shortDate(_store.dateOf(n)).toUpperCase();
-    final info = 'SESSION $n · DAY ${_store.dayOf(n)}/7 · $when';
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
-      child: Scaffold(
-        body: DotBackground(
-          child: Stack(
-            children: [
-              Column(
-                children: [
-                  Container(
-                    color: kNight,
-                    child: const SafeArea(bottom: false, child: Ticker(items: tickerItems)),
-                  ),
-                  _TopBar(
-                    info: info,
-                    menu: PopupMenuButton<VoidCallback>(
-                      icon: Icon(Icons.more_vert, color: p.ink, size: 28),
-                      onSelected: (action) => action(),
-                      itemBuilder: (context) => [
-                        PopupMenuItem(value: _saveBackup, child: const Text('💾  SAVE BACKUP FILE')),
-                        PopupMenuItem(value: _restoreBackup, child: const Text('♻️  RESTORE BACKUP FILE')),
-                        PopupMenuItem(
-                          value: () => _store.setChaos(!_store.chaos.value),
-                          child: Text(_store.chaos.value ? '🌀  CHAOS MODE: ON!!!' : '🌀  CHAOS MODE: OFF'),
-                        ),
-                        PopupMenuItem(
-                          value: _toggleCel,
-                          child: Text(_store.cel.value ? '🖍️  CEL SHADER: ON!!!' : '🖍️  CEL SHADER: OFF'),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(height: 6, color: p.violet),
-                  Expanded(
-                    child: PageView.builder(
-                      key: ValueKey(_generation),
-                      controller: _controller,
-                      // Past sessions, the current one, then the rest of the week as previews.
-                      itemCount: current + _preview,
-                      onPageChanged: (page) => setState(() => _page = page),
-                      itemBuilder: (context, page) => DayPage(
-                        n: page + 1,
-                        store: _store,
-                        onComplete: _complete,
+    // In setup the character shows the draft; in play, the saved profile.
+    final profile = _store.profile;
+    final char = _inSetup || profile == null ? _char : profile.character;
+    final classId = _inSetup || profile == null ? _classId : profile.classId;
+    return PopScope(
+      canPop: _backTo == null,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _back();
+      },
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: SystemUiOverlayStyle.light,
+        child: Scaffold(
+          body: DotBackground(
+            child: Column(
+              children: [
+                Container(
+                  color: kNight,
+                  child: const SafeArea(bottom: false, child: Ticker(items: tickerItems)),
+                ),
+                _TopBar(
+                  info: _info,
+                  menu: PopupMenuButton<VoidCallback>(
+                    icon: Icon(Icons.more_vert, color: p.ink, size: 28),
+                    onSelected: (action) => action(),
+                    itemBuilder: (context) => [
+                      if (profile != null && !_inSetup)
+                        PopupMenuItem(value: _editCharacter, child: const Text('🧬  EDIT CHARACTER')),
+                      PopupMenuItem(value: _saveBackup, child: const Text('💾  SAVE BACKUP FILE')),
+                      PopupMenuItem(value: _restoreBackup, child: const Text('♻️  RESTORE BACKUP FILE')),
+                      PopupMenuItem(
+                        value: () => _store.setChaos(!_store.chaos.value),
+                        child: Text(_store.chaos.value ? '🌀  CHAOS MODE: ON!!!' : '🌀  CHAOS MODE: OFF'),
                       ),
-                    ),
-                  ),
-                ],
-              ),
-              // Floating, so the top bar never changes shape while swiping.
-              Positioned(
-                right: 20,
-                bottom: 22 + MediaQuery.paddingOf(context).bottom,
-                child: AnimatedScale(
-                  scale: n != current ? 1 : 0,
-                  duration: const Duration(milliseconds: 180),
-                  curve: Curves.easeOutBack,
-                  child: BrutalButton(
-                    color: p.orange,
-                    onTap: n != current ? () => _goTo(current - 1) : null,
-                    child: const Text('↩ NOW'),
+                      PopupMenuItem(
+                        value: _toggleCel,
+                        child: Text(_store.cel.value ? '🖍️  CEL SHADER: ON!!!' : '🖍️  CEL SHADER: OFF'),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-              if (!_loaded)
-                Positioned.fill(child: Preloader(onDone: () => setState(() => _loaded = true))),
-            ],
+                Container(height: 6, color: p.violet),
+                Expanded(
+                  child: LayoutBuilder(builder: (context, box) {
+                    final stage = stageRect(_scene, box.biggest);
+                    return Stack(
+                      children: [
+                        Positioned.fill(
+                          child: SceneSwitcher(
+                            scene: _scene,
+                            motion: _motion,
+                            child: _view(_scene, stage),
+                          ),
+                        ),
+                        // The one character, shared by every scene.
+                        AnimatedPositioned.fromRect(
+                          rect: stage,
+                          duration: const Duration(milliseconds: 560),
+                          curve: Curves.easeInOutCubic,
+                          child: IgnorePointer(
+                            child: CharacterSprite(character: char, classId: classId),
+                          ),
+                        ),
+                      ],
+                    );
+                  }),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -302,7 +453,7 @@ class _TopBar extends StatelessWidget {
                 const MegaText('PUMPLEX™', size: 30),
                 const SizedBox(height: 5),
                 // Always one line (shrinks instead of wrapping), cross-fades
-                // when the page changes.
+                // when the scene changes.
                 SizedBox(
                   height: 18,
                   width: double.infinity,

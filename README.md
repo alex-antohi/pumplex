@@ -8,21 +8,22 @@ The plan is in [docs/app-brief.md](docs/app-brief.md) and
 
 ## What works now
 
-- The program runs on **sessions**, not the calendar: a 7-day pattern of
-  workout and rest days. The day only moves on when you press
-  **I WORKED 💪** or **I RESTED 😴**. UNDO shows for 6 seconds.
-- **START TRAINING ▶** starts a clock; I WORKED stops it. Past sessions show
-  how long they took.
-- Swipe right for past sessions, left to preview the next 6. The floating
-  "↩ NOW" goes back.
-- Rest days show THE STATS™: workouts, rest days, time trained.
-- Menu (⋮): save / restore a backup file, chaos mode, **cel shader**
-  (`shaders/cel.frag`: flat toon bands and ink outlines over the whole app;
-  needs Impeller, which Android uses by default).
+- **First launch:** a WoW-style character screen (sex, height, muscle, fat %
+  sliders, class by equipment), then difficulty, starting area and LET'S GO.
+- **Hub:** the 2D character, the level and XP bar, today's workout.
+- **Workout:** one card per exercise. Tap = one working set, long-press =
+  one less. No reps, no kilos. XP = sets × XP per set × difficulty.
+- **Free-form sessions:** no calendar, no buttons to start or stop. The rule
+  is in [docs/app-flow.md](docs/app-flow.md) §4.4.
+- The whole app is one screen: views change with a camera zoom or slide.
+- Old sessions (`sessions_v2`) give beta XP and show in PAST.
+- Menu (⋮): edit character, save / restore a backup file, chaos mode,
+  **cel shader** (`shaders/cel.frag`; needs Impeller).
 
-The workout system (exercises from class, equipment and difficulty) is being
-rebuilt. The old fixed exercises, sets and reps were removed. Data logged with
-them stays in storage and in backup files.
+Code map: game numbers in `lib/game/rules.dart`, names (classes, exercises,
+difficulties, areas) in `lib/game/content.dart`, the temporary data model in
+`lib/game/model.dart`, views in `lib/views/`. Old logged sets and swaps stay
+in storage and in backup files.
 
 ## Build
 

@@ -104,9 +104,9 @@ The final class names come from the design phase.
 ## 6. Core loop
 
 1. Open the app (any time).
-2. See today's workout for your class. Press START TRAINING.
-3. Do each exercise. Mark the working sets (shells, wall marks, and so on).
-4. Press I WORKED. Get XP. See the character and the level change.
+2. See today's workout for your class on the hub. Tap it.
+3. Do each exercise. Tap the card for each working set (later: shells, wall marks, and so on).
+4. Get XP for each set. See the level change. The session closes by itself (app-flow.md §4.4).
 
 ## 7. The app today (main)
 
@@ -114,9 +114,9 @@ The final class names come from the design phase.
 |---|---|
 | Fixed exercises, sets, reps, kg, rep-outs, PRs, swaps, CSV | Removed (21 Nov). |
 | Alex / Anca flavors | Removed. One app id: `com.alex.gym_app`. |
-| Sessions, START TRAINING clock, history swipes, backup | Kept. |
-| 7-day workout / rest pattern, I RESTED, rest-day stats | Still in the code. Must change to free-form sessions (4.4). |
-| CEL SHADER mode | Added by a colleague on `main` (`shaders/cel.frag`). Not merged with the local clean-up yet. |
+| Old sessions (`sessions_v2`), backup | Kept. Old sessions give beta XP and show in history. |
+| 7-day pattern, START TRAINING, I WORKED / I RESTED, preloader | Removed (21 Nov). Free-form sessions, hub, set counting, XP and character creation built. |
+| CEL SHADER mode | Kept (`shaders/cel.frag`). |
 | Old logged sets and swaps | Kept in storage and in backups, untouched. |
 
 ## 8. Next documents

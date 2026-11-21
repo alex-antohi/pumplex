@@ -595,30 +595,10 @@ const tickerItems = [
   'DOCTOR-ADJACENT PROGRAMMING',
   'FREE PUMP WITH EVERY REP (PUMP NOT GUARANTEED)',
   "THE BAR WON'T LIFT ITSELF. WE ASKED.",
-  'LIGHT DAYS ARE NOT LIGHT. WE CHECKED.',
+  'NO CALENDAR. NO EXCUSES. JUST SETS.',
   "100% LOCAL DATA. THE CLOUD COULDN'T HANDLE IT",
   'TRAIN, NOT TRACK',
 ];
-
-const _dayTags = [
-  'LIFTING, BUT WORSE.',
-  'GAINS, BUT LOUDER.',
-  'PAIN, BUT ORGANISED.',
-  'SQUATS, BUT MORE.',
-  'CARDIO, BUT NO.',
-  'SUFFERING, BUT CONJUGATED.',
-  'IRON, BUT PERSONAL.',
-];
-
-const _restTags = [
-  'RECOVERY, BUT HARDER.',
-  'NOTHING, BUT ON PURPOSE.',
-  'GAINS, BUT HORIZONTAL.',
-];
-
-/// Tagline for session [n] (stable per session).
-String dayTag(int n) => _dayTags[n % _dayTags.length];
-String restTag(int n) => _restTags[n % _restTags.length];
 
 /// PRs already celebrated this run, so each one explodes only once.
 final _celebrated = <String>{};
@@ -775,142 +755,6 @@ class _Confetti extends CustomPainter {
 
   @override
   bool shouldRepaint(_Confetti old) => old.t != t;
-}
-
-/// Fake loader that loads nothing. Short, and tapping actually skips it.
-class Preloader extends StatefulWidget {
-  const Preloader({super.key, required this.onDone});
-
-  final VoidCallback onDone;
-
-  @override
-  State<Preloader> createState() => _PreloaderState();
-}
-
-class _PreloaderState extends State<Preloader> with SingleTickerProviderStateMixin {
-  late final _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 2200));
-  static const _msgs = [
-    'Calibrating carbs…',
-    'Reticulating biceps…',
-    'Asking the barbell for permission…',
-    'Almost there…',
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    _c.forward().whenComplete(widget.onDone);
-  }
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  /// Progress bar that stalls at 61% and never passes 99%.
-  double _bar(double t) {
-    const points = [(0.0, 0.0), (0.3, 0.6), (0.45, 0.61), (0.8, 0.98), (1.0, 0.99)];
-    for (var i = 1; i < points.length; i++) {
-      if (t <= points[i].$1) {
-        final (t0, v0) = points[i - 1];
-        final (t1, v1) = points[i];
-        return v0 + (v1 - v0) * ((t - t0) / (t1 - t0));
-      }
-    }
-    return 0.99;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final p = Pal.of(context);
-    return GestureDetector(
-      onTap: widget.onDone,
-      child: AnimatedBuilder(
-        animation: _c,
-        builder: (context, _) {
-          final t = _c.value;
-          final load = (t / 0.85).clamp(0.0, 1.0);
-          final f = _bar(load);
-          final shake = const [Offset.zero, Offset(2, -2), Offset(-2, 2), Offset(2, 2)][
-              (t * 2200 / 60).floor() % 4];
-          return Opacity(
-            opacity: t < 0.85 ? 1 : (1 - (t - 0.85) / 0.15).clamp(0.0, 1.0),
-            child: Container(
-              color: kNight,
-              alignment: Alignment.center,
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Transform.translate(
-                    offset: shake,
-                    child: Text('PUMPLEX™', style: display(60, p.lime)),
-                  ),
-                  const SizedBox(height: 20),
-                  Container(
-                    width: 280,
-                    height: 34,
-                    padding: const EdgeInsets.all(3),
-                    decoration: BoxDecoration(border: Border.all(color: p.lime, width: 4)),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: FractionallySizedBox(
-                        widthFactor: f,
-                        child: CustomPaint(
-                          painter: _Barber(t, p.pink, p.orange),
-                          child: const SizedBox.expand(),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  Text('${(f * 100).floor()}%', style: mono(22, p.lime)),
-                  const SizedBox(height: 8),
-                  Text(_msgs[(load * 4).floor().clamp(0, 3)], style: mono(15, Colors.white)),
-                  const SizedBox(height: 22),
-                  Text(
-                    'Tap to skip (this one actually works)',
-                    style: mono(12, Colors.white.withValues(alpha: 0.55)),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _Barber extends CustomPainter {
-  _Barber(this.t, this.a, this.b);
-
-  final double t;
-  final Color a;
-  final Color b;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.clipRect(Offset.zero & size);
-    canvas.drawRect(Offset.zero & size, Paint()..color = b);
-    final paint = Paint()..color = a;
-    final shift = (t * 2200 / 500 % 1) * 24;
-    for (var x = -size.height - 24 + shift; x < size.width + 24; x += 24) {
-      canvas.drawPath(
-        Path()
-          ..moveTo(x, size.height)
-          ..lineTo(x + 12, size.height)
-          ..lineTo(x + 12 + size.height, 0)
-          ..lineTo(x + size.height, 0)
-          ..close(),
-        paint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(_Barber old) => true;
 }
 
 /// Chaos mode: the whole app slowly cycles through every hue.

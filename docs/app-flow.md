@@ -1,132 +1,143 @@
 # PUMPLEX app flow
 
-Date: 21 November 2026. Status: draft v2.
+Date: 21 November 2026. Status: draft v3 (built on branch `claude/game-flow-2dbf96`).
 Read with [app-brief.md](app-brief.md), `pumplex.drawio` and `docs/moodboard/`.
 
-Status key: **exists** = in the app now. **change** = in the app, must change. **new** = not built.
+Status key: **exists** = in the app now. **later** = waits for the design team or the rules table.
 
 ## 1. Overview
 
 The app has 2 parts:
 
 1. **Initial setup** (first launch only): character, class, difficulty, starting area.
-2. **Play** (any time): pick up a workout, count the working sets, get the reward.
+2. **Play** (any time): open the workout, count the working sets, get XP.
 
-There is no calendar and no 7-day plan. The user opens the app when they want, like a video game.
+There is no calendar, no 7-day plan, no START TRAINING clock and no I WORKED button.
+The user opens the app when they want, like a video game.
+
+The whole app is **one screen**. Views are scenes of that screen. A change of view is a
+camera move (zoom in, zoom out or slide), and the one character glides to its new place.
+The app never pushes a new route for a view, so it never flashes a blank screen.
 
 ```mermaid
 flowchart TD
-    launch([Open the app]) --> setupDone{Setup done?}
-    setupDone -- no --> char[Character creation: sliders]
-    char --> cls[Class: pick by equipment]
-    cls --> diff[Difficulty: fantasy-named levels]
+    launch([Open the app]) --> rule[Session rule: close a stale session]
+    rule --> setupDone{Setup done?}
+    setupDone -- no --> char[Character + class: sliders, class icons]
+    char --> diff[Difficulty: fantasy-named levels]
     diff --> area[Starting area]
-    area --> summary[Setup summary]
+    area --> summary[Summary: LET'S GO]
     summary --> hub
-    setupDone -- yes --> hub[Hub: character and next workout]
+    setupDone -- yes --> hub[Hub: character, level, XP bar, today's workout]
 
-    hub --> start[START TRAINING]
-    start --> work[Workout: mark working sets per exercise]
-    work --> worked[I WORKED]
-    worked --> reward[Reward: XP, level, character]
-    reward --> hub
+    hub -- tap the workout card --> work[Workout: tap = +1 working set, hold = -1]
+    work -- each set --> xp[XP and level-up burst]
+    work -- HUB --> hub
 
-    hub -. swipe / button .-> history[Past sessions]
-    hub -. menu .-> menu[Profile, backup, settings]
+    hub -. PAST .-> history[Past sessions]
+    hub -. menu .-> menu[Edit character, backup, chaos, cel shader]
 ```
 
-## 2. Screens
+## 2. Screens (scenes)
 
-| # | Screen | Status | Purpose |
+| # | Scene | Status | Purpose |
 |---|---|---|---|
-| 1 | Preloader | exists | Short fake loader. Tap to skip. |
-| 2 | Character creation | new | Sliders for height, muscle size and fat %. A 2D character changes live. |
-| 3 | Class | new | Pick your equipment. Each equipment type is one class. |
-| 4 | Difficulty | new | Pick one of many fantasy-named levels, beginner to expert. |
-| 5 | Starting area | new | The world you train in. Sets the look, palette and set marks. |
-| 6 | Setup summary | new | Shows the character, class, difficulty and area. "LET'S GO". |
-| 7 | Hub | change | The character, the level and the next workout. Today this is the session page with a 7-day pattern. |
-| 8 | Workout | new | The exercises. Mark the working sets for each one. |
-| 9 | Reward | new | XP, level-up, character change. (The DAY DONE burst exists.) |
-| 10 | Past sessions | exists | What you did and how long it took. Read-only. |
-| 11 | Profile | new | Character, class, difficulty, level, XP to the next level. |
-| 12 | Menu | exists | Backup, restore, chaos mode, cel shader (colleague's branch). |
+| 1 | Character + class | exists | WoW-style: the character large in the centre on a pedestal. Sex toggle, 🎲 random, class icons row, sliders for height, muscle and fat %. Changes live. |
+| 2 | Difficulty | exists | 12 fantasy-named levels, beginner to years of lifting. Shows the XP multiplier. |
+| 3 | Starting area | exists | 2 placeholder areas. Real areas come from the design team. |
+| 4 | Summary | exists | Class, gear, difficulty, area. Tap a row to change it. LET'S GO (or SAVE when editing). |
+| 5 | Hub | exists | The character, the level and XP bar, today's workout card. |
+| 6 | Workout | exists | One card per exercise. Tap adds a working set, long-press removes one. Tally marks. |
+| 7 | Reward | exists | XP shows on each card. A level-up burst when you reach a new level. |
+| 8 | Past sessions | exists | Game sessions (sets per exercise, time, XP) and the old saves (beta XP). |
+| 9 | Menu | exists | Edit character, save / restore backup, chaos mode, cel shader. |
 
-Removed from the old flow: rest days, I RESTED, previews of the next days, the 7-day pattern.
+Removed: the preloader, START TRAINING and its clock, I WORKED / I RESTED and UNDO,
+the 7-day pattern, rest days, rest-day stats and the preview pages.
 
-## 3. Initial setup (new)
+## 3. Initial setup
 
-Show it on the first launch only. One screen, one choice, big buttons.
+Show it on the first launch, and again from the menu (EDIT CHARACTER).
 
-1. **Character creation.**
-   - Pick male or female.
-   - Sliders: height, muscle size, fat %. The pixel character changes as you move a slider
-     (mood board: 3 × 3 fat × muscle sprites per sex; values in between need more frames).
-   - The user never types a weight or a height.
-2. **Class.** "What do you train with?"
+1. **Character + class.**
+   - Pick male or female. Sliders: height, muscle size, fat %. The user never types a weight or a height.
+   - Sprites: mood board body sliders (fat 0/50/100 × muscle 0/50/100 per sex). The app shows the
+     nearest frame for in-between values and stretches the sprite vertically for height.
+     Nearest-neighbour scaling only.
+   - "What do you train with?" One class per equipment type (working names in `lib/game/content.dart`):
 
-   | Pick | Class (working name) |
-   |---|---|
-   | Nothing | Speedy class: cardio, push-ups, burpees, sprints, jumps |
-   | A basic home gym | Rogue-like class: floor work, some cardio, some weights |
-   | A lot of free weights | Warrior / paladin: burly strongman |
-   | A lot of machines | Mage / assassin: stringy and strong |
+     | Pick | Class (working name) |
+     |---|---|
+     | Nothing | Speedster: cardio, push-ups, burpees, sprints, jumps |
+     | A basic home gym | Rogue: floor work, some cardio, some weights |
+     | A lot of free weights | Warrior: burly strongman |
+     | A lot of machines | Mage: stringy and strong |
 
-3. **Difficulty.** A long list of levels with fantasy names (names come from the design work).
-   Each level has a one-line description, from "never lifted" to "years of lifting".
-4. **Starting area.** Comes from the mood board. Sets the background, the palette and the set-mark style.
-5. **Setup summary.** Shows all 4 choices on one card. Press LET'S GO.
+     Until the class outfits are drawn, the class shows as the pedestal colour, a prop icon and a name tag.
+2. **Difficulty.** 12 levels with our own fantasy names (placeholders, `lib/game/content.dart`).
+3. **Starting area.** Placeholders. Later: background, palette and set-mark style.
+4. **Summary.** LET'S GO saves the profile. If the phone has old sessions, the welcome burst shows the beta XP.
 
 ## 4. Play
 
-### 4.1 Hub (change)
+### 4.1 Hub
 
-- The character (2D, with the cel-shaded look), the level and an XP bar.
-- The next workout for the class: the exercise names only.
-- START TRAINING ▶ (exists).
-- No day numbers and no "rest day" pages.
+- The character, the class and difficulty name tag, the level and the XP bar.
+- Today's workout card: the class exercises, with tally marks for the sets done in the open session.
+  Tap the card: the camera zooms into the workout.
+- ◀ PAST (top left) slides to the past sessions.
 
-### 4.2 Workout (new)
+### 4.2 Workout
 
-The main rule: count working sets, nothing else.
+- One card per exercise (placeholder list per class, `lib/game/content.dart`).
+- Tap a card: one more working set. Long-press: one set less (for a wrong tap).
+- The mark is a plain tally mark for now. Themed marks per starting area (shells, wall scratches) come later.
+- On the first workout a hint says: working sets only, warm-up sets do not count.
+- ◀ HUB (or Android back) goes back to the hub. The session stays open.
 
-- One card per exercise, for example SQUATS and PUSH-UPS.
-- Tap the card to add one working set. The mark depends on the starting area:
-  - Beach: a shell drops into a pouch.
-  - Castle: a scratch mark appears on a wall.
-- Long-press to take one mark away (for a wrong tap).
-- For weight exercises, count only working sets. A short hint says this on the first workout.
-- The clock keeps running (exists). If the phone closes the app, the clock continues.
-- I WORKED 💪 at the bottom (exists). A 6-second UNDO shows (exists).
+### 4.3 XP and level
 
-### 4.3 Reward (new)
+- XP = working sets × XP per set × difficulty multiplier.
+- Old sessions from `sessions_v2` give a fixed XP each (beta).
+- Every number is in `lib/game/rules.dart`: XP per set, multipliers, level curve, XP per old session.
 
-- XP for the working sets, times the difficulty.
-- A level-up animation when you reach a new level.
-- A character change, when the design has frames for it.
-- Back to the Hub.
+### 4.4 The session rule
 
-## 5. History (exists, change)
+There is no I WORKED button, so the app decides when a session starts and ends:
 
-- Past sessions show the date, how long it took and (new) the sets per exercise.
-- Today you swipe right on the session pager. In the Hub this becomes a "History" button or a swipe.
+1. A session **starts** with its first working-set mark.
+2. It **closes** when the app is opened (cold start, or back from the background) on a
+   **later calendar day** than its last mark.
+3. It also **closes** after **3 hours with no new mark** (`sessionTimeout` in `lib/game/rules.dart`).
+   The app checks this when it opens and before each new mark.
+4. A mark while the app stays open after midnight does not split the workout (only rule 3 applies then).
+5. A long-press that removes the last set of a session removes the session (it did not happen).
+6. A closed session never opens again. The next mark starts a new one.
+
+When the app opens and closes a session, a message says: "LAST SESSION BANKED: N SETS · +X XP".
+
+## 5. History
+
+- Game sessions: date, sets, time from the first to the last mark, class, XP, tally per exercise.
+  The open session shows first, marked NOW.
+- Old saves (from the old app): date, worked or rested, time if the old clock was used.
 
 ## 6. Special cases
 
 | Case | What the app does |
 |---|---|
-| First launch with old data (sessions exist) | Run the initial setup one time. Turn the old sessions into XP (beta). |
-| App closed during a workout | The clock and the marks are saved. Open the app to continue. |
-| Wrong I WORKED | Tap UNDO in the 6-second message. |
-| Wrong mark | Long-press the exercise card to take a mark away. |
-| Restore a backup | Replace all data. Old backups (with the old sets) still load. |
+| First launch with old data (sessions exist) | Run the initial setup. Old sessions become XP (beta). |
+| App closed during a workout | The marks are saved. Open the app to continue (the session rule applies). |
+| Wrong mark | Long-press the exercise card. |
+| Restore a backup | Replace all data. Old version-2 backups still load; they have no game data, so the setup runs again. |
 
-## 7. Data the flow needs (for the schema document)
+## 7. Data
 
-- Character: sex, height, muscle, fat % (slider values 0–100).
-- Class: id (from the equipment pick).
-- Difficulty: level id, XP multiplier.
-- Starting area: id (palette, mark style).
-- Session (exists): date, start time, end time.
-- Set marks (new): per session, per exercise, the number of working sets.
-- Progress: total XP, level. How to measure progress is still open.
+The temporary data model is in `lib/game/model.dart` (notes at the top of the file).
+The real schema is designed in a separate document.
+
+- Profile (`game_profile_v1`): character (sex, height, muscle, fat 0–100), class id, difficulty id, area id.
+- Sessions (`game_sessions_v1`, open one in `game_open_v1`): first and last mark time, class id,
+  difficulty id, working sets per exercise id.
+- XP and level are not stored. They are computed.
+- Old keys `sessions_v2`, `logs_v2`, `swaps_v2` are never changed by the game and stay in backups.
