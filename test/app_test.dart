@@ -72,8 +72,7 @@ Future<void> _frames(WidgetTester t, [int n = 20]) async {
   }
 }
 
-String _spriteAsset(WidgetTester t) =>
-    (t.widget<Image>(find.byKey(const ValueKey('character-sprite'))).image as AssetImage).assetName;
+String _spriteAsset(WidgetTester t) => t.widget<AtlasSprite>(find.byKey(const ValueKey('character-sprite'))).frame;
 
 /// Answers the Android "Save as" channel: [saved] = the user saved the file.
 List<String> _fakeSaveDialog(bool saved) {
@@ -142,11 +141,13 @@ void main() {
   });
 
   test('sprites: nearest drawn frame for slider values', () {
-    expect([nearestStop(0), nearestStop(24), nearestStop(26), nearestStop(74), nearestStop(76)],
-        [0, 0, 50, 50, 100]);
-    expect(spriteAsset(const Character(sex: 'female', fat: 90, muscle: 10)),
-        'assets/body/female/fat100_muscle0.png');
-    expect(allSpriteAssets.length, 18);
+    expect([nearestStop(0), nearestStop(12), nearestStop(13), nearestStop(62), nearestStop(90)],
+        [0, 0, 25, 50, 100]);
+    const c = Character(sex: 'female', fat: 90, muscle: 10);
+    expect(spriteFrame(c), 'female/fat100_muscle0');
+    expect(spriteCell(c), (4, 5)); // atlas column 4, row 5 (first female row)
+    expect(spriteCell(const Character(fat: 50, muscle: 75)), (2, 3));
+    expect(allSpriteAssets, [bodyAtlas]);
   });
 
   // --------------------------------------------------------- session rule
@@ -469,17 +470,17 @@ void main() {
     ));
     await _frames(t);
     expect(find.text('CHARACTER · STEP 1 OF 5'), findsOneWidget);
-    expect(_spriteAsset(t), 'assets/body/male/fat50_muscle50.png');
+    expect(_spriteAsset(t), 'male/fat50_muscle50');
 
     await t.drag(find.byKey(const ValueKey('slider-MUSCLE')), const Offset(400, 0));
     await _frames(t, 4);
-    expect(_spriteAsset(t), 'assets/body/male/fat50_muscle100.png');
+    expect(_spriteAsset(t), 'male/fat50_muscle100');
     await t.drag(find.byKey(const ValueKey('slider-FAT %')), const Offset(-400, 0));
     await _frames(t, 4);
-    expect(_spriteAsset(t), 'assets/body/male/fat0_muscle100.png');
+    expect(_spriteAsset(t), 'male/fat0_muscle100');
     await t.tap(find.text('♀'));
     await _frames(t, 4);
-    expect(_spriteAsset(t), 'assets/body/female/fat0_muscle100.png');
+    expect(_spriteAsset(t), 'female/fat0_muscle100');
     final short = t.getSize(find.byKey(const ValueKey('character-sprite'))).height;
     await t.drag(find.byKey(const ValueKey('slider-HEIGHT')), const Offset(400, 0));
     await _frames(t, 8);
@@ -726,7 +727,7 @@ void main() {
     expect(store.chaos.value, isTrue);
     await menu('🧬  EDIT CHARACTER');
     expect(find.text('CHARACTER · STEP 1 OF 5'), findsOneWidget);
-    expect(_spriteAsset(t), spriteAsset(_profile.character));
+    expect(_spriteAsset(t), spriteFrame(_profile.character));
     await t.pump(const Duration(seconds: 5));
   });
 
