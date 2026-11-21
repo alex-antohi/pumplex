@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Animation style test</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Space+Mono:wght@400;700&amp;family=Roboto+Condensed:wght@900&amp;family=Roboto+Mono:wght@700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#c6ff3d}a:hover{color:#dcfb7b}
+.spr{width:240px;height:216px;background-repeat:no-repeat;background-size:auto 216px;image-rendering:pixelated;image-rendering:crisp-edges}
+@keyframes k_idle{0.000%{background-position:0px 0px}32.813%{background-position:-240px 0px}56.250%{background-position:-240px 0px}76.563%{background-position:0px 0px}100%{background-position:0px 0px}}
+.a_idle{animation:k_idle 1280ms steps(1,end) infinite}
+@keyframes k_front_squat{0.000%{background-position:0px 0px}36.232%{background-position:-240px 0px}46.377%{background-position:-480px 0px}56.522%{background-position:-720px 0px}68.116%{background-position:-960px 0px}86.957%{background-position:-480px 0px}93.478%{background-position:-240px 0px}100%{background-position:0px 0px}}
+.a_front_squat{animation:k_front_squat 1380ms steps(1,end) infinite}
+@keyframes k_pr_flex{0.000%{background-position:0px 0px}7.453%{background-position:-240px 0px}13.043%{background-position:-480px 0px}20.497%{background-position:-240px 0px}26.087%{background-position:-720px 0px}31.677%{background-position:-960px 0px}75.155%{background-position:-1200px 0px}100%{background-position:0px 0px}}
+.a_pr_flex{animation:k_pr_flex 1610ms steps(1,end) infinite}
+.s_male_fat0_muscle0_idle{background-image:url(/_blob/a245f898959e6325ee5b5e0597c7740d)}
+.s_male_fat0_muscle0_front_squat{background-image:url(/_blob/ac253b836e96c4b794e9b48a760f8485)}
+.s_male_fat0_muscle0_pr_flex{background-image:url(/_blob/eff03a6558567ed34747ea526acae3b2)}
+.s_male_fat50_muscle50_idle{background-image:url(/_blob/be63c9bfc8e53c6ca582b46ddbacd27e)}
+.s_male_fat50_muscle50_front_squat{background-image:url(/_blob/9a6780c924cf04f45c358423e9b308f7)}
+.s_male_fat50_muscle50_pr_flex{background-image:url(/_blob/c3f6a357357836a4a5de25e3974d3a83)}
+.s_male_fat100_muscle100_idle{background-image:url(/_blob/3b6a5f795422bfdfbb5beea7cd23c21b)}
+.s_male_fat100_muscle100_front_squat{background-image:url(/_blob/64f7fe841167a65cae1eccd23c2c2580)}
+.s_male_fat100_muscle100_pr_flex{background-image:url(/_blob/f515cc39390afc060fb27a7069be116d)}
+.s_female_fat0_muscle0_idle{background-image:url(/_blob/dc4eb4fe9ee21ef9739f516e180356b7)}
+.s_female_fat0_muscle0_front_squat{background-image:url(/_blob/7419a902c2d652a466c9c99b9556d310)}
+.s_female_fat0_muscle0_pr_flex{background-image:url(/_blob/595fa7b0b8d5c42b28e7105c04697f9b)}
+.s_female_fat50_muscle50_idle{background-image:url(/_blob/ebb2b838f3af8c4317e91b4186620aca)}
+.s_female_fat50_muscle50_front_squat{background-image:url(/_blob/134979903171cd320c7badb7423f6f44)}
+.s_female_fat50_muscle50_pr_flex{background-image:url(/_blob/689a197dca359eef92469bae852dabda)}
+.s_female_fat100_muscle100_idle{background-image:url(/_blob/af87da40a979f5a0306a8e94ef97f25e)}
+.s_female_fat100_muscle100_front_squat{background-image:url(/_blob/70860c71ca3eca85f299f26e40b07606)}
+.s_female_fat100_muscle100_pr_flex{background-image:url(/_blob/f52e680628c48768a87f3b9a65c6445c)}
+
+</style>
+</helmet>
+<div style="width: 1696px; height: 1480px; box-sizing: border-box; padding: 48px 56px; background: #12061f; color: #f6eeff; font-family: 'Space Mono', monospace; display: flex; flex-direction: column; gap: 28px">
+  <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 24px">
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <h1 style="margin: 0; font-family: Anton, Impact, sans-serif; font-weight: 400; letter-spacing: 1px; font-size: 56px; line-height: 1; text-transform: uppercase; text-shadow: 3px 3px 0 #c6ff3d, 6px 6px 0 #ff5fb0">Animation style test</h1>
+      <p style="margin: 0; font-size: 15px; color: #c9b8e8">3 loops × 6 bodies · starter outfit · scripted from the body sliders</p>
+    </div>
+    <p style="margin: 0; font-size: 13px; color: #c9b8e8; text-align: right">Frames: 80×72 px (body 52×64 at 14,8), shown at 3×<br>Light from top-left · no in-betweens, no smoothing</p>
+  </div>
+  
+    <div style="display: flex; flex-direction: column; gap: 12px">
+      <div style="display: flex; align-items: baseline; gap: 20px"><h2 style="margin: 0; font-family: Anton, Impact, sans-serif; font-weight: 400; letter-spacing: 1px; font-size: 26px; text-transform: uppercase; color: #3fd2ff">Idle</h2><span style="font-size: 13px; color: #c9b8e8">Breathing. Upper body sinks 1 px on the out-breath; feet never move.</span></div>
+      <div style="display: flex; gap: 16px">
+        <div style="display: flex; flex-direction: column; gap: 6px; align-items: center">
+          <div style="background-color: #2a1148; background-image: radial-gradient(rgba(255,95,176,.22) 2px, transparent 2.5px); background-size: 20px 20px; border: 4px solid #0b0414; box-sizing: content-box"><div class="spr a_idle s_male_fat0_muscle0_idle" role="img" aria-label="Idle loop, m · fat 0 · muscle 0"></div></div>
+          <span style="font-size: 12px; color: #c9b8e8">M · FAT 0 · MUSCLE 0</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px; align-items: center">
+          <div style="background-color: #2a1148; background-image: radial-gradient(rgba(255,95,176,.22) 2px, transparent 2.5px); background-size: 20px 20px; border: 4px solid #0b0414; box-sizing: content-box"><div class="spr a_idle s_male_fat50_muscle50_idle" role="img" aria-label="Idle loop, m · fat 50 · muscle 50"></div></div>
+          <span style="font-size: 12px; color: #c9b8e8">M · FAT 50 · MUSCLE 50</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px; align-items: center">
+          <div style="background-color: #2a1148; background-image: radial-gradient(rgba(255,95,176,.22) 2px, transparent 2.5px); background-size: 20px 20px; border: 4px solid #0b0414; box-sizing: content-box"><div class="spr a_idle s_male_fat100_muscle100_idle" role="img" aria-label="Idle loop, m · fat 100 · muscle 100"></div></div>
+          <span style="font-size: 12px; color: #c9b8e8">M · FAT 100 · MUSCLE 100</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px; align-items: center">
+          <div style="background-color: #2a1148; background-image: radial-gradient(rgba(255,95,176,.22) 2px, transparent 2.5px); background-size: 20px 20px; border: 4px solid #0b0414; box-sizing: content-box"><div class="spr a_idle s_female_fat0_muscle0_idle" role="img" aria-label="Idle loop, f · fat 0 · muscle 0"></div></div>
+          <span style="font-size: 12px; color: #c9b8e8">F · FAT 0 · MUSCLE 0</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px; align-items: center">
+          <div style="background-color: #2a1148; background-image: radial-gradient(rgba(255,95,176,.22) 2px, transparent 2.5px); background-size: 20px 20px; border: 4px solid #0b0414; box-sizing: content-box"><div class="spr a_idle s_female_fat50_muscle50_idle" role="img" aria-label="Idle loop, f · fat 50 · muscle 50"></div></div>
+          <span style="font-size: 12px; color: #c9b8e8">F · FAT 50 · MUSCLE 50</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px; align-items: center">
+          <div style="background-color: #2a1148; background-image: radial-gradient(rgba(255,95,176,.22) 2px, transparent 2.5px); background-size: 20px 20px; border: 4px solid #0b0414; box-sizing: content-box"><div class="spr a_idle s_female_fat100_muscle100_idle" role="img" aria-label="Idle loop, f · fat 100 · muscle 100"></div></div>
+          <span style="font-size: 12px; color: #c9b8e8">F · FAT 100 · MUSCLE 100</span>
+        </div>
+      </div>
+      <span style="font-size: 12px; color: #c9b8e8">ms per frame: rest 420 · out 300 · out 260 · rest 300</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 12px">
+      <div style="display: flex; align-items: baseline; gap: 20px"><h2 style="margin: 0; font-family: Anton, Impact, sans-serif; font-weight: 400; letter-spacing: 1px; font-size: 26px; text-transform: uppercase; color: #c6ff3d">Front squat</h2><span style="font-size: 13px; color: #c9b8e8">Heavy Lower main lift. Bar racked on the front of the shoulders, elbows forward. Down slow, up fast, pause at the top.</span></div>
+      <div style="display: flex; gap: 16px">
+        <div style="display: flex; flex-direction: column; gap: 6px; align-items: center">
+          <div style="background-color: #2a1148; background-image: radial-gradient(rgba(255,95,176,.22) 2px, transparent 2.5px); background-size: 20px 20px; border: 4px solid #0b0414; box-sizing: content-box"><div class="spr a_front_squat s_male_fat0_muscle0_front_squat" role="img" aria-label="Front squat loop, m · fat 0 · muscle 0"></div></div>
+          <span style="font-size: 12px; color: #c9b8e8">M · FAT 0 · MUSCLE 0</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px; align-items: center">
+          <div style="background-color: #2a1148; background-image: radial-gradient(rgba(255,95,176,.22) 2px, transparent 2.5px); background-size: 20px 20px; border: 4px solid #0b0414; box-sizing: content-box"><div class="spr a_front_squat s_male_fat50_muscle50_front_squat" role="img" aria-label="Front squat loop, m · fat 50 · muscle 50"></div></div>
+          <span style="font-size: 12px; color: #c9b8e8">M · FAT 50 · MUSCLE 50</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px; align-items: center">
+          <div style="background-color: #2a1148; background-image: radial-gradient(rgba(255,95,176,.22) 2px, transparent 2.5px); background-size: 20px 20px; border: 4px solid #0b0414; box-sizing: content-box"><div class="spr a_front_squat s_male_fat100_muscle100_front_squat" role="img" aria-label="Front squat loop, m · fat 100 · muscle 100"></div></div>
+          <span style="font-size: 12px; color: #c9b8e8">M · FAT 100 · MUSCLE 100</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px; align-items: center">
+          <div style="background-color: #2a1148; background-image: radial-gradient(rgba(255,95,176,.22) 2px, transparent 2.5px); background-size: 20px 20px; border: 4px solid #0b0414; box-sizing: content-box"><div class="spr a_front_squat s_female_fat0_muscle0_front_squat" role="img" aria-label="Front squat loop, f · fat 0 · muscle 0"></div></div>
+          <span style="font-size: 12px; color: #c9b8e8">F · FAT 0 · MUSCLE 0</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px; align-items: center">
+          <div style="background-color: #2a1148; background-image: radial-gradient(rgba(255,95,176,.22) 2px, transparent 2.5px); background-size: 20px 20px; border: 4px solid #0b0414; box-sizing: content-box"><div class="spr a_front_squat s_female_fat50_muscle50_front_squat" role="img" aria-label="Front squat loop, f · fat 50 · muscle 50"></div></div>
+          <span style="font-size: 12px; color: #c9b8e8">F · FAT 50 · MUSCLE 50</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px; align-items: center">
+          <div style="background-color: #2a1148; background-image: radial-gradient(rgba(255,95,176,.22) 2px, transparent 2.5px); background-size: 20px 20px; border: 4px solid #0b0414; box-sizing: content-box"><div class="spr a_front_squat s_female_fat100_muscle100_front_squat" role="img" aria-label="Front squat loop, f · fat 100 · muscle 100"></div></div>
+          <span style="font-size: 12px; color: #c9b8e8">F · FAT 100 · MUSCLE 100</span>
+        </div>
+      </div>
+      <span style="font-size: 12px; color: #c9b8e8">ms per frame: top 500 · d1 140 · d2 140 · d3 160 · bottom 260 · d2 90 · d1 90</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 12px">
+      <div style="display: flex; align-items: baseline; gap: 20px"><h2 style="margin: 0; font-family: Anton, Impact, sans-serif; font-weight: 400; letter-spacing: 1px; font-size: 26px; text-transform: uppercase; color: #ff5fb0">PR flex</h2><span style="font-size: 13px; color: #c9b8e8">Plays on a new PR. Dip, hop, land in a double-biceps hold.</span></div>
+      <div style="display: flex; gap: 16px">
+        <div style="display: flex; flex-direction: column; gap: 6px; align-items: center">
+          <div style="background-color: #2a1148; background-image: radial-gradient(rgba(255,95,176,.22) 2px, transparent 2.5px); background-size: 20px 20px; border: 4px solid #0b0414; box-sizing: content-box"><div class="spr a_pr_flex s_male_fat0_muscle0_pr_flex" role="img" aria-label="PR flex loop, m · fat 0 · muscle 0"></div></div>
+          <span style="font-size: 12px; color: #c9b8e8">M · FAT 0 · MUSCLE 0</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px; align-items: center">
+          <div style="background-color: #2a1148; background-image: radial-gradient(rgba(255,95,176,.22) 2px, transparent 2.5px); background-size: 20px 20px; border: 4px solid #0b0414; box-sizing: content-box"><div class="spr a_pr_flex s_male_fat50_muscle50_pr_flex" role="img" aria-label="PR flex loop, m · fat 50 · muscle 50"></div></div>
+          <span style="font-size: 12px; color: #c9b8e8">M · FAT 50 · MUSCLE 50</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px; align-items: center">
+          <div style="background-color: #2a1148; background-image: radial-gradient(rgba(255,95,176,.22) 2px, transparent 2.5px); background-size: 20px 20px; border: 4px solid #0b0414; box-sizing: content-box"><div class="spr a_pr_flex s_male_fat100_muscle100_pr_flex" role="img" aria-label="PR flex loop, m · fat 100 · muscle 100"></div></div>
+          <span style="font-size: 12px; color: #c9b8e8">M · FAT 100 · MUSCLE 100</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px; align-items: center">
+          <div style="background-color: #2a1148; background-image: radial-gradient(rgba(255,95,176,.22) 2px, transparent 2.5px); background-size: 20px 20px; border: 4px solid #0b0414; box-sizing: content-box"><div class="spr a_pr_flex s_female_fat0_muscle0_pr_flex" role="img" aria-label="PR flex loop, f · fat 0 · muscle 0"></div></div>
+          <span style="font-size: 12px; color: #c9b8e8">F · FAT 0 · MUSCLE 0</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px; align-items: center">
+          <div style="background-color: #2a1148; background-image: radial-gradient(rgba(255,95,176,.22) 2px, transparent 2.5px); background-size: 20px 20px; border: 4px solid #0b0414; box-sizing: content-box"><div class="spr a_pr_flex s_female_fat50_muscle50_pr_flex" role="img" aria-label="PR flex loop, f · fat 50 · muscle 50"></div></div>
+          <span style="font-size: 12px; color: #c9b8e8">F · FAT 50 · MUSCLE 50</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px; align-items: center">
+          <div style="background-color: #2a1148; background-image: radial-gradient(rgba(255,95,176,.22) 2px, transparent 2.5px); background-size: 20px 20px; border: 4px solid #0b0414; box-sizing: content-box"><div class="spr a_pr_flex s_female_fat100_muscle100_pr_flex" role="img" aria-label="PR flex loop, f · fat 100 · muscle 100"></div></div>
+          <span style="font-size: 12px; color: #c9b8e8">F · FAT 100 · MUSCLE 100</span>
+        </div>
+      </div>
+      <span style="font-size: 12px; color: #c9b8e8">ms per frame: dip 120 · air2 90 · air4 120 · air2 90 · land 90 · hold 700 · rest 400</span>
+    </div>
+  <div style="display: flex; gap: 20px">
+    <div style="flex: 1 1 0; padding: 14px 16px; background: #1f0d36; border: 3px solid #0b0414; box-shadow: 5px 5px 0 #c6ff3d; display: flex; flex-direction: column; gap: 6px"><span style="font-family: Anton, Impact, sans-serif; font-size: 20px; letter-spacing: 1px">1 · Made by script</span><span style="font-size: 13px; line-height: 1.5; color: #c9b8e8">tools/moodboard/animate.mjs edits the slider sprites: cuts repeated rows to sink the body, bows the knees, cuts the arms out and redraws them in the same three skin tones. Rerun it when a body changes.</span></div>
+    <div style="flex: 1 1 0; padding: 14px 16px; background: #1f0d36; border: 3px solid #0b0414; box-shadow: 5px 5px 0 #3fd2ff; display: flex; flex-direction: column; gap: 6px"><span style="font-family: Anton, Impact, sans-serif; font-size: 20px; letter-spacing: 1px">2 · Timing</span><span style="font-size: 13px; line-height: 1.5; color: #c9b8e8">Holds do the work: 500 ms at the top of the squat, 700 ms on the flex. Moves are 90 to 160 ms per frame. Down slow, up fast.</span></div>
+    <div style="flex: 1 1 0; padding: 14px 16px; background: #1f0d36; border: 3px solid #0b0414; box-shadow: 5px 5px 0 #ff5fb0; display: flex; flex-direction: column; gap: 6px"><span style="font-family: Anton, Impact, sans-serif; font-size: 20px; letter-spacing: 1px">3 · Needs a hand pass</span><span style="font-size: 13px; line-height: 1.5; color: #c9b8e8">Squat bottom on the skinniest bodies (knees read as loops). Fists on the bar are plain blocks. Flex forearms on fat 100 bodies are very wide. Bar and plates break the "neon only on clothes" rule a little: they use the dark violets.</span></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1696,"height":1480}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

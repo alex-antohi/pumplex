@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Class select</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&amp;family=Space+Mono:wght@400;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#c6ff3d}a:hover{color:#dcfb7b}
+.spr{background-image:url(../creator/body_atlas.png);background-repeat:no-repeat;background-size:780px 1920px;image-rendering:pixelated}
+.frozen .spr{filter:grayscale(1) contrast(1.5) brightness(.8)}
+.cls:focus-visible,.freeze:focus-visible{outline:3px dashed #f6eeff;outline-offset:2px}
+.freeze{background:repeating-linear-gradient(-55deg,rgba(11,4,20,.72) 0 10px,rgba(11,4,20,.55) 10px 20px)}
+@keyframes slam{0%{transform:scale(2.2) rotate(-14deg);opacity:0}55%{transform:scale(.92) rotate(-5deg);opacity:1}75%{transform:scale(1.04) rotate(-7deg)}100%{transform:scale(1) rotate(-6deg)}}
+@keyframes tag{0%,40%{transform:translateX(-40px) rotate(-3deg);opacity:0}100%{transform:translateX(0) rotate(-3deg);opacity:1}}
+.slam{transform:rotate(-6deg);animation:slam .42s steps(6,end) both}
+.sub{transform:rotate(-3deg);animation:tag .5s steps(5,end) both}
+@media (prefers-reduced-motion:reduce){.slam,.sub{animation:none}}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; padding: 24px 20px; background: #12061f; color: #f6eeff; font-family: 'Space Mono', monospace; display: flex; flex-direction: column; gap: 14px">
+
+  <div style="display: flex; flex-direction: column; gap: 2px">
+    <span style="font-size: 12px; color: #c9b8e8">STEP 2 OF 5 · THE SWOLEMANCER’S PATHS</span>
+    <h1 style="margin: 0; font-family: Anton, Impact, sans-serif; font-weight: 400; font-size: 36px; line-height: 1.05; letter-spacing: 1px; text-transform: uppercase; text-shadow: 2px 2px 0 #c6ff3d, 4px 4px 0 #ff5fb0">Choose your path</h1>
+    <span style="font-size: 13px; font-weight: 700; color: #f6eeff">What do you train with?</span>
+  </div>
+
+  <div class="{{c.frozen}}" style="position: relative; display: flex; gap: 12px; align-items: stretch; padding: 10px; background-color: #2a1148; background-image: radial-gradient(rgba(255,95,176,.22) 2px, transparent 2.5px); background-size: 20px 20px; border: 4px solid #0b0414; box-shadow: 6px 6px 0 {{c.color}}">
+    <div class="spr" role="img" aria-label="{{c.alt}}" style="flex: 0 0 156px; width: 156px; height: 192px; background-position: {{c.pos}}"></div>
+    <div style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 8px; min-width: 0">
+      <span style="font-family: Anton, Impact, sans-serif; font-size: 24px; line-height: 1; letter-spacing: 1px; color: {{c.color}}">{{c.name}}</span>
+      <span style="font-size: 11px; font-weight: 700; color: #f6eeff">LOADOUT</span>
+      <span style="font-size: 12px; line-height: 1.4; color: #c9b8e8">{{c.loadout}}</span>
+      <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-top: auto">
+        <span style="padding: 2px 6px; background: #0b0414; border: 2px solid {{c.color}}; font-size: 11px; font-weight: 700">{{c.t0}}</span>
+        <span style="padding: 2px 6px; background: #0b0414; border: 2px solid {{c.color}}; font-size: 11px; font-weight: 700">{{c.t1}}</span>
+        <span style="padding: 2px 6px; background: #0b0414; border: 2px solid {{c.color}}; font-size: 11px; font-weight: 700">{{c.t2}}</span>
+      </div>
+    </div>
+    <sc-if value="{{intro}}" hint-placeholder-val="{{ false }}">
+      <button type="button" class="freeze" onClick="{{dismiss}}" aria-label="Close the {{c.name}} intro" style="position: absolute; inset: 0; border: 0; padding: 0 14px; cursor: pointer; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 10px; text-align: left">
+        <span class="slam" role="status" style="display: block; padding: 4px 12px 2px; background: {{c.color}}; border: 4px solid #0b0414; box-shadow: 5px 5px 0 #0b0414; font-family: Anton, Impact, sans-serif; font-size: 40px; line-height: 1; letter-spacing: 2px; color: #0b0414">{{c.name}}</span>
+        <span class="sub" style="display: block; margin-left: 18px; padding: 4px 10px; background: #0b0414; border: 2px solid {{c.color}}; font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; color: {{c.color}}">{{c.joke}}</span>
+      </button>
+    </sc-if>
+  </div>
+
+  <p style="margin: 0; min-height: 72px; font-size: 13px; line-height: 1.45; color: #f6eeff">{{c.desc}}</p>
+
+  <div role="radiogroup" aria-label="Path" style="display: flex; flex-direction: column; gap: 8px">
+    <button type="button" class="cls" role="radio" aria-checked="{{r0.on}}" onClick="{{pick0}}" style="height: 52px; padding: 0 14px; display: flex; justify-content: space-between; align-items: center; border: 3px solid #0b0414; cursor: pointer; background: {{r0.bg}}; color: {{r0.fg}}; box-shadow: {{r0.sh}}"><span style="font-family: Anton, Impact, sans-serif; font-size: 20px; letter-spacing: 1px">SCRAPPER</span><span style="font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700">NO EQUIPMENT</span></button>
+    <button type="button" class="cls" role="radio" aria-checked="{{r1.on}}" onClick="{{pick1}}" style="height: 52px; padding: 0 14px; display: flex; justify-content: space-between; align-items: center; border: 3px solid #0b0414; cursor: pointer; background: {{r1.bg}}; color: {{r1.fg}}; box-shadow: {{r1.sh}}"><span style="font-family: Anton, Impact, sans-serif; font-size: 20px; letter-spacing: 1px">BARGAIN BRUISER</span><span style="font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700">BASIC HOME GYM</span></button>
+    <button type="button" class="cls" role="radio" aria-checked="{{r2.on}}" onClick="{{pick2}}" style="height: 52px; padding: 0 14px; display: flex; justify-content: space-between; align-items: center; border: 3px solid #0b0414; cursor: pointer; background: {{r2.bg}}; color: {{r2.fg}}; box-shadow: {{r2.sh}}"><span style="font-family: Anton, Impact, sans-serif; font-size: 20px; letter-spacing: 1px">PLATE PALADIN</span><span style="font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700">LOTS OF FREE WEIGHTS</span></button>
+    <button type="button" class="cls" role="radio" aria-checked="{{r3.on}}" onClick="{{pick3}}" style="height: 52px; padding: 0 14px; display: flex; justify-content: space-between; align-items: center; border: 3px solid #0b0414; cursor: pointer; background: {{r3.bg}}; color: {{r3.fg}}; box-shadow: {{r3.sh}}"><span style="font-family: Anton, Impact, sans-serif; font-size: 20px; letter-spacing: 1px">CABLEMANCER</span><span style="font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700">LOTS OF MACHINES</span></button>
+  </div>
+
+  <button type="button" style="margin-top: auto; height: 56px; font-family: Anton, Impact, sans-serif; font-size: 22px; letter-spacing: 1px; background: #c6ff3d; color: #0b0414; border: 4px solid #0b0414; box-shadow: 6px 6px 0 #a77bff; cursor: pointer">NEXT: DIFFICULTY</button>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { i: 0, intro: false };
+    this.timer = null;
+  }
+  componentWillUnmount() {
+    clearTimeout(this.timer);
+  }
+  pick(n) {
+    clearTimeout(this.timer);
+    this.setState({ i: n, intro: false }, () => {
+      this.setState({ intro: true });
+      this.timer = setTimeout(() => this.setState({ intro: false }), 1800);
+    });
+  }
+  renderVals() {
+    const classes = [
+      { name: 'SCRAPPER', color: '#ffa033', sex: 'f', fat: 0, mus: 25,
+        loadout: 'Nothin’. Just you, the floor and the stairs.',
+        tags: ['CARDIO', 'BODYWEIGHT', 'SPRINTS'],
+        joke: 'BUILT FROM STAIRS AND SPITE',
+        desc: 'No gym, no gear, no problem. Builds every workout out of floors, stairs and pure spite. Homemade, held together with tape, and very loud about it.' },
+      { name: 'BARGAIN BRUISER', color: '#3fd2ff', sex: 'm', fat: 25, mus: 50,
+        loadout: 'Two dumbbells, one mat, a kettlebell of unknown origin.',
+        tags: ['FLOOR WORK', 'SOME CARDIO', 'SOME WEIGHTS'],
+        joke: 'BUY ONE GAIN, GET ONE FREE',
+        desc: 'Kitted out from the clearance aisle. Every piece of gear is store-brand, slightly wobbly and fully committed. Cheap kit, real gains.' },
+      { name: 'PLATE PALADIN', color: '#c6ff3d', sex: 'm', fat: 75, mus: 100,
+        loadout: 'A barbell, a rack and a wall of plates.',
+        tags: ['STRONGMAN', 'BARBELL', 'HEAVY'],
+        joke: 'OATH-SWORN TO THE BARBELL',
+        desc: 'Sworn to the barbell. Carries plates like holy relics and drops them like thunder. Big, burly, unbothered.' },
+      { name: 'CABLEMANCER', color: '#a77bff', sex: 'f', fat: 0, mus: 75,
+        loadout: 'Cables, pin-stacks and every machine in the building.',
+        tags: ['MACHINES', 'CABLES', 'LEAN POWER'],
+        joke: 'SPEAKS FLUENT PULLEY',
+        desc: 'Bends steel cables and pin-stacks to their will. Thin as a wire, strong as the machine. Never waits for the squat rack.' },
+    ];
+    const k = classes[this.state.i];
+    const row = (k.sex === 'm' ? 0 : 5) + k.mus / 25;
+    const c = {
+      name: k.name, color: k.color, loadout: k.loadout, desc: k.desc, joke: k.joke,
+      t0: k.tags[0], t1: k.tags[1], t2: k.tags[2],
+      frozen: this.state.intro ? 'frozen' : '',
+      pos: (-(k.fat / 25) * 156) + 'px ' + (-row * 192) + 'px',
+      alt: k.name + ' path preview: ' + (k.sex === 'm' ? 'male' : 'female') + ' lifter, fat ' + k.fat + ', muscle ' + k.mus,
+    };
+    const r = (n) => n === this.state.i
+      ? { on: 'true', bg: classes[n].color, fg: '#0b0414', sh: '4px 4px 0 #ff5fb0' }
+      : { on: 'false', bg: '#1f0d36', fg: '#f6eeff', sh: 'none' };
+    return {
+      c, intro: this.state.intro, r0: r(0), r1: r(1), r2: r(2), r3: r(3),
+      pick0: () => this.pick(0),
+      pick1: () => this.pick(1),
+      pick2: () => this.pick(2),
+      pick3: () => this.pick(3),
+      dismiss: () => { clearTimeout(this.timer); this.setState({ intro: false }); },
+    };
+  }
+}
+</script>
+</body>
+</html>
