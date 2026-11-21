@@ -308,7 +308,9 @@ void main() {
     expect(store.cel.value, isFalse);
 
     await t.tap(find.byIcon(Icons.more_vert));
-    await t.pump(const Duration(milliseconds: 500));
+    for (var i = 0; i < 10; i++) {
+      await t.pump(const Duration(milliseconds: 50)); // let the menu open
+    }
     await t.tap(find.text('🖍️  CEL SHADER: OFF'));
     await t.pump(const Duration(milliseconds: 500));
     expect(store.cel.value, isTrue);
@@ -317,7 +319,9 @@ void main() {
     expect(find.text('SESSION 8 · DAY 1/7 · NOW'), findsOneWidget);
 
     await t.tap(find.byIcon(Icons.more_vert));
-    await t.pump(const Duration(milliseconds: 500));
+    for (var i = 0; i < 10; i++) {
+      await t.pump(const Duration(milliseconds: 50)); // let the menu open
+    }
     await t.tap(find.text('🖍️  CEL SHADER: ON!!!'));
     await t.pump(const Duration(seconds: 5));
     expect(store.cel.value, isFalse);
