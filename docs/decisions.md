@@ -38,6 +38,8 @@ Ask the owner before you design against a decision. Add each new decision here, 
 | D26 | The app id stays `com.alex.gym_app`. Add no new code packages without the owner's OK. | 21 Nov 2026 | Code. |
 | D27 | Still open (not decided): how to measure progress, final class names, exercise pools, the achievements list, the gear list. | 21 Nov 2026 | Ask the owner. |
 | D28 | Difficulty has 6 levels: the design team's 6 modes (Sofa, Warm-up, Sweat, Pain, Brutal, Nightmare Mode). The names stay design proposals. | 21 Nov 2026 | Difficulty. Confirmed by the owner. |
+| D29 | No preloader. The app opens straight on the hub (or the creator on the first launch). | 21 Nov 2026 | Overrides design demo `01-preloader.html`. |
+| D30 | No "wipe all data" / RESTART SETUP button. The setup changes with EDIT CHARACTER, and the XP and sessions stay. | 21 Nov 2026 | Overrides the DANGER ZONE in design demo `12-menu.html`. |
 
 ## 2. Where the current boards conflict
 
@@ -62,7 +64,7 @@ The first build (branch `claude/game-flow-2dbf96`) follows the decisions, not th
 
 | Demo screen / file | What it shows | Decision | What the build does | What design must change |
 |---|---|---|---|---|
-| `01-preloader.html` | A loading screen with a fake progress bar before every launch. | `app-flow.md` §2 removed the preloader (not a D number). | No preloader. The app opens on the hub or the creator. | **Ask the owner.** Keep it out, or add it as a new decision. |
+| `01-preloader.html` | A loading screen with a fake progress bar before every launch. | D29 | No preloader. The app opens on the hub or the creator. | Remove the preloader screen. |
 | `02-character.html` | Sex toggle, FAT and MUSCLE sliders only. | D10, D11 | Keeps the HEIGHT slider. | Add a HEIGHT slider. |
 | `03-class.html`, `shared/demo.js` `CLASSES[].body` | Each class shows its own preview body. | D25 | Shows the body from step 1. | Use the user's body. |
 | `04-difficulty.html`, `demo.js` `DIFFICULTIES` | **8** levels (Couch Larva … Swolemancer Prime), multipliers 1.0 to 2.25. | D28, D19 | Keeps the **6** modes (Sofa … Nightmare Mode), 1.0 to 2.0. | Go back to 6 levels. The names can change (D28). |
@@ -70,7 +72,7 @@ The first build (branch `claude/game-flow-2dbf96`) follows the decisions, not th
 | `08-workout.html` | `SESSION n` kicker, a running `mm:ss` clock, an I WORKED button, 3 fixed exercises, tap a card to switch. | D6, D7, D15, D16 | No counter, no clock, no I WORKED. 3 to 8 exercises, swipe to switch, add, remove, ↺. | Remove the counter, clock and button. Add swipe, add and remove. |
 | `09-reward.html` | A reward screen after I WORKED: LOOT DROP · SESSION n, TIME UNDER IRON, "n SESSIONS SURVIVED". | D7, D19 | No reward screen. XP on each set, CRITICAL SET, the freeze-frame card on a level-up. | Turn the loot look into the per-set and level-up rewards. |
 | `10-history.html` | Rows named `SESSION n`, total time "OF PURE EFFORT", START TRAINING in the empty state. | D7 | Rows by date. No session numbers. | Use dates. Remove START TRAINING. |
-| `12-menu.html` DANGER ZONE | RESTART SETUP: "WIPE IT" deletes the lifter and all sessions. | D13, D22 (no decision allows a full wipe) | Not built. EDIT CHARACTER changes the setup and keeps the XP. | **Ask the owner** if a full wipe is wanted. |
+| `12-menu.html` DANGER ZONE | RESTART SETUP: "WIPE IT" deletes the lifter and all sessions. | D30, D13 | Not built. EDIT CHARACTER changes the setup and keeps the XP. | Remove the DANGER ZONE. |
 | `12-menu.html` SOUND | A sound toggle. | None (no sound files yet) | A disabled SOUND row with a SOON tag (placeholder). | Deliver the sound pack. |
 | `shared/demo.js` XP | 10 XP per set × multiplier, level curve 50·L·(L−1). | D19 | Uses `docs/rules.md` (Habitica curve, bonuses, critical sets). | Use the rules table. |
 | `shared/demo.js` `WORKOUTS` | 3 fixed exercises per class. | D15 | 3 to 8 exercises from the class pool. | None for the demo. The pools are still open (D27). |

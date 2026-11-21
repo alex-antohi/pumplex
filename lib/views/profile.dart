@@ -240,7 +240,7 @@ class _Milestone extends StatelessWidget {
 
 /// Full-screen menu (design: docs/demo/12-menu.html). Sections: you, gains
 /// insurance (backup), look and feel. The design's DANGER ZONE (wipe all
-/// data) is not built: it needs an owner decision (see docs/decisions.md §2).
+/// data) is not built: owner decision D30 (docs/decisions.md).
 class MenuView extends StatelessWidget {
   const MenuView({
     super.key,
