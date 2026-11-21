@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PUMPLEX · Class</title>
+<link rel="stylesheet" href="shared/pumplex.css">
+<script src="shared/demo.js"></script>
+<style>
+/* ---- 03 class (path) select: screen-only styles ---- */
+.cls-screen { display: flex; flex-direction: column; gap: var(--s3); padding-top: var(--s3); }
+.cls-head .title { font-size: 36px; text-shadow: 2px 2px 0 var(--lime), 4px 4px 0 var(--pink); }
+.cls-head .sub { color: var(--text); font-weight: 700; margin-top: var(--s1); }
+
+/* preview card */
+.cls-card {
+  position: relative; overflow: hidden; flex: none;
+  display: flex; gap: var(--s3); align-items: stretch;
+  padding: 10px;
+  box-shadow: 6px 6px 0 var(--cls-c, var(--line));
+  margin-right: 6px;
+}
+.cls-card .sprite { width: 156px; height: 192px; }
+.cls-info { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: var(--s2); }
+.cls-name { font-family: var(--display); font-size: 24px; line-height: 1; letter-spacing: 1px; text-transform: uppercase; color: var(--cls-c); text-shadow: 2px 2px 0 var(--ink); }
+.cls-lbl { font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--text); }
+.cls-load { font-size: 12px; line-height: 1.4; color: var(--muted); }
+.cls-tags { margin-top: auto; }
+.cls-tags .nametag { --tag-c: var(--cls-c); color: var(--text); padding: 2px 6px; }
+
+/* empty state: no path picked yet */
+.cls-card.is-empty { --cls-c: var(--line); }
+.cls-card.is-empty .sprite { filter: brightness(0); opacity: .55; }
+.cls-card.is-empty .cls-name { color: var(--muted); }
+.cls-q {
+  position: absolute; left: 10px; top: 10px; width: 156px; height: 192px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--display); font-size: 72px; color: var(--pink); text-shadow: 4px 4px 0 var(--ink);
+  pointer-events: none;
+}
+.cls-q[hidden] { display: none; }
+
+/* freeze-frame intro card (ported from the ClassSelect board): over the preview card only */
+.cls-card.is-frozen .sprite { filter: grayscale(1) contrast(1.5) brightness(.8); }
+.cls-card.is-frozen .cls-info { filter: grayscale(1) brightness(.7); }
+.cls-freeze {
+  position: absolute; inset: 0; z-index: 2;
+  border: 0; padding: 0 14px; margin: 0;
+  display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 10px;
+  text-align: left; cursor: pointer;
+  background: repeating-linear-gradient(-55deg, rgba(11, 4, 20, .72) 0 10px, rgba(11, 4, 20, .55) 10px 20px);
+}
+.cls-freeze:focus-visible { outline: 3px dashed var(--text); outline-offset: -6px; }
+.cls-slam {
+  display: block; max-width: 100%; overflow-wrap: anywhere;
+  padding: 4px 12px 2px;
+  background: var(--cls-c); color: var(--ink);
+  border: 4px solid var(--ink); box-shadow: 5px 5px 0 var(--ink);
+  font-family: var(--display); font-size: 40px; line-height: 1; letter-spacing: 1px; text-transform: uppercase;
+  transform: rotate(-6deg);
+  animation: cls-slam .42s steps(6, end) both;
+}
+.cls-joke {
+  display: block; max-width: calc(100% - 18px); margin-left: 18px;
+  padding: 4px 10px;
+  background: var(--ink); color: var(--cls-c); border: 2px solid var(--cls-c);
+  font-family: var(--body); font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+  transform: rotate(-3deg);
+  animation: cls-sub .5s steps(5, end) both;
+}
+@keyframes cls-slam {
+  0%   { transform: scale(2.2) rotate(-14deg); opacity: 0; }
+  55%  { transform: scale(.92) rotate(-5deg); opacity: 1; }
+  75%  { transform: scale(1.04) rotate(-7deg); }
+  100% { transform: scale(1) rotate(-6deg); }
+}
+@keyframes cls-sub {
+  0%, 40% { transform: translateX(-40px) rotate(-3deg); opacity: 0; }
+  100%    { transform: translateX(0) rotate(-3deg); opacity: 1; }
+}
+
+.cls-desc { margin: 0; min-height: 76px; font-size: 13px; line-height: 1.45; color: var(--text); }
+.cls-desc.is-empty { color: var(--muted); }
+.cls-desc b { color: var(--pink); font-weight: 700; }
+
+/* radio group */
+.cls-list { display: flex; flex-direction: column; gap: var(--s2); padding-right: 4px; }
+.cls-list .pick { min-height: 52px; padding: 0 14px; }
+.cls-list .pick small { font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
+.cls-list .pick[aria-checked="true"] { box-shadow: 4px 4px 0 var(--pink); }
+.cls-list .pick:focus-visible { outline: 3px dashed var(--text); outline-offset: 3px; }
+.cls-list .pick:active { transform: translate(3px, 3px); box-shadow: none; }
+.cls-list .pick:not([aria-checked="true"]) b::before {
+  content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 10px; vertical-align: 4px;
+  background: var(--pick-c); border: 2px solid var(--ink);
+}
+
+.cls-hint { margin: 0; text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+.cls-hint b { color: var(--pink); }
+.cls-hint[hidden] { display: none; }
+</style>
+</head>
+<body class="px">
+<main class="phone" data-screen="class">
+  <header class="topbar">
+    <button class="icon-btn" type="button" id="cls-back" aria-label="Back to character creation"></button>
+    <div class="steps" role="img" aria-label="Setup step 2 of 5"><i class="on"></i><i class="now"></i><i></i><i></i><i></i></div>
+  </header>
+
+  <section class="screen cls-screen">
+    <div class="cls-head">
+      <p class="kicker">STEP 2 OF 5 · THE SWOLEMANCER&rsquo;S PATHS</p>
+      <h1 class="title">Choose your path</h1>
+      <p class="sub">What do you train with?</p>
+    </div>
+
+    <div class="cls-card stage is-empty" id="cls-card" aria-live="polite">
+      <div id="cls-sprite"></div>
+      <div class="cls-q" id="cls-q" aria-hidden="true">?</div>
+      <div class="cls-info">
+        <span class="cls-name" id="cls-name">No path yet</span>
+        <span class="cls-lbl">LOADOUT</span>
+        <span class="cls-load" id="cls-load">Unknown. Tell us what you lift and we kit you out.</span>
+        <div class="chips cls-tags" id="cls-tags"></div>
+      </div>
+    </div>
+
+    <p class="cls-desc is-empty" id="cls-desc">Every path trains with different gear. Pick the one that matches <b>what you actually have</b>. The path decides your workouts.</p>
+
+    <div class="cls-list" role="radiogroup" aria-label="Path" id="cls-list"></div>
+  </section>
+
+  <footer class="foot">
+    <p class="cls-hint" id="cls-hint">Pick a path <b>to continue</b></p>
+    <button class="btn cta" type="button" id="cls-next" disabled>NEXT: DIFFICULTY</button>
+  </footer>
+</main>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var card = $("cls-card"), spriteEl = $("cls-sprite"), list = $("cls-list"), next = $("cls-next"), hint = $("cls-hint");
+  var picked = null, timer = null;
+
+  $("cls-back").innerHTML = PX.icon("back");
+  $("cls-back").onclick = function () { PX.go("character"); };
+
+  /* empty-state silhouette: a neutral body until a path is picked */
+  PX.sprite(spriteEl, { sex: "male", fat: 25, muscle: 50 }, 3);
+  spriteEl.setAttribute("aria-label", "Mystery lifter: no path picked yet");
+
+  /* radio buttons */
+  var buttons = PX.CLASS_ORDER.map(function (id) {
+    var k = PX.CLASSES[id];
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "pick"; b.dataset.id = id;
+    b.setAttribute("role", "radio"); b.setAttribute("aria-checked", "false"); b.tabIndex = -1;
+    b.style.setProperty("--pick-c", PX.c(k.color));
+    b.innerHTML = "<b></b><small></small>";
+    b.firstChild.textContent = k.name;
+    b.lastChild.textContent = k.equipment;
+    b.onclick = function () { pick(id, true); };
+    list.appendChild(b);
+    return b;
+  });
+  buttons[0].tabIndex = 0;
+
+  /* arrow keys move the pick, like a native radio group */
+  list.addEventListener("keydown", function (e) {
+    var i = PX.CLASS_ORDER.indexOf(picked), n = buttons.length, d = 0;
+    if (e.key === "ArrowDown" || e.key === "ArrowRight") d = 1;
+    else if (e.key === "ArrowUp" || e.key === "ArrowLeft") d = -1;
+    else return;
+    e.preventDefault();
+    if (i < 0) i = d > 0 ? -1 : 0;
+    var j = (i + d + n) % n;
+    pick(PX.CLASS_ORDER[j], true);
+    buttons[j].focus();
+  });
+
+  function render(id) {
+    var k = PX.CLASSES[id];
+    card.classList.remove("is-empty");
+    $("cls-q").hidden = true;
+    card.style.setProperty("--cls-c", PX.c(k.color));
+    PX.sprite(spriteEl, k.body, 3);
+    spriteEl.setAttribute("aria-label", k.name + " path preview: " + spriteEl.getAttribute("aria-label").toLowerCase());
+    $("cls-name").textContent = k.name;
+    $("cls-load").textContent = k.loadout;
+    var tags = $("cls-tags"); tags.textContent = "";
+    k.tags.forEach(function (t) { var s = document.createElement("span"); s.className = "nametag"; s.textContent = t; tags.appendChild(s); });
+    var desc = $("cls-desc"); desc.classList.remove("is-empty"); desc.textContent = k.description;
+    buttons.forEach(function (b) {
+      var on = b.dataset.id === id;
+      b.setAttribute("aria-checked", on ? "true" : "false");
+      b.tabIndex = on ? 0 : -1;
+    });
+    next.disabled = false;
+    hint.hidden = true;
+  }
+
+  /* freeze-frame intro card over the preview card; auto close 1.8 s, tap to close, each pick restarts it */
+  function closeIntro() {
+    clearTimeout(timer);
+    var f = card.querySelector(".cls-freeze");
+    if (f) f.remove();
+    card.classList.remove("is-frozen");
+  }
+  function intro(id) {
+    var k = PX.CLASSES[id];
+    closeIntro();
+    var f = document.createElement("button");
+    f.type = "button"; f.className = "cls-freeze";
+    f.setAttribute("aria-label", "Close the " + k.name + " intro");
+    f.innerHTML = '<span class="cls-slam" role="status"></span><span class="cls-joke"></span>';
+    f.firstChild.textContent = k.name;
+    f.lastChild.textContent = k.subtitle;
+    f.onclick = closeIntro;
+    card.appendChild(f);
+    card.classList.add("is-frozen");
+    timer = setTimeout(closeIntro, 1800);
+  }
+
+  function pick(id, withIntro) {
+    if (!PX.CLASSES[id]) return;
+    picked = id;
+    PX.save({ cls: id });
+    render(id);
+    if (withIntro) intro(id);
+  }
+
+  next.onclick = function () { if (picked) PX.go("difficulty"); };
+
+  /* preselect a saved path (no intro: the player already met it) */
+  var saved = PX.get().cls;
+  if (saved && PX.CLASSES[saved]) { picked = saved; render(saved); }
+
+  /* ?intro=<id> opens the intro card on load, for screenshots */
+  var m = /[?&]intro=(\w+)/.exec(location.search);
+  if (m && PX.CLASSES[m[1]]) pick(m[1], true);
+})();
+</script>
+</body>
+</html>

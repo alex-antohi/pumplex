@@ -58,6 +58,12 @@ fails on a long path, map the folder to a drive letter with `subst`.
 
 Tests: `flutter test`.
 
+## Design demo
+
+A clickable HTML demo of every screen in the app flow, linked together, is in
+[`docs/demo/`](docs/demo/BRIEF.md). Open `docs/demo/index.html` in a browser.
+`tools/demo/cdp.mjs` drives one headless Edge to test it (no npm packages).
+
 ## Game moodboard
 
 The visual direction for the game side (pixel-art characters, palette, style

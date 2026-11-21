@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PUMPLEX · Character</title>
+<link rel="stylesheet" href="shared/pumplex.css">
+<script src="shared/demo.js"></script>
+<style>
+/* ---- 02 character creation: screen-only styles ---- */
+.chr-top { min-height: 44px; }
+.chr-top .kicker { color: var(--text); }
+.chr-screen { display: flex; flex-direction: column; gap: var(--s4); padding-top: var(--s2); }
+.chr-head .title { font-size: 38px; text-shadow: 2px 2px 0 var(--lime), 4px 4px 0 var(--pink); }
+
+/* ---- stage: polka-dot sky, light floor so the ink outline reads ---- */
+.chr-stage {
+  position: relative; flex: none;
+  height: 292px;
+  box-shadow: 6px 6px 0 var(--pink);
+  margin: 0 6px 18px 0;
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.chr-floor {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 58px;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 46px, rgba(114, 78, 178, .55) 46px 50px),
+    var(--violet-hi);
+  border-top: 4px solid var(--ink);
+}
+.chr-shadow { position: absolute; left: 50%; bottom: 22px; width: 150px; margin-left: -75px; height: 14px; background: rgba(11, 4, 20, .45); border-radius: 50%; }
+.chr-body { position: relative; z-index: 1; margin-bottom: 26px; }
+.chr-body.is-pop { animation: chr-pop .24s steps(3, end); }
+@keyframes chr-pop { 0% { transform: scale(1.06, .92) translateY(8px); } 50% { transform: scale(.97, 1.04) translateY(-6px); } 100% { transform: none; } }
+
+.chr-tag { position: absolute; left: var(--s3); top: var(--s3); z-index: 2; --tag-c: var(--pink); }
+.chr-dice { position: absolute; right: var(--s2); top: var(--s2); z-index: 2; width: 44px; padding: 0; background: var(--ink); color: var(--text); border-color: var(--line); }
+.chr-dice:active { color: var(--pink); border-color: var(--pink); }
+.chr-dice svg { width: 22px; height: 22px; }
+.chr-dice.is-roll svg { animation: chr-roll .3s steps(4, end); }
+@keyframes chr-roll { 100% { transform: rotate(360deg); } }
+
+/* the build caption: a stencil tag hanging off the stage */
+.chr-cap {
+  position: absolute; left: 50%; bottom: -20px; z-index: 3;
+  transform: translateX(-50%) rotate(-3deg);
+  max-width: calc(100% - 24px);
+  padding: 5px 12px 3px;
+  background: var(--ink); color: var(--pink);
+  border: 3px solid var(--pink); box-shadow: 4px 4px 0 var(--ink);
+  font-family: var(--display); font-size: 22px; line-height: 1.05; letter-spacing: 1px; text-transform: uppercase;
+  text-align: center; white-space: nowrap;
+}
+.chr-cap.is-stamp { animation: chr-stamp .28s steps(4, end); }
+@keyframes chr-stamp { 0% { transform: translateX(-50%) rotate(-3deg) scale(1.5); opacity: 0; } 100% { transform: translateX(-50%) rotate(-3deg) scale(1); opacity: 1; } }
+
+/* loading / error states for the atlas */
+.chr-msg {
+  position: absolute; left: 0; right: 0; top: 112px; z-index: 2;
+  text-align: center; font-family: var(--display); font-size: 22px; letter-spacing: 1px; color: var(--muted);
+  display: none;
+}
+.chr-stage.is-loading .chr-msg, .chr-stage.is-broken .chr-msg { display: block; }
+.chr-stage.is-loading .chr-msg { animation: px-blink .8s steps(1, end) infinite; }
+.chr-stage.is-broken .chr-msg { color: var(--orange); font-size: 18px; padding: 0 var(--s5); }
+.chr-stage.is-loading .chr-body, .chr-stage.is-broken .chr-body { visibility: hidden; }
+
+/* ---- body type toggle ---- */
+.chr-label { font-family: var(--display); font-size: 18px; letter-spacing: 1px; text-transform: uppercase; line-height: 1; margin: 0; }
+.chr-sex { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s3); margin-top: var(--s2); }
+.chr-sex button {
+  appearance: none; min-height: 48px; cursor: pointer;
+  background: var(--surface); color: var(--muted);
+  border: var(--border); box-shadow: 3px 3px 0 var(--line);
+  font-family: var(--display); font-size: 20px; letter-spacing: 1px; text-transform: uppercase;
+  transition: transform 60ms steps(1);
+}
+.chr-sex button:active { transform: translate(3px, 3px); box-shadow: none; }
+.chr-sex button[aria-pressed="true"] { background: var(--pink); color: var(--ink); box-shadow: 4px 4px 0 var(--ink); }
+.chr-sex button:focus-visible { outline: 3px dashed var(--text); outline-offset: 3px; }
+
+/* ---- pixel sliders ---- */
+.chr-slider { --fill: var(--orange); }
+.chr-slider.is-mus { --fill: var(--sky); }
+.chr-row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s2); }
+.chr-now { font-family: var(--display); font-size: 18px; letter-spacing: 1px; color: var(--fill); line-height: 1; }
+.chr-track { position: relative; margin-top: var(--s1); }
+.chr-ticks { position: absolute; left: 0; right: 0; top: 34px; height: 8px; pointer-events: none; }
+.chr-ticks i { position: absolute; top: 0; width: 4px; height: 8px; margin-left: -2px; background: var(--line); }
+.chr-ticks i.on { background: var(--fill); }
+.chr-ends { display: flex; justify-content: space-between; margin-top: 2px; font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; }
+.chr-ends button { appearance: none; background: none; border: 0; padding: 4px 0; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer; min-height: 28px; }
+.chr-ends button:hover { color: var(--fill); }
+
+.chr-range {
+  -webkit-appearance: none; appearance: none;
+  display: block; width: 100%; height: 44px; margin: 0;
+  background: transparent; cursor: pointer;
+  --f: .5;
+}
+.chr-range::-webkit-slider-runnable-track {
+  height: 18px;
+  background: linear-gradient(90deg, var(--fill) 0 calc(14px + (100% - 28px) * var(--f)), var(--raised) 0);
+  border: 3px solid var(--ink);
+  box-shadow: 0 0 0 2px var(--line);
+}
+.chr-range::-moz-range-track { height: 12px; background: var(--raised); border: 3px solid var(--ink); }
+.chr-range::-moz-range-progress { height: 12px; background: var(--fill); }
+.chr-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 28px; height: 36px; margin-top: -12px;
+  background:
+    linear-gradient(var(--ink), var(--ink)) 8px 9px / 3px 12px no-repeat,
+    linear-gradient(var(--ink), var(--ink)) 14px 9px / 3px 12px no-repeat,
+    var(--text);
+  border: 3px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--fill);
+}
+.chr-range::-moz-range-thumb { width: 22px; height: 30px; border-radius: 0; background: var(--text); border: 3px solid var(--ink); box-shadow: 3px 3px 0 var(--fill); }
+.chr-range:active::-webkit-slider-thumb { background-color: var(--fill); box-shadow: 1px 1px 0 var(--ink); }
+.chr-range:focus-visible { outline: 3px dashed var(--text); outline-offset: 2px; }
+
+</style>
+</head>
+<body class="px">
+<main class="phone" data-screen="character">
+  <header class="topbar chr-top">
+    <p class="kicker">STEP 1 OF 5 · CHARACTER</p>
+    <div class="steps" role="img" aria-label="Setup step 1 of 5"><i class="now"></i><i></i><i></i><i></i><i></i></div>
+  </header>
+
+  <section class="screen chr-screen">
+    <div class="chr-head">
+      <h1 class="title">Build your lifter</h1>
+      <p class="sub">No scales. No tape measures. Just slide.</p>
+    </div>
+
+    <div class="stage chr-stage is-loading" id="chr-stage">
+      <div class="chr-floor" aria-hidden="true"></div>
+      <div class="chr-shadow" aria-hidden="true"></div>
+      <span class="nametag chr-tag">PLAYER 1</span>
+      <button class="btn ghost chr-dice" type="button" id="chr-dice" aria-label="Randomize the body" title="Randomize">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 3h16v1h1v16h-1v1H4v-1H3V4h1zm1 2v14h14V5z"/><rect x="7" y="7" width="3" height="3"/><rect x="14" y="7" width="3" height="3"/><rect x="10.5" y="10.5" width="3" height="3"/><rect x="7" y="14" width="3" height="3"/><rect x="14" y="14" width="3" height="3"/></svg>
+      </button>
+      <p class="chr-msg" id="chr-msg" role="status">SUMMONING LIFTER...</p>
+      <div class="chr-body" id="chr-body"></div>
+      <p class="chr-cap" id="chr-cap" aria-live="polite"></p>
+    </div>
+
+    <div>
+      <p class="chr-label" id="chr-sex-l">Body type</p>
+      <div class="chr-sex" role="group" aria-labelledby="chr-sex-l">
+        <button type="button" data-sex="male" aria-pressed="true">Male</button>
+        <button type="button" data-sex="female" aria-pressed="false">Female</button>
+      </div>
+    </div>
+
+    <div class="chr-slider is-fat" data-key="fat">
+      <div class="chr-row">
+        <label class="chr-label" for="chr-fat">Fat</label>
+        <span class="chr-now" aria-hidden="true"></span>
+      </div>
+      <div class="chr-track">
+        <input class="chr-range" id="chr-fat" type="range" min="0" max="100" step="25" value="50">
+        <div class="chr-ticks" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+      </div>
+      <div class="chr-ends"><button type="button" data-v="0" tabindex="-1">Shredded</button><button type="button" data-v="100" tabindex="-1">Chonk</button></div>
+    </div>
+
+    <div class="chr-slider is-mus" data-key="muscle">
+      <div class="chr-row">
+        <label class="chr-label" for="chr-muscle">Muscle</label>
+        <span class="chr-now" aria-hidden="true"></span>
+      </div>
+      <div class="chr-track">
+        <input class="chr-range" id="chr-muscle" type="range" min="0" max="100" step="25" value="50">
+        <div class="chr-ticks" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+      </div>
+      <div class="chr-ends"><button type="button" data-v="0" tabindex="-1">Noodle</button><button type="button" data-v="100" tabindex="-1">Hulk</button></div>
+    </div>
+
+  </section>
+
+  <footer class="foot">
+    <button class="btn cta" type="button" id="chr-next">Next: pick your path</button>
+  </footer>
+</main>
+
+<script>
+(function () {
+  "use strict";
+  var STOPS = {
+    fat:    ["SHREDDED", "LEAN", "SOLID", "FLUFFY", "CHONK"],
+    muscle: ["NOODLE", "WIRY", "FIT", "BEEFY", "HULK"]
+  };
+  /* build captions: [fat stop][muscle stop] */
+  var BUILDS = [
+    ["WALKING COAT HANGER", "WIRE-FRAME WARRIOR", "LEAN MEAN STAIR MACHINE", "HUMAN CHEESE GRATER", "ANATOMY POSTER, ALIVE"],
+    ["SNACK-SIZED SPROUT", "TRAIL MIX ENJOYER", "WEEKEND WARRIOR", "BEACH SEASON THREAT", "GREEK STATUE, REMASTERED"],
+    ["SOFT-SERVE STARTER", "DAD BOD, LEVEL ONE", "SOLID ALL-ROUNDER", "STRONG AND SNACKING", "BUILT LIKE A FRIDGE"],
+    ["COUCH KNIGHT", "CUDDLY BRAWLER", "POWER BEAR", "TANK WITH A LUNCHBOX", "STRONGMAN IN THE MAKING"],
+    ["MAXIMUM COZY", "GENTLE GIANT", "BEANBAG OF POWER", "SUMO ON A MISSION", "FINAL BOSS ENERGY"]
+  ];
+
+  var s = PX.get();
+  var ch = { sex: s.character && s.character.sex === "female" ? "female" : "male",
+             fat: PX.snap(s.character ? s.character.fat : 50),
+             muscle: PX.snap(s.character ? s.character.muscle : 50) };
+
+  var stage = document.getElementById("chr-stage");
+  var body = document.getElementById("chr-body");
+  var cap = document.getElementById("chr-cap");
+  var sexBtns = document.querySelectorAll(".chr-sex button");
+  var sliders = document.querySelectorAll(".chr-slider");
+
+  function restart(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+
+  function render(animate) {
+    PX.sprite(body, ch, 4);
+    var caption = BUILDS[ch.fat / 25][ch.muscle / 25];
+    var changed = cap.textContent !== caption;
+    cap.textContent = caption;
+    cap.style.fontSize = caption.length > 21 ? "19px" : "";
+    sexBtns.forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.sex === ch.sex)); });
+    sliders.forEach(function (box) {
+      var key = box.dataset.key, v = ch[key], i = v / 25;
+      var input = box.querySelector("input");
+      input.value = v;
+      input.style.setProperty("--f", String(i / 4));
+      input.setAttribute("aria-valuetext", STOPS[key][i]);
+      box.querySelector(".chr-now").textContent = STOPS[key][i];
+      box.querySelectorAll(".chr-ticks i").forEach(function (t, j) {
+        t.style.left = "calc(14px + (100% - 28px) * " + (j / 4) + ")";
+        t.classList.toggle("on", j <= i);
+      });
+    });
+    if (animate) {
+      restart(body, "is-pop");
+      if (changed) restart(cap, "is-stamp");
+    }
+  }
+
+  function set(patch) {
+    var before = [ch.sex, ch.fat, ch.muscle].join("/");
+    for (var k in patch) ch[k] = patch[k];
+    if (before === [ch.sex, ch.fat, ch.muscle].join("/")) return;
+    PX.save({ character: { sex: ch.sex, fat: ch.fat, muscle: ch.muscle } });
+    render(true);
+  }
+
+  sexBtns.forEach(function (b) { b.addEventListener("click", function () { set({ sex: b.dataset.sex }); }); });
+  sliders.forEach(function (box) {
+    var key = box.dataset.key, input = box.querySelector("input");
+    input.addEventListener("input", function () { var p = {}; p[key] = PX.snap(+input.value); set(p); });
+    box.querySelectorAll(".chr-ends button").forEach(function (b) {
+      b.addEventListener("click", function () { var p = {}; p[key] = +b.dataset.v; set(p); });
+    });
+  });
+
+  var dice = document.getElementById("chr-dice");
+  dice.addEventListener("click", function () {
+    var next;
+    do {
+      next = { sex: Math.random() < .5 ? "male" : "female",
+               fat: 25 * Math.floor(Math.random() * 5),
+               muscle: 25 * Math.floor(Math.random() * 5) };
+    } while (next.sex === ch.sex && next.fat === ch.fat && next.muscle === ch.muscle);
+    restart(dice, "is-roll");
+    set(next);
+  });
+
+  document.getElementById("chr-next").addEventListener("click", function () {
+    PX.save({ character: { sex: ch.sex, fat: ch.fat, muscle: ch.muscle } });
+    PX.go("class");
+  });
+
+  /* loading and error states for the sprite atlas */
+  var msg = document.getElementById("chr-msg");
+  var img = new Image();
+  img.onload = function () { stage.classList.remove("is-loading"); msg.textContent = ""; };
+  img.onerror = function () {
+    stage.classList.remove("is-loading"); stage.classList.add("is-broken");
+    msg.textContent = "YOUR LIFTER SKIPPED LEG DAY AND THE SPRITE. THE SLIDERS STILL WORK.";
+  };
+  img.src = "../moodboard/creator/body_atlas.png";
+
+  render(false);
+})();
+</script>
+</body>
+</html>

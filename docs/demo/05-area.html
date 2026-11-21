@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PUMPLEX · Starting area</title>
+<link rel="stylesheet" href="shared/pumplex.css">
+<script src="shared/demo.js"></script>
+
+<!-- ======================================================================
+     AREA SCENES (CSS). Ported from docs/moodboard/canvas/StartingAreas.dc.html.
+     Self-contained: every class starts with .ar-. Scene is 350 x 300 inside a
+     4 px ink border (358 x 308 outer). Rule: dark sky above, light floor (72 px)
+     below, lifter at 2x on the floor with a ground shadow, one action object.
+     Used by renderScene() below. The workout screen ports the same scenes.
+     ====================================================================== -->
+<style id="ar-scene-css">
+.ar-scene { position: relative; width: 350px; height: 300px; box-sizing: content-box; overflow: hidden; border: 4px solid var(--ink); box-shadow: 6px 6px 0 var(--ar-c, var(--pink)); }
+.ar-scene > * { position: absolute; }
+.ar-scene.shake { animation: px-shake .32s steps(6, end); }
+.ar-lifter { left: 12px; bottom: 26px; z-index: 5; }
+.ar-shadow { left: 18px; bottom: 20px; width: 92px; height: 10px; background: rgba(11, 4, 20, .45); border-radius: 50%; z-index: 4; }
+.ar-stars { inset: 0; background-image: radial-gradient(#f6eeff 1px, transparent 1.6px), radial-gradient(#c9b8e8 1px, transparent 1.6px); background-size: 41px 31px, 67px 47px; background-position: 5px 7px, 23px 19px; animation: ar-twinkle 2.4s steps(2, end) infinite; }
+.ar-hint { left: -4px; top: 12px; z-index: 8; padding: 5px 12px 4px; border: 3px solid var(--ink); font-family: var(--display); font-size: 17px; letter-spacing: 1px; line-height: 1; color: var(--ink); background: var(--ar-c); transform: rotate(-2deg); animation: ar-nudge 1.4s steps(2, end) infinite; pointer-events: none; }
+.ar-hit { position: absolute; z-index: 6; background: transparent; border: 0; padding: 0; margin: 0; }
+button.ar-hit { cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.ar-hit > span { position: absolute; display: block; }
+.ar-hit:focus-visible { outline: 3px dashed var(--text); outline-offset: 4px; }
+.ar-ring { inset: -8px; border: 3px dashed var(--text); opacity: .55; animation: ar-ring 1.4s steps(2, end) infinite; }
+.ar-anim { }
+.ar-fx { inset: 0; z-index: 9; pointer-events: none; }
+.ar-fx > * { position: absolute; }
+
+/* +1 SET starburst: ink star with the area colour inside */
+.ar-burst { width: 100px; height: 100px; display: flex; align-items: center; justify-content: center; animation: ar-burst .5s steps(5, end) both; z-index: 10; }
+.ar-burst::before, .ar-burst::after { content: ""; position: absolute; inset: 0; clip-path: polygon(50% 0,61% 30%,93% 18%,74% 45%,100% 62%,68% 66%,72% 100%,50% 76%,28% 100%,32% 66%,0 62%,26% 45%,7% 18%,39% 30%); }
+.ar-burst::before { background: var(--ink); }
+.ar-burst::after { inset: 7px; background: var(--fx); }
+.ar-burst b { position: relative; z-index: 1; font-family: var(--display); font-weight: 400; font-size: 18px; line-height: 1; color: var(--ink); text-align: center; transform: rotate(-8deg); }
+
+/* records (what stays in the world) and per-area effects */
+.ar-new { animation: ar-pop .22s steps(4, end) both; }
+.ar-shell { display: block; width: 20px; height: 15px; border: 3px solid var(--ink); border-radius: 50% 50% 4px 4px; background: repeating-linear-gradient(90deg, #ff5fb0 0 3px, #ff98c2 3px 5px); box-shadow: inset 0 -4px 0 #a63e84; }
+.ar-pearl { display: block; width: 17px; height: 17px; border: 3px solid var(--ink); border-radius: 50%; background: #88dff3; box-shadow: inset -5px -5px 0 #3681b2, inset 3px 3px 0 #f6eeff; }
+.ar-lid { transform-origin: 6px 100%; }
+.ar-busy .ar-lid { animation: ar-lid .6s steps(4, end) both; }
+.ar-flyer { z-index: 7; animation: ar-fly .5s steps(6, end) both; }
+.ar-stroke { position: relative; display: block; width: 6px; height: 44px; background: #f6eeff; box-shadow: 2px 0 0 #c9b8e8; transform-origin: top; }
+.ar-stroke.ar-new { animation: ar-scratch .2s steps(3, end) both; }
+.ar-slash { position: absolute; left: -10px; top: 17px; width: 56px; height: 6px; background: #f6eeff; box-shadow: 0 2px 0 #c9b8e8; transform: rotate(-28deg); transform-origin: left; }
+.ar-slash.ar-new { animation: ar-scratchx .2s steps(3, end) both; }
+.ar-dust { position: absolute; left: 0; bottom: -12px; width: 44px; height: 8px; background-image: radial-gradient(#f6eeff 1.2px, transparent 1.6px); background-size: 7px 5px; opacity: .7; }
+.ar-tag { display: inline-flex; flex-direction: column; align-items: center; }
+.ar-tag b { font-family: var(--display); font-weight: 400; font-size: 30px; line-height: .9; transform: rotate(-8deg); text-shadow: 2px 2px 0 var(--ink); }
+.ar-tag i { width: 4px; margin-top: -3px; }
+.ar-barrel { left: 0; bottom: 0; width: 44px; height: 60px; border: 3px solid var(--ink); border-radius: 5px; box-sizing: border-box; background: repeating-linear-gradient(45deg, #ffa033 0 7px, #0b0414 7px 14px); box-shadow: inset 0 6px 0 #a6643c, inset 0 -6px 0 #a6643c; animation: ar-rollin .45s steps(5, end) both; }
+.ar-busy .ar-barrel, .ar-busy .ar-ice { display: none; }
+.ar-boom { animation: ar-boom .6s steps(6, end) both; }
+.ar-puff { border-radius: 50%; background: #593597; border: 3px solid var(--ink); animation: ar-puff .6s steps(6, end) both; }
+.ar-debris { width: 8px; height: 8px; background: #a6643c; border: 2px solid var(--ink); animation: ar-debris .6s steps(6, end) both; }
+.ar-busy .ar-pad { animation: ar-punch .45s steps(5, end) both; }
+.ar-ticket { display: block; flex: none; width: 11px; height: 9px; background: #ffc075; border: 2px solid var(--ink); box-sizing: border-box; box-shadow: inset 0 -2px 0 #ffa033; }
+.ar-ice { left: 0; bottom: 0; width: 56px; height: 50px; box-sizing: border-box; border: 3px solid var(--ink); background: #88dff3; box-shadow: inset 8px 8px 0 #c9f2ff, inset -8px -8px 0 #3681b2; animation: ar-reform .4s steps(4, end) both; }
+.ar-shard { width: 12px; height: 12px; background: #88dff3; border: 2px solid var(--ink); animation: ar-shard .55s steps(6, end) both; }
+.ar-flag { position: absolute; width: 20px; height: 30px; z-index: 3; }
+.ar-flag i { position: absolute; left: 0; bottom: 0; width: 3px; height: 30px; background: #f6eeff; border: 1px solid var(--ink); }
+.ar-flag b { position: absolute; left: 4px; top: 0; width: 15px; height: 11px; border: 2px solid var(--ink); }
+
+@keyframes ar-twinkle { 50% { background-position: 5px 7px, 24px 19px; opacity: .6; } }
+@keyframes ar-waves { to { background-position: 30px 0; } }
+@keyframes ar-flick { 0%, 100% { transform: scaleY(1); } 33% { transform: scaleY(.8) translateX(1px); } 66% { transform: scaleY(1.12) translateX(-1px); } }
+@keyframes ar-neon { 0%, 86%, 100% { opacity: 1; } 88% { opacity: .25; } 90% { opacity: 1; } 93% { opacity: .4; } }
+@keyframes ar-blink { 0%, 90%, 100% { transform: scaleY(1); } 94% { transform: scaleY(.1); } }
+@keyframes ar-snow { to { background-position: 0 54px, 12px 90px; } }
+@keyframes ar-sway { 50% { transform: skewX(-6deg); } }
+@keyframes ar-drift { to { transform: translateX(-18px) skewY(-6deg); } }
+@keyframes ar-nudge { 50% { transform: rotate(-2deg) translateY(-3px); } }
+@keyframes ar-ring { 50% { opacity: .15; } }
+@keyframes ar-burst { 0% { transform: scale(.2) rotate(-40deg); } 60% { transform: scale(1.15) rotate(6deg); } 100% { transform: scale(1) rotate(0); } }
+@keyframes ar-lid { 0% { transform: none; } 40% { transform: rotate(-42deg) translateY(-8px); } 100% { transform: rotate(-34deg) translateY(-6px); } }
+@keyframes ar-fly { 0% { transform: translate(0, 0) rotate(0); } 50% { transform: translate(42px, -80px) rotate(180deg); } 100% { transform: translate(86px, 30px) rotate(360deg); opacity: 0; } }
+@keyframes ar-pop { 0% { transform: scale(2.2) rotate(-14deg); opacity: 0; } 100% { transform: scale(1) rotate(0); opacity: 1; } }
+@keyframes ar-scratch { 0% { transform: scaleY(0); } 100% { transform: scaleY(1); } }
+@keyframes ar-scratchx { 0% { transform: rotate(-28deg) scaleX(0); } 100% { transform: rotate(-28deg) scaleX(1); } }
+@keyframes ar-rollin { 0% { transform: translateX(150px) rotate(90deg); } 100% { transform: none; } }
+@keyframes ar-boom { 0% { transform: scale(.2); } 35% { transform: scale(1.25); } 100% { transform: scale(1.4); opacity: 0; } }
+@keyframes ar-puff { 0% { transform: scale(.3); } 100% { transform: scale(1.6) translateY(-30px); opacity: 0; } }
+@keyframes ar-debris { 100% { transform: translate(var(--dx), var(--dy)) rotate(270deg); opacity: 0; } }
+@keyframes ar-punch { 0% { transform: none; } 25% { transform: translateX(22px) scaleX(.7); } 60% { transform: translateX(-6px); } 100% { transform: none; } }
+@keyframes ar-reform { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+@keyframes ar-shard { 100% { transform: translate(var(--dx), var(--dy)) rotate(200deg); opacity: 0; } }
+</style>
+
+<style>
+/* ---------- 05 starting area: screen-only styles (.ar-…) ---------- */
+.ar-screen { display: flex; flex-direction: column; gap: var(--s3); padding-top: var(--s3); }
+.ar-head .title { font-size: 36px; }
+.ar-head .sub { margin-top: var(--s2); }
+
+.ar-stage { position: relative; width: 358px; max-width: 100%; margin-top: var(--s1); }
+.ar-stage.swap .ar-scene { animation: ar-wipe .18s steps(3, end) both; }
+@keyframes ar-wipe { 0% { clip-path: inset(0 100% 0 0); } 100% { clip-path: inset(0); } }
+.ar-note { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s2); margin-top: var(--s2); }
+.ar-note b { white-space: nowrap; font-family: var(--display); font-weight: 400; font-size: 22px; letter-spacing: 1px; text-transform: uppercase; line-height: 1; color: var(--ar-c); text-shadow: 2px 2px 0 var(--ink); }
+.ar-note span { font-size: 11px; color: var(--muted); text-align: right; }
+
+/* area picker: horizontal snap carousel (scrolls inside itself, never the page) */
+.ar-picker { margin: 0 calc(-1 * var(--s4)); }
+.ar-track {
+  display: flex; gap: var(--s3);
+  overflow-x: auto; overflow-y: hidden;
+  scroll-snap-type: x mandatory; scroll-padding: 0 var(--s4);
+  padding: var(--s1) var(--s4) var(--s2);
+  scrollbar-width: none; overscroll-behavior-x: contain;
+}
+.ar-track::-webkit-scrollbar { display: none; }
+.ar-card {
+  appearance: none; flex: 0 0 154px; scroll-snap-align: start;
+  display: flex; flex-direction: column; gap: var(--s2);
+  padding: 4px 4px var(--s2);
+  background: var(--surface); color: var(--text);
+  border: var(--border); box-shadow: 3px 3px 0 var(--line);
+  text-align: left; cursor: pointer;
+}
+.ar-card:focus-visible { outline: 3px dashed var(--text); outline-offset: 3px; }
+.ar-card[aria-checked="true"] { background: var(--ar-c); color: var(--ink); box-shadow: 4px 4px 0 var(--ink); }
+.ar-thumb { position: relative; width: 140px; height: 121px; overflow: hidden; border: 2px solid var(--ink); flex: none; }
+.ar-thumb .ar-scene { position: absolute; left: 0; top: 0; transform: scale(.3886); transform-origin: 0 0; box-shadow: none; border-width: 0; }
+.ar-badge {
+  position: absolute; left: 0; right: 0; top: 0; z-index: 20;
+  background: var(--ink); color: var(--cls-c); border-bottom: 2px solid var(--cls-c);
+  font-size: 10px; font-weight: 700; letter-spacing: 0; line-height: 1; padding: 4px 1px 3px; white-space: nowrap; text-align: center;
+}
+.ar-check { position: absolute; right: 4px; bottom: 4px; z-index: 20; width: 26px; height: 26px; display: none; align-items: center; justify-content: center; background: var(--ink); color: var(--ar-c); border: 2px solid var(--ar-c); }
+.ar-check svg { width: 16px; height: 16px; }
+.ar-card[aria-checked="true"] .ar-check { display: flex; }
+.ar-card b { padding: 0 4px; font-family: var(--display); font-weight: 400; font-size: 18px; letter-spacing: 1px; text-transform: uppercase; line-height: 1; }
+.ar-card small { padding: 0 4px; font-size: 11px; line-height: 1.3; color: var(--muted); min-height: 2.6em; }
+.ar-card small em { font-style: normal; font-weight: 700; color: var(--text); }
+.ar-card[aria-checked="true"] small, .ar-card[aria-checked="true"] small em { color: var(--ink); }
+</style>
+</head>
+<body class="px">
+<main class="phone" data-screen="area">
+  <header class="topbar">
+    <button class="icon-btn" type="button" id="ar-back" aria-label="Back to difficulty"></button>
+    <div class="steps" role="img" aria-label="Setup step 4 of 5"><i class="on"></i><i class="on"></i><i class="on"></i><i class="now"></i><i></i></div>
+  </header>
+
+  <section class="screen ar-screen">
+    <div class="ar-head">
+      <p class="kicker">STEP 4 OF 5 · PICK YOUR WORLD</p>
+      <h1 class="title">Where do you train?</h1>
+      <p class="sub">No + SET button here. You hit the thing.</p>
+    </div>
+
+    <div>
+      <div class="ar-stage" id="ar-stage"></div>
+      <div class="ar-note"><b id="ar-name"></b><span>Practice taps don't count.</span></div>
+    </div>
+
+    <div class="ar-picker">
+      <div class="ar-track" id="ar-track" role="radiogroup" aria-label="Starting area"></div>
+    </div>
+    <p class="sr-only" id="ar-live" role="status" aria-live="polite"></p>
+  </section>
+
+  <footer class="foot">
+    <button class="btn cta" type="button" id="ar-next">NEXT: REVIEW</button>
+  </footer>
+</main>
+
+<!-- ======================================================================
+     AREA SCENES (JS). renderScene(container, areaId, opts) draws one area.
+     opts: { interactive: bool, count: n (records shown, 0-12), character, onSet(count) }
+     Returns { el, hit(), setCount(n), count() }.
+     interactive: the action object is a <button> with a dashed ring and a
+     bobbing hint; a tap shakes the scene, plays the area effect and a
+     "+1 SET" (or 5th-mark stamp) burst, and adds one record.
+     ====================================================================== -->
+<script>
+(function () {
+  "use strict";
+  var LADDER = ["#c9b8e8", "#c6ff3d", "#3fd2ff", "#a77bff", "#ffa033", "#ff5fb0"];
+  var MAX = 12;
+  function rung(i) { return LADDER[Math.min(i, LADDER.length - 1)]; }
+  var STAR = "clip-path: polygon(50% 0,61% 30%,93% 18%,74% 45%,100% 62%,68% 66%,72% 100%,50% 76%,28% 100%,32% 66%,0 62%,26% 45%,7% 18%,39% 30%)";
+  function reduced() { return window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches; }
+
+  /* Each scene: bg (scene background), art (static/looping details), obj (the action
+     object's inner spans), hit (button box), rec (records container html), records(n, newest),
+     fx(n) (effect spans), burst position and colour. */
+  var SCENES = {
+    riptide: {
+      bg: "background: #12061f",
+      art:
+        '<div class="ar-stars"></div>' +
+        '<div style="right: 96px; top: 36px; width: 46px; height: 46px; border-radius: 50%; background: #f6eeff; border: 3px solid #0b0414; box-shadow: inset -10px -6px 0 #c9b8e8, inset 6px 8px 0 -3px #ecd7d0"></div>' +
+        '<div style="left: 0; right: 0; bottom: 70px; height: 110px; background-color: #2a1148; background-image: repeating-linear-gradient(0deg, transparent 0 9px, #3a2a52 9px 11px); border-top: 3px solid #0b0414"></div>' +
+        '<div style="right: 104px; bottom: 86px; width: 36px; height: 80px; background: repeating-linear-gradient(0deg, #c9b8e8 0 3px, transparent 3px 9px); clip-path: polygon(30% 0, 70% 0, 100% 100%, 0 100%); opacity: .8"></div>' +
+        '<div style="left: 116px; bottom: 177px; width: 60px; height: 9px; background: #1f0d36; border-radius: 50% 50% 0 0"></div>' +
+        '<div style="left: 142px; bottom: 183px; width: 4px; height: 28px; background: #1f0d36; transform: rotate(8deg)"></div>' +
+        '<div style="left: 128px; bottom: 204px; width: 36px; height: 15px; background: #1f0d36; clip-path: polygon(50% 40%, 100% 100%, 70% 50%, 50% 0, 30% 50%, 0 100%)"></div>' +
+        '<div style="left: 0; right: 0; bottom: 70px; height: 8px; background: repeating-linear-gradient(90deg, #3fd2ff 0 16px, #88dff3 16px 20px, transparent 20px 30px); border-top: 2px solid #0b0414; animation: ar-waves 1.6s steps(6,end) infinite"></div>' +
+        '<div style="left: 0; right: 0; bottom: 118px; height: 3px; background: repeating-linear-gradient(90deg, #3fd2ff 0 10px, transparent 10px 34px); opacity: .7; animation: ar-waves 2.4s steps(6,end) infinite reverse"></div>' +
+        '<div style="left: 0; right: 0; bottom: 0; height: 72px; background-color: #ad9293; background-image: radial-gradient(#8a6f73 1.2px, transparent 1.8px), radial-gradient(#ecd7d0 1px, transparent 1.5px); background-size: 13px 9px, 19px 11px; border-top: 4px solid #0b0414; box-shadow: inset 0 8px 0 #6b5033"></div>' +
+        '<div style="right: 14px; bottom: 72px; width: 14px; height: 130px; background: repeating-linear-gradient(0deg, #6b5033 0 10px, #4b2d19 10px 12px); border: 3px solid #0b0414; transform: rotate(6deg); transform-origin: bottom"></div>' +
+        '<div style="right: -16px; bottom: 190px; width: 92px; height: 48px; background: #4b2a7a; clip-path: polygon(50% 40%, 100% 70%, 62% 52%, 90% 100%, 50% 58%, 10% 100%, 38% 52%, 0 70%, 50% 40%, 30% 0, 50% 30%, 70% 0); animation: ar-sway 2s steps(2,end) infinite"></div>' +
+        '<div style="left: 226px; bottom: 50px; width: 18px; height: 18px; background: #ff5fb0; clip-path: polygon(50% 0, 62% 36%, 100% 38%, 70% 60%, 80% 100%, 50% 76%, 20% 100%, 30% 60%, 0 38%, 38% 36%)"></div>',
+      hit: "left: 128px; bottom: 22px; width: 84px; height: 74px",
+      label: "Open the treasure chest",
+      obj:
+        '<span style="left: 6px; top: 34px; width: 72px; height: 10px; background: #ffc075; border: 3px solid #0b0414"></span>' +
+        '<span style="left: 2px; bottom: 0; width: 80px; height: 44px; box-sizing: border-box; border: 3px solid #0b0414; background: linear-gradient(90deg, #6b5033 0 12px, #ffa033 12px 22px, #6b5033 22px 56px, #ffa033 56px 66px, #6b5033 66px); box-shadow: inset 0 -6px 0 #4b2d19"></span>' +
+        '<span style="left: 34px; bottom: 18px; width: 14px; height: 16px; background: #ffa033; border: 2px solid #0b0414; box-shadow: inset 0 -5px 0 #a6643c"></span>' +
+        '<span class="ar-lid" style="left: 0; bottom: 40px; width: 84px; height: 26px; box-sizing: border-box; border: 3px solid #0b0414; border-radius: 16px 16px 0 0; background: linear-gradient(90deg, #6b5033 0 14px, #ffa033 14px 24px, #6b5033 24px 58px, #ffa033 58px 68px, #6b5033 68px); box-shadow: inset 0 5px 0 #a6643c"></span>',
+      rec: '<div data-rec style="right: 8px; bottom: 6px; width: 86px; height: 64px; z-index: 4; display: flex; flex-wrap: wrap-reverse; justify-content: center; align-content: flex-start; gap: 1px"></div>',
+      records: function (n, nw) {
+        var h = "";
+        for (var i = 0; i < n; i++) h += '<span class="' + (i % 5 === 4 ? "ar-pearl" : "ar-shell") + (i === nw ? " ar-new" : "") + '"></span>';
+        return h;
+      },
+      fx: function (n) { return '<span class="ar-flyer ' + (n % 5 === 0 ? "ar-pearl" : "ar-shell") + '" style="left: 160px; bottom: 96px"></span>'; },
+      burst: "left: 130px; bottom: 120px", color: function () { return "#ff5fb0"; }
+    },
+
+    gainsgard: {
+      bg: "background-color: #3a2a52; background-image: repeating-linear-gradient(0deg, #2a1148 0 3px, transparent 3px 26px), repeating-linear-gradient(90deg, #2a1148 0 3px, transparent 3px 44px)",
+      art:
+        '<div style="left: 16px; top: 50px; width: 64px; height: 90px; background-color: #1a0b3b; background-image: radial-gradient(#f6eeff 1px, transparent 1.6px); background-size: 13px 17px; border: 4px solid #0b0414; border-radius: 32px 32px 0 0; box-shadow: inset 0 0 0 4px #4b2a7a"></div>' +
+        '<div style="left: 45px; top: 54px; width: 6px; height: 86px; background: #0b0414"></div>' +
+        '<div style="left: 20px; top: 92px; width: 56px; height: 5px; background: #0b0414"></div>' +
+        '<div style="left: 0; top: 144px; width: 100px; height: 84px; background: rgba(201,184,232,.12); clip-path: polygon(22% 0, 78% 0, 100% 100%, 0 100%)"></div>' +
+        '<div style="left: 98px; top: 0; width: 4px; height: 44px; background: repeating-linear-gradient(0deg, #8672a5 0 6px, #0b0414 6px 8px)"></div>' +
+        '<div style="left: 128px; top: 0; width: 42px; height: 70px; background: #a77bff; clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 84%, 0 100%); box-shadow: inset 6px 0 0 #c8a9f3, inset -6px 0 0 #724eb2"></div>' +
+        '<div style="left: 140px; top: 24px; width: 18px; height: 6px; background: #0b0414; box-shadow: -6px 0 0 0 #0b0414, 6px 0 0 0 #0b0414, -6px -4px 0 0 #0b0414, -6px 4px 0 0 #0b0414, 6px -4px 0 0 #0b0414, 6px 4px 0 0 #0b0414"></div>' +
+        '<div style="left: 232px; top: 0; width: 42px; height: 70px; background: #ff5fb0; clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 84%, 0 100%); box-shadow: inset 6px 0 0 #ff98c2, inset -6px 0 0 #a63e84"></div>' +
+        '<div style="left: 244px; top: 24px; width: 18px; height: 6px; background: #0b0414; box-shadow: -6px 0 0 0 #0b0414, 6px 0 0 0 #0b0414, -6px -4px 0 0 #0b0414, -6px 4px 0 0 #0b0414, 6px -4px 0 0 #0b0414, 6px 4px 0 0 #0b0414"></div>' +
+        '<div style="left: 177px; top: 28px; width: 48px; height: 48px; border-radius: 50%; background: rgba(255,160,51,.18)"></div>' +
+        '<div style="left: 196px; top: 50px; width: 10px; height: 26px; background: #6b5033; border: 2px solid #0b0414"></div>' +
+        '<div style="left: 192px; top: 26px; width: 18px; height: 24px; background: #ffa033; border: 2px solid #0b0414; border-radius: 50% 50% 20% 20%; box-shadow: inset 0 -8px 0 #ff5fb0, inset 0 5px 0 #ffc075; transform-origin: bottom; animation: ar-flick .5s steps(3,end) infinite"></div>' +
+        '<div style="right: 8px; bottom: 74px; width: 54px; height: 60px; border: 3px solid #0b0414; border-bottom: 0; background: repeating-linear-gradient(0deg, transparent 0 18px, #6b5033 18px 22px)"></div>' +
+        '<div style="right: 18px; bottom: 112px; width: 34px; height: 4px; background: #c9b8e8; border: 1px solid #0b0414; box-shadow: -3px -4px 0 0 #0b0414, 31px -4px 0 0 #0b0414"></div>' +
+        '<div style="right: 18px; bottom: 90px; width: 34px; height: 4px; background: #c9b8e8; border: 1px solid #0b0414; box-shadow: -3px -5px 0 1px #0b0414, 31px -5px 0 1px #0b0414"></div>' +
+        '<div style="left: 0; right: 0; bottom: 0; height: 72px; background-color: #8672a5; background-image: repeating-linear-gradient(90deg, #593597 0 3px, transparent 3px 52px), repeating-linear-gradient(0deg, #593597 0 3px, transparent 3px 22px); border-top: 4px solid #0b0414; box-shadow: inset 0 6px 0 #ad8ed6"></div>' +
+        '<div style="left: 0; bottom: 8px; width: 210px; height: 34px; background: #a63e84; border: 3px solid #0b0414; box-shadow: inset 0 0 0 3px #ffa033; transform: skewX(-20deg); transform-origin: bottom left"></div>',
+      hit: "left: 124px; top: 88px; width: 150px; height: 132px",
+      label: "Scratch the wall",
+      obj:
+        '<span style="inset: 0; background-color: #4b2a7a; background-image: repeating-linear-gradient(0deg, #3a2a52 0 3px, transparent 3px 30px), repeating-linear-gradient(90deg, #3a2a52 0 3px, transparent 3px 60px); border: 4px solid #0b0414; box-shadow: inset 6px 6px 0 #593597"></span>' +
+        '<span data-rec style="left: 12px; right: 10px; top: 10px; bottom: 12px; display: flex; flex-wrap: wrap; align-content: center; gap: 16px 20px"></span>',
+      rec: "",
+      records: function (n, nw) {
+        var h = "", idx = 0;
+        for (var left = n; left > 0; left -= 5) {
+          var g = Math.min(5, left), s = "";
+          for (var k = 0; k < Math.min(4, g); k++) { s += '<span class="ar-stroke' + (idx === nw ? " ar-new" : "") + '"></span>'; idx++; }
+          if (g === 5) { s += '<span class="ar-slash' + (idx === nw ? " ar-new" : "") + '"></span>'; idx++; }
+          h += '<span style="position: relative; display: flex; gap: 6px; height: 44px">' + s + '<span class="ar-dust"></span></span>';
+        }
+        return h;
+      },
+      fx: function () { return ""; },
+      burst: "right: 2px; top: 60px", color: function () { return "#ffa033"; }
+    },
+
+    rustbelt: {
+      bg: "background: #1f0d36",
+      art:
+        '<div style="left: 0; right: 0; top: 70px; height: 90px; background: #2a1148"></div>' +
+        '<div style="left: 0; right: 0; top: 160px; height: 68px; background: #3b2230"></div>' +
+        '<div style="left: 36px; top: 108px; width: 104px; height: 52px; box-sizing: border-box; border-radius: 52px 52px 0 0; background: repeating-linear-gradient(0deg, #ffa033 0 7px, #1f0d36 7px 10px); border: 3px solid #0b0414; border-bottom: 0"></div>' +
+        '<div style="left: 0; right: 0; bottom: 72px; height: 12px; background: #ecd7d0; border-top: 2px solid #0b0414"></div>' +
+        '<div style="left: -10px; bottom: 84px; width: 130px; height: 70px; background: #3b2230; border: 3px solid #0b0414; border-bottom: 0; clip-path: polygon(14% 0, 86% 0, 100% 100%, 0 100%); box-shadow: inset 6px 0 0 #6b4a5e"></div>' +
+        '<div style="left: 100px; top: 24px; width: 6px; height: 250px; background: #4b2d19; border: 2px solid #0b0414; transform: rotate(-4deg)"></div>' +
+        '<div style="left: 80px; top: 40px; width: 46px; height: 5px; background: #4b2d19; border: 2px solid #0b0414; transform: rotate(-4deg)"></div>' +
+        '<div style="left: -20px; top: 40px; width: 400px; height: 50px; border-bottom: 2px solid #0b0414; border-radius: 0 0 50% 50%"></div>' +
+        '<div style="left: 132px; bottom: 72px; width: 20px; height: 62px; background: #3a2a52; border: 3px solid #0b0414; border-radius: 10px 10px 0 0"></div>' +
+        '<div style="left: 118px; bottom: 96px; width: 14px; height: 24px; background: #3a2a52; border: 3px solid #0b0414; border-right: 0; border-radius: 8px 0 0 0"></div>' +
+        '<div style="left: 137px; bottom: 112px; width: 4px; height: 4px; background: #ffa033; box-shadow: 7px 0 0 #ffa033; animation: ar-blink 3s steps(1,end) infinite"></div>' +
+        '<div style="right: 26px; bottom: 72px; width: 8px; height: 150px; background: #4b2d19; border: 2px solid #0b0414"></div>' +
+        '<div style="right: 136px; bottom: 72px; width: 8px; height: 150px; background: #4b2d19; border: 2px solid #0b0414"></div>' +
+        '<div data-rec style="right: 8px; top: 64px; width: 156px; height: 100px; box-sizing: border-box; background-color: #6b5033; background-image: radial-gradient(#4b2d19 6px, transparent 7px), radial-gradient(#a6643c 3px, transparent 4px); background-size: 47px 37px, 23px 29px; border: 4px solid #0b0414; box-shadow: inset 0 -6px 0 #4b2d19, inset 6px 0 0 #a6643c; display: flex; flex-wrap: wrap; align-content: flex-start; justify-content: center; gap: 0 6px; padding: 8px 6px"></div>' +
+        '<div style="right: 14px; top: 70px; width: 6px; height: 6px; border-radius: 50%; background: #c9b8e8; border: 1px solid #0b0414; box-shadow: -136px 0 0 #c9b8e8, 0 80px 0 #c9b8e8, -136px 80px 0 #c9b8e8"></div>' +
+        '<div style="right: 40px; bottom: 74px; width: 84px; height: 30px; background: #6b5033; border: 3px solid #0b0414; border-radius: 14px 18px 4px 4px; box-shadow: inset 0 -8px 0 #4b2d19; background-image: radial-gradient(#a6643c 3px, transparent 4px); background-size: 19px 13px"></div>' +
+        '<div style="left: 0; right: 0; bottom: 0; height: 72px; background: #a6643c; border-top: 4px solid #0b0414; box-shadow: inset 0 6px 0 #ffc075"></div>' +
+        '<div style="right: 20px; bottom: 8px; width: 110px; height: 30px; border-top: 2px solid #4b2d19; border-left: 2px solid #4b2d19; transform: skewX(40deg)"></div>' +
+        '<div style="right: 16px; bottom: 30px; width: 26px; height: 14px; border: 3px solid #0b0414; border-radius: 50%; background: #3a2a52; box-shadow: 20px -2px 0 -2px #3a2a52"></div>',
+      hit: "left: 186px; bottom: 22px; width: 44px; height: 60px",
+      label: "Blow up the barrel",
+      obj: '<span class="ar-barrel"></span>',
+      rec: "",
+      records: function (n, nw) {
+        var h = "";
+        for (var i = 0; i < n; i++) {
+          var col = rung(i);
+          h += '<span class="ar-tag' + (i === nw ? " ar-new" : "") + '"><b style="color: ' + col + '">X</b><i style="height: ' + (5 + (i * 7) % 9) + 'px; background: ' + col + '"></i></span>';
+        }
+        return h;
+      },
+      fx: function () {
+        return '<span class="ar-puff" style="left: 174px; bottom: 62px; width: 40px; height: 40px"></span>' +
+          '<span class="ar-puff" style="left: 206px; bottom: 76px; width: 32px; height: 32px; animation-delay: .08s"></span>' +
+          '<span class="ar-boom" style="left: 162px; bottom: 6px; width: 92px; height: 92px; background: #0b0414; ' + STAR + '"></span>' +
+          '<span class="ar-boom" style="left: 170px; bottom: 14px; width: 76px; height: 76px; background: #ffa033; ' + STAR + '"></span>' +
+          '<span class="ar-boom" style="left: 188px; bottom: 32px; width: 40px; height: 40px; background: #ffc075; border-radius: 50%"></span>' +
+          '<span class="ar-debris" style="left: 204px; bottom: 50px; --dx: -70px; --dy: -90px"></span>' +
+          '<span class="ar-debris" style="left: 204px; bottom: 50px; --dx: 60px; --dy: -110px"></span>' +
+          '<span class="ar-debris" style="left: 204px; bottom: 50px; --dx: 90px; --dy: -30px; background: #ffa033"></span>' +
+          '<span class="ar-debris" style="left: 204px; bottom: 50px; --dx: -40px; --dy: -140px; background: #ffa033"></span>';
+      },
+      burst: "left: 150px; bottom: 116px", color: function (n) { return rung(Math.max(0, n - 1)); }
+    },
+
+    arcade: {
+      bg: "background-color: #12061f; background-image: radial-gradient(rgba(255,95,176,.22) 2.5px, transparent 3px); background-size: 24px 24px",
+      art:
+        '<div style="left: 0; right: 0; top: 0; height: 34px; background-color: #2a1148; background-image: radial-gradient(#8672a5 2px, transparent 2.5px); background-size: 16px 34px; background-position: 4px 0; border-bottom: 4px solid #0b0414"></div>' +
+        '<div style="left: 0; right: 0; top: 34px; height: 16px; background: repeating-linear-gradient(90deg, transparent 0 22px, #2a1148 22px 26px)"></div>' +
+        '<div style="left: 14px; top: 58px; width: 44px; height: 56px; background: #f6eeff; border: 3px solid #0b0414; transform: rotate(-4deg); clip-path: polygon(0 0, 100% 0, 100% 80%, 76% 100%, 0 100%); box-shadow: inset 0 20px 0 #ff5fb0"></div>' +
+        '<div style="left: 74px; top: 62px; padding: 6px 10px; border: 3px solid #c6ff3d; box-shadow: 0 0 0 3px #0b0414, inset 0 0 0 3px #0b0414; font-family: Anton, Impact, sans-serif; font-size: 20px; line-height: 1; letter-spacing: 2px; color: #c6ff3d; white-space: nowrap; animation: ar-neon 3.2s steps(1,end) infinite">OPEN 24/7</div>' +
+        '<div style="left: 70px; top: 108px; font-family: Anton, Impact, sans-serif; font-size: 32px; line-height: 1; color: transparent; -webkit-text-stroke: 2px #ff5fb0; transform: rotate(-10deg)">SWOLE</div>' +
+        '<div style="left: 148px; top: 112px; font-family: Anton, Impact, sans-serif; font-size: 22px; line-height: 1; color: #3fd2ff; transform: rotate(4deg); text-shadow: 2px 2px 0 #0b0414; opacity: .85">GAINZ</div>' +
+        '<div style="left: 0; right: 0; bottom: 0; height: 72px; background-color: #724eb2; background-image: repeating-linear-gradient(90deg, #593597 0 3px, transparent 3px 60px); border-top: 4px solid #0b0414; box-shadow: inset 0 6px 0 #a77bff"></div>' +
+        '<div style="left: 0; right: 0; bottom: 10px; height: 4px; background: repeating-linear-gradient(90deg, #c6ff3d 0 22px, transparent 22px 40px)"></div>' +
+        '<div style="left: 120px; bottom: 30px; width: 80px; height: 16px; border-radius: 50%; background: #2a1148; border: 2px solid #0b0414; background-image: repeating-linear-gradient(0deg, transparent 0 4px, #c6ff3d 4px 5px)"></div>',
+      hit: "right: 8px; bottom: 70px; width: 140px; height: 190px",
+      label: "Punch the PUNCH-O-TRON",
+      obj:
+        '<span style="right: 0; bottom: 0; width: 82px; height: 150px; box-sizing: border-box; background: #2a1148; border: 4px solid #0b0414; box-shadow: inset 8px 0 0 #4b2a7a"></span>' +
+        '<span style="right: 0; bottom: 146px; width: 82px; height: 40px; box-sizing: border-box; background: #ff5fb0; border: 4px solid #0b0414; display: flex; align-items: center; justify-content: center; font-family: Anton, Impact, sans-serif; font-size: 13px; letter-spacing: 1px; line-height: 1; color: #0b0414; text-align: center">PUNCH-O-<br>TRON</span>' +
+        '<span style="right: 8px; bottom: 96px; width: 66px; height: 46px; box-sizing: border-box; background: #0b0414; border: 3px solid #c6ff3d">' +
+          '<span style="position: absolute; left: 6px; top: 3px; font-family: \'Space Mono\', monospace; font-size: 30px; font-weight: 700; line-height: 1; letter-spacing: 2px; color: rgba(198,255,61,.12)">88</span>' +
+          '<span data-led style="position: absolute; left: 6px; top: 3px; font-family: \'Space Mono\', monospace; font-size: 30px; font-weight: 700; line-height: 1; letter-spacing: 2px; color: #c6ff3d">00</span>' +
+        '</span>' +
+        '<span style="right: 80px; bottom: 72px; width: 26px; height: 10px; background: #8672a5; border: 3px solid #0b0414"></span>' +
+        '<span class="ar-pad" style="right: 94px; bottom: 54px; width: 46px; height: 46px; box-sizing: border-box; border-radius: 50%; background: #ff5fb0; border: 4px solid #0b0414; box-shadow: inset -8px -8px 0 #a63e84, inset 6px 6px 0 #ff98c2"></span>' +
+        '<span style="right: 22px; bottom: 16px; width: 38px; height: 10px; background: #0b0414; border: 3px solid #8672a5"></span>' +
+        '<span style="right: 30px; bottom: 40px; width: 22px; height: 22px; border-radius: 50%; background: #ffa033; border: 3px solid #0b0414"></span>',
+      rec: '<div data-rec style="right: 10px; bottom: 6px; width: 170px; height: 14px; z-index: 4; display: flex; flex-direction: row-reverse; gap: 1px"></div>',
+      records: function (n, nw) {
+        var h = "";
+        for (var i = 0; i < n; i++) h += '<span class="ar-ticket' + (i === nw ? " ar-new" : "") + '"></span>';
+        return h;
+      },
+      fx: function () { return ""; },
+      burst: "left: 100px; bottom: 170px", color: function () { return "#c6ff3d"; }
+    },
+
+    frostbite: {
+      bg: "background: #1a0b3b",
+      art:
+        '<div class="ar-stars"></div>' +
+        '<div style="left: -30px; right: -30px; top: 34px; height: 16px; background: #a77bff; opacity: .5; transform: skewY(-6deg); animation: ar-drift 4s steps(4,end) infinite alternate"></div>' +
+        '<div style="left: -30px; right: -30px; top: 56px; height: 10px; background: #3fd2ff; opacity: .45; transform: skewY(-6deg); animation: ar-drift 3s steps(3,end) infinite alternate-reverse"></div>' +
+        '<div style="left: -30px; right: -30px; top: 72px; height: 6px; background: #c6ff3d; opacity: .25; transform: skewY(-6deg); animation: ar-drift 5s steps(5,end) infinite alternate"></div>' +
+        '<div style="left: -40px; bottom: 70px; width: 210px; height: 150px; background: #2a1148; clip-path: polygon(50% 0, 100% 100%, 0 100%)"></div>' +
+        '<div style="left: -40px; bottom: 174px; width: 210px; height: 46px; background: #c9b8e8; clip-path: polygon(50% 0, 64% 40%, 57% 34%, 50% 50%, 43% 34%, 36% 40%)"></div>' +
+        '<div style="left: 10px; bottom: 70px; width: 34px; height: 66px; background: #1f0d36; clip-path: polygon(50% 0, 70% 30%, 60% 30%, 85% 62%, 70% 62%, 100% 100%, 0 100%, 30% 62%, 15% 62%, 40% 30%, 30% 30%)"></div>' +
+        '<div style="left: 10px; bottom: 110px; width: 34px; height: 26px; background: #c9b8e8; clip-path: polygon(50% 0, 70% 30%, 50% 22%, 30% 30%)"></div>' +
+        '<div style="left: 0; right: 0; top: 0; bottom: 0; background: #c9b8e8; clip-path: polygon(30% 76%, 92% 22%, 100% 26%, 100% 76%)"></div>' +
+        '<div style="left: 0; right: 0; top: 0; bottom: 0; background: #f6eeff; clip-path: polygon(30% 76%, 92% 22%, 95% 25%, 36% 76%)"></div>' +
+        '<div style="right: 22px; top: 28px; width: 4px; height: 38px; background: #f6eeff; border: 1px solid #0b0414"></div>' +
+        '<div style="right: -2px; top: 28px; width: 24px; height: 16px; background: #ff5fb0; border: 2px solid #0b0414; clip-path: polygon(0 0, 100% 50%, 0 100%)"></div>' +
+        '<div data-rec style="inset: 0; z-index: 3"></div>' +
+        '<div style="left: 0; right: 0; top: 0; bottom: 72px; background-image: radial-gradient(#f6eeff 1.4px, transparent 2px), radial-gradient(#c9b8e8 1px, transparent 1.6px); background-size: 37px 54px, 23px 45px; animation: ar-snow 2.2s steps(9,end) infinite; z-index: 3"></div>' +
+        '<div style="left: 0; right: 0; bottom: 0; height: 72px; background: #c9b8e8; border-top: 4px solid #0b0414; box-shadow: inset 0 6px 0 #f6eeff"></div>' +
+        '<div style="right: 20px; bottom: 30px; width: 100px; height: 16px; border-radius: 50%; background: #f6eeff"></div>' +
+        '<div style="left: 230px; bottom: 14px; width: 6px; height: 4px; background: #8672a5; box-shadow: 14px -4px 0 #8672a5, 28px 0 0 #8672a5, 42px -4px 0 #8672a5, 56px 0 0 #8672a5"></div>',
+      hit: "left: 150px; bottom: 22px; width: 56px; height: 50px",
+      label: "Smash the ice block",
+      obj: '<span class="ar-ice"><span style="position: absolute; left: 10px; top: 8px; width: 3px; height: 20px; background: #f6eeff; transform: rotate(30deg)"></span><span style="position: absolute; left: 30px; top: 18px; width: 3px; height: 16px; background: #3681b2; transform: rotate(-40deg)"></span></span>',
+      rec: "",
+      records: function (n, nw) {
+        var h = "";
+        for (var i = 0; i < n; i++) {
+          var x = 116 + i * 17, b = Math.round(70 + (x + 2 - 105) * 0.7465);
+          h += '<span class="ar-flag' + (i === nw ? " ar-new" : "") + '" style="left: ' + x + 'px; bottom: ' + b + 'px"><i></i><b style="background: ' + rung(i) + '"></b></span>';
+        }
+        return h;
+      },
+      fx: function () {
+        var s = "", d = [[-60, -80, "#88dff3"], [50, -100, "#88dff3"], [80, -20, "#c9f2ff"], [-30, -130, "#3681b2"], [-90, -10, "#88dff3"]];
+        d.forEach(function (v) { s += '<span class="ar-shard" style="left: 172px; bottom: 46px; --dx: ' + v[0] + 'px; --dy: ' + v[1] + 'px; background: ' + v[2] + '"></span>'; });
+        return s;
+      },
+      burst: "left: 130px; bottom: 170px", color: function () { return "#3fd2ff"; }
+    }
+  };
+
+  function renderScene(container, areaId, opts) {
+    opts = opts || {};
+    var A = window.PX.area(areaId) || window.PX.AREAS.riptide;
+    var S = SCENES[A.id];
+    var interactive = !!opts.interactive;
+    var count = Math.max(0, Math.min(MAX, opts.count || 0));
+    var timer = null;
+
+    var el = document.createElement("div");
+    el.className = "ar-scene ar-scene-" + A.id;
+    el.setAttribute("style", S.bg);
+    el.style.setProperty("--ar-c", window.PX.c(A.color));
+    el.setAttribute("role", interactive ? "group" : "img");
+    el.setAttribute("aria-label", A.name + ": " + A.object.toLowerCase() + ", " + A.record.toLowerCase());
+
+    var hitTag = interactive ? "button" : "span";
+    el.innerHTML =
+      S.art + S.rec +
+      (interactive ? '<span class="ar-hint">' + A.hint + "</span>" : "") +
+      '<div class="ar-shadow"></div><div class="ar-lifter"></div>' +
+      "<" + hitTag + ' class="ar-hit"' + (interactive ? ' type="button" aria-label="' + S.label + ': practice set"' : ' aria-hidden="true"') + ' style="' + S.hit + '">' +
+        (interactive ? '<span class="ar-ring"></span>' : "") + S.obj +
+      "</" + hitTag + ">" +
+      '<div class="ar-fx"></div>';
+
+    window.PX.sprite(el.querySelector(".ar-lifter"), opts.character || window.PX.get().character, 2);
+    var lifter = el.querySelector(".ar-lifter");
+    lifter.classList.add("ar-lifter"); // keep position class after PX.sprite adds .sprite
+    if (!interactive) lifter.removeAttribute("role");
+    var recEl = el.querySelector("[data-rec]");
+    var led = el.querySelector("[data-led]");
+    var fxEl = el.querySelector(".ar-fx");
+
+    function paint(newest) {
+      if (recEl) recEl.innerHTML = S.records(count, newest == null ? -1 : newest);
+      if (led) led.textContent = String(count).padStart(2, "0");
+    }
+    paint();
+
+    function hit() {
+      if (count < MAX) count++;
+      clearTimeout(timer);
+      paint(count - 1);
+      var stamp = count % 5 === 0 ? A.fifth : "+1 SET";
+      el.classList.remove("shake", "ar-busy");
+      void el.offsetWidth; // restart the hard-stepped animations
+      if (!reduced()) el.classList.add("shake", "ar-busy");
+      fxEl.innerHTML = (reduced() ? "" : S.fx(count)) +
+        '<div class="ar-burst" style="--fx: ' + S.color(count) + "; " + S.burst + '"><b>' + stamp + "</b></div>";
+      timer = setTimeout(function () { fxEl.innerHTML = ""; el.classList.remove("shake", "ar-busy"); }, 700);
+      if (opts.onSet) opts.onSet(count, stamp);
+    }
+    if (interactive) el.querySelector(".ar-hit").addEventListener("click", hit);
+
+    container.innerHTML = "";
+    container.appendChild(el);
+    return {
+      el: el, hit: hit,
+      count: function () { return count; },
+      setCount: function (n) { count = Math.max(0, Math.min(MAX, n)); paint(); }
+    };
+  }
+
+  window.renderScene = renderScene;
+})();
+</script>
+
+<!-- ====================== screen logic ====================== -->
+<script>
+(function () {
+  "use strict";
+  if (!PX.require(["cls"], "class")) return;
+
+  var st = PX.get();
+  var myCls = PX.cls();
+  var current = PX.area(st.area) ? st.area : (myCls && myCls.area) || "riptide";
+  if (current !== st.area) PX.save({ area: current });
+
+  var stage = document.getElementById("ar-stage");
+  var nameEl = document.getElementById("ar-name");
+  var track = document.getElementById("ar-track");
+  var live = document.getElementById("ar-live");
+
+  var back = document.getElementById("ar-back");
+  back.innerHTML = PX.icon("back");
+  back.addEventListener("click", function () { PX.go("difficulty"); });
+  document.getElementById("ar-next").addEventListener("click", function () { PX.go("summary"); });
+
+  function showPreview(id, animate) {
+    var a = PX.area(id);
+    renderScene(stage, id, {
+      interactive: true, count: 0,
+      onSet: function (n, stamp) { live.textContent = stamp + " Practice set " + n + ". Nothing is saved."; }
+    });
+    nameEl.textContent = a.name;
+    nameEl.style.setProperty("--ar-c", PX.c(a.color));
+    if (animate) { stage.classList.remove("swap"); void stage.offsetWidth; stage.classList.add("swap"); }
+  }
+
+  /* cards */
+  var cards = PX.AREA_ORDER.map(function (id, i) {
+    var a = PX.area(id);
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "ar-card";
+    b.setAttribute("role", "radio");
+    b.dataset.id = id;
+    b.style.setProperty("--ar-c", PX.c(a.color));
+    var isDefault = myCls && a.defaultFor === myCls.id;
+    b.innerHTML =
+      '<span class="ar-thumb"></span>' +
+      "<b>" + a.name + "</b>" +
+      "<small>" + a.record + "</small>";
+    var thumb = b.querySelector(".ar-thumb");
+    renderScene(thumb, id, { interactive: false, count: 3 });
+    if (isDefault) {
+      var badge = document.createElement("span");
+      badge.className = "ar-badge";
+      badge.style.setProperty("--cls-c", PX.c(myCls.color));
+      badge.textContent = "DEFAULT FOR YOUR PATH";
+      thumb.appendChild(badge);
+      b.setAttribute("aria-description", "Default for your path, " + myCls.name);
+    }
+    var chk = document.createElement("span");
+    chk.className = "ar-check"; chk.innerHTML = PX.icon("check");
+    thumb.appendChild(chk);
+    b.addEventListener("click", function () { pick(id, true); });
+    b.addEventListener("keydown", function (e) {
+      var d = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 0;
+      if (!d) return;
+      e.preventDefault();
+      var j = (i + d + cards.length) % cards.length;
+      pick(PX.AREA_ORDER[j], true);
+      cards[j].focus();
+    });
+    track.appendChild(b);
+    return b;
+  });
+
+  function scrollToCard(i, smooth) {
+    var c = cards[i];
+    var left = c.offsetLeft - parseInt(getComputedStyle(track).paddingLeft, 10);
+    var max = track.scrollWidth - track.clientWidth;
+    var target = Math.max(0, Math.min(max, left - (track.clientWidth - c.offsetWidth) / 2 + 16));
+    if (track.scrollTo) track.scrollTo({ left: target, behavior: smooth ? "smooth" : "auto" }); else track.scrollLeft = target;
+  }
+
+  function pick(id, user) {
+    var changed = id !== current;
+    current = id;
+    if (user) PX.save({ area: id });
+    cards.forEach(function (c, i) {
+      var on = c.dataset.id === id;
+      c.setAttribute("aria-checked", on ? "true" : "false");
+      c.tabIndex = on ? 0 : -1;
+    });
+    if (changed || !user) showPreview(id, changed);
+    if (user) scrollToCard(PX.AREA_ORDER.indexOf(id), false);
+  }
+
+  pick(current, false);
+  scrollToCard(PX.AREA_ORDER.indexOf(current), false);
+
+  /* screenshot helper for the demo: ?pick=<areaId>&tap=n */
+  var q = /[?&]pick=(\w+)/.exec(location.search);
+  if (q && PX.area(q[1])) pick(q[1], true);
+  var t = /[?&]tap=(\d+)/.exec(location.search);
+  if (t) setTimeout(function () { var btn = stage.querySelector(".ar-hit"); for (var k = 0; k < +t[1]; k++) btn.click(); }, 1100);
+})();
+</script>
+</body>
+</html>
