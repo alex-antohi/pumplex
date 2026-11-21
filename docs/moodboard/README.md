@@ -27,6 +27,7 @@ This folder is the copy in the repo. Use it as the reference when building game 
 | `animation/<sex>_fat<F>_muscle<M>/` | Per body: `<anim>_<i>_<pose>.png` frames (80×72), `<anim>_sheet.png` strips, `preview_3x.png` contact sheet. |
 | `canvas/ClassSelect.dc.html` | Board 6, "Class select": setup step 2, picking a class by equipment. Interactive, runs only inside the canvas. The copy and layout are in "Class select" below. |
 | `canvas/StartingAreas.dc.html` | Board 7, "Starting areas": setup step 4, five areas with scene, palette, default path and a working tap-to-mark demo. Interactive, runs only inside the canvas. Spec in "Starting areas" below. |
+| `canvas/Workout.dc.html` | Board 8, "Workout": the play screen (app-flow §4.2) in Rustbelt Flats for a Scrapper: exercise strip, barrel = one working set, long-press undo, I WORKED and a reward overlay. Interactive, runs only inside the canvas. Spec in "Workout screen" below. |
 | `canvas/` | Design-canvas source (`canvas.json`, `*.dc.html`), including the interactive Creator and Class select boards, which only run inside the canvas. Only needed to re-import into the canvas. |
 | `../../tools/moodboard/animate.mjs` | Regenerates every animation frame from the body sliders. `node tools/moodboard/animate.mjs` |
 | `../../tools/moodboard/boards.mjs` | Regenerates `animation.html`, `readability.html` and their canvas copies. Run after `animate.mjs`. |
@@ -203,8 +204,9 @@ often a mashup) but are our own. Other options:
 - **Lots of free weights:** Ironclad, Platebreaker, Barbellion
 - **Lots of machines:** Pulley Assassin, Leg-Press Lich, Pinstack Witch
 
-Still open: class outfits (the preview uses the starter outfit), and the height
-slider from brief 4.2 (the Creator board has only fat and muscle).
+Still open: class outfits (the preview uses the starter outfit).
+
+**No height slider.** Owner decision, 21 November 2026, overrides brief 4.2: character creation is body type + fat + muscle only.
 
 ## Starting areas (setup step 4)
 
@@ -252,3 +254,28 @@ Neon only on the action object, the records, props that react (torches, neon sig
 
 The class link is the drawio's "Background changes" edge (Character Creation → Starting Area). The class picks the
 default area, and the player can still choose any area. Lifters use `creator/body_atlas.png` at 2×.
+
+## Workout screen (play, app-flow §4.2)
+
+**Reference board, not an app screen.** Shown in Rustbelt Flats for a Scrapper (no equipment: push-ups, burpees, sprints).
+Owner choices (21 Nov 2026): an active-exercise strip, a set target per exercise, this area and class, and a simple reward overlay.
+
+Screen, top to bottom (390×844 dp):
+
+1. **Top bar:** `SESSION 14 · SCRAPPER`, the area name, and the running clock (`mm:ss` on an ink box with a lime border; it keeps running, as app-flow §4.2 says).
+2. **Exercise strip:** one card per exercise (3 here). Each card shows the name, **target slots** (outlined Xs, filled in rarity-ladder colours as sets land), `+n` for extra sets, and a status: NOW / NEXT UP / CRUSHED.
+   The active card is orange with a pink hard shadow. **Tap a card to switch** the active exercise.
+3. **The world:** the Rustbelt Flats scene with the lifter at 3×. A bobbing hint says **BLOW UP THE BARREL** with `<EXERCISE> · SET n OF t` under it.
+   The scrap sign shows the **active exercise's** Xs: filled ones in rarity colours, outlined ones still to do.
+4. **I WORKED** (lime, full width). It's disabled until at least one set is logged.
+
+Rules:
+- **Tap the barrel = one working set of the active exercise.** It explodes, the scene shakes, a new barrel rolls in, and an X lands on the sign. The burst says **+1 SET**, or **CRUSHED!** when the target is reached.
+- **Hold the barrel (550 ms) = take the last set back** (long-press, app-flow §4.2). On the board this works for real.
+- When an exercise reaches its target, the strip **moves to the next unfinished exercise** after 0.8 s. Extra sets are allowed (up to 9).
+- The **targets come from the app** (brief rule 4). 3 × 3 here is a placeholder until the workout lists per class exist (brief §8).
+- **First-workout tip** (app-flow §4.2), at the top of the scene: "ONLY WORKING SETS COUNT. WARM-UPS DON'T. HOLD THE BARREL TO TAKE ONE BACK." with an OK button.
+- **Reward overlay on I WORKED:** freeze-frame stripes, a **WORKOUT CRUSHED** stencil slam, `+[XP] XP` (placeholder: XP rules are still open, brief 4.8), the sets per exercise, the time, and **BACK TO HUB**.
+
+For other areas, swap the scene and the action object. Everything else stays the same (see "Starting areas").
+
