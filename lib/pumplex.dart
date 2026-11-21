@@ -3,7 +3,6 @@
 // type, things that spin for no reason.
 
 import 'dart:math';
-import 'dart:ui' show lerpDouble;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -587,126 +586,6 @@ class _TickerState extends State<Ticker> with SingleTickerProviderStateMixin {
   }
 }
 
-/// THE PUMP-O-METER™. A gauge for how much of today's sets are done.
-class PumpOMeter extends StatefulWidget {
-  const PumpOMeter({super.key, required this.value});
-
-  /// 0..1
-  final double value;
-
-  @override
-  State<PumpOMeter> createState() => _PumpOMeterState();
-}
-
-class _PumpOMeterState extends State<PumpOMeter> with SingleTickerProviderStateMixin {
-  late final _wobble = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1100),
-  );
-
-  bool get _maxed => widget.value >= 1;
-
-  void _sync() {
-    if (_maxed && !_wobble.isAnimating) {
-      _wobble.repeat(reverse: true);
-    } else if (!_maxed) {
-      _wobble.stop();
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _sync();
-  }
-
-  @override
-  void didUpdateWidget(PumpOMeter oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _sync();
-  }
-
-  @override
-  void dispose() {
-    _wobble.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final p = Pal.of(context);
-    return AspectRatio(
-      aspectRatio: 2,
-      child: TweenAnimationBuilder<double>(
-        tween: Tween(begin: 0, end: widget.value.clamp(0.0, 1.0)),
-        duration: const Duration(milliseconds: 1400),
-        curve: Curves.elasticOut,
-        builder: (context, v, _) => AnimatedBuilder(
-          animation: _wobble,
-          builder: (context, _) {
-            final deg = _maxed
-                ? lerpDouble(-70, 75, Curves.easeInOut.transform(_wobble.value))!
-                : -85 + 170 * v;
-            return CustomPaint(painter: _GaugePainter(deg * pi / 180, p));
-          },
-        ),
-      ),
-    );
-  }
-}
-
-class _GaugePainter extends CustomPainter {
-  _GaugePainter(this.angle, this.p);
-
-  /// Radians from straight up; negative is left.
-  final double angle;
-  final Pal p;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.clipRect(Offset.zero & size);
-    final c = Offset(size.width / 2, size.height);
-    final r = min(size.width / 2, size.height) - 3;
-    final outer = Rect.fromCircle(center: c, radius: r);
-    final colors = [p.lime, p.orange, p.pink];
-    for (var i = 0; i < 3; i++) {
-      canvas.drawArc(outer, pi + i * pi / 3, pi / 3, true, Paint()..color = colors[i]);
-    }
-    final ink = Paint()
-      ..color = p.ink
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 5;
-    canvas.drawArc(outer, pi, pi, true, ink);
-    final inner = Rect.fromCircle(center: c, radius: r * 0.6);
-    canvas.drawArc(inner, pi, pi, true, Paint()..color = p.panel);
-    canvas.drawArc(inner, pi, pi, true, ink);
-
-    final dir = Offset(sin(angle), -cos(angle));
-    canvas.drawLine(
-      c,
-      c + dir * r * 0.93,
-      Paint()
-        ..color = p.ink
-        ..strokeWidth = 8
-        ..strokeCap = StrokeCap.round,
-    );
-    canvas.drawCircle(c, r * 0.12, Paint()..color = p.violet);
-    canvas.drawCircle(c, r * 0.12, ink);
-  }
-
-  @override
-  bool shouldRepaint(_GaugePainter old) => old.angle != angle || old.p != p;
-}
-
-String pumpReading(int done, int total) {
-  if (total == 0 || done == 0) return 'WAITING FOR YOUR FIRST SET…';
-  if (done >= total) return 'PUMP: 100%. NEEDLE HAS OPINIONS. WORKOUT DEMOLISHED.';
-  final pct = (done * 100 / total).round();
-  if (pct < 25) return 'PUMP: $pct%. POSSIBLY JUST POSTURE.';
-  if (pct < 50) return 'PUMP: $pct%. CONSISTENT WITH BEING A PERSON.';
-  if (pct < 75) return 'PUMP: $pct%. SLEEVES UNDER PRESSURE.';
-  return 'PUMP: $pct%. SUSPICIOUSLY HIGH. DRINK WATER.';
-}
 
 const tickerItems = [
   'NOW WITH 0% LESS REST',
@@ -717,7 +596,7 @@ const tickerItems = [
   "THE BAR WON'T LIFT ITSELF. WE ASKED.",
   'LIGHT DAYS ARE NOT LIGHT. WE CHECKED.',
   "100% LOCAL DATA. THE CLOUD COULDN'T HANDLE IT",
-  "CONJUGATE: LATIN FOR 'MORE SQUATS'",
+  'TRAIN, NOT TRACK',
 ];
 
 const _dayTags = [

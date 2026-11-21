@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'dates.dart';
 import 'day_page.dart';
-import 'export.dart';
+import 'files.dart';
 import 'program.dart';
 import 'pumplex.dart';
 import 'store.dart';
@@ -23,7 +23,7 @@ class GymApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: ownerLabel == null ? 'PUMPLEX' : 'PUMPLEX $ownerLabel',
+      title: 'PUMPLEX',
       debugShowCheckedModeBanner: false,
       theme: pumplexTheme(Brightness.light),
       darkTheme: pumplexTheme(Brightness.dark),
@@ -49,7 +49,7 @@ class SessionPager extends StatefulWidget {
   State<SessionPager> createState() => _SessionPagerState();
 }
 
-class _SessionPagerState extends State<SessionPager> with WidgetsBindingObserver {
+class _SessionPagerState extends State<SessionPager> {
   LogStore get _store => widget.store;
 
   /// Upcoming sessions you can swipe ahead to (read-only).
@@ -63,22 +63,9 @@ class _SessionPagerState extends State<SessionPager> with WidgetsBindingObserver
   int get _n => _page + 1;
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-  }
-
-  @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _store.flush();
     _controller.dispose();
     super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state != AppLifecycleState.resumed) _store.flush();
   }
 
   void _goTo(int page, {bool animate = true}) {
@@ -106,7 +93,6 @@ class _SessionPagerState extends State<SessionPager> with WidgetsBindingObserver
     final n = _store.currentN;
     final workout = program[_store.dayOf(n)];
     final rested = workout == null;
-    _store.flush();
     _store.complete(rested: rested);
     final took = _store.sessions.last.duration;
     final next = program[_store.dayOf(_store.currentN)];
@@ -127,10 +113,7 @@ class _SessionPagerState extends State<SessionPager> with WidgetsBindingObserver
   }
 
   void _undo() {
-    if (!_store.undoComplete()) {
-      _snack("CAN'T UNDO: THE NEXT SESSION ALREADY HAS SETS IN IT.");
-      return;
-    }
+    if (!_store.undoComplete()) return;
     setState(() {});
     _goTo(_store.currentN - 1);
   }
@@ -143,7 +126,7 @@ class _SessionPagerState extends State<SessionPager> with WidgetsBindingObserver
         content: _store.backupJson(),
       );
       if (saved && mounted) {
-        _snack('BACKUP OF ${_store.loggedSessions} SESSIONS SAVED. GAINS: INSURED.');
+        _snack('BACKUP OF ${_store.sessions.length} SESSIONS SAVED. GAINS: INSURED.');
       }
     } on PlatformException catch (e) {
       if (mounted) _snack('COULD NOT SAVE: ${e.message}');
@@ -194,7 +177,7 @@ class _SessionPagerState extends State<SessionPager> with WidgetsBindingObserver
       _controller = PageController(initialPage: _page);
     });
     WidgetsBinding.instance.addPostFrameCallback((_) => old.dispose());
-    _snack('RESTORED ${_store.loggedSessions} SESSIONS.');
+    _snack('RESTORED ${_store.sessions.length} SESSIONS.');
   }
 
   @override
@@ -207,8 +190,7 @@ class _SessionPagerState extends State<SessionPager> with WidgetsBindingObserver
         : n > current
             ? 'PREVIEW'
             : shortDate(_store.dateOf(n)).toUpperCase();
-    final owner = ownerLabel == null ? '' : '$ownerLabel · ';
-    final info = '${owner}SESSION $n · DAY ${_store.dayOf(n)}/7 · $when';
+    final info = 'SESSION $n · DAY ${_store.dayOf(n)}/7 · $when';
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
@@ -227,10 +209,6 @@ class _SessionPagerState extends State<SessionPager> with WidgetsBindingObserver
                       icon: Icon(Icons.more_vert, color: p.ink, size: 28),
                       onSelected: (action) => action(),
                       itemBuilder: (context) => [
-                        PopupMenuItem(
-                          value: () => exportCsvFlow(this.context, _store),
-                          child: const Text('📊  EXPORT CSV…'),
-                        ),
                         PopupMenuItem(value: _saveBackup, child: const Text('💾  SAVE BACKUP FILE')),
                         PopupMenuItem(value: _restoreBackup, child: const Text('♻️  RESTORE BACKUP FILE')),
                         PopupMenuItem(
