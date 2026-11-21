@@ -14,6 +14,8 @@ This folder is the copy in the repo. Use it as the reference when building game 
 | --- | --- |
 | `README.md` | This spec. Start here. |
 | `palette.json` | Every colour and font, as machine-readable JSON. |
+| `borderlands-reference.md` | Research notes on the Borderlands vibe: style history, rarity and element colours, class ideas, tone. |
+| `borderlands_palette.html` | Visual board for those notes: swatches, rarity → PUMPLEX mapping, reward card and title card mocks. |
 | `game_look.html` | Board 1, "Game look v0.1": 4 test builds, 3 style rules, palette. Opens in a browser. |
 | `body_sliders.html` | Board 2, "Body sliders": a 3×3 fat × muscle grid for male and female. Opens in a browser. |
 | `builds/*.png` | 4 test-build sprites, 40×64 px. |
