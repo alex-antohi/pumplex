@@ -217,6 +217,8 @@ D34 removes the streak and D35 removes the achievements. No one loses XP. On sta
 
 ### 5.5 Backup files
 
+There is no save / restore button in the app now (D59); only the one-time upgrade writes a backup file. The code below stays.
+
 The backup file (version 6) holds the keys `profile_v1`, `body_history_v1`, `sessions_v3`, `xp_events_v1` and `favorites_v1`.
 The one-time flag and backup keys are not in it.
 

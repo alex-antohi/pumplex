@@ -38,10 +38,10 @@ flowchart TD
 
     work -- each set --> xp[XP, critical sets, level-up intro card]
 
-    work -. HISTORY .-> history[Past sessions]
-    work -. PROFILE or the level bar .-> profile[Profile: level title, the path]
-    work -. tap the lifter .-> char
-    work -. menu .-> menu[Profile, past sessions, edit character, backup]
+    work -. tap the lifter or the level bar .-> lifter[Lifter profile under the minimised workout: past sessions, lifter card]
+    lifter -. tap the small workout .-> work
+    lifter -. BODY, CLASS, DIFFICULTY, AREA .-> edit[The setup screen under the small workout, no BACK / NEXT, saves at once]
+    edit -. tap the small workout .-> work
 ```
 
 ## 2. Screens (scenes)
@@ -57,10 +57,10 @@ flowchart TD
 | 6 | Hub | removed | No hub (D49): the app opens on the workout. The level and XP bar is in the PUMPLEX bar there; tap the lifter in the world for the body sliders. |
 | 7 | Workout | exists | The home screen (D49). One card (D48): the world (area scene with the lifter) on top, filter tags (D51, D53), an exercise carousel under it over every exercise the filters show (D50; swipe both ways, round and round; a counter; a star button). No targets (D52). Tap the object = +1 set to the exercise shown, hold = −1. Area marks stay in the world. Bottom bar, HUB lit (D44). |
 | 8 | Reward | exists | XP on the active exercise line. CRITICAL SET message. Freeze-frame intro card for level-ups. No achievement burst (D35). Not a separate screen. |
-| 9 | Past sessions | exists | Training days (sets per exercise, time, class, area, XP) and old saves. Bottom bar (D44). |
+| 9 | Past sessions | removed | Now the past-sessions card of the lifter profile (D59). |
 | 10 | Gear | removed | No gear (D38). |
-| 11 | Menu | exists | Full screen: YOU (profile, past sessions, edit character), GAINS INSURANCE (save / restore backup). No chaos mode, cel shader or sound (D39–D41). Opens from ⋮ on every view. |
-| 12 | Profile | exists | level and level title, XP bar, the path (class, difficulty, world; tap one to change it), PAST SESSIONS. No milestones (D35). Opens from PROFILE or the level bar on the hub. Tap the lifter to change the body. Bottom bar (D44). |
+| 11 | Menu | removed | No ⋮ menu (D59): no menu screen and no save / restore backup buttons. |
+| 12 | Lifter profile | exists | Tap the lifter (or the level bar) on the workout: the workout shrinks to a square arena tile (D61); beside it the last-session tile; the lifter editor takes the rest, starting on BODY (D62). Swipe it up / down: BODY, CLASS (with difficulty), AREA, round and round; changes save at once (D60). Tap the session tile: the sessions carousel takes the space and the lifter is the tile. Tap the arena tile to go back. |
 
 Removed: the preloader, START TRAINING and its clock, I WORKED / I RESTED and UNDO,
 the 7-day pattern, rest days, rest-day stats and the preview pages.
@@ -69,17 +69,18 @@ the streak and the hub's "This week" card (D34), and the achievements and milest
 
 ## 3. Initial setup
 
-Show it on the first launch. The body sliders open again from the workout (tap the lifter) and
-the whole setup from the menu (EDIT CHARACTER).
+Show it on the first launch. Later, the lifter card of the lifter profile opens the same screens under
+the small workout (D60): BODY the character screen, CLASS and DIFFICULTY the class screen, AREA the area
+screen. There they have no BACK / NEXT and every change saves at once. BACK / NEXT exist only in the first setup.
 
 1. **Character.**
-   - Pick male or female. Sliders (D45):
+   - The body editor is a card (D63) as tall as its content (D64). Pick male or female. Sliders (D45):
      - HEIGHT, 1.50 M to 2.00 M. Only the current value shows, above the slider on the right.
      - WEIGHT, 50 KG to 200 KG. Only the current value shows, the same way. It picks the fat column of the atlas.
      - MUSCLE, with no value and no end labels.
      No hint text: a lime outline box around the head shows it can be tapped.
      The user never types a weight or a height. The values are saved as 0–100 (`height`, `fat`, `muscle`).
-   - No random button. No ⋮ menu button on the first setup (it shows again when editing later).
+   - No random button. No ⋮ menu button (D59).
    - **Tap the head** (inside the lime box): the camera zooms onto the head and the panel shows SKIN (light, deep),
      HAIR (brown, blonde) and FACIAL HAIR (none, beard; both bodies). DONE (or a tap on the head,
      or Android back) zooms out. The looks come from `tools/moodboard/looks.mjs`
@@ -87,11 +88,14 @@ the whole setup from the menu (EDIT CHARACTER).
    - Sprites: the design team's 5×5 body atlas (`assets/body/body_atlas.png`, a copy of
      `docs/moodboard/creator/body_atlas.png`). Fat and muscle each have stops at 0/25/50/75/100,
      per sex. The app shows the nearest cell for in-between values.
-   - The HEIGHT slider scales the sprite evenly, 0.86× to 1.14× (D11, D45). Nearest-neighbour scaling only.
+   - HEIGHT has five body models (D64), one per slider stop: the body cell loses or repeats pixel rows (chest 19,
+     hips 37, shins 48 and 50; −4, −2, 0, +2, +4 rows), the same rows in every layer, so the outfit and the looks
+     stay lined up. The pixel size does not change.
 2. **Class select and difficulty** (design: `docs/moodboard/README.md` "Class select", D46, D47).
    - No step kicker, title or subtitle in the view: the PUMPLEX bar says "CLASS · STEP 2 OF 4".
-   - One big card fills the top (D46): the user's lifter (from step 1) on top, then the class name
-     in its colour, the equipment, the loadout, 3 tags and the description. No stat table. The
+   - One big card fills the top (D46): the user's lifter (from step 1), standing on the class info at
+     the bottom of the card (D64): the class name in its colour, the equipment, the loadout and 3 tags
+     (no description, D63). No stat table. The
      card's hard shadow takes the class colour. The lifter gets the biggest whole-number scale that
      leaves room for the texts; the texts scroll on a short phone.
    - Swipe the card left for the next class, right for the one before, round and round. Dots under
@@ -138,9 +142,12 @@ the whole setup from the menu (EDIT CHARACTER).
      `assets/areas/`. Old saved ids (`beach`, `castle`, `summit`) migrate once
      ([data-schema.md](data-schema.md) §5.3).
    - The class picks the default area until the user picks one. The user can choose any area.
-   - One swipe card like the class card: the area's scene edge to edge at a whole-number scale
-     (the sides may be cut a little, never stretched) with the lifter standing in it, then the name,
-     the line, what you hit (e.g. SCRATCH THE WALL) and "YOUR PATH'S HOME" on the default area.
+   - A new area shows on today's workout at once, also after sets (D64). A new class or difficulty changes
+     today's workout only before its first set.
+   - One swipe card like the class card: the arena fills the card (D63) at the biggest whole-number
+     scale for its height (the sides may be cut, never stretched; the sky colour fills any room above)
+     with the lifter standing in it; the name, the line, what you hit (e.g. SCRATCH THE WALL) and
+     "YOUR PATH'S HOME" on the default area sit at the bottom.
      Swipe both ways, round and round; dots under the card.
    - The scenes are the design team's PNG layers (`assets/areas/<area id>/`). `tools/app/area_art.mjs`
      turns their `anim.json` files into `lib/game/area_art.dart`.
@@ -149,18 +156,26 @@ the whole setup from the menu (EDIT CHARACTER).
 
 ## 4. Play
 
-### 4.1 Hub (removed)
+### 4.1 Hub (removed) and the lifter profile
 
-There is no hub screen (D49). The app opens on the workout (§4.2), and HUB in the bottom bar goes there.
+There is no hub screen (D49), no bottom bar and no menu (D59). The app opens on the workout (§4.2).
 
-- **Level and XP bar:** in the PUMPLEX bar on the workout. Tap it to open the profile.
-- **Tap the lifter** in the world to change the body sliders at any time. Each saved change is kept
-  in a history (for charts later). In this edit, NEXT goes straight to the summary; tap a summary row
-  to change the class, difficulty or area too.
-- **Last training days:** in HISTORY.
-- **Bottom bar** (D44): HISTORY slides to the past sessions, HUB goes to the workout, PROFILE opens the
-  profile. The bar shows on the workout (HUB lit), past sessions and the profile. Not on the
-  setup or edit-character steps, and not on the menu.
+- **Level and XP bar:** in the PUMPLEX bar on the workout.
+- **Lifter profile** (D59, D62): tap the lifter in the world, or the level bar. The workout and the lifter
+  shrink into a square tile at the top left that shows only the arena (D61).
+  - Beside it: the **last-session tile** (date, sets, XP). Under them: the **lifter editor**, starting on BODY.
+  - **The lifter editor** is the setup screen of one property, without BACK / NEXT (D60): BODY (the character
+    screen, in a card), CLASS (the class card with the difficulty slider) or AREA (the area card). It is a vertical
+    carousel (D63): flick up for the next property, down for the one before, round and round (down from BODY is
+    AREA); like the sideways carousels it reacts to the flick and slides the next one in (D64); small bars at its
+    right edge show which. Every change
+    saves at once; a slider saves when it is let go, so each body change is one entry in the history.
+  - **Tap the session tile:** the past-sessions card takes the space (one training day at a time, swipe both
+    ways, round and round, "n / m"), and the lifter becomes a tile (class, difficulty, area). Tap the lifter
+    tile to get the editor back.
+  - There is no lifter card and no GEAR row (D60, D62).
+  - Tap the arena tile to make the workout full screen again.
+- **The phone's back button** leaves the app, on every screen (D60).
 
 ### 4.2 Workout
 
@@ -261,7 +276,7 @@ There is no I WORKED button. The calendar day decides:
   and the sets with a tally per exercise. Today shows first, marked TODAY.
 - Days from before D50 show OLD EXERCISE LIST and no exercise lines (D54).
 - Old saves (legacy sessions from the old app): date and time, if the old clock was used.
-- Opens from HISTORY in the bottom bar, PAST SESSIONS on the profile and in the menu. HUB goes back.
+- Shown one day at a time in the past-sessions card of the lifter profile (D59).
 
 ## 6. Special cases
 
@@ -270,7 +285,7 @@ There is no I WORKED button. The calendar day decides:
 | First launch with old-app data | The upgrade scene. SAVE BACKUP & UPGRADE opens Android's "Save as". Only if the file is saved: old workout days become legacy sessions with XP, then the old keys are deleted. Cancel or NOT NOW: nothing changes, the scene comes back on the next launch. |
 | App closed during a workout | The marks are saved. Open the app the same day to continue. |
 | Wrong mark | Hold the area's object in the workout scene. |
-| Restore a backup | Replace all game data. Version 4 is the current file. A version-3 file loses its achievements list, and the app works out its old streak XP again. Old version-2 backups go through the same migration (legacy sessions + XP, no profile, so the setup runs again). Old-app keys on the phone are only deleted by the upgrade. Old class and area ids in the file become the design ids. |
+| Restore a backup | No button for it now (D59). The code stays: it replaces all game data. Version 4 is the current file. A version-3 file loses its achievements list, and the app works out its old streak XP again. Old version-2 backups go through the same migration (legacy sessions + XP, no profile, so the setup runs again). Old-app keys on the phone are only deleted by the upgrade. Old class and area ids in the file become the design ids. |
 | Saved data with old class or area ids | On launch, `speedy`, `rogue`, `warrior` and `mage` become `scrapper`, `bruiser`, `paladin` and `cablemancer` (D31), and `beach`, `castle` and `summit` become `riptide`, `gainsgard` and `frostbite` (D36), one time. The old text is kept first ([data-schema.md](data-schema.md) §5.2, §5.3). |
 | First launch after the streak and achievements went (D34, D35) | One time: the old streak bonus of each session is saved as XP. The `achievements_v1` key is deleted. No one loses XP ([data-schema.md](data-schema.md) §5.4). |
 

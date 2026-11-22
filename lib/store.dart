@@ -346,6 +346,11 @@ class LogStore extends ChangeNotifier {
         (t.classId != p.classId || t.difficultyId != p.difficultyId || t.areaId != p.areaId)) {
       _sessions.remove(_today);
       _saveSessions();
+    } else if (t != null && !t.legacy && t.areaId != p.areaId) {
+      // The area is only the look and the marks (no XP): a change shows on
+      // today's workout at once, also after sets (D64).
+      _sessions[_today] = t.copyWith(areaId: p.areaId);
+      _saveSessions();
     }
     _filter = null; // the filters go back to the new class and mode
     notifyListeners();

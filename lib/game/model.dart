@@ -135,11 +135,12 @@ class Profile {
   final int schemaVersion;
   final String createdAt;
 
-  Profile copyWith({Character? character, String? createdAt}) => Profile(
+  Profile copyWith({Character? character, String? classId, String? difficultyId, String? areaId, String? createdAt}) =>
+      Profile(
         character: character ?? this.character,
-        classId: classId,
-        difficultyId: difficultyId,
-        areaId: areaId,
+        classId: classId ?? this.classId,
+        difficultyId: difficultyId ?? this.difficultyId,
+        areaId: areaId ?? this.areaId,
         schemaVersion: schemaVersion,
         createdAt: createdAt ?? this.createdAt,
       );
@@ -215,11 +216,11 @@ class Session {
       ? null
       : DateTime.parse(lastMarkAt!).difference(DateTime.parse(firstMarkAt!));
 
-  Session copyWith({String? lastMarkAt, List<SessionExercise>? exercises}) => Session(
+  Session copyWith({String? lastMarkAt, String? areaId, List<SessionExercise>? exercises}) => Session(
         date: date,
         classId: classId,
         difficultyId: difficultyId,
-        areaId: areaId,
+        areaId: areaId ?? this.areaId,
         firstMarkAt: firstMarkAt ?? lastMarkAt,
         lastMarkAt: lastMarkAt ?? this.lastMarkAt,
         legacy: legacy,

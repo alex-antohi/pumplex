@@ -25,11 +25,11 @@ The plan is in [docs/app-brief.md](docs/app-brief.md) and
   Keep, Rustbelt Flats, Arcade Underpass, Frostbite Summit; ids `riptide`,
   `gainsgard`, `rustbelt`, `arcade`, `frostbite`, D36). Each area card
   shows the scene art. The class picks the default area; the user can pick any. Picked on a swipe card, like the class (D47).
-- **No hub** (D49): the app opens on the workout. Tap the lifter there to
-  change the body sliders (changes are kept as a history). The level and XP
-  bar sits in the PUMPLEX bar. A bottom bar (HISTORY, HUB, PROFILE) shows on
-  the workout, past sessions and the profile (D44); HUB is the workout. There
-  is no streak (D34).
+- **No hub, no bottom bar, no menu** (D49, D59): the app opens on the workout.
+  The level and XP bar sits in the PUMPLEX bar. Tap the lifter (or the level
+  bar): the workout shrinks into a window at the top left and the lifter
+  profile shows under it. Tap the small window to go back. There is no
+  streak (D34).
 - **Workout** (D48): one card with the world (the area scene with the lifter)
   on top, the filter tags, and an exercise carousel under it: swipe through
   every exercise the filters show, with a star for favorites.
@@ -53,11 +53,11 @@ The plan is in [docs/app-brief.md](docs/app-brief.md) and
   that the streak and achievements gave before stays.
 - **Old-app data:** a one-time upgrade saves a backup file first, then
   turns the old sessions into XP and deletes the old kg / reps data.
-- **Profile**: level title and the path. Tap a row to
-  change the class, difficulty or world. No milestones (D35).
-- Full-screen menu (⋮): profile, past sessions, edit
-  character and save / restore a backup file. No chaos mode, cel shader or
-  sound (D39–D41).
+- **Lifter profile** (D59-D62): the workout shrinks to a square arena tile;
+  beside it the last-session tile; the lifter editor (the setup screens,
+  without BACK / NEXT) takes the rest: swipe it up / down for BODY, CLASS,
+  AREA. Changes save at once. Tap the session tile for the sessions carousel.
+  The phone's back button leaves the app.
 - **Design art:** Anton and Space Mono fonts (`assets/fonts`, OFL), pixel
   icons (`assets/icons`), class outfits and area scenes.
 
@@ -93,7 +93,7 @@ flutter test
 ```
 
 The tests are in `test/app_test.dart`. They cover the rules table, the saved
-data and its migrations, the setup, the workout and the menu.
+data and its migrations, the setup, the workout and the lifter profile.
 
 ## Build a release APK
 

@@ -32,23 +32,34 @@ import 'sprite.dart' show classColor;
 
 /// The workout card in a view of [area]: the world on top, the exercise
 /// carousel under it.
-Rect workoutCard(Size area) => Rect.fromLTRB(16, 8, area.width - 22, area.height - 14);
+Rect workoutCard(Size area, [double bottomInset = 0]) =>
+    Rect.fromLTRB(16, 8, area.width - 22, area.height - 14 - bottomInset);
 
 /// The scene's rect and whole-number scale in a workout view of [area]: edge
 /// to edge in the card; at most 24 px a side are cut off to reach the next
 /// whole-number scale (crop the sides, never stretch).
-(Rect, int) workoutLayout(Size area) {
-  final card = workoutCard(area);
+(Rect, int) workoutLayout(Size area, [double bottomInset = 0]) {
+  final card = workoutCard(area, bottomInset);
   // Inside the card's 4 px border.
   final avail = Rect.fromLTWH(card.left + 4, card.top + 4, card.width - 8, card.height * 0.6);
   final scale = max(1, min((avail.width + 48) / sceneSize.width, avail.height / sceneSize.height).floor());
   return (sceneRectIn(avail, scale), scale);
 }
 
+/// The arena only (D61): the visible part of the scene in the workout card,
+/// cut to a square around its middle. The minimised workout shows this.
+Rect workoutArena(Size area, [double bottomInset = 0]) {
+  final card = workoutCard(area, bottomInset);
+  final (scene, _) = workoutLayout(area, bottomInset);
+  final a = Rect.fromLTRB(max(scene.left, card.left + 4), scene.top, min(scene.right, card.right - 4), scene.bottom);
+  final side = min(a.width, a.height);
+  return Rect.fromCenter(center: a.center, width: side, height: side);
+}
+
 /// The lifter's place in the scene: the design's lifter position (the same
 /// in every area), feet on the shadow.
-Rect workoutStage(Size area) {
-  final (scene, scale) = workoutLayout(area);
+Rect workoutStage(Size area, [double bottomInset = 0]) {
+  final (scene, scale) = workoutLayout(area, bottomInset);
   return sceneLifterRect(areaArt.values.first, scene, scale);
 }
 
@@ -68,7 +79,7 @@ class WorkoutView extends StatefulWidget {
   /// Exercise id -> one set more / one set less.
   final ValueChanged<String> onAdd, onRemove;
 
-  /// Opens the body sliders (tap on the lifter, D12).
+  /// Tap on the lifter: opens the lifter profile (D59).
   final VoidCallback onBody;
 
   @override
@@ -150,8 +161,9 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
     final body = f.muscle ?? bodyPartById(f.body)?.name ?? 'All body parts';
     void open(FilterSection at) => showFilterSheet(context, store, at);
     return LayoutBuilder(builder: (context, box) {
-      final card = workoutCard(box.biggest);
-      final (scene, scale) = workoutLayout(box.biggest);
+      final inset = MediaQuery.paddingOf(context).bottom;
+      final card = workoutCard(box.biggest, inset);
+      final (scene, scale) = workoutLayout(box.biggest, inset);
       final skyLeft = max(scene.left, card.left + 4) + 8;
       return Stack(
         children: [
@@ -265,7 +277,7 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
               ),
             ),
           ),
-          // Tap the lifter to change the body sliders (D12).
+          // Tap the lifter to open the lifter profile (D59).
           Positioned.fromRect(
             rect: widget.stage,
             child: GestureDetector(
@@ -388,7 +400,9 @@ class _ExerciseText extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = Pal.of(context);
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(14, 10, 8, 4),
+      // Only left / right moves the exercise carousel (D65): no vertical scroll.
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

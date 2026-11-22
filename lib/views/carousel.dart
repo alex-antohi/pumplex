@@ -11,7 +11,8 @@ import '../pumplex.dart';
 mixin SwipeCarousel<T extends StatefulWidget> on State<T> {
   /// 1: the new item comes in from the right (swipe left), -1: from the left.
   int dir = 1;
-  double _dx = 0;
+  /// Where the finger went down and where it is now (both axes).
+  Offset _from = Offset.zero, _to = Offset.zero;
 
   int get count;
   int get index;
@@ -35,13 +36,17 @@ mixin SwipeCarousel<T extends StatefulWidget> on State<T> {
   Widget swipe({required Key key, required Widget child}) => GestureDetector(
         key: key,
         behavior: HitTestBehavior.opaque,
-        onHorizontalDragStart: (_) => _dx = 0,
-        onHorizontalDragUpdate: (d) => _dx += d.delta.dx,
+        onHorizontalDragDown: (d) => _from = _to = d.globalPosition,
+        onHorizontalDragUpdate: (d) => _to = d.globalPosition,
         onHorizontalDragEnd: (d) {
+          // Only a sideways swipe counts: one that went mostly up or down
+          // (with a little drift) does nothing (D66).
+          final move = _to - _from;
+          if (move.dx.abs() < move.dy.abs() * 1.5) return;
           final v = d.primaryVelocity ?? 0;
-          if (_dx < -40 || v < -300) {
+          if (move.dx < -40 || v < -300) {
             step(1);
-          } else if (_dx > 40 || v > 300) {
+          } else if (move.dx > 40 || v > 300) {
             step(-1);
           }
         },
@@ -124,4 +129,72 @@ class CarouselDots extends StatelessWidget {
       ],
     );
   }
+}
+
+/// A vertical carousel (D63, D64): flick up for the next item, down for the
+/// one before, round and round. Like the sideways carousels it reacts to the
+/// flick, it does not follow the finger: the next item slides in from the
+/// side of the swipe.
+class VerticalCarousel extends StatefulWidget {
+  const VerticalCarousel({
+    super.key,
+    required this.index,
+    required this.count,
+    required this.onIndex,
+    required this.builder,
+  });
+
+  final int index, count;
+  final ValueChanged<int> onIndex;
+
+  /// Builds item [i] (0 <= i < count).
+  final Widget Function(BuildContext context, int i) builder;
+
+  @override
+  State<VerticalCarousel> createState() => _VerticalCarouselState();
+}
+
+class _VerticalCarouselState extends State<VerticalCarousel> {
+  /// 1: the new item comes in from below (swipe up), -1: from above.
+  int _dir = 1;
+  double _dy = 0;
+
+  void _step(int d) {
+    setState(() => _dir = d);
+    widget.onIndex((widget.index + d) % widget.count);
+  }
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onVerticalDragStart: (_) => _dy = 0,
+        onVerticalDragUpdate: (d) => _dy += d.delta.dy,
+        onVerticalDragEnd: (d) {
+          final v = d.primaryVelocity ?? 0;
+          if (_dy < -40 || v < -300) {
+            _step(1);
+          } else if (_dy > 40 || v > 300) {
+            _step(-1);
+          }
+        },
+        child: ClipRect(
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 260),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            layoutBuilder: (current, previous) => Stack(children: [...previous, ?current]),
+            transitionBuilder: (child, anim) {
+              final incoming = child.key == ValueKey('vc-${widget.index}');
+              return SlideTransition(
+                position: Tween(
+                  begin: Offset(0, incoming ? _dir.toDouble() : -_dir.toDouble()),
+                  end: Offset.zero,
+                ).animate(anim),
+                child: child,
+              );
+            },
+            child: KeyedSubtree(key: ValueKey('vc-${widget.index}'), child: widget.builder(context, widget.index)),
+          ),
+        ),
+      );
 }
