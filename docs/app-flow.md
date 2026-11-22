@@ -53,7 +53,7 @@ flowchart TD
 | 0 | Upgrade | exists | Only with old-app data. SAVE BACKUP & UPGRADE, or NOT NOW. |
 | 1 | Character | exists | WoW-style: the character large in the centre on a pedestal. Sex toggle, 🎲 random, sliders for height, muscle and fat %. Changes live. The sprite comes from the 5×5 body atlas. |
 | 2 | Class select | exists | CHOOSE YOUR PATH: preview card (lifter, loadout, 3 tags), description, 4 class buttons, NEXT: DIFFICULTY. Freeze-frame intro card on each pick. |
-| 3 | Difficulty | exists | 6 modes from the design board, Sofa to Nightmare Mode. A ladder with XP gems, no numbers. Freeze-frame title card on each pick. |
+| 3 | Difficulty | exists | 6 levels from the design demo, Couch Spawn to Ascended Swolemancer. A ladder with XP gems, no numbers. Freeze-frame title card on each pick. |
 | 4 | Starting area | exists | 5 areas from the design board. The class picks the default area. The scene swatches are placeholders. |
 | 5 | Summary | exists | Class, gear (equipment), difficulty, area. Tap a row to change it. LET'S GO (or SAVE when editing). |
 | 6 | Hub | exists | The character, equipped gear icons, level and XP bar, week streak, today's workout card. |
@@ -100,7 +100,7 @@ the whole setup from the menu (EDIT CHARACTER).
    - NEXT: DIFFICULTY.
    - Note: the design shows a preview body per class; the app keeps the body the user made in step 1.
 3. **Difficulty** (design: `docs/moodboard/README.md` "Difficulty").
-   - 6 modes, names in `lib/game/content.dart`: Sofa, Warm-up, Sweat, Pain, Brutal, Nightmare Mode.
+   - 6 modes, names in `lib/game/content.dart`: Couch Spawn, Dumbbell Squire, Rep Ranger, Gain Warlock, Barbell Warlord, Ascended Swolemancer (ids: sofa … nightmare).
    - A vertical ladder, the hardest mode on top. Each rung has a diamond in its rarity colour and
      XP gems. The ladder shows no numbers.
    - A detail card: "DIFFICULTY n OF 6", who the mode is for, and the XP gems.
@@ -109,12 +109,12 @@ the whole setup from the menu (EDIT CHARACTER).
 
      | Mode | Exercises | Target sets | XP multiplier | Streak N (days per week) |
      |---|---|---|---|---|
-     | Sofa | 3 | 2 | 1.0 | 2 |
-     | Warm-up | 3 | 3 | 1.2 | 2 |
-     | Sweat | 4 | 3 | 1.4 | 2 |
-     | Pain | 5 | 4 | 1.6 | 3 |
-     | Brutal | 6 | 4 | 1.8 | 3 |
-     | Nightmare | 8 | 5 | 2.0 | 4 |
+     | Couch Spawn | 3 | 2 | 1.0 | 2 |
+     | Dumbbell Squire | 3 | 3 | 1.2 | 2 |
+     | Rep Ranger | 4 | 3 | 1.4 | 2 |
+     | Gain Warlock | 5 | 4 | 1.6 | 3 |
+     | Barbell Warlord | 6 | 4 | 1.8 | 3 |
+     | Ascended Swolemancer | 8 | 5 | 2.0 | 4 |
 
    - NEXT: STARTING AREA.
 4. **Starting area** (design: `docs/moodboard/README.md` "Starting areas").

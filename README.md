@@ -13,7 +13,7 @@ The plan is in [docs/app-brief.md](docs/app-brief.md) and
 - **First launch:** a WoW-style character screen (sex, height, muscle, fat %
   sliders; sprite from the 5×5 body atlas), class by equipment, difficulty,
   starting area and LET'S GO.
-- **Difficulty:** 6 modes from the design board (Sofa to Nightmare Mode) on a
+- **Difficulty:** 6 levels from the design demo (Couch Spawn to Ascended Swolemancer) on a
   ladder with XP gems. Harder modes give more exercises, sets and XP.
 - **Starting areas:** 5 areas from the design board (Riptide Shore, Gainsgard
   Keep, Rustbelt Flats, Arcade Underpass, Frostbite Summit). The class picks

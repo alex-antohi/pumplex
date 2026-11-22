@@ -40,6 +40,7 @@ Ask the owner before you design against a decision. Add each new decision here, 
 | D28 | Difficulty has 6 levels: the design team's 6 modes (Sofa, Warm-up, Sweat, Pain, Brutal, Nightmare Mode). The names stay design proposals. | 21 Nov 2026 | Difficulty. Confirmed by the owner. |
 | D29 | No preloader. The app opens straight on the hub (or the creator on the first launch). | 21 Nov 2026 | Overrides design demo `01-preloader.html`. |
 | D30 | No "wipe all data" / RESTART SETUP button. The setup changes with EDIT CHARACTER, and the XP and sessions stay. | 21 Nov 2026 | Overrides the DANGER ZONE in design demo `12-menu.html`. |
+| D31 | The 6 difficulty levels use the design demo's names: Couch Spawn, Dumbbell Squire, Rep Ranger, Gain Warlock, Barbell Warlord, Ascended Swolemancer. The ids (`sofa` … `nightmare`) stay the same. | 22 Nov 2026 | Replaces the names in D28. `lib/game/content.dart`. |
 
 ## 2. Where the current boards conflict
 
@@ -54,7 +55,7 @@ Still open (no decision is broken, but the app and the design differ):
 
 | Board / file | What it shows | Decision | What the app does | Next step |
 |---|---|---|---|---|
-| `docs/demo/shared/demo.js` difficulty names | Couch Spawn … Ascended Swolemancer. | D28 (names are proposals) | Sofa Mode … Nightmare Mode. | **Ask the owner** which names to use. |
+| `docs/demo/shared/demo.js` exercises per level | 3, 4, 5, 6, 7, 8 exercises (marked PLACEHOLDER). | D15 | 3, 3, 4, 5, 6, 8 (`lib/game/rules.dart`). | Agree one list (the end points, 3 and 8, already match). |
 | `12-menu.html` SOUND | A sound toggle. | None (no sound files yet) | A disabled SOUND row with a SOON tag (placeholder). | Design delivers the sound pack. |
 | `docs/demo/BRIEF.md` "No emojis" | Pixel SVG icons only. | None (design rule) | Emoji placeholders (areas, gear, milestones, buttons). | Design delivers the pixel icon set. The app swaps them in. |
 | `docs/demo/` screens | The new demo layout (character, workout, profile and others). | None | The app still has the first-build layout. | Port the demo layout into the app. |
