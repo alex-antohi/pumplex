@@ -6,10 +6,12 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../game/area_art.dart';
 import '../game/content.dart';
 import '../game/model.dart';
 import '../game/rules.dart';
 import '../pumplex.dart';
+import 'area_scene.dart';
 import 'sprite.dart';
 
 /// Bottom row with BACK / NEXT style buttons.
@@ -681,25 +683,11 @@ class _AreaCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Scene swatch: dark sky, light floor, the object.
+            // Scene thumbnail from the design art (no lifter, no taps).
             SizedBox(
-              width: 60,
-              height: 60,
-              child: Column(
-                children: [
-                  Expanded(child: Container(color: Color(area.sky))),
-                  Expanded(
-                    child: Container(
-                      color: Color(area.floor),
-                      alignment: Alignment.topCenter,
-                      child: Transform.translate(
-                        offset: const Offset(0, -11),
-                        child: Text(area.object, style: const TextStyle(fontSize: 22)),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              width: 88,
+              height: 75,
+              child: FittedBox(child: AreaScene(art: areaArt[area.artId]!, scale: 1)),
             ),
             const SizedBox(width: 10),
             Expanded(

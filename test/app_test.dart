@@ -625,7 +625,7 @@ void main() {
     final saved = Profile.fromJson(jsonDecode(prefs.getString('profile_v1')!) as Map<String, dynamic>);
     expect(saved.character, const Character(sex: 'female', height: 100, muscle: 100, fat: 0));
     expect((saved.classId, saved.difficultyId, saved.areaId, saved.schemaVersion), ('paladin', 'sweat', 'castle', 1));
-    expect(find.text("TODAY'S WORKOUT"), findsOneWidget);
+    expect(find.text('NEXT WORKOUT'), findsOneWidget);
     expect(find.text(exerciseName(store.todayExercises.first.exerciseId).toUpperCase()), findsOneWidget);
     expect(find.textContaining('THIS WEEK 0/2 DAYS'), findsOneWidget);
     expect(pushes.pushes, 1); // only the home route: views never push routes
@@ -749,7 +749,7 @@ void main() {
     await _frames(t);
     expect(store.profile!.character.fat, 100);
     expect(store.bodyHistory.last.character.fat, 100);
-    expect(find.text("TODAY'S WORKOUT"), findsOneWidget);
+    expect(find.text('NEXT WORKOUT'), findsOneWidget);
   });
 
   testWidgets('a level-up shows the freeze-frame card; gear unlocks and can be equipped', (t) async {
@@ -821,7 +821,7 @@ void main() {
     expect(store.cel.value, isTrue);
     expect(prefs.getBool('cel'), isTrue);
     expect(find.byType(CelFilter), findsOneWidget);
-    expect(find.text("TODAY'S WORKOUT"), findsOneWidget);
+    expect(find.text('NEXT WORKOUT'), findsOneWidget);
     await menu('menu-cel');
     expect(store.cel.value, isFalse);
     await menu('menu-chaos');
@@ -878,7 +878,7 @@ void main() {
       await tapAndSettle(find.text('AREA'));
       await tapAndSettle(find.text('NEXT'));
       await tapAndSettle(find.text('SAVE'));
-      expect(find.text("TODAY'S WORKOUT"), findsOneWidget);
+      expect(find.text('NEXT WORKOUT'), findsOneWidget);
       await t.pumpWidget(const SizedBox());
     });
   }
