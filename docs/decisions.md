@@ -58,25 +58,28 @@ Ask the owner before you design against a decision. Add each new decision here, 
 | README intro, `canvas/Main.dc.html`, `game_look.html` | "Character classes are not decided yet." "Classes TBD". | D8, D9 | Classes are decided: one per equipment type. Only the final names are open. |
 | All setup boards | Each step is a separate phone frame. There is no transition. | D23 | Specify the transition for each change of view. The character stays on screen between views. |
 
-### Design demo (`docs/demo/`, from branch `design/demo-flow`, checked 21 Nov 2026)
+### Design demo (`docs/demo/`, from branch `design/demo-flow`, checked 22 Nov 2026 at commit `403a9f0`)
 
 The first build (branch `claude/game-flow-2dbf96`) follows the decisions, not the demo, in these places.
 
 | Demo screen / file | What it shows | Decision | What the build does | What design must change |
 |---|---|---|---|---|
-| `01-preloader.html` | A loading screen with a fake progress bar before every launch. | D29 | No preloader. The app opens on the hub or the creator. | Remove the preloader screen. |
+| `01-preloader.html` | A loading screen with a fake progress bar and "Tap to skip" before every launch. | D29 | No preloader. The app opens on the hub or the creator. | Remove the preloader screen. |
 | `02-character.html` | Sex toggle, FAT and MUSCLE sliders only. | D10, D11 | Keeps the HEIGHT slider. | Add a HEIGHT slider. |
 | `03-class.html`, `shared/demo.js` `CLASSES[].body` | Each class shows its own preview body. | D25 | Shows the body from step 1. | Use the user's body. |
-| `04-difficulty.html`, `demo.js` `DIFFICULTIES` | **8** levels (Couch Larva … Swolemancer Prime), multipliers 1.0 to 2.25. | D28, D19 | Keeps the **6** modes (Sofa … Nightmare Mode), 1.0 to 2.0. | Go back to 6 levels. The names can change (D28). |
 | `07-hub.html` | A START TRAINING button. | D7 | The workout card (TRAIN ▶) opens the workout. | Remove START TRAINING. |
-| `08-workout.html` | `SESSION n` kicker, a running `mm:ss` clock, an I WORKED button, 3 fixed exercises, tap a card to switch. | D6, D7, D15, D16 | No counter, no clock, no I WORKED. 3 to 8 exercises, swipe to switch, add, remove, ↺. | Remove the counter, clock and button. Add swipe, add and remove. |
-| `09-reward.html` | A reward screen after I WORKED: LOOT DROP · SESSION n, TIME UNDER IRON, "n SESSIONS SURVIVED". | D7, D19 | No reward screen. XP on each set, CRITICAL SET, the freeze-frame card on a level-up. | Turn the loot look into the per-set and level-up rewards. |
-| `10-history.html` | Rows named `SESSION n`, total time "OF PURE EFFORT", START TRAINING in the empty state. | D7 | Rows by date. No session numbers. | Use dates. Remove START TRAINING. |
-| `12-menu.html` DANGER ZONE | RESTART SETUP: "WIPE IT" deletes the lifter and all sessions. | D30, D13 | Not built. EDIT CHARACTER changes the setup and keeps the XP. | Remove the DANGER ZONE. |
+| `08-workout.html` | `SESSION n` kicker, a running `mm:ss` clock and an I WORKED button. | D6, D7 | No counter, no clock, no I WORKED. | Remove the counter, the clock and the button. |
+| `09-reward.html` | A reward screen after I WORKED: LOOT DROP, where the XP came from, gear drops, TIME UNDER IRON, "n SESSIONS SURVIVED". | D7, D19 | No reward screen. XP on each set, CRITICAL SET, the freeze-frame card on a level-up. | Turn the loot look into the per-set and level-up rewards. Gear drops can show on the level-up card. |
+| `10-history.html` | Rows named `SESSION n`, total time "OF PURE EFFORT", START TRAINING in the empty state. | D7 | Rows by date. No session numbers. | Use dates. Remove the time and START TRAINING. |
+| `12-menu.html` DANGER ZONE | RESTART SETUP: a new lifter and path. Since `403a9f0` it keeps the sessions, XP and gear. | D30, D13 | Not built. EDIT CHARACTER changes the setup and keeps the XP. | Remove the DANGER ZONE and RESTART SETUP. The profile's change path / difficulty / world / body (`?edit=1`) is enough. |
 | `12-menu.html` SOUND | A sound toggle. | None (no sound files yet) | A disabled SOUND row with a SOON tag (placeholder). | Deliver the sound pack. |
-| `shared/demo.js` XP | 10 XP per set × multiplier, level curve 50·L·(L−1). | D19 | Uses `docs/rules.md` (Habitica curve, bonuses, critical sets). | Use the rules table. |
-| `shared/demo.js` `WORKOUTS` | 3 fixed exercises per class. | D15 | 3 to 8 exercises from the class pool. | None for the demo. The pools are still open (D27). |
 | `BRIEF.md` "No emojis" | Pixel SVG icons only. | None (design rule) | The app still uses emoji as placeholders (areas, gear, milestones, buttons). | Deliver the pixel icon set. The app swaps them in. |
+
+Fixed in `403a9f0` (no longer a conflict):
+
+- `04-difficulty.html`: 6 levels (Couch Spawn … Ascended Swolemancer), multipliers 1.0 to 2.0 in even steps (D28, D19). The names stay proposals.
+- `shared/demo.js` XP: follows `docs/rules.md` (D19).
+- `08-workout.html`: 3 to 8 exercises, swipe or SWAP to switch, back to the first exercise, skip, remove and add (D15, D16). The exercise pools and set targets per rung are still placeholders (D27).
 
 Aligned and built from the demo: the Profile screen (`11-profile.html`: level title, the path, milestones, PAST SESSIONS),
 the full-screen menu (`12-menu.html`: YOU, GAINS INSURANCE, LOOK AND FEEL) and the level titles (Fresh Spawn … Mythic Meathead, design proposals).
