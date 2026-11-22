@@ -26,6 +26,8 @@ import '../pumplex.dart';
 import '../store.dart';
 import 'area_scene.dart';
 import 'carousel.dart';
+import 'setup.dart' show difficultyColor;
+import 'sprite.dart' show classColor;
 
 const _advanceDelay = Duration(milliseconds: 800);
 
@@ -58,6 +60,7 @@ class WorkoutView extends StatefulWidget {
     required this.store,
     required this.onAdd,
     required this.onRemove,
+    required this.onBody,
   });
 
   final Rect stage;
@@ -65,6 +68,9 @@ class WorkoutView extends StatefulWidget {
 
   /// Index in `store.todayExercises` -> one set more / one set less.
   final ValueChanged<int> onAdd, onRemove;
+
+  /// Opens the body sliders (tap on the lifter, D12).
+  final VoidCallback onBody;
 
   @override
   State<WorkoutView> createState() => _WorkoutViewState();
@@ -162,6 +168,8 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
     final art = areaArt[area.id]!;
     final accent = Color(area.accent);
     final e = act < 0 ? null : list[act];
+    final cls = classById(today?.classId ?? store.gameClass.id);
+    final di = difficultyIndex(today?.difficultyId ?? store.profile?.difficultyId);
     final firstTime = store.history.where((s) => !s.legacy).isEmpty;
     return LayoutBuilder(builder: (context, box) {
       final card = workoutCard(box.biggest);
@@ -199,6 +207,21 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
                       ),
                     ),
                   ),
+                  // Filter tags (D49): class, difficulty, body part. They show
+                  // the defaults; filtering is not built yet.
+                  Padding(
+                    key: const ValueKey('workout-filters'),
+                    padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+                    child: Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        Tag(cls.name, key: const ValueKey('filter-class'), bg: classColor(p, cls.id), fg: p.on, size: 12, angle: 0),
+                        Tag(difficulties[di].name, key: const ValueKey('filter-difficulty'), bg: difficultyColor(p, di), fg: p.on, size: 12, angle: 0),
+                        Tag('All body parts', key: const ValueKey('filter-body'), bg: p.panel2, fg: p.ink, size: 12, angle: 0),
+                      ],
+                    ),
+                  ),
                   // Under the world: the exercise carousel. The world adds
                   // sets to the exercise shown here.
                   Expanded(
@@ -213,8 +236,6 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
                                     'exercise-$act',
                                     _ExerciseText(
                                       e: e!,
-                                      position: cards.indexOf(act),
-                                      count: cards.length,
                                       xp: e.sets > 0 ? store.cardXp(act) : 0,
                                     ),
                                   ),
@@ -234,6 +255,15 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
                   ),
                 ],
               ),
+            ),
+          ),
+          // Tap the lifter to change the body sliders (D12).
+          Positioned.fromRect(
+            rect: widget.stage,
+            child: GestureDetector(
+              key: const ValueKey('workout-character'),
+              behavior: HitTestBehavior.opaque,
+              onTap: widget.onBody,
             ),
           ),
           // The hint over the sky (and the first-workout tip).
@@ -261,14 +291,13 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
   }
 }
 
-/// The exercise shown under the world: its place in the day's list, the
-/// name, the target slots (filled in rarity colours) with +extra, and the
-/// set line with the XP so far.
+/// The exercise shown under the world: the name, the target slots (filled
+/// in rarity colours) with +extra, and the set line with the XP so far.
 class _ExerciseText extends StatelessWidget {
-  const _ExerciseText({required this.e, required this.position, required this.count, required this.xp});
+  const _ExerciseText({required this.e, required this.xp});
 
   final SessionExercise e;
-  final int position, count, xp;
+  final int xp;
 
   @override
   Widget build(BuildContext context) {
@@ -279,14 +308,6 @@ class _ExerciseText extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Shout('Exercise ${position + 1} of $count', size: 12, color: p.pink),
-              const Spacer(),
-              Text(done ? 'CRUSHED' : 'NOW', style: mono(11, done ? p.lime : p.ink)),
-            ],
-          ),
-          const SizedBox(height: 4),
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
@@ -309,7 +330,7 @@ class _ExerciseText extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            '${done ? '${e.sets}/${e.targetSets}' : 'SET ${e.sets + 1} OF ${e.targetSets}'}'
+            '${done ? 'CRUSHED · ${e.sets}/${e.targetSets}' : 'SET ${e.sets + 1} OF ${e.targetSets}'}'
             '${xp > 0 ? ' · +$xp XP' : ''}',
             key: const ValueKey('workout-line'),
             style: mono(13, p.ink),

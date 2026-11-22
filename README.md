@@ -25,11 +25,11 @@ The plan is in [docs/app-brief.md](docs/app-brief.md) and
   Keep, Rustbelt Flats, Arcade Underpass, Frostbite Summit; ids `riptide`,
   `gainsgard`, `rustbelt`, `arcade`, `frostbite`, D36). Each area card
   shows the scene art. The class picks the default area; the user can pick any. Picked on a swipe card, like the class (D47).
-- **Hub**: the area scene with the lifter in it (tap the
-  lifter to change the body sliders; changes are kept as a history), the
-  level and XP bar, the next workout, the last training day and a
-  bottom bar (HISTORY, HUB, PROFILE) that also shows on the workout, past
-  sessions and the profile (D44). There is no streak (D34).
+- **No hub** (D49): the app opens on the workout. Tap the lifter there to
+  change the body sliders (changes are kept as a history). The level and XP
+  bar sits in the PUMPLEX bar. A bottom bar (HISTORY, HUB, PROFILE) shows on
+  the workout, past sessions and the profile (D44); HUB is the workout. There
+  is no streak (D34).
 - **Workout** (D48): one card with the world (the area scene with the lifter)
   on top and an exercise carousel under it: swipe through the day's list.
   Tap the object = one working set of the exercise shown, hold = one less;
@@ -89,7 +89,7 @@ flutter test
 ```
 
 The tests are in `test/app_test.dart`. They cover the rules table, the saved
-data and its migrations, the setup, the hub, the workout and the menu.
+data and its migrations, the setup, the workout and the menu.
 
 ## Build a release APK
 

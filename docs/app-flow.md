@@ -33,17 +33,15 @@ flowchart TD
     char --> cls[Class: swipe the card, difficulty slider]
     cls --> area[Starting area: swipe the card, the class picks the default]
     area --> summary[Summary: READY? LET'S GO]
-    summary --> hub
-    setupDone -- yes --> hub[Hub: area scene with the lifter, level, XP bar, next workout, last time]
+    summary --> work
+    setupDone -- yes --> work[Workout = home: the world with the lifter, filter tags, exercise carousel]
 
-    hub -- tap the workout card --> work[Workout: tap a card = active, tap the object = +1 set, hold = -1]
     work -- each set --> xp[XP, critical sets, level-up intro card]
-    work -- HUB --> hub
 
-    hub -. HISTORY .-> history[Past sessions]
-    hub -. PROFILE or the level bar .-> profile[Profile: level title, the path]
-    hub -. tap the lifter .-> char
-    hub -. menu .-> menu[Profile, past sessions, edit character, backup]
+    work -. HISTORY .-> history[Past sessions]
+    work -. PROFILE or the level bar .-> profile[Profile: level title, the path]
+    work -. tap the lifter .-> char
+    work -. menu .-> menu[Profile, past sessions, edit character, backup]
 ```
 
 ## 2. Screens (scenes)
@@ -56,8 +54,8 @@ flowchart TD
 | 3 | Difficulty | removed | Now the slider on the class step (D47). |
 | 4 | Starting area | exists | A swipe card like the class card: the area scene with the lifter in it, the name, the line, what you hit, "YOUR PATH'S HOME" on the default; dots under it (D47). The class picks the default area. |
 | 5 | Summary | exists | Class, equipment, difficulty, area. Tap a row to change it. LET'S GO (or SAVE when editing). |
-| 6 | Hub | exists | the area scene with the lifter in it (class outfit), level and XP bar, next workout card, last time. Bottom bar (D44). No streak card (D34). |
-| 7 | Workout | exists | One card (D48): the world (area scene with the lifter) on top, an exercise carousel under it (swipe both ways, round and round; dots). No tools (D32). Tap the object = +1 set to the exercise shown, hold = −1. Area marks stay in the world. Bottom bar, HUB lit (D44). |
+| 6 | Hub | removed | No hub (D49): the app opens on the workout. The level and XP bar is in the PUMPLEX bar there; tap the lifter in the world for the body sliders. |
+| 7 | Workout | exists | The home screen (D49). One card (D48): the world (area scene with the lifter) on top, an exercise carousel under it (swipe both ways, round and round; dots). No tools (D32). Tap the object = +1 set to the exercise shown, hold = −1. Area marks stay in the world. Bottom bar, HUB lit (D44). |
 | 8 | Reward | exists | XP on the active exercise line. CRITICAL SET message. Freeze-frame intro card for level-ups. No achievement burst (D35). Not a separate screen. |
 | 9 | Past sessions | exists | Training days (sets per exercise against the target, time, class, area, XP) and old saves. Bottom bar (D44). |
 | 10 | Gear | removed | No gear (D38). |
@@ -71,7 +69,7 @@ the streak and the hub's "This week" card (D34), and the achievements and milest
 
 ## 3. Initial setup
 
-Show it on the first launch. The body sliders open again from the hub (tap the character) and
+Show it on the first launch. The body sliders open again from the workout (tap the lifter) and
 the whole setup from the menu (EDIT CHARACTER).
 
 1. **Character.**
@@ -151,21 +149,17 @@ the whole setup from the menu (EDIT CHARACTER).
 
 ## 4. Play
 
-### 4.1 Hub
+### 4.1 Hub (removed)
 
-The app is the reference for this screen (D42).
+There is no hub screen (D49). The app opens on the workout (§4.2), and HUB in the bottom bar goes there.
 
-- **Scene** (top): the area's scene with the lifter in it. The lifter wears the class outfit.
-  Tags show the area name and "class · difficulty".
-- Tap the lifter to change the body sliders at any time. Each saved change is kept
+- **Level and XP bar:** in the PUMPLEX bar on the workout. Tap it to open the profile.
+- **Tap the lifter** in the world to change the body sliders at any time. Each saved change is kept
   in a history (for charts later). In this edit, NEXT goes straight to the summary; tap a summary row
   to change the class, difficulty or area too.
-- **Level and XP bar.** Tap it to open the profile.
-- **Next workout card:** today's exercises, with tally marks for the sets done today, and
-  TRAIN (or KEEP GOING after the first set). Tap the card: the camera zooms into the workout.
-- **Last time:** the date and sets of the last training day.
-- **Bottom bar** (D44): HISTORY slides to the past sessions, HUB goes to the hub, PROFILE opens the
-  profile. The same bar shows on the workout (HUB lit), past sessions and the profile. Not on the
+- **Last training days:** in HISTORY.
+- **Bottom bar** (D44): HISTORY slides to the past sessions, HUB goes to the workout, PROFILE opens the
+  profile. The bar shows on the workout (HUB lit), past sessions and the profile. Not on the
   setup or edit-character steps, and not on the menu.
 
 ### 4.2 Workout
@@ -180,14 +174,16 @@ owner's rules ([decisions.md](decisions.md)).
 - **One card** (D48), like the starting-area card. No header.
 - **The world** on top of the card: see "World scene" below. It adds sets to the exercise shown
   under it.
-- **Exercise carousel** under the world: one exercise of the day's list at a time: "EXERCISE n OF
-  m", NOW or CRUSHED, the name, the target slots as Xs (filled in rarity colours), +n for sets over
+- **Filter tags** between the world and the carousel (D49): CLASS (your class), DIFFICULTY (your
+  mode) and BODY PART (ALL BODY PARTS). They show the defaults; they do not filter yet.
+- **Exercise carousel** under them: one exercise of the day's list at a time (no "x of y" line):
+  the name, the target slots as Xs (filled in rarity colours), +n for sets over
   the target, and "SET n OF t" (or sets / target) with the XP so far. Swipe left for the next
   exercise, right for the one before, round and round. Dots under it; tap one to jump.
 - **No tools** (D32): no swap, no back to the first exercise, no skip, no remove, no add.
   The workout is the list the app picks for the day. To skip an exercise, do no sets on it.
 - Old sessions (from before D32) can still hold removed, added or switched exercises.
-  The carousel and the hub do not show removed ones.
+  The carousel does not show removed ones.
 - **World scene:** the area's scene from the design PNG layers, with the lifter and the area's object.
   - TAP THE OBJECT: one working set of the exercise shown in the carousel.
   - HOLD THE OBJECT: take the last set back.
@@ -199,7 +195,7 @@ owner's rules ([decisions.md](decisions.md)).
 - **Tip:** on the first workout, until the first set, a tag says "Only working sets count".
 - No sound (D41).
 - Reduced motion: no scene animation.
-- HUB in the bottom bar (or Android back) goes back to the hub.
+- The workout is home: Android back leaves the app from here. Tap the lifter for the body sliders.
 - Not used from the design board: the I WORKED button, the running clock and "SESSION n"
   (owner decisions D6 and D7 in [decisions.md](decisions.md)). There is one session per calendar day (§4.4).
 - Not used from the design board: the swipe and the tool row (D32 replaces D16).
@@ -250,7 +246,7 @@ There is no I WORKED button. The calendar day decides:
 - Training days, newest first: date, sets, time from the first to the last mark, class, area, XP,
   and "sets / target" with a tally per exercise. Today shows first, marked TODAY.
 - Old saves (legacy sessions from the old app): date and time, if the old clock was used.
-- Opens from HISTORY on the hub, PAST SESSIONS on the profile and in the menu. HUB goes back.
+- Opens from HISTORY in the bottom bar, PAST SESSIONS on the profile and in the menu. HUB goes back.
 
 ## 6. Special cases
 

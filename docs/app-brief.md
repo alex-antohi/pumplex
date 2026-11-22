@@ -109,7 +109,7 @@ The class names come from the design team (D9). The final names are still open (
 ## 6. Core loop
 
 1. Open the app (any time).
-2. See today's workout for your class on the hub. Tap it.
+2. The app opens on today's workout for your class (D49).
 3. Do each exercise. Tap the area's object for each working set. The mark (shells, wall scratches and so on) stays in the scene.
 4. Get XP for each set. See the level change. The session closes by itself ([app-flow.md](app-flow.md) §4.4).
 
@@ -120,7 +120,7 @@ The class names come from the design team (D9). The final names are still open (
 | Fixed exercises, sets, reps, kg, rep-outs, PRs, swaps, CSV | Removed (21 Nov). |
 | Alex / Anca flavors | Removed. One app id: `com.alex.gym_app`. |
 | Old sessions (`sessions_v2`), backup | One-time upgrade: backup file first, then legacy sessions with XP. |
-| 7-day pattern, START TRAINING, I WORKED / I RESTED, preloader | Removed (21 Nov). Free-form sessions, hub, set counting, XP and character creation built. |
+| 7-day pattern, START TRAINING, I WORKED / I RESTED, preloader | Removed (21 Nov). Free-form sessions, the workout as home (D49), set counting, XP and character creation built. |
 | CEL SHADER mode, chaos mode | Removed (22 Nov, D39, D40). |
 | Old logged sets and swaps | Deleted by the one-time upgrade, after its backup file (owner's decision, [data-schema.md](data-schema.md) §5). |
 | Class ids | The design ids since 22 Nov (D31). Saved data migrates once. |

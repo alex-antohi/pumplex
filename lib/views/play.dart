@@ -3,13 +3,11 @@
 import 'package:flutter/material.dart';
 
 import '../dates.dart';
-import '../game/area_art.dart';
 import '../game/content.dart';
 import '../game/model.dart';
 import '../game/rules.dart';
 import '../pumplex.dart';
 import '../store.dart';
-import 'area_scene.dart';
 import 'sprite.dart';
 
 /// Level number and XP bar.
@@ -56,168 +54,6 @@ class LevelBar extends StatelessWidget {
         ),
       ],
     );
-  }
-}
-
-// --------------------------------------------------------------------- hub
-
-/// The hub scene's rect and whole-number scale in a view of [area]
-/// (design demo 07: the area scene on top, the lifter in it).
-(Rect, int) hubLayout(Size area) {
-  final avail = Rect.fromLTWH(16, 8, area.width - 32, area.height * 0.36);
-  final scale = sceneScale(avail.size);
-  return (sceneRectIn(avail, scale), scale);
-}
-
-/// The lifter's place on the hub: in the scene, feet on the shadow.
-Rect hubStage(Size area) {
-  final (scene, scale) = hubLayout(area);
-  return sceneLifterRect(areaArt.values.first, scene, scale);
-}
-
-class HubView extends StatelessWidget {
-  const HubView({
-    super.key,
-    required this.stage,
-    required this.store,
-    required this.onTrain,
-    required this.onBody,
-    required this.onProfile,
-  });
-
-  final Rect stage;
-  final LogStore store;
-  final VoidCallback onTrain, onProfile;
-
-  /// Opens the body sliders (tap on the character, D12).
-  final VoidCallback onBody;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = Pal.of(context);
-    final cls = store.gameClass;
-    final d = difficulties[store.difficulty];
-    final today = store.todaySession;
-    final color = classColor(p, cls.id);
-    final area = areaById(store.profile?.areaId);
-    final accent = Color(area.accent);
-    final trained = store.history.where((s) => s.trained && !identical(s, today)).toList();
-    return LayoutBuilder(builder: (context, box) {
-      final (scene, scale) = hubLayout(box.biggest);
-      return Stack(
-        children: [
-          // The area scene, framed (the lifter stands in it).
-          sceneFrame(scene, ink: p.ink, shadow: accent),
-          Positioned.fromRect(rect: scene, child: AreaScene(art: areaArt[area.id]!, scale: scale)),
-          // Where: the area name, top left over the sky.
-          Positioned(
-            left: scene.left + 8,
-            top: scene.top + 8,
-            child: Tag(area.name, bg: kNight, fg: accent, size: 13, angle: -2),
-          ),
-          // Class name tag, bottom right of the scene.
-          Positioned(
-            right: box.maxWidth - scene.right + 8,
-            bottom: box.maxHeight - scene.bottom + 8,
-            child: Tag('${cls.name} · ${d.name}', bg: kNight, fg: color, size: 12, angle: 2),
-          ),
-          // Tap the character to change the body sliders.
-          Positioned.fromRect(
-            rect: stage,
-            child: GestureDetector(
-              key: const ValueKey('hub-character'),
-              behavior: HitTestBehavior.translucent,
-              onTap: onBody,
-            ),
-          ),
-          // Level, next workout, this week.
-          Positioned(
-            left: 0,
-            right: 0,
-            top: scene.bottom + 8,
-            bottom: 0,
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 24, 16),
-              children: [
-                // Tap the level to open the profile (design screen 11).
-                GestureDetector(
-                  key: const ValueKey('hub-level'),
-                  onTap: onProfile,
-                  child: LevelBar(xp: store.totalXp),
-                ),
-                const SizedBox(height: 18),
-                // The workout card. Tapping it zooms the camera into the workout.
-                GestureDetector(
-                  key: const ValueKey('hub-workout'),
-                  onTap: onTrain,
-                  child: Brutal(
-                    shadow: color,
-                    child: Padding(
-                      padding: const EdgeInsets.all(14),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(child: Shout('Next workout', color: p.ink, size: 14)),
-                              if (today != null && today.totalSets > 0)
-                                Tag('ON · ${today.totalSets} SETS', bg: p.lime, fg: p.on, size: 13),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          for (final s in store.todayExercises.where((e) => !e.removed))
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 4),
-                              child: Row(
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.only(right: 6),
-                                    child: PxIcon('next', size: 16, color: color),
-                                  ),
-                                  Expanded(
-                                    child: Text(exerciseName(s.exerciseId).toUpperCase(), style: display(18, p.ink)),
-                                  ),
-                                  if (s.sets > 0) TallyMarks(count: s.sets, height: 16),
-                                ],
-                              ),
-                            ),
-                          const SizedBox(height: 6),
-                          Text('${area.hint}: ONE WORKING SET. NO REPS, NO KILOS.', style: mono(11, p.ink)),
-                          const SizedBox(height: 12),
-                          Pulse(
-                            amount: 0.03,
-                            child: Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              decoration: BoxDecoration(color: p.lime, border: Border.all(color: p.ink, width: 4)),
-                              child: DefaultTextStyle(
-                                style: display(28, p.on).copyWith(letterSpacing: 1.5),
-                                child: Center(
-                                  child: IconText('play', today == null || today.totalSets == 0 ? 'TRAIN' : 'KEEP GOING',
-                                      iconAfter: true),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Text(
-                  trained.isEmpty
-                      ? 'NO CLOCK. NO PLAN. EVERY SET TODAY COUNTS FOR TODAY.'
-                      : 'LAST TIME: ${shortDate(parseDateKey(trained.first.date)).toUpperCase()} · '
-                          '${trained.first.totalSets} SETS',
-                  style: mono(11, p.ink),
-                ),
-              ],
-            ),
-          ),
-        ],
-      );
-    });
   }
 }
 
