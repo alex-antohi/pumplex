@@ -43,7 +43,9 @@ class IntroCard extends StatefulWidget {
 }
 
 class _IntroCardState extends State<IntroCard> with SingleTickerProviderStateMixin {
-  late final _c = AnimationController(vsync: this, duration: introSlam + const Duration(milliseconds: 180));
+  /// The subtitle slides in for this long, after the slam.
+  static const _slideMs = 180;
+  late final _c = AnimationController(vsync: this, duration: introSlam + const Duration(milliseconds: _slideMs));
   Timer? _close;
 
   @override
@@ -88,7 +90,7 @@ class _IntroCardState extends State<IntroCard> with SingleTickerProviderStateMix
                   // 6 hard steps from 2.2× to 1×, no easing.
                   final step = min(introSteps, (ms / introSlam.inMilliseconds * introSteps).floor());
                   final scale = 2.2 - 1.2 * step / introSteps;
-                  final slide = ((ms - introSlam.inMilliseconds) / 180).clamp(0.0, 1.0);
+                  final slide = ((ms - introSlam.inMilliseconds) / _slideMs).clamp(0.0, 1.0);
                   return Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [

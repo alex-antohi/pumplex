@@ -375,7 +375,7 @@ class _Item extends StatelessWidget {
   const _Item({super.key, required this.title, required this.sub, required this.onTap, this.on});
 
   final String title, sub;
-  final VoidCallback? onTap;
+  final VoidCallback onTap;
 
   /// A toggle shows ON / OFF; null = a plain action.
   final bool? on;
@@ -385,30 +385,26 @@ class _Item extends StatelessWidget {
     final p = Pal.of(context);
     return GestureDetector(
       onTap: onTap,
-      child: Opacity(
-        opacity: onTap == null ? 0.5 : 1,
-        child: Brutal(
-          margin: const EdgeInsets.only(bottom: 10),
-          shadow: on == true ? p.lime : p.violet,
-          offset: 4,
-          border: 3,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(title, style: display(18, p.ink)),
-                      Text(sub, style: mono(11, p.ink)),
-                    ],
-                  ),
+      child: Brutal(
+        margin: const EdgeInsets.only(bottom: 10),
+        shadow: on == true ? p.lime : p.violet,
+        offset: 4,
+        border: 3,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: display(18, p.ink)),
+                    Text(sub, style: mono(11, p.ink)),
+                  ],
                 ),
-                if (on != null) Tag(on! ? 'ON' : 'OFF', bg: on! ? p.lime : kNight, fg: on! ? p.on : p.ink, size: 14),
-                if (onTap == null) Tag('SOON', bg: kNight, fg: p.ink, size: 13),
-              ],
-            ),
+              ),
+              if (on != null) Tag(on! ? 'ON' : 'OFF', bg: on! ? p.lime : kNight, fg: on! ? p.on : p.ink, size: 14),
+            ],
           ),
         ),
       ),

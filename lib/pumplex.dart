@@ -123,11 +123,6 @@ ThemeData pumplexTheme(Brightness brightness) {
       contentTextStyle: display(16, p.on),
       shape: const RoundedRectangleBorder(side: BorderSide(color: kNight, width: 3)),
     ),
-    popupMenuTheme: PopupMenuThemeData(
-      color: p.panel,
-      shape: hard,
-      textStyle: display(17, p.ink),
-    ),
     dialogTheme: DialogThemeData(
       backgroundColor: p.panel,
       shape: hard,
@@ -590,7 +585,6 @@ class _TickerState extends State<Ticker> with SingleTickerProviderStateMixin {
   }
 }
 
-
 const tickerItems = [
   'NOW WITH 0% LESS REST',
   'AS SEEN NOWHERE',
@@ -603,11 +597,12 @@ const tickerItems = [
   'TRAIN, NOT TRACK',
 ];
 
-/// PRs already celebrated this run, so each one explodes only once.
+/// Burst ids already shown this run, so each one explodes only once.
 final _celebrated = <String>{};
 
-/// Full-screen PR explosion with confetti and a heavy buzz.
-/// [big] is the headline number ("120 KG", "14 REPS"), [sub] the brag line.
+/// Full-screen burst with confetti and a heavy buzz (unlocks, welcome).
+/// [exercise] is the tag line, [big] the headline ("LVL 3"), [sub] the
+/// brag line.
 void celebratePr(
   BuildContext context, {
   required String id,

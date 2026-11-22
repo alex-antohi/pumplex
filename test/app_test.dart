@@ -41,7 +41,7 @@ const _profile = Profile(
   difficultyId: 'sweat', // 4 exercises, 3 target sets, ×1.4, streak N 2
   areaId: 'castle',
 );
-const _d = 2; // difficulty index of d03
+const _d = 2; // difficulty index of 'sweat'
 
 /// A test clock the store reads. 21 Nov 2026 is a Saturday.
 var _now = DateTime(2026, 11, 21, 10);
@@ -71,6 +71,15 @@ Future<void> _frames(WidgetTester t, [int n = 20]) async {
   for (var i = 0; i < n; i++) {
     await t.pump(const Duration(milliseconds: 50));
   }
+}
+
+/// A set-up app on a phone, on the hub.
+Future<(LogStore, SharedPreferences)> _openApp(WidgetTester t) async {
+  _phone(t);
+  final (store, prefs) = await _store(setUp: true);
+  await t.pumpWidget(GymApp(store: store));
+  await _frames(t);
+  return (store, prefs);
 }
 
 String _spriteAsset(WidgetTester t) => t.widget<AtlasSprite>(find.byKey(const ValueKey('character-sprite'))).frame;
@@ -632,10 +641,7 @@ void main() {
   });
 
   testWidgets('workout: tap adds a working set, long-press takes one away', (t) async {
-    _phone(t);
-    final (store, _) = await _store(setUp: true);
-    await t.pumpWidget(GymApp(store: store));
-    await _frames(t);
+    final (store, _) = await _openApp(t);
     expect(find.text('TRAIN'), findsOneWidget);
     expect(find.text('START TRAINING ▶'), findsNothing);
     expect(find.text('I WORKED 💪'), findsNothing);
@@ -645,19 +651,20 @@ void main() {
     final card = find.byKey(const ValueKey('world-object'));
     await t.tap(card);
     await _frames(t, 70); // level-up intro card and achievement burst
-    for (var i = 0; i < 5; i++) {
-      // A level-up card closes on the next tap: close it first.
+    // A level-up card closes on the next tap: close it first.
+    Future<void> closeCard() async {
       if (find.byKey(const ValueKey('intro-card')).evaluate().isNotEmpty) {
         await t.tap(find.byKey(const ValueKey('intro-card')));
         await t.pump(const Duration(milliseconds: 80));
       }
+    }
+
+    for (var i = 0; i < 5; i++) {
+      await closeCard();
       await t.tap(card);
       await t.pump(const Duration(milliseconds: 80));
     }
-    if (find.byKey(const ValueKey('intro-card')).evaluate().isNotEmpty) {
-      await t.tap(find.byKey(const ValueKey('intro-card')));
-      await t.pump(const Duration(milliseconds: 80));
-    }
+    await closeCard();
     // At the target the strip moved on; go back to the first exercise.
     await _frames(t, 20);
     expect(find.descendant(of: find.byKey(const ValueKey('strip-1')), matching: find.text('NOW')), findsOneWidget);
@@ -683,10 +690,7 @@ void main() {
   });
 
   testWidgets('workout tools: swap, back to first, skip, add and remove exercises', (t) async {
-    _phone(t);
-    final (store, _) = await _store(setUp: true);
-    await t.pumpWidget(GymApp(store: store));
-    await _frames(t);
+    final (store, _) = await _openApp(t);
     await t.tap(find.byKey(const ValueKey('hub-workout')));
     await _frames(t);
     final first = store.todayExercises[0].exerciseId;
@@ -735,10 +739,7 @@ void main() {
   });
 
   testWidgets('tap the character on the hub to edit the body sliders', (t) async {
-    _phone(t);
-    final (store, _) = await _store(setUp: true);
-    await t.pumpWidget(GymApp(store: store));
-    await _frames(t);
+    final (store, _) = await _openApp(t);
     await t.tap(find.byKey(const ValueKey('hub-character')));
     await _frames(t);
     expect(find.text('CHARACTER · STEP 1 OF 5'), findsOneWidget);
@@ -753,10 +754,7 @@ void main() {
   });
 
   testWidgets('a level-up shows the freeze-frame card; gear unlocks and can be equipped', (t) async {
-    _phone(t);
-    final (store, _) = await _store(setUp: true);
-    await t.pumpWidget(GymApp(store: store));
-    await _frames(t);
+    final (store, _) = await _openApp(t);
     await t.tap(find.byKey(const ValueKey('hub-workout')));
     await _frames(t);
     await t.tap(find.byKey(const ValueKey('world-object'))); // first set: +50 and more
@@ -783,10 +781,7 @@ void main() {
   });
 
   testWidgets('android back goes one step back, not out of the app', (t) async {
-    _phone(t);
-    final (store, _) = await _store(setUp: true);
-    await t.pumpWidget(GymApp(store: store));
-    await _frames(t);
+    await _openApp(t);
     await t.tap(find.byKey(const ValueKey('hub-workout')));
     await _frames(t);
     expect(find.byKey(const ValueKey('workout-hub')), findsOneWidget);
@@ -797,10 +792,7 @@ void main() {
   });
 
   testWidgets('CEL SHADER toggles from the menu, is remembered, keeps the scene', (t) async {
-    _phone(t);
-    final (store, prefs) = await _store(setUp: true);
-    await t.pumpWidget(GymApp(store: store));
-    await _frames(t);
+    final (store, prefs) = await _openApp(t);
 
     Future<void> menu(String key, {bool close = true}) async {
       await t.tap(find.byKey(const ValueKey('menu-open')));

@@ -7,8 +7,8 @@
 // - Exercise strip: one card per exercise with its target slots, then an
 //   ADD card. Tap a card to make it the active exercise.
 // - Tool row for the active exercise: SWAP (another exercise from the
-//   class pool), BACK TO FIRST, SKIP (do no sets, go to the next one) and
-//   REMOVE (D15, D16).
+//   class pool), FIRST (back to the first exercise), SKIP (do no sets, go
+//   to the next one) and REMOVE (D15, D16).
 // - The area scene (design PNG layers, lib/views/area_scene.dart): TAP THE
 //   OBJECT = one working set, HOLD IT = take the last set back (D17). The
 //   marks stay in the world; at the target the strip moves on.
@@ -213,6 +213,8 @@ class _WorkoutViewState extends State<WorkoutView> {
     final accent = Color(area.accent);
     final cls = classById(today?.classId ?? store.gameClass.id);
     final e = act < 0 ? null : list[act];
+    // SKIP and REMOVE: only for an exercise with no sets, and never the last one.
+    final canDrop = e != null && e.sets == 0 && cards.length >= 2;
     final firstTime = store.history.where((s) => !s.legacy).isEmpty;
     return LayoutBuilder(builder: (context, box) {
       final (scene, scale) = workoutLayout(box.biggest);
@@ -297,30 +299,19 @@ class _WorkoutViewState extends State<WorkoutView> {
                     key: const ValueKey('tool-skip'),
                     icon: 'skip',
                     label: 'SKIP',
-                    onTap: e.sets > 0 || cards.length < 2 ? null : () => _skip(act),
+                    onTap: canDrop ? () => _skip(act) : null,
                   ),
                   _Tool(
                     key: const ValueKey('tool-remove'),
                     icon: 'trash',
                     label: 'REMOVE',
-                    onTap: cards.length < 2 || e.sets > 0 ? null : () => _removeCard(act),
+                    onTap: canDrop ? () => _removeCard(act) : null,
                   ),
                 ],
               ),
             ),
           // The scene: ink frame and a hard shadow in the area colour.
-          Positioned(
-            left: scene.left - 4,
-            top: scene.top - 4,
-            width: scene.width + 8,
-            height: scene.height + 8,
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: p.ink, width: 4),
-                boxShadow: [BoxShadow(color: accent, offset: const Offset(6, 6))],
-              ),
-            ),
-          ),
+          sceneFrame(scene, ink: p.ink, shadow: accent),
           Positioned.fromRect(
             rect: scene,
             child: AreaScene(
@@ -553,6 +544,7 @@ class _Marks extends CustomPainter {
       ..strokeWidth = 3
       ..strokeCap = StrokeCap.square;
     final fill = Paint()..color = color;
+    final white = Paint()..color = Colors.white; // the fifth shell or ticket
     final outline = Paint()
       ..color = ink
       ..style = PaintingStyle.stroke
@@ -574,8 +566,7 @@ class _Marks extends CustomPainter {
           }
         case MarkStyle.shells:
           final c = Offset(x + 7, y + 9);
-          final paint = fifth ? (Paint()..color = Colors.white) : fill;
-          canvas.drawCircle(c, fifth ? 6 : 5, paint);
+          canvas.drawCircle(c, fifth ? 6 : 5, fifth ? white : fill);
           canvas.drawCircle(c, fifth ? 6 : 5, outline);
         case MarkStyle.crosses:
           final paint = Paint()
@@ -585,7 +576,7 @@ class _Marks extends CustomPainter {
           canvas.drawLine(Offset(x + 12, y + 3), Offset(x + 2, y + 15), paint);
         case MarkStyle.tickets:
           final r = Rect.fromLTWH(x + 1, y + 4, 12, 9);
-          canvas.drawRect(r, fifth ? (Paint()..color = Colors.white) : fill);
+          canvas.drawRect(r, fifth ? white : fill);
           canvas.drawRect(r, outline);
         case MarkStyle.flags:
           final up = k * 2.0; // a step higher up the slope

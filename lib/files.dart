@@ -22,4 +22,3 @@ Future<String?> openTextFile() => _files.invokeMethod<String>('openText');
 
 /// Unicode byte-order mark (U+FEFF).
 final bom = String.fromCharCode(0xFEFF);
-

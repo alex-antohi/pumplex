@@ -359,44 +359,15 @@ class _BodySlider extends StatelessWidget {
 
 // -------------------------------------------------------------- difficulty
 
-/// Title block beside the small character at the top left.
-class _SideTitle extends StatelessWidget {
-  const _SideTitle({required this.stage, required this.step, required this.title, required this.line});
-
-  final Rect stage;
-  final String step, title, line;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = Pal.of(context);
-    return ConstrainedBox(
-      constraints: BoxConstraints(minHeight: stage.bottom + 6),
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(stage.right + 10, stage.top + 4, 18, 0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Shout(step, color: p.pink),
-            const SizedBox(height: 6),
-            FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: MegaText(title, size: 40)),
-            const SizedBox(height: 8),
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
-              child: Text(line, key: ValueKey(line), style: mono(12.5, p.ink), maxLines: 3),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+/// Top of the ladder on the difficulty step (under the title block).
+const _ladderTop = 92.0;
 
 /// Rarity-ladder colour of difficulty [i] (borderlands-reference.md §4):
 /// muted, lime, sky, violet, orange, pink. Harder reads as rarer.
 Color difficultyColor(Pal p, int i) =>
     [const Color(0xFFC9B8E8), p.lime, p.sky, p.violet, p.orange, p.pink][i.clamp(0, 5)];
 
-/// XP gems: a picture of the multiplier, no numbers (rule 3).
+/// Difficulty [i] as a rank, e.g. "3 OF 6" (profile path row).
 String gems(int i) => '${i + 1} OF ${difficulties.length}';
 
 /// XP gems: a row of gem icons, a picture of the multiplier (no numbers).
@@ -420,7 +391,7 @@ class Gems extends StatelessWidget {
 /// Where the detail card sits on the difficulty step (the freeze-frame
 /// title card covers it).
 Rect difficultyCardRect(Size area) {
-  final ladderBottom = 92 + area.height * 0.46;
+  final ladderBottom = _ladderTop + area.height * 0.46;
   return Rect.fromLTRB(16, ladderBottom + 10, area.width - 22, area.height - 96);
 }
 
@@ -452,7 +423,7 @@ class DifficultyView extends StatelessWidget {
     final color = difficultyColor(p, sel);
     return LayoutBuilder(builder: (context, box) {
       final card = difficultyCardRect(box.biggest);
-      final ladder = Rect.fromLTRB(16, 92, box.maxWidth - 22, card.top - 10);
+      final ladder = Rect.fromLTRB(16, _ladderTop, box.maxWidth - 22, card.top - 10);
       const rail = 10.0;
       final rung = (ladder.height - 8) / difficulties.length;
       return Stack(
@@ -461,7 +432,7 @@ class DifficultyView extends StatelessWidget {
             left: 16,
             right: stage.width + 26,
             top: 6,
-            height: 84,
+            height: _ladderTop - 8,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -607,6 +578,38 @@ class _Rung extends StatelessWidget {
 
 // ----------------------------------------------------------- starting area
 
+/// Title block beside the small character at the top left.
+class _SideTitle extends StatelessWidget {
+  const _SideTitle({required this.stage, required this.step, required this.title, required this.line});
+
+  final Rect stage;
+  final String step, title, line;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Pal.of(context);
+    return ConstrainedBox(
+      constraints: BoxConstraints(minHeight: stage.bottom + 6),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(stage.right + 10, stage.top + 4, 18, 0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Shout(step, color: p.pink),
+            const SizedBox(height: 6),
+            FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: MegaText(title, size: 40)),
+            const SizedBox(height: 8),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              child: Text(line, key: ValueKey(line), style: mono(12.5, p.ink), maxLines: 3),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Setup step 4 (docs/moodboard/README.md "Starting areas"): five areas,
 /// each with its scene colours, the object to hit and the default path.
 /// The class picks the default; the player can choose any area.
@@ -746,6 +749,7 @@ class SummaryView extends StatelessWidget {
     final cls = classById(classId);
     final d = difficulties[difficultyIndex(difficultyId)];
     final a = areaById(areaId);
+    final color = classColor(p, cls.id);
     Widget row(int step, String label, String value, Color color) => InkWell(
           onTap: () => onEdit(step),
           child: Padding(
@@ -770,12 +774,12 @@ class SummaryView extends StatelessWidget {
               const SizedBox(height: 14),
               Brutal(
                 color: kNight,
-                shadow: classColor(p, cls.id),
+                shadow: color,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   child: Column(
                     children: [
-                      row(1, 'Class', cls.name, classColor(p, cls.id)),
+                      row(1, 'Class', cls.name, color),
                       row(1, 'Gear', cls.equipment, p.sky),
                       row(2, 'Difficulty', d.name, p.pink),
                       row(3, 'Area', a.name, p.orange),

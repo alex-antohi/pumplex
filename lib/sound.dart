@@ -7,10 +7,8 @@ import 'package:flutter/foundation.dart';
 
 /// Sound ids = file names in assets/sounds without `.wav`.
 abstract final class Sfx {
-  /// True once main() runs (the real app, not a test).
-  static bool ready = false;
-
-  /// False in tests and while the user has sound off.
+  /// Set by main() from the SOUND toggle. Stays false in tests (no audio
+  /// plugin there).
   static bool enabled = false;
 
   static final _pool = <AudioPlayer>[];
@@ -37,7 +35,4 @@ abstract final class Sfx {
       debugPrint('sound $id: $e');
     }
   }
-
-  /// The set sound of an area (riptide, gainsgard, rustbelt, arcade, frostbite).
-  static void set(String areaId) => play('set_$areaId');
 }

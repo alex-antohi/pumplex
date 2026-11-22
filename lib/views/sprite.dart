@@ -103,6 +103,7 @@ class AtlasSprite extends StatelessWidget {
   }
 }
 
+/// Vertical stretch of the sprite for the height slider (0..100).
 double heightScale(int height) =>
     minHeightScale + (maxHeightScale - minHeightScale) * height / 100;
 

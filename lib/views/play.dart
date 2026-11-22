@@ -1,4 +1,4 @@
-// Play: the hub, the workout (count working sets), and past sessions.
+// Play: the hub, past sessions and gear. The workout is in workout.dart.
 
 import 'package:flutter/material.dart';
 
@@ -105,6 +105,7 @@ class HubView extends StatelessWidget {
     final today = store.todaySession;
     final color = classColor(p, cls.id);
     final area = areaById(store.profile?.areaId);
+    final accent = Color(area.accent);
     final bottom = MediaQuery.paddingOf(context).bottom;
     final trained = store.history.where((s) => s.trained && !identical(s, today)).toList();
     return LayoutBuilder(builder: (context, box) {
@@ -112,24 +113,13 @@ class HubView extends StatelessWidget {
       return Stack(
         children: [
           // The area scene, framed (the lifter stands in it).
-          Positioned(
-            left: scene.left - 4,
-            top: scene.top - 4,
-            width: scene.width + 8,
-            height: scene.height + 8,
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: p.ink, width: 4),
-                boxShadow: [BoxShadow(color: Color(area.accent), offset: const Offset(6, 6))],
-              ),
-            ),
-          ),
+          sceneFrame(scene, ink: p.ink, shadow: accent),
           Positioned.fromRect(rect: scene, child: AreaScene(art: areaArt[area.artId]!, scale: scale)),
           // Where: the area name, top left over the sky.
           Positioned(
             left: scene.left + 8,
             top: scene.top + 8,
-            child: Tag(area.name, bg: kNight, fg: Color(area.accent), size: 13, angle: -2),
+            child: Tag(area.name, bg: kNight, fg: accent, size: 13, angle: -2),
           ),
           // Class name tag, bottom right of the scene.
           Positioned(
@@ -360,6 +350,41 @@ class _StreakRow extends StatelessWidget {
 
 // ----------------------------------------------------------------- history
 
+/// Header of a list page (history, gear): a HUB button, a title and a line,
+/// to the left of the small character at [stage].
+class _PageHeader extends StatelessWidget {
+  const _PageHeader({required this.stage, required this.button, required this.title, required this.line});
+
+  final Rect stage;
+  final Widget button;
+  final String title, line;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Pal.of(context);
+    return ConstrainedBox(
+      constraints: BoxConstraints(minHeight: stage.bottom + 4),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(16, stage.top + 4, stage.width + 20, 0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            button,
+            const SizedBox(height: 10),
+            Text(title, style: display(26, p.ink)),
+            const SizedBox(height: 4),
+            Text(line, style: mono(11.5, p.pink)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Padding of the list under a [_PageHeader].
+EdgeInsets _pageListPadding(BuildContext context) =>
+    EdgeInsets.fromLTRB(16, 8, 24, 30 + MediaQuery.paddingOf(context).bottom);
+
 class HistoryView extends StatelessWidget {
   const HistoryView({super.key, required this.stage, required this.store, required this.onBack});
 
@@ -376,25 +401,15 @@ class HistoryView extends StatelessWidget {
     final today = store.todaySession;
     return Column(
       children: [
-        ConstrainedBox(
-          constraints: BoxConstraints(minHeight: stage.bottom + 4),
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(16, stage.top + 4, stage.width + 20, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                BrutalButton(key: const ValueKey('history-hub'), small: true, color: p.sky, onTap: onBack, child: const IconText('next', 'HUB', iconAfter: true)),
-                const SizedBox(height: 10),
-                Text('PAST SESSIONS', style: display(26, p.ink)),
-                const SizedBox(height: 4),
-                Text('${all.length} TRAINING DAYS IN THE BOOK', style: mono(11.5, p.pink)),
-              ],
-            ),
-          ),
+        _PageHeader(
+          stage: stage,
+          button: BrutalButton(key: const ValueKey('history-hub'), small: true, color: p.sky, onTap: onBack, child: const IconText('next', 'HUB', iconAfter: true)),
+          title: 'PAST SESSIONS',
+          line: '${all.length} TRAINING DAYS IN THE BOOK',
         ),
         Expanded(
           child: ListView(
-            padding: EdgeInsets.fromLTRB(16, 8, 24, 30 + MediaQuery.paddingOf(context).bottom),
+            padding: _pageListPadding(context),
             children: [
               if (all.isEmpty) const Terminal(['NOTHING HERE YET.', 'THE BOOK IS HUNGRY. FEED IT SETS.']),
               for (final s in game)
@@ -483,7 +498,7 @@ class _LegacyTile extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          PxIcon('arm', size: 18, color: Pal.of(context).ink),
+          PxIcon('arm', size: 18, color: p.ink),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -514,25 +529,15 @@ class GearView extends StatelessWidget {
     final gear = store.gear;
     return Column(
       children: [
-        ConstrainedBox(
-          constraints: BoxConstraints(minHeight: stage.bottom + 4),
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(16, stage.top + 4, stage.width + 20, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                BrutalButton(key: const ValueKey('gear-hub'), small: true, color: p.sky, onTap: onBack, child: const IconText('back', 'HUB')),
-                const SizedBox(height: 10),
-                Text('GEAR', style: display(26, p.ink)),
-                const SizedBox(height: 4),
-                Text('LEVELS UNLOCK GEAR. ONE ITEM PER SLOT.', style: mono(11.5, p.pink)),
-              ],
-            ),
-          ),
+        _PageHeader(
+          stage: stage,
+          button: BrutalButton(key: const ValueKey('gear-hub'), small: true, color: p.sky, onTap: onBack, child: const IconText('back', 'HUB')),
+          title: 'GEAR',
+          line: 'LEVELS UNLOCK GEAR. ONE ITEM PER SLOT.',
         ),
         Expanded(
           child: ListView(
-            padding: EdgeInsets.fromLTRB(16, 8, 24, 30 + MediaQuery.paddingOf(context).bottom),
+            padding: _pageListPadding(context),
             children: [
               for (final slot in GearSlot.values) ...[
                 Shout(slot.name, color: p.violet, size: 14),

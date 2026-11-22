@@ -85,13 +85,8 @@ class BodyChange {
   final String at;
   final Character character;
 
-  Map<String, dynamic> toJson() => {
-        'at': at,
-        'sex': character.sex,
-        'height': character.height,
-        'muscle': character.muscle,
-        'fat': character.fat,
-      };
+  /// The body only: a history entry has no name.
+  Map<String, dynamic> toJson() => {'at': at, ...character.toJson()..remove('name')};
 
   factory BodyChange.fromJson(Map<String, dynamic> j) =>
       BodyChange(at: j['at'] as String, character: Character.fromJson(j));

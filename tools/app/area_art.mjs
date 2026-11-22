@@ -153,7 +153,6 @@ for (const id of AREAS) {
   const j = JSON.parse(readFileSync(`${REPO}/assets/areas/${id}/anim.json`, "utf8"));
   const L = Object.fromEntries(j.layers.map((l) => [l.id, l]));
   const o = j.object, m = j.marks;
-  const tintFile = m.tint && typeof m.tint === "object" && m.tint.file ? m.tint.file : null;
   out += `  '${id}': AreaArt(
     id: '${id}',
     background: 'assets/areas/${id}/${L.background.file}',
@@ -173,7 +172,7 @@ for (const id of AREAS) {
     burst: ${frames(id, j.burst)},
     mark: ${sprite(id, m.sprite)},
     markFifth: ${sprite(id, m.fifthSprite)},
-    markTint: ${sprite(id, tintFile)},
+    markTint: ${sprite(id, m.tint?.file)},
     tintMarks: ${typeof m.tint === "string"},
     marksOverObject: ${m.z > o.z},
     markPositions: [${marks(id, m).map(pt).join(", ")}],

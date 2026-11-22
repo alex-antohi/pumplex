@@ -15,8 +15,8 @@ class Exercise {
   final ExerciseKind kind;
 }
 
-/// One class per equipment type (docs/app-brief.md §4.1). Names, copy and
-/// colours from docs/moodboard/README.md "Class select". The names are
+/// One class per equipment type (docs/app-brief.md §4.1). Names and copy
+/// from docs/moodboard/README.md "Class select". The names are
 /// PROPOSALS from the design team; the ids never change.
 class GameClass {
   const GameClass({
@@ -220,8 +220,8 @@ enum MarkStyle {
 }
 
 /// A starting area: the look, the palette and how a set is logged.
-/// Proposals from the design team.
-/// The scene art comes from the design team (assets/areas, lib/game/area_art.dart).
+/// Proposals from the design team. The scene art is in assets/areas
+/// (lib/game/area_art.dart).
 class Area {
   const Area({
     required this.id,
@@ -346,8 +346,7 @@ Area defaultAreaFor(String classId) =>
 enum GearSlot { head, top, bottom, shoes, weapon }
 
 /// A gear item. The level unlocks it; the user equips one per slot.
-/// Placeholder icons until the design has gear sprites. The body never
-/// changes with gear.
+/// The sprites are in assets/gear. The body never changes with gear.
 class Item {
   const Item(this.id, this.name, this.slot, this.unlockLevel, this.icon);
 
@@ -355,6 +354,7 @@ class Item {
   final String name;
   final GearSlot slot;
   final int unlockLevel;
+
   /// Menu icon (assets/gear/icons, white: tint it).
   final String icon;
 }
@@ -372,12 +372,7 @@ const items = <Item>[
   Item('bottom.belt', 'Belt of Brace Yourself', GearSlot.bottom, 18, 'assets/gear/icons/bottom.belt.png'),
 ];
 
-Item? itemById(String? id) {
-  for (final i in items) {
-    if (i.id == id) return i;
-  }
-  return null;
-}
+Item? itemById(String? id) => items.where((i) => i.id == id).firstOrNull;
 
 // ----------------------------------------------------------- achievements
 

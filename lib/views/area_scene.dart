@@ -42,6 +42,21 @@ Rect sceneLifterRect(AreaArt art, Rect scene, int scale) {
   return Rect.fromLTWH(scene.left + art.lifterPos.dx * scale, feet - h * 1.15, w, h * 1.15);
 }
 
+/// The ink frame around a scene at [scene], with a hard shadow in [shadow].
+/// Put it in the same [Stack] as the scene, before it.
+Widget sceneFrame(Rect scene, {required Color ink, required Color shadow}) => Positioned(
+      left: scene.left - 4,
+      top: scene.top - 4,
+      width: scene.width + 8,
+      height: scene.height + 8,
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: ink, width: 4),
+          boxShadow: [BoxShadow(color: shadow, offset: const Offset(6, 6))],
+        ),
+      ),
+    );
+
 class AreaScene extends StatefulWidget {
   const AreaScene({
     super.key,

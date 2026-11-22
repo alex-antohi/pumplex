@@ -23,9 +23,8 @@ Future<void> main() async {
   final prefs = await SharedPreferences.getInstance();
   final store = LogStore(prefs);
   // Sound only in the real app (tests have no audio plugin).
-  Sfx.ready = true;
   Sfx.enabled = store.sound.value;
-  store.sound.addListener(() => Sfx.enabled = Sfx.ready && store.sound.value);
+  store.sound.addListener(() => Sfx.enabled = store.sound.value);
   runApp(GymApp(store: store));
 }
 
@@ -94,10 +93,13 @@ class GameShell extends StatefulWidget {
 class _GameShellState extends State<GameShell> {
   LogStore get _store => widget.store;
 
-  late Scene _scene = _store.hasOldData ? Scene.migrate : _startScene;
+  late Scene _scene = _openingScene;
+  Motion _motion = Motion.zoomIn;
+
+  /// The upgrade scene while old data is on the phone, else [_startScene].
+  Scene get _openingScene => _store.hasOldData ? Scene.migrate : _startScene;
 
   Scene get _startScene => _store.profile == null ? Scene.create : Scene.hub;
-  Motion _motion = Motion.zoomIn;
 
   // Setup draft (the profile is only saved on LET'S GO).
   late Character _char;
@@ -106,6 +108,7 @@ class _GameShellState extends State<GameShell> {
   bool _areaPicked = false;
 
   late final AppLifecycleListener _life;
+  bool _precached = false;
 
   @override
   void initState() {
@@ -115,8 +118,6 @@ class _GameShellState extends State<GameShell> {
     _store.addListener(_onStore);
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkSession());
   }
-
-  bool _precached = false;
 
   @override
   void didChangeDependencies() {
@@ -236,24 +237,33 @@ class _GameShellState extends State<GameShell> {
 
   void _editCharacter() => _editStep(0);
 
-  /// Opens one setup step to change it (0 body, 1 class, 2 difficulty,
-  /// 3 area). NEXT leads to the summary, which saves (D13).
+  /// The setup steps a summary or profile EDIT opens (0 body, 1 class,
+  /// 2 difficulty, 3 area).
+  static const _setupSteps = [Scene.create, Scene.classSelect, Scene.difficulty, Scene.area];
+
+  /// Opens one setup step to change it. NEXT leads to the summary, which
+  /// saves (D13).
   void _editStep(int step) {
     _resetDraft();
     _editing = true;
-    _go(const [Scene.create, Scene.classSelect, Scene.difficulty, Scene.area][step], Motion.zoomOut);
+    _go(_setupSteps[step], Motion.zoomOut);
   }
 
-  /// The scene the menu returns to.
-  Scene _menuFrom = Scene.hub;
-
-  void _openMenu() {
-    if (_scene == Scene.menu) return;
-    _menuFrom = _scene;
-    _go(Scene.menu, Motion.slideLeft);
+  void _pickClass(String id) {
+    setState(() {
+      _classId = id;
+      // The class picks the default area, until the player picks one.
+      if (!_areaPicked) _areaId = defaultAreaFor(id).id;
+    });
+    final c = classById(id);
+    _showIntro((title: c.name, subtitle: c.subtitle, color: classColor(Pal.of(context), id)));
   }
 
-  void _closeMenu() => _go(_menuFrom, Motion.slideRight);
+  void _pickDifficulty(String id) {
+    setState(() => _difficultyId = id);
+    final i = difficultyIndex(id);
+    _showIntro((title: difficulties[i].name, subtitle: difficulties[i].joke, color: difficultyColor(Pal.of(context), i)));
+  }
 
   // ---------------------------------------------------------------- workout
 
@@ -280,32 +290,6 @@ class _GameShellState extends State<GameShell> {
     setState(() {});
   }
 
-  // ------------------------------------------------------- freeze-frame card
-
-  IntroSpec? _intro;
-  int _introRun = 0; // a new pick restarts the card
-
-  void _showIntro(IntroSpec spec) => setState(() {
-        _intro = spec;
-        _introRun++;
-      });
-
-  void _pickClass(String id) {
-    setState(() {
-      _classId = id;
-      // The class picks the default area, until the player picks one.
-      if (!_areaPicked) _areaId = defaultAreaFor(id).id;
-    });
-    final c = classById(id);
-    _showIntro((title: c.name, subtitle: c.subtitle, color: classColor(Pal.of(context), id)));
-  }
-
-  void _pickDifficulty(String id) {
-    setState(() => _difficultyId = id);
-    final i = difficultyIndex(id);
-    _showIntro((title: difficulties[i].name, subtitle: difficulties[i].joke, color: difficultyColor(Pal.of(context), i)));
-  }
-
   void _removeSet(int i) {
     _store.removeSet(i);
     Sfx.play('set_back');
@@ -318,7 +302,36 @@ class _GameShellState extends State<GameShell> {
         : 'NO OTHER EXERCISE LEFT IN THE POOL.');
   }
 
+  // ------------------------------------------------------- freeze-frame card
+
+  IntroSpec? _intro;
+  int _introRun = 0; // a new pick restarts the card
+
+  void _showIntro(IntroSpec spec) => setState(() {
+        _intro = spec;
+        _introRun++;
+      });
+
+  Widget _introCard() => IntroCard(
+        key: ValueKey(_introRun),
+        spec: _intro!,
+        onDone: () => setState(() => _intro = null),
+      );
+
   // ------------------------------------------------------------------- menu
+
+  /// The scene the menu returns to.
+  Scene _menuFrom = Scene.hub;
+
+  void _openMenu() {
+    if (_scene == Scene.menu) return;
+    _menuFrom = _scene;
+    _go(Scene.menu, Motion.slideLeft);
+  }
+
+  void _closeMenu() => _go(_menuFrom, Motion.slideRight);
+
+  void _openHistory() => _go(Scene.history, Motion.slideRight);
 
   void _toggleCel() {
     final on = !_store.cel.value;
@@ -383,7 +396,7 @@ class _GameShellState extends State<GameShell> {
     if (!mounted) return;
     _resetDraft();
     _editing = false;
-    _go(_store.hasOldData ? Scene.migrate : _startScene, Motion.zoomOut);
+    _go(_openingScene, Motion.zoomOut);
     setState(() {});
     _snack('RESTORED ${_store.history.length} TRAINING DAYS.');
   }
@@ -477,7 +490,7 @@ class _GameShellState extends State<GameShell> {
             difficultyId: _difficultyId,
             areaId: _areaId,
             editing: _editing,
-            onEdit: (step) => _go(const [Scene.create, Scene.classSelect, Scene.difficulty, Scene.area][step], Motion.zoomOut),
+            onEdit: (step) => _go(_setupSteps[step], Motion.zoomOut),
             onBack: _back,
             onGo: _finishSetup,
           ),
@@ -485,7 +498,7 @@ class _GameShellState extends State<GameShell> {
             stage: stage,
             store: _store,
             onTrain: () => _go(Scene.workout),
-            onHistory: () => _go(Scene.history, Motion.slideRight),
+            onHistory: _openHistory,
             onBody: _editCharacter,
             onGear: () => _go(Scene.gear),
             onProfile: () => _go(Scene.profile),
@@ -504,7 +517,7 @@ class _GameShellState extends State<GameShell> {
             store: _store,
             onBack: _back,
             onBody: _editCharacter,
-            onHistory: () => _go(Scene.history, Motion.slideRight),
+            onHistory: _openHistory,
             onGear: () => _go(Scene.gear),
             onEditStep: _editStep,
           ),
@@ -512,7 +525,7 @@ class _GameShellState extends State<GameShell> {
             store: _store,
             onClose: _closeMenu,
             onProfile: _hasPlay ? () => _go(Scene.profile) : null,
-            onHistory: _hasPlay ? () => _go(Scene.history, Motion.slideRight) : null,
+            onHistory: _hasPlay ? _openHistory : null,
             onEditCharacter: _hasPlay ? _editCharacter : null,
             onSave: _saveBackup,
             onRestore: _restoreBackup,
@@ -593,26 +606,20 @@ class _GameShellState extends State<GameShell> {
                           ),
                         ),
                         // Freeze-frame intro card: over the preview card on
-                        // the class step, over the whole view on level-ups.
+                        // the class and difficulty steps, over the whole
+                        // view on level-ups.
                         if (_intro != null)
-                          _scene == Scene.classSelect || _scene == Scene.difficulty
-                              ? Positioned.fromRect(
-                                  rect: _scene == Scene.classSelect
-                                      ? classCardRect(stage, box.maxWidth)
-                                      : difficultyCardRect(box.biggest),
-                                  child: IntroCard(
-                                    key: ValueKey(_introRun),
-                                    spec: _intro!,
-                                    onDone: () => setState(() => _intro = null),
-                                  ),
-                                )
-                              : Positioned.fill(
-                                  child: IntroCard(
-                                    key: ValueKey(_introRun),
-                                    spec: _intro!,
-                                    onDone: () => setState(() => _intro = null),
-                                  ),
-                                ),
+                          switch (_scene) {
+                            Scene.classSelect => Positioned.fromRect(
+                                rect: classCardRect(stage, box.maxWidth),
+                                child: _introCard(),
+                              ),
+                            Scene.difficulty => Positioned.fromRect(
+                                rect: difficultyCardRect(box.biggest),
+                                child: _introCard(),
+                              ),
+                            _ => Positioned.fill(child: _introCard()),
+                          },
                       ],
                     );
                   }),

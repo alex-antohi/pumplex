@@ -30,9 +30,15 @@ class LogStore extends ChangeNotifier {
   static const _achievementsKey = 'achievements_v1';
   static const _gearKey = 'gear_v1';
 
+  /// Copy of the profile and sessions as they were before the class id
+  /// migration (D31), kept on the phone.
+  static const classIdBackupKey = 'class_ids_v0_backup';
+
   /// Keys of the old app (deleted by the one-time migration).
   static const oldKeys = ['sessions_v2', 'logs_v2', 'swaps_v2', 'session_started_ms'];
   static const oldKeyPrefix = 'snooze2_';
+
+  static bool _isOldKey(String k) => oldKeys.contains(k) || k.startsWith(oldKeyPrefix);
 
   final SharedPreferences _prefs;
   final DateTime Function() _clock;
@@ -49,10 +55,6 @@ class LogStore extends ChangeNotifier {
     final raw = _prefs.getString(key);
     return raw == null ? fallback : jsonDecode(raw);
   }
-
-  /// Copy of the profile and sessions as they were before the class id
-  /// migration (D31), kept on the phone.
-  static const classIdBackupKey = 'class_ids_v0_backup';
 
   /// One-time: saved data with the old class ids (speedy, rogue, warrior,
   /// mage) is written back with the design ids. _load already maps the ids;
@@ -97,9 +99,13 @@ class LogStore extends ChangeNotifier {
   String get _now => isoNow(_clock());
   String get _today => dateKey(_clock());
 
-  void _saveSessions() => _prefs.setString(
-      _sessionsKey, jsonEncode({for (final s in _sessions.values) s.date: s.toJson()}));
+  /// Sessions as saved: date -> session.
+  static Map<String, Object?> _sessionsJson(Iterable<Session> sessions) =>
+      {for (final s in sessions) s.date: s.toJson()};
+
+  void _saveSessions() => _prefs.setString(_sessionsKey, jsonEncode(_sessionsJson(_sessions.values)));
   void _saveEvents() => _prefs.setString(_xpKey, jsonEncode([for (final e in _events) e.toJson()]));
+  void _saveGear() => _prefs.setString(_gearKey, jsonEncode(_gear.toJson()));
 
   // ------------------------------------------------------------- settings
 
@@ -131,8 +137,7 @@ class LogStore extends ChangeNotifier {
 
   /// True while the old app's data is still on the phone (before the
   /// one-time migration, docs/data-schema.md §5).
-  bool get hasOldData =>
-      oldKeys.any(_prefs.containsKey) || _prefs.getKeys().any((k) => k.startsWith(oldKeyPrefix));
+  bool get hasOldData => _prefs.getKeys().any(_isOldKey);
 
   /// Old workout days still waiting for the migration (for the screen text).
   int get oldWorkoutCount => _oldWorkoutDates(_json('sessions_v2', const []) as List).length;
@@ -147,7 +152,7 @@ class LogStore extends ChangeNotifier {
         'swaps': _json('swaps_v2', const {}),
         'raw': {
           for (final k in _prefs.getKeys())
-            if (oldKeys.contains(k) || k.startsWith(oldKeyPrefix)) k: _prefs.get(k),
+            if (_isOldKey(k)) k: _prefs.get(k),
         },
       });
 
@@ -159,12 +164,11 @@ class LogStore extends ChangeNotifier {
 
   /// Old sessions -> legacy sessions + one legacy XP event each.
   static (List<Session>, List<XpEvent>) _convertOld(List raw) {
+    String? iso(Object? ms) => ms is num ? isoNow(DateTime.fromMillisecondsSinceEpoch(ms.toInt())) : null;
     final byDate = <String, Session>{};
     for (final s in raw) {
       if (s is! Map || s['rested'] == true || s['date'] is! String) continue;
       final date = s['date'] as String;
-      String? iso(Object? ms) =>
-          ms is num ? isoNow(DateTime.fromMillisecondsSinceEpoch(ms.toInt())) : null;
       final had = byDate[date];
       byDate[date] = Session(
         date: date,
@@ -198,7 +202,7 @@ class LogStore extends ChangeNotifier {
     _saveSessions();
     _saveEvents();
     for (final k in _prefs.getKeys().toList()) {
-      if (oldKeys.contains(k) || k.startsWith(oldKeyPrefix)) await _prefs.remove(k);
+      if (_isOldKey(k)) await _prefs.remove(k);
     }
     _checkUnlocks();
     notifyListeners();
@@ -262,14 +266,10 @@ class LogStore extends ChangeNotifier {
     final r = rulesFor(difficulty);
     final n = r.exercisesPerWorkout.clamp(1, pool.length);
     final start = daysBetween(DateTime(2026), parseDateKey(day)).abs() % pool.length;
+    final ids = [for (var i = 0; i < n; i++) pool[(start + i) % pool.length].id];
     return [
-      for (var i = 0; i < n; i++)
-        SessionExercise(
-          position: i,
-          exerciseId: pool[(start + i) % pool.length].id,
-          originalExerciseId: pool[(start + i) % pool.length].id,
-          targetSets: r.targetSets,
-        ),
+      for (final (i, id) in ids.indexed)
+        SessionExercise(position: i, exerciseId: id, originalExerciseId: id, targetSets: r.targetSets),
     ];
   }
 
@@ -399,27 +399,27 @@ class LogStore extends ChangeNotifier {
     return (days: w?.days ?? 0, n: w?.n ?? rulesFor(difficulty).streakN);
   }
 
+  /// The Monday [n] weeks after week (Monday) [w].
+  static String _weekAfter(String w, int n) => dateKey(addDays(parseDateKey(w), 7 * n));
+
+  /// Whether week [w] reached its N training days.
+  static bool _met(String w, Map<String, ({int days, int n})> weeks) =>
+      (weeks[w]?.days ?? 0) >= (weeks[w]?.n ?? 999);
+
   /// Streak weeks in a row up to now. This week counts once it is met;
   /// until then the streak from last week still stands.
   int get streakWeeks {
-    final weeks = _weeks;
-    bool met(String w) => (weeks[w]?.days ?? 0) >= (weeks[w]?.n ?? 999);
-    var w = weekOf(_today);
-    if (!met(w)) w = dateKey(addDays(parseDateKey(w), -7));
-    var n = 0;
-    while (met(w)) {
-      n++;
-      w = dateKey(addDays(parseDateKey(w), -7));
-    }
-    return n;
+    final weeks = _weeks, w = weekOf(_today);
+    return (_met(w, weeks) ? 1 : 0) + _runBefore(w, weeks);
   }
 
   int get _bestStreakWeeks {
-    final met = _weeks.entries.where((e) => e.value.days >= e.value.n).map((e) => e.key).toList()..sort();
+    final weeks = _weeks;
+    final met = weeks.keys.where((w) => _met(w, weeks)).toList()..sort();
     var best = 0, run = 0;
     String? prev;
     for (final w in met) {
-      run = prev != null && dateKey(addDays(parseDateKey(prev), 7)) == w ? run + 1 : 1;
+      run = prev != null && _weekAfter(prev, 1) == w ? run + 1 : 1;
       best = run > best ? run : best;
       prev = w;
     }
@@ -431,10 +431,8 @@ class LogStore extends ChangeNotifier {
   /// Streak weeks in a row that end the week before [week].
   static int _runBefore(String week, Map<String, ({int days, int n})> weeks) {
     var n = 0;
-    var w = dateKey(addDays(parseDateKey(week), -7));
-    while ((weeks[w]?.days ?? 0) >= (weeks[w]?.n ?? 999)) {
+    for (var w = _weekAfter(week, -1); _met(w, weeks); w = _weekAfter(w, -1)) {
       n++;
-      w = dateKey(addDays(parseDateKey(w), -7));
     }
     return n;
   }
@@ -556,7 +554,7 @@ class LogStore extends ChangeNotifier {
       }
     }
     _prefs.setString(_achievementsKey, jsonEncode(_achievements));
-    _prefs.setString(_gearKey, jsonEncode(_gear.toJson()));
+    _saveGear();
     _saveEvents();
   }
 
@@ -566,7 +564,7 @@ class LogStore extends ChangeNotifier {
     final eq = {..._gear.equipped}..remove(slot.name);
     if (itemId != null) eq[slot.name] = itemId;
     _gear = Gear(owned: _gear.owned, equipped: eq);
-    _prefs.setString(_gearKey, jsonEncode(_gear.toJson()));
+    _saveGear();
     notifyListeners();
   }
 
@@ -580,7 +578,7 @@ class LogStore extends ChangeNotifier {
         'version': backupVersion,
         if (_profile != null) _profileKey: _profile!.toJson(),
         _bodyKey: [for (final b in _body) b.toJson()],
-        _sessionsKey: {for (final s in _sessions.values) s.date: s.toJson()},
+        _sessionsKey: _sessionsJson(_sessions.values),
         _xpKey: [for (final e in _events) e.toJson()],
         _achievementsKey: _achievements,
         _gearKey: _gear.toJson(),
@@ -600,7 +598,7 @@ class LogStore extends ChangeNotifier {
     if (data['version'] == 2) {
       final (sessions, events) = _convertOld(data['sessions'] as List? ?? const []);
       out = {
-        _sessionsKey: jsonEncode({for (final s in sessions) s.date: s.toJson()}),
+        _sessionsKey: jsonEncode(_sessionsJson(sessions)),
         _xpKey: jsonEncode([for (final e in events) e.toJson()]),
       };
     } else {
