@@ -150,7 +150,7 @@ class _FilterSheetState extends State<FilterSheet> {
                       BrutalButton(
                         key: const ValueKey('filter-reset'),
                         small: true,
-                        color: p.panel,
+                        color: p.sky,
                         onTap: store.resetFilter,
                         child: const Text('RESET TO MINE'),
                       ),

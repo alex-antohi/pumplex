@@ -138,7 +138,8 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
     final accent = Color(area.accent);
     final cls = classById(f.classId);
     final sets = e == null ? 0 : store.setsToday(e.id);
-    final firstTime = store.history.where((s) => !s.legacy).isEmpty;
+    // Old-app days have no class; days frozen by D54 keep theirs and count.
+    final firstTime = store.history.where((s) => !s.legacy || s.classId.isNotEmpty).isEmpty;
     final body = f.muscle ?? bodyPartById(f.body)?.name ?? 'All body parts';
     void open(FilterSection at) => showFilterSheet(context, store, at);
     return LayoutBuilder(builder: (context, box) {
