@@ -731,16 +731,16 @@ void main() {
     expect(find.textContaining('5/3'), findsOneWidget);
     expect(find.textContaining('+${store.cardXp(0)} XP'), findsOneWidget);
 
-    await t.tap(find.byKey(const ValueKey('nav-hub')));
-    await _frames(t);
     expect(find.text('KEEP GOING'), findsNothing); // no hub (D49)
     expect(store.todaySession!.totalSets, 5);
 
-    await t.tap(find.byKey(const ValueKey('nav-history')));
-    await _frames(t);
-    expect(find.textContaining('TODAY · '), findsOneWidget);
-    await t.tap(find.byKey(const ValueKey('nav-hub')));
-    await _frames(t, 70);
+    // The lifter profile (D50): today's session is the first page.
+    await t.tap(find.byKey(const ValueKey('workout-character')));
+    await _frames(t, 20);
+    expect(find.descendant(of: find.byKey(const ValueKey('session-card')), matching: find.textContaining('TODAY · ')), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('mini-workout')));
+    await _frames(t, 20);
+    expect(find.byKey(const ValueKey('lifter-profile')), findsNothing);
     expect(t.takeException(), isNull);
   });
 
@@ -785,9 +785,21 @@ void main() {
     expect(t.takeException(), isNull);
   });
 
-  testWidgets('tap the lifter on the workout to edit the body sliders', (t) async {
+  testWidgets('lifter profile (D50): no bottom bar or menu; the workout shrinks; BODY edits the body', (t) async {
     final (store, _) = await _openApp(t);
+    for (final k in ['nav-hub', 'nav-history', 'nav-profile', 'menu-open']) {
+      expect(find.byKey(ValueKey(k)), findsNothing, reason: k);
+    }
+    final full = t.getRect(find.byKey(const ValueKey('world-object')));
     await t.tap(find.byKey(const ValueKey('workout-character')));
+    await _frames(t, 20);
+    expect(find.byKey(const ValueKey('lifter-profile')), findsOneWidget);
+    expect(t.getRect(find.byKey(const ValueKey('world-object'))).width, lessThan(full.width * 0.6)); // minimised
+    expect(find.byKey(const ValueKey('profile-sessions')), findsOneWidget);
+    for (final k in ['profile-body', 'profile-class', 'profile-gear', 'profile-difficulty', 'profile-area']) {
+      expect(find.byKey(ValueKey(k)), findsOneWidget, reason: k);
+    }
+    await t.tap(find.byKey(const ValueKey('profile-body')));
     await _frames(t);
     expect(find.text('CHARACTER · STEP 1 OF 4'), findsOneWidget);
     await t.drag(find.byKey(const ValueKey('slider-WEIGHT')), const Offset(400, 0));
@@ -810,30 +822,25 @@ void main() {
     expect(find.text('LEVEL $level'), findsOneWidget);
     await _frames(t, 70);
     expect(find.byKey(const ValueKey('intro-card')), findsNothing);
-    await t.tap(find.byKey(const ValueKey('nav-hub')));
-    await _frames(t);
     expect(find.byKey(const ValueKey('hub-gear')), findsNothing); // no gear (D38)
   });
 
-  testWidgets('android back goes one step back, to the workout', (t) async {
+  testWidgets('android back closes the lifter profile, back to the workout', (t) async {
     await _openApp(t);
-    await t.tap(find.byKey(const ValueKey('top-level'))); // the level bar opens the profile
+    await t.tap(find.byKey(const ValueKey('top-level'))); // the level bar opens the lifter profile too
     await _frames(t);
-    expect(find.text('THE PATH'), findsOneWidget);
+    expect(find.byKey(const ValueKey('lifter-profile')), findsOneWidget);
     await t.binding.handlePopRoute();
     await _frames(t);
-    expect(find.text('THE PATH'), findsNothing);
+    expect(find.byKey(const ValueKey('lifter-profile')), findsNothing);
     expect(find.byKey(const ValueKey('world-object')), findsOneWidget);
   });
 
-  testWidgets('the menu has no look-and-feel toggles; EDIT CHARACTER keeps the body', (t) async {
+  testWidgets('BODY on the lifter card keeps the body in the creator', (t) async {
     await _openApp(t);
-    await t.tap(find.byKey(const ValueKey('menu-open')));
-    await _frames(t, 10);
-    for (final k in ['menu-chaos', 'menu-cel', 'menu-sound']) {
-      expect(find.byKey(ValueKey(k)), findsNothing, reason: k);
-    }
-    await t.tap(find.byKey(const ValueKey('menu-edit')));
+    await t.tap(find.byKey(const ValueKey('workout-character')));
+    await _frames(t, 20);
+    await t.tap(find.byKey(const ValueKey('profile-body')));
     await _frames(t);
     expect(find.text('CHARACTER · STEP 1 OF 4'), findsOneWidget);
     expect(_spriteAsset(t), spriteFrame(_profile.character));
@@ -853,25 +860,20 @@ void main() {
         expect(t.takeException(), isNull);
       }
 
-      await tapAndSettle(find.byKey(const ValueKey('nav-hub')));
-      await tapAndSettle(find.byKey(const ValueKey('nav-history')));
-      await tapAndSettle(find.byKey(const ValueKey('nav-hub')));
-      // Profile (design screen 11): change one setup step, then back.
-      await tapAndSettle(find.byKey(const ValueKey('nav-profile')));
-      expect(find.text('THE PATH'), findsOneWidget);
+      // The lifter profile (D50): swipe the sessions, then back to the workout.
+      await tapAndSettle(find.byKey(const ValueKey('workout-character')));
+      await t.fling(find.byKey(const ValueKey('session-card')), const Offset(-300, 0), 1000);
+      await _frames(t);
+      await tapAndSettle(find.byKey(const ValueKey('mini-workout')));
+      // Change one setup step from the lifter card, then save.
+      await tapAndSettle(find.byKey(const ValueKey('top-level')));
       await tapAndSettle(find.byKey(const ValueKey('profile-difficulty')));
       expect(find.text('CLASS · STEP 2 OF 4'), findsOneWidget); // difficulty is on the class step (D47)
       await tapAndSettle(find.text('NEXT'));
       await tapAndSettle(find.text('SAVE'));
-      await tapAndSettle(find.byKey(const ValueKey('nav-profile')));
-      await tapAndSettle(find.byKey(const ValueKey('nav-hub')));
-      // Menu (design screen 12).
-      await tapAndSettle(find.byKey(const ValueKey('menu-open')));
-      expect(find.text('GAINS INSURANCE'), findsOneWidget);
-      await tapAndSettle(find.byKey(const ValueKey('menu-profile')));
-      await tapAndSettle(find.byKey(const ValueKey('nav-hub')));
-      await tapAndSettle(find.byKey(const ValueKey('menu-open')));
-      await tapAndSettle(find.byKey(const ValueKey('menu-edit')));
+      // BODY opens the whole edit flow.
+      await tapAndSettle(find.byKey(const ValueKey('workout-character')));
+      await tapAndSettle(find.byKey(const ValueKey('profile-body')));
       await tapAndSettle(find.text('NEXT')); // editing: straight to the summary
       await tapAndSettle(find.text('CLASS'));
       await tapAndSettle(find.byKey(const ValueKey('class-dot-bruiser')));

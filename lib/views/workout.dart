@@ -33,13 +33,14 @@ const _advanceDelay = Duration(milliseconds: 800);
 
 /// The workout card in a view of [area]: the world on top, the exercise
 /// carousel under it.
-Rect workoutCard(Size area) => Rect.fromLTRB(16, 8, area.width - 22, area.height - 14);
+Rect workoutCard(Size area, [double bottomInset = 0]) =>
+    Rect.fromLTRB(16, 8, area.width - 22, area.height - 14 - bottomInset);
 
 /// The scene's rect and whole-number scale in a workout view of [area]: edge
 /// to edge in the card; at most 24 px a side are cut off to reach the next
 /// whole-number scale (crop the sides, never stretch).
-(Rect, int) workoutLayout(Size area) {
-  final card = workoutCard(area);
+(Rect, int) workoutLayout(Size area, [double bottomInset = 0]) {
+  final card = workoutCard(area, bottomInset);
   // Inside the card's 4 px border.
   final avail = Rect.fromLTWH(card.left + 4, card.top + 4, card.width - 8, card.height * 0.6);
   final scale = max(1, min((avail.width + 48) / sceneSize.width, avail.height / sceneSize.height).floor());
@@ -48,8 +49,8 @@ Rect workoutCard(Size area) => Rect.fromLTRB(16, 8, area.width - 22, area.height
 
 /// The lifter's place in the scene: the design's lifter position (the same
 /// in every area), feet on the shadow.
-Rect workoutStage(Size area) {
-  final (scene, scale) = workoutLayout(area);
+Rect workoutStage(Size area, [double bottomInset = 0]) {
+  final (scene, scale) = workoutLayout(area, bottomInset);
   return sceneLifterRect(areaArt.values.first, scene, scale);
 }
 
@@ -69,7 +70,7 @@ class WorkoutView extends StatefulWidget {
   /// Index in `store.todayExercises` -> one set more / one set less.
   final ValueChanged<int> onAdd, onRemove;
 
-  /// Opens the body sliders (tap on the lifter, D12).
+  /// Tap on the lifter: opens the lifter profile (D50).
   final VoidCallback onBody;
 
   @override
@@ -172,8 +173,9 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
     final di = difficultyIndex(today?.difficultyId ?? store.profile?.difficultyId);
     final firstTime = store.history.where((s) => !s.legacy).isEmpty;
     return LayoutBuilder(builder: (context, box) {
-      final card = workoutCard(box.biggest);
-      final (scene, scale) = workoutLayout(box.biggest);
+      final inset = MediaQuery.paddingOf(context).bottom;
+      final card = workoutCard(box.biggest, inset);
+      final (scene, scale) = workoutLayout(box.biggest, inset);
       final skyLeft = max(scene.left, card.left + 4) + 8;
       return Stack(
         children: [
@@ -257,7 +259,7 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
               ),
             ),
           ),
-          // Tap the lifter to change the body sliders (D12).
+          // Tap the lifter to open the lifter profile (D50).
           Positioned.fromRect(
             rect: widget.stage,
             child: GestureDetector(

@@ -10,7 +10,6 @@ import 'game/rules.dart';
 import 'pumplex.dart';
 import 'store.dart';
 import 'views/intro.dart';
-import 'views/play.dart';
 import 'views/profile.dart';
 import 'views/scene.dart';
 import 'views/setup.dart';
@@ -41,7 +40,7 @@ class GymApp extends StatelessWidget {
 }
 
 /// Every view of the app. They are scenes of ONE screen (see GameShell).
-enum Scene { migrate, create, classSelect, area, summary, workout, history, profile, menu }
+enum Scene { migrate, create, classSelect, area, summary, workout }
 
 /// Where the character stands in each scene, inside the content area.
 /// The views leave this rect free; the shell draws the one character there,
@@ -55,11 +54,7 @@ Rect stageRect(Scene s, Size a, {double bottomInset = 0}) {
     Scene.area => areaLayout(a, bottomInset).stage,
     Scene.summary => Rect.fromLTWH(0, 10, w, h * 0.40),
     Scene.migrate => Rect.fromLTWH(0, 10, w, h * 0.34),
-    Scene.workout => workoutStage(a),
-    Scene.history => Rect.fromLTWH(w * 0.70, 6, w * 0.26, h * 0.17),
-    Scene.profile => Rect.fromLTWH(w * 0.60, 8, w * 0.36, h * 0.24),
-    // The menu covers the view; the character steps down out of the frame.
-    Scene.menu => Rect.fromLTWH(w * 0.70, h + 20, w * 0.26, h * 0.17),
+    Scene.workout => workoutStage(a, bottomInset),
   };
 }
 
@@ -164,10 +159,17 @@ class _GameShellState extends State<GameShell> {
   /// The creator's head looks are open (the camera is on the head).
   bool _head = false;
 
+  /// The lifter profile is open: the workout is minimised (D50).
+  bool _lifter = false;
+
+  /// The minimised workout window at the top left, in a view of [size].
+  static Rect _miniRect(Size size) => Rect.fromLTWH(16, 10, size.width * 0.42, size.height * 0.42);
+
   void _go(Scene to, [Motion motion = Motion.zoomIn]) {
     if (to == _scene) return;
     setState(() {
       _head = false;
+      _lifter = false;
       _scene = to;
       _motion = motion;
       _intro = null;
@@ -204,8 +206,6 @@ class _GameShellState extends State<GameShell> {
 
   int get _legacyXp =>
       _store.xpEvents.where((e) => e.source == 'legacy').fold(0, (a, e) => a + e.amount);
-
-  void _editCharacter() => _editStep(0);
 
   /// The setup steps a summary or profile EDIT opens (0 body, 1 class,
   /// 2 difficulty, 3 area).
@@ -271,81 +271,6 @@ class _GameShellState extends State<GameShell> {
         onDone: () => setState(() => _intro = null),
       );
 
-  // ------------------------------------------------------------------- menu
-
-  /// The scene the menu returns to.
-  Scene _menuFrom = Scene.workout;
-
-  void _openMenu() {
-    if (_scene == Scene.menu) return;
-    _menuFrom = _scene;
-    _go(Scene.menu, Motion.slideLeft);
-  }
-
-  void _closeMenu() => _go(_menuFrom, Motion.slideRight);
-
-  void _openHistory() => _go(Scene.history, Motion.slideRight);
-
-  Future<void> _saveBackup() async {
-    try {
-      final saved = await saveTextFile(
-        name: 'pumplex_backup_${dateKey(DateTime.now())}.json',
-        mime: 'application/json',
-        content: _store.backupJson(),
-      );
-      if (saved && mounted) {
-        final n = _store.history.length;
-        _snack('BACKUP OF $n TRAINING DAYS SAVED. GAINS: INSURED.');
-      }
-    } on PlatformException catch (e) {
-      if (mounted) _snack('COULD NOT SAVE: ${e.message}');
-    }
-  }
-
-  Future<void> _restoreBackup() async {
-    String? text;
-    try {
-      text = await openTextFile();
-    } on PlatformException catch (e) {
-      if (mounted) _snack('COULD NOT OPEN: ${e.message}');
-      return;
-    }
-    if (text == null || !mounted) return;
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('RESTORE BACKUP?'),
-        content: const Text(
-            'This replaces everything in the app with that file. There is no undo. There is only lifting.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('CANCEL', style: display(16, Pal.of(context).ink)),
-          ),
-          BrutalButton(
-            small: true,
-            color: Pal.of(context).pink,
-            onTap: () => Navigator.pop(context, true),
-            child: const Text('REPLACE'),
-          ),
-        ],
-      ),
-    );
-    if (ok != true) return;
-    try {
-      await _store.importBackup(text.replaceFirst(bom, ''));
-    } catch (_) {
-      if (mounted) _snack('THAT FILE IS NOT A PUMPLEX BACKUP.');
-      return;
-    }
-    if (!mounted) return;
-    _resetDraft();
-    _editing = false;
-    _go(_openingScene, Motion.zoomOut);
-    setState(() {});
-    _snack('RESTORED ${_store.history.length} TRAINING DAYS.');
-  }
-
   // ------------------------------------------------------------------ build
 
   String get _info {
@@ -357,9 +282,6 @@ class _GameShellState extends State<GameShell> {
       Scene.area => 'STARTING AREA · STEP 3 OF 4',
       Scene.summary => 'READY? · STEP 4 OF 4',
       Scene.workout => 'WORKOUT · ${_store.todaySession?.totalSets ?? 0} SETS · LVL $l',
-      Scene.history => 'PAST SESSIONS · LVL $l',
-      Scene.profile => 'YOUR LIFTER · LVL $l ${levelTitle(l).toUpperCase()}',
-      Scene.menu => 'MENU',
     };
   }
 
@@ -370,19 +292,18 @@ class _GameShellState extends State<GameShell> {
         Scene.classSelect => Scene.create,
         Scene.area => Scene.classSelect,
         Scene.summary => Scene.area,
-        Scene.history || Scene.profile => Scene.workout,
-        Scene.menu => _menuFrom,
-        // The workout is home (D49): back leaves the app.
+        // The workout is home (D49): back leaves the app (or closes the
+        // lifter profile first, D50).
         Scene.workout => null,
       };
 
   void _back() {
     if (_head) return setState(() => _head = false);
+    if (_lifter) return setState(() => _lifter = false);
     final to = _backTo;
     if (to == null) return;
-    if (_scene == Scene.menu) return _closeMenu();
     if (_scene == Scene.create) _editing = false;
-    _go(to, _scene == Scene.history ? Motion.slideLeft : Motion.zoomOut);
+    _go(to, Motion.zoomOut);
   }
 
   Widget _view(Scene s, Rect stage) => switch (s) {
@@ -437,42 +358,13 @@ class _GameShellState extends State<GameShell> {
             store: _store,
             onAdd: _addSet,
             onRemove: _removeSet,
-            onBody: _editCharacter,
-          ),
-        Scene.history => HistoryView(stage: stage, store: _store),
-        Scene.profile => ProfileView(
-            stage: stage,
-            store: _store,
-            onBody: _editCharacter,
-            onHistory: _openHistory,
-            onEditStep: _editStep,
-          ),
-        Scene.menu => MenuView(
-            store: _store,
-            onClose: _closeMenu,
-            onProfile: _hasPlay ? () => _go(Scene.profile) : null,
-            onHistory: _hasPlay ? _openHistory : null,
-            onEditCharacter: _hasPlay ? _editCharacter : null,
-            onSave: _saveBackup,
-            onRestore: _restoreBackup,
+            onBody: () => setState(() => _lifter = true),
           ),
       };
-
-  /// The profile exists and the menu was opened from play, not from setup.
-  bool get _hasPlay => _store.profile != null && !_isSetupScene(_menuFrom);
 
   static bool _isSetupScene(Scene s) => s.index <= Scene.summary.index;
 
-  bool get _inSetup => _isSetupScene(_scene == Scene.menu ? _menuFrom : _scene);
-
-  /// The bottom bar's lit tab, or null where there is no bar. The bar shows
-  /// on the hub, the workout, past sessions and the profile only.
-  NavTab? get _navTab => switch (_scene) {
-        Scene.workout => NavTab.hub,
-        Scene.history => NavTab.history,
-        Scene.profile => NavTab.profile,
-        _ => null,
-      };
+  bool get _inSetup => _isSetupScene(_scene);
 
   @override
   Widget build(BuildContext context) {
@@ -482,7 +374,7 @@ class _GameShellState extends State<GameShell> {
     final char = _inSetup || profile == null ? _char : profile.character;
     final classId = _inSetup || profile == null ? _classId : profile.classId;
     return PopScope(
-      canPop: _backTo == null && !_head,
+      canPop: _backTo == null && !_head && !_lifter,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) _back();
       },
@@ -500,72 +392,116 @@ class _GameShellState extends State<GameShell> {
                 _TopBar(
                   info: _info,
                   // On the workout (home) the bar shows the level and XP (D49).
+                  // Tap it for the lifter profile (D50).
                   level: _scene == Scene.workout
-                      ? _TopLevel(xp: _store.totalXp, onTap: () => _go(Scene.profile))
+                      ? _TopLevel(xp: _store.totalXp, onTap: () => setState(() => _lifter = true))
                       : null,
-                  // Opens the full-screen menu (design screen 12). Not on the
-                  // first setup: there is nothing to open yet.
-                  menu: _store.profile == null && _inSetup
-                      ? null
-                      : IconButton(
-                    key: const ValueKey('menu-open'),
-                    tooltip: 'Menu',
-                    icon: Icon(_scene == Scene.menu ? Icons.close : Icons.more_vert, color: p.ink, size: 28),
-                    onPressed: _scene == Scene.menu ? _closeMenu : _openMenu,
-                  ),
                 ),
                 Container(height: 6, color: p.violet),
                 Expanded(
                   child: LayoutBuilder(builder: (context, box) {
-                    final stage = stageRect(_scene, box.biggest, bottomInset: MediaQuery.paddingOf(context).bottom);
-                    // The bottom bar takes the system inset, so the views
-                    // above it get none.
-                    return MediaQuery.removePadding(
-                      context: context,
-                      removeBottom: _navTab != null,
-                      child: Stack(
-                      children: [
-                        Positioned.fill(
-                          child: SceneSwitcher(
-                            scene: _scene,
-                            motion: _motion,
-                            child: _view(_scene, stage),
-                          ),
-                        ),
-                        // The one character, shared by every scene.
-                        AnimatedPositioned.fromRect(
-                          rect: stage,
-                          duration: const Duration(milliseconds: 560),
-                          curve: Curves.easeInOutCubic,
-                          child: IgnorePointer(
-                            // Frozen in greyscale while the intro card shows.
-                            child: ColorFiltered(
-                              colorFilter: _intro == null
-                                  ? const ColorFilter.mode(Colors.transparent, BlendMode.dst)
-                                  : freezeFilter,
-                              child: CharacterSprite(
-                                character: char,
-                                classId: classId,
-                                // In an area scene the scene has its own ground.
-                                pedestal: _scene != Scene.workout && _scene != Scene.area,
-                                zoomHead: _scene == Scene.create && _head,
+                    final inset = MediaQuery.paddingOf(context).bottom;
+                    final stage = stageRect(_scene, box.biggest, bottomInset: inset);
+                    final full = Offset.zero & box.biggest;
+                    final mini = _miniRect(box.biggest);
+                    final k = mini.width / full.width;
+                    // The lifter profile (D50): the workout and the lifter shrink
+                    // into a window at the top left; the profile shows under it.
+                    return TweenAnimationBuilder<double>(
+                      tween: Tween(end: _lifter && _scene == Scene.workout ? 1 : 0),
+                      duration: const Duration(milliseconds: 420),
+                      curve: Curves.easeInOutCubic,
+                      builder: (context, t, _) {
+                        final s = 1 - (1 - k) * t;
+                        final shrink = Matrix4.translationValues(mini.left * t, mini.top * t, 0)
+                            .multiplied(Matrix4.diagonal3Values(s, s, 1));
+                        final window = Rect.lerp(full, mini, t)!;
+                        return Stack(
+                          children: [
+                            if (t > 0)
+                              Positioned(
+                                left: 16,
+                                right: 22,
+                                top: mini.bottom + 18,
+                                bottom: 0,
+                                child: Opacity(
+                                  opacity: t,
+                                  child: IgnorePointer(
+                                    ignoring: !_lifter,
+                                    child: LifterProfile(
+                                      key: const ValueKey('lifter-profile'),
+                                      store: _store,
+                                      onEditStep: _editStep,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            Positioned.fill(
+                              child: Transform(
+                                transform: shrink,
+                                child: IgnorePointer(
+                                  ignoring: _lifter,
+                                  child: SceneSwitcher(
+                                    scene: _scene,
+                                    motion: _motion,
+                                    child: _view(_scene, stage),
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                        // Freeze-frame intro card: level-ups, over the whole view.
-                        if (_intro != null) Positioned.fill(child: _introCard()),
-                      ],
-                    ));
+                            // The one character, shared by every scene.
+                            Positioned.fill(
+                              child: Transform(
+                                transform: shrink,
+                                child: Stack(
+                                  children: [
+                                    AnimatedPositioned.fromRect(
+                                      rect: stage,
+                                      duration: const Duration(milliseconds: 560),
+                                      curve: Curves.easeInOutCubic,
+                                      child: IgnorePointer(
+                                        // Frozen in greyscale while the intro card shows.
+                                        child: ColorFiltered(
+                                          colorFilter: _intro == null
+                                              ? const ColorFilter.mode(Colors.transparent, BlendMode.dst)
+                                              : freezeFilter,
+                                          child: CharacterSprite(
+                                            character: char,
+                                            classId: classId,
+                                            // In an area scene the scene has its own ground.
+                                            pedestal: _scene != Scene.workout && _scene != Scene.area,
+                                            zoomHead: _scene == Scene.create && _head,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            // The minimised workout window: tap it to go back.
+                            if (t > 0)
+                              Positioned.fromRect(
+                                rect: window.inflate(2),
+                                child: GestureDetector(
+                                  key: const ValueKey('mini-workout'),
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: _lifter ? () => setState(() => _lifter = false) : null,
+                                  child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      border: Border.all(color: p.ink.withValues(alpha: t), width: 3),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            // Freeze-frame intro card: level-ups, over the whole view.
+                            if (_intro != null) Positioned.fill(child: _introCard()),
+                          ],
+                        );
+                      },
+                    );
                   }),
                 ),
-                if (_navTab case final tab?)
-                  MainNav(
-                    current: tab,
-                    onHistory: _openHistory,
-                    onHub: _back,
-                    onProfile: () => _go(Scene.profile),
-                  ),
               ],
             ),
           ),
@@ -576,15 +512,12 @@ class _GameShellState extends State<GameShell> {
 }
 
 class _TopBar extends StatelessWidget {
-  const _TopBar({required this.info, required this.menu, this.level});
+  const _TopBar({required this.info, this.level});
 
   final String info;
 
   /// Shown in place of [info] (the workout's level and XP bar).
   final Widget? level;
-
-  /// The ⋮ button, or null (the space stays, so the bar keeps its height).
-  final Widget? menu;
 
   @override
   Widget build(BuildContext context) {
@@ -625,7 +558,7 @@ class _TopBar extends StatelessWidget {
               ],
             ),
           ),
-          menu ?? const SizedBox(width: 48, height: 48),
+          const SizedBox(width: 12, height: 48),
         ],
       ),
     );
