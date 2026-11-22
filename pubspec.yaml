@@ -8,6 +8,7 @@ environment:
 
 # Only packages already in the local pub cache (same versions as doc_app).
 dependencies:
+  audioplayers: ^6.7.1
   flutter:
     sdk: flutter
   shared_preferences: 2.5.3
@@ -21,5 +22,29 @@ flutter:
   uses-material-design: true
   assets:
     - assets/body/body_atlas.png
+    - assets/icons/
+    - assets/outfits/
+    - assets/gear/head/
+    - assets/gear/top/
+    - assets/gear/bottom/
+    - assets/gear/shoes/
+    - assets/gear/weapon/
+    - assets/gear/icons/
+    - assets/areas/riptide/
+    - assets/areas/gainsgard/
+    - assets/areas/rustbelt/
+    - assets/areas/arcade/
+    - assets/areas/frostbite/
+    - assets/sounds/
+  # Design fonts (docs/moodboard/fonts, OFL licences in assets/fonts).
+  fonts:
+    - family: Anton
+      fonts:
+        - asset: assets/fonts/Anton-Regular.ttf
+    - family: Space Mono
+      fonts:
+        - asset: assets/fonts/SpaceMono-Regular.ttf
+        - asset: assets/fonts/SpaceMono-Bold.ttf
+          weight: 700
   shaders:
     - shaders/cel.frag

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../game/content.dart';
 import '../game/rules.dart';
 import '../pumplex.dart';
+import '../sound.dart';
 import '../store.dart';
 import 'play.dart';
 import 'setup.dart';
@@ -60,7 +61,7 @@ class ProfileView extends StatelessWidget {
                         small: true,
                         color: p.sky,
                         onTap: onBack,
-                        child: const Text('◀ HUB')),
+                        child: const IconText('back', 'HUB')),
                     const SizedBox(height: 10),
                     Shout('Level ${l.level}', color: p.pink),
                     Text(levelTitle(l.level).toUpperCase(), style: display(28, p.ink)),
@@ -90,7 +91,7 @@ class ProfileView extends StatelessWidget {
               key: const ValueKey('profile-difficulty'),
               label: 'DIFFICULTY',
               value: difficulties[di].name,
-              sub: gems(di),
+              sub: 'DIFFICULTY ${gems(di)}',
               color: difficultyColor(p, di),
               onTap: () => onEditStep(2),
             ),
@@ -127,7 +128,7 @@ class ProfileView extends StatelessWidget {
                       key: const ValueKey('profile-gear'),
                       color: p.lime,
                       onTap: onGear,
-                      child: const Text('⚔ GEAR')),
+                      child: const IconText('gear', 'GEAR')),
                 ),
               ],
             ),
@@ -185,7 +186,7 @@ class _PathRow extends StatelessWidget {
                   ],
                 ),
               ),
-              Text('CHANGE ▸', style: display(14, color)),
+              Text('CHANGE', style: display(14, color)),
             ],
           ),
         ),
@@ -217,7 +218,7 @@ class _Milestone extends StatelessWidget {
                 color: open ? p.orange : p.panel,
                 border: Border.all(color: p.ink, width: 3),
               ),
-              child: Text(open ? '★' : '🔒', style: TextStyle(fontSize: 16, color: p.ink)),
+              child: PxIcon(open ? 'star' : 'lock', size: 18, color: p.ink),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -276,7 +277,7 @@ class MenuView extends StatelessWidget {
                 small: true,
                 color: p.pink,
                 onTap: onClose,
-                child: const Text('✕ CLOSE')),
+                child: const IconText('close', 'CLOSE')),
           ],
         ),
         const SizedBox(height: 16),
@@ -331,8 +332,17 @@ class MenuView extends StatelessWidget {
           on: store.cel.value,
           onTap: onCel,
         ),
-        // Placeholder: there are no sound files yet.
-        const _Item(title: 'SOUND', sub: 'Clanks, grunts and the level-up horn. Coming with the sound pack.', onTap: null),
+        _Item(
+          key: const ValueKey('menu-sound'),
+          title: 'SOUND',
+          sub: 'Clanks, smashes and the level-up horn.',
+          on: store.sound.value,
+          onTap: () {
+            final on = !store.sound.value;
+            store.setSound(on);
+            if (on) Sfx.play('ui_toggle');
+          },
+        ),
         const SizedBox(height: 18),
         BrutalButton(key: const ValueKey('menu-back'), color: p.lime, onTap: onClose, child: const Text('BACK')),
       ],

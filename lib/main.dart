@@ -8,6 +8,7 @@ import 'game/content.dart';
 import 'game/model.dart';
 import 'game/rules.dart';
 import 'pumplex.dart';
+import 'sound.dart';
 import 'store.dart';
 import 'views/intro.dart';
 import 'views/play.dart';
@@ -20,7 +21,12 @@ import 'views/workout.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
-  runApp(GymApp(store: LogStore(prefs)));
+  final store = LogStore(prefs);
+  // Sound only in the real app (tests have no audio plugin).
+  Sfx.ready = true;
+  Sfx.enabled = store.sound.value;
+  store.sound.addListener(() => Sfx.enabled = Sfx.ready && store.sound.value);
+  runApp(GymApp(store: store));
 }
 
 class GymApp extends StatelessWidget {
@@ -254,13 +260,17 @@ class _GameShellState extends State<GameShell> {
   void _addSet(int i) {
     final before = levelFor(_store.totalXp).level;
     _store.addSet(i);
-    if (_store.lastSetCritical(i)) {
+    final crit = _store.lastSetCritical(i);
+    Sfx.play(crit ? 'critical' : 'set_${areaById(_store.todaySession?.areaId ?? _store.profile?.areaId).artId}');
+    if (_store.todayExercises[i].sets % 5 == 0) Sfx.play('stamp5');
+    if (crit) {
       HapticFeedback.heavyImpact();
       _snack('CRITICAL SET!!! ×$critMultiplier XP');
     }
     final after = levelFor(_store.totalXp).level;
     if (after > before) {
       HapticFeedback.heavyImpact();
+      Sfx.play('levelup');
       _showIntro((
         title: 'LEVEL $after',
         subtitle: levelUpLines[after % levelUpLines.length],
@@ -296,7 +306,10 @@ class _GameShellState extends State<GameShell> {
     _showIntro((title: difficulties[i].name, subtitle: difficulties[i].joke, color: difficultyColor(Pal.of(context), i)));
   }
 
-  void _removeSet(int i) => _store.removeSet(i);
+  void _removeSet(int i) {
+    _store.removeSet(i);
+    Sfx.play('set_back');
+  }
 
   void _swap(int i, int dir) {
     if (_store.swap(i, dir)) return;
@@ -570,7 +583,12 @@ class _GameShellState extends State<GameShell> {
                               colorFilter: _intro == null
                                   ? const ColorFilter.mode(Colors.transparent, BlendMode.dst)
                                   : freezeFilter,
-                              child: CharacterSprite(character: char, classId: classId),
+                              child: CharacterSprite(
+                                character: char,
+                                classId: classId,
+                                gear: _inSetup ? const [] : _store.gear.equipped.values,
+                                pedestal: _scene != Scene.workout,
+                              ),
                             ),
                           ),
                         ),

@@ -1,45 +1,48 @@
-// The workout (docs/moodboard/README.md "Workout screen" and "Starting
-// areas"), with the owner's rules (docs/decisions.md): one session per
-// calendar day, so there is NO I WORKED button and NO clock.
+// The workout (design demo docs/demo/08-workout.html), with the owner's
+// rules (docs/decisions.md): one session per calendar day, so there is NO
+// I WORKED button and NO clock (D6, D7).
 //
-// - Exercise strip: one card per exercise with its target slots. Tap a
-//   card to make it the active exercise.
-// - The world: the area's scene with the lifter. TAP THE OBJECT = one
-//   working set of the active exercise. HOLD THE OBJECT = take the last
-//   set back. The scene shakes, a starburst says +1 SET (or CRUSHED! at the
-//   target, or the area's stamp on every 5th set), and the marks stay in
-//   the world. At the target, the strip moves on to the next exercise.
-// - The active exercise card: swipe it to switch the exercise for another
-//   one from the class pool, ↺ back to the first one, ✕ remove; + ADD
-//   EXERCISE adds one. Skipping = doing no sets.
-//
-// The scenes and objects are placeholders (colours and emoji) until the
-// design team's pixel art exists.
+// Top to bottom:
+// - Header: ◀ HUB, the class and the area name.
+// - Exercise strip: one card per exercise with its target slots, then an
+//   ADD card. Tap a card to make it the active exercise.
+// - Tool row for the active exercise: SWAP (another exercise from the
+//   class pool), BACK TO FIRST, SKIP (do no sets, go to the next one) and
+//   REMOVE (D15, D16).
+// - The area scene (design PNG layers, lib/views/area_scene.dart): TAP THE
+//   OBJECT = one working set, HOLD IT = take the last set back (D17). The
+//   marks stay in the world; at the target the strip moves on.
 
 import 'dart:async';
-import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../game/area_art.dart';
 import '../game/content.dart';
 import '../game/model.dart';
-import '../game/rules.dart';
 import '../pumplex.dart';
 import '../store.dart';
+import 'area_scene.dart';
 
-/// Where the world scene sits in the workout view. The shell puts the
-/// lifter inside it (see [workoutStage]).
-Rect workoutSceneRect(Size area) => Rect.fromLTRB(16, 148, area.width - 22, 148 + area.height * 0.38);
+const _advanceDelay = Duration(milliseconds: 800);
 
-/// The lifter's place in the scene: on the light floor, left side.
-Rect workoutStage(Size area) {
-  final s = workoutSceneRect(area);
-  return Rect.fromLTWH(s.left + 6, s.top + s.height * 0.2, s.width * 0.36, s.height * 0.76);
+/// Top of the scene area in the workout view (header, strip, tools above).
+const _sceneTop = 220.0;
+
+/// The scene's rect and whole-number scale in a workout view of [area].
+(Rect, int) workoutLayout(Size area) {
+  final avail = Rect.fromLTRB(16, _sceneTop, area.width - 22, area.height - 16);
+  final scale = sceneScale(avail.size);
+  return (sceneRectIn(avail, scale), scale);
 }
 
-const _shake = Duration(milliseconds: 320);
-const _advanceDelay = Duration(milliseconds: 800);
+/// The lifter's place in the scene: the design's lifter position (the same
+/// in every area), feet on the shadow.
+Rect workoutStage(Size area) {
+  final (scene, scale) = workoutLayout(area);
+  return sceneLifterRect(areaArt.values.first, scene, scale);
+}
 
 class WorkoutView extends StatefulWidget {
   const WorkoutView({
@@ -66,29 +69,39 @@ class WorkoutView extends StatefulWidget {
   State<WorkoutView> createState() => _WorkoutViewState();
 }
 
-class _WorkoutViewState extends State<WorkoutView> with SingleTickerProviderStateMixin {
-  late final _shakeC = AnimationController(vsync: this, duration: _shake);
+class _WorkoutViewState extends State<WorkoutView> {
   int? _active;
-  bool _adding = false;
+  final Set<int> _skipped = {};
   String? _burst;
-  int _burstRun = 0;
+  int _hitRun = 0;
   Timer? _advance;
 
   LogStore get _store => widget.store;
 
-  /// The active card: the one picked, else the first one below its target.
+  /// The active card: the one picked, else the first open one below its target.
   int get active {
     final cards = _store.todayCards;
     if (cards.isEmpty) return -1;
     if (_active != null && cards.contains(_active)) return _active!;
     final list = _store.todayExercises;
-    return cards.firstWhere((i) => list[i].sets < list[i].targetSets, orElse: () => cards.first);
+    return cards.firstWhere((i) => list[i].sets < list[i].targetSets && !_skipped.contains(i),
+        orElse: () => cards.first);
+  }
+
+  /// The next card after [i] that is below its target and not skipped.
+  int? _nextOpen(int i) {
+    final cards = _store.todayCards, list = _store.todayExercises;
+    final at = cards.indexOf(i);
+    for (var k = 1; k < cards.length; k++) {
+      final j = cards[(at + k) % cards.length];
+      if (list[j].sets < list[j].targetSets && !_skipped.contains(j)) return j;
+    }
+    return null;
   }
 
   @override
   void dispose() {
     _advance?.cancel();
-    _shakeC.dispose();
     super.dispose();
   }
 
@@ -99,20 +112,19 @@ class _WorkoutViewState extends State<WorkoutView> with SingleTickerProviderStat
     final e = _store.todayExercises[i];
     final area = areaById(_store.todaySession?.areaId ?? _store.profile?.areaId);
     HapticFeedback.lightImpact();
-    if (!MediaQuery.disableAnimationsOf(context)) _shakeC.forward(from: 0);
     setState(() {
       _active = i;
+      _skipped.remove(i);
       _burst = e.sets == e.targetSets ? 'CRUSHED!' : e.sets % 5 == 0 ? area.stamp : '+1 SET';
-      _burstRun++;
+      _hitRun++;
     });
     if (e.sets == e.targetSets) {
-      // Move on to the next exercise below its target.
+      // Move on to the next open exercise.
       _advance?.cancel();
       _advance = Timer(_advanceDelay, () {
         if (!mounted) return;
-        final list = _store.todayExercises;
-        final next = _store.todayCards.where((k) => list[k].sets < list[k].targetSets);
-        if (next.isNotEmpty) setState(() => _active = next.first);
+        final next = _nextOpen(i);
+        if (next != null) setState(() => _active = next);
       });
     }
   }
@@ -125,6 +137,69 @@ class _WorkoutViewState extends State<WorkoutView> with SingleTickerProviderStat
     setState(() => _burst = null); // undo has no effect animation
   }
 
+  void _skip(int i) => setState(() {
+        _skipped.add(i);
+        _active = _nextOpen(i) ?? i;
+      });
+
+  void _removeCard(int i) {
+    final name = exerciseName(_store.todayExercises[i].exerciseId).toUpperCase();
+    if (!_store.removeSlot(i)) return;
+    setState(() => _active = null);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text('$name REMOVED'), duration: const Duration(seconds: 3)));
+  }
+
+  Future<void> _openAdd() async {
+    final p = Pal.of(context);
+    final unused = _store.unusedExercises;
+    final id = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: p.panel,
+      shape: const RoundedRectangleBorder(),
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Shout('Add an exercise · from your path', color: p.ink),
+              const SizedBox(height: 12),
+              if (unused.isEmpty)
+                Text('Every exercise of your path is already in. Greedy. Respect.', style: mono(12, p.ink))
+              else
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        for (final e in unused)
+                          BrutalButton(
+                            key: ValueKey('add-${e.id}'),
+                            small: true,
+                            color: p.panel2,
+                            onTap: () => Navigator.pop(context, e.id),
+                            child: Text(e.name.toUpperCase()),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 14),
+              BrutalButton(color: p.panel2, onTap: () => Navigator.pop(context), child: const Text('CANCEL')),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (id == null || !mounted) return;
+    _store.addExercise(id);
+    setState(() => _active = _store.todayExercises.length - 1);
+  }
+
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
@@ -134,38 +209,52 @@ class _WorkoutViewState extends State<WorkoutView> with SingleTickerProviderStat
     final act = active;
     final today = store.todaySession;
     final area = areaById(today?.areaId ?? store.profile?.areaId);
-    final diff = today == null ? store.difficulty : difficultyIndex(today.difficultyId);
-    final unused = store.unusedExercises;
+    final art = areaArt[area.artId]!;
+    final accent = Color(area.accent);
+    final cls = classById(today?.classId ?? store.gameClass.id);
+    final e = act < 0 ? null : list[act];
     final firstTime = store.history.where((s) => !s.legacy).isEmpty;
     return LayoutBuilder(builder: (context, box) {
-      final scene = workoutSceneRect(box.biggest);
+      final (scene, scale) = workoutLayout(box.biggest);
       return Stack(
         children: [
-          // Header.
+          // Header: ◀ HUB, class and area.
           Positioned(
             left: 16,
             right: 22,
             top: 6,
             child: Row(
               children: [
-                BrutalButton(small: true, color: p.sky, onTap: widget.onBack, child: const Text('◀ HUB')),
+                BrutalButton(
+                  key: const ValueKey('workout-hub'),
+                  small: true,
+                  color: p.sky,
+                  onTap: widget.onBack,
+                  child: const IconText('back', 'HUB'),
+                ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text("TODAY'S WORKOUT · ${area.name.toUpperCase()}", style: display(18, p.ink)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(cls.name.toUpperCase(), style: mono(11, p.ink)),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(area.name.toUpperCase(), style: display(24, accent)),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
-          // Exercise strip.
+          // Exercise strip, then the ADD card.
           Positioned(
             left: 0,
             right: 0,
-            top: 52,
-            height: 88,
+            top: 60,
+            height: 104,
             child: ListView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.fromLTRB(16, 4, 22, 8),
@@ -175,129 +264,223 @@ class _WorkoutViewState extends State<WorkoutView> with SingleTickerProviderStat
                     key: ValueKey('strip-$i'),
                     e: list[i],
                     active: i == act,
+                    skipped: _skipped.contains(i) && list[i].sets == 0,
                     onTap: () => setState(() => _active = i),
                   ),
+                _AddCard(onTap: _openAdd),
               ],
             ),
           ),
-          // The world.
-          Positioned.fromRect(
-            rect: scene,
-            child: AnimatedBuilder(
-              animation: _shakeC,
-              builder: (context, child) {
-                // Hard-stepped shake, no easing.
-                final step = (_shakeC.value * 8).floor();
-                final dx = _shakeC.isAnimating ? (step.isEven ? 4.0 : -4.0) : 0.0;
-                return Transform.translate(offset: Offset(dx, 0), child: child);
-              },
-              child: _World(
-                area: area,
-                exercise: act < 0 ? null : list[act],
-                burst: _burst,
-                burstRun: _burstRun,
-                onHit: _hit,
-                onUndo: _undo,
+          // Tools for the active exercise.
+          if (e != null)
+            Positioned(
+              left: 16,
+              right: 22,
+              top: 166,
+              height: 44,
+              child: Row(
+                children: [
+                  _Tool(
+                    key: const ValueKey('tool-swap'),
+                    icon: 'swap',
+                    label: 'SWAP',
+                    onTap: () => widget.onSwap(act, 1),
+                  ),
+                  if (e.switched)
+                    _Tool(
+                      key: const ValueKey('tool-first'),
+                      icon: 'undo',
+                      label: 'FIRST',
+                      onTap: e.sets > 0 ? null : () => store.resetSlot(act),
+                    ),
+                  _Tool(
+                    key: const ValueKey('tool-skip'),
+                    icon: 'skip',
+                    label: 'SKIP',
+                    onTap: e.sets > 0 || cards.length < 2 ? null : () => _skip(act),
+                  ),
+                  _Tool(
+                    key: const ValueKey('tool-remove'),
+                    icon: 'trash',
+                    label: 'REMOVE',
+                    onTap: cards.length < 2 || e.sets > 0 ? null : () => _removeCard(act),
+                  ),
+                ],
+              ),
+            ),
+          // The scene: ink frame and a hard shadow in the area colour.
+          Positioned(
+            left: scene.left - 4,
+            top: scene.top - 4,
+            width: scene.width + 8,
+            height: scene.height + 8,
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: p.ink, width: 4),
+                boxShadow: [BoxShadow(color: accent, offset: const Offset(6, 6))],
               ),
             ),
           ),
-          // Active card, add, tips.
-          Positioned(
-            left: 0,
-            right: 0,
-            top: scene.bottom + 12,
-            bottom: 0,
-            child: ListView(
-              padding: EdgeInsets.fromLTRB(16, 4, 24, 30 + MediaQuery.paddingOf(context).bottom),
-              children: [
-                if (act >= 0)
-                  ExerciseCard(
-                    key: ValueKey('card-$act'),
-                    slot: list[act],
-                    xp: store.cardXp(act),
-                    color: Color(area.accent),
-                    onSwap: (dir) => widget.onSwap(act, dir),
-                    onReset: () => store.resetSlot(act),
-                    onDelete: () {
-                      if (store.removeSlot(act)) setState(() => _active = null);
-                    },
-                  ),
-                const SizedBox(height: 14),
-                if (unused.isNotEmpty) ...[
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: BrutalButton(
-                      small: true,
-                      color: p.lime,
-                      onTap: () => setState(() => _adding = !_adding),
-                      child: Text(_adding ? '✕ CLOSE' : '+ ADD EXERCISE'),
-                    ),
-                  ),
-                  AnimatedSize(
-                    duration: const Duration(milliseconds: 220),
-                    curve: Curves.easeOutCubic,
-                    child: !_adding
-                        ? const SizedBox(width: double.infinity)
-                        : Padding(
-                            padding: const EdgeInsets.only(top: 12),
-                            child: Wrap(
-                              spacing: 10,
-                              runSpacing: 10,
-                              children: [
-                                for (final e in unused)
-                                  BrutalButton(
-                                    key: ValueKey('add-${e.id}'),
-                                    small: true,
-                                    color: p.panel,
-                                    onTap: () {
-                                      store.addExercise(e.id);
-                                      setState(() {
-                                        _adding = false;
-                                        _active = store.todayExercises.length - 1;
-                                      });
-                                    },
-                                    child: Text('+ ${e.name.toUpperCase()}'),
-                                  ),
-                              ],
-                            ),
-                          ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-                Terminal([
-                  if (firstTime) 'ONLY WORKING SETS COUNT. WARM-UPS DON\'T.',
-                  '${area.hint}: +1 SET. HOLD IT: TAKE ONE BACK.',
-                  'SKIP AN EXERCISE? JUST DO NO SETS.',
-                  '+${(xpPerSet * rulesFor(diff).xpMultiplier).round()} XP PER SET. NO REPS. NO KILOS.',
-                ]),
-              ],
+          Positioned.fromRect(
+            rect: scene,
+            child: AreaScene(
+              art: art,
+              scale: scale,
+              count: e?.sets ?? 0,
+              hitRun: _hitRun,
+              burstText: _burst,
+              hitLabel: '${area.hint}: one working set. Hold to take one back.',
+              onHit: e == null ? null : _hit,
+              onUndo: e == null ? null : _undo,
             ),
           ),
+          // The hint and the active exercise, over the sky.
+          if (e != null)
+            Positioned(
+              left: scene.left + 8,
+              right: box.maxWidth - scene.right + 8,
+              top: scene.top + 8,
+              child: IgnorePointer(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Tag(area.hint, bg: kNight, fg: accent, size: 13, angle: -2),
+                    // First-workout tip (app-flow §4.2), until the first set.
+                    if (firstTime && e.sets == 0) ...[
+                      const SizedBox(height: 4),
+                      Tag('Only working sets count', bg: p.lime, fg: p.on, size: 11, angle: 1),
+                    ],
+                    const SizedBox(height: 4),
+                    Container(
+                      color: kNight,
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      child: Text(
+                        '${exerciseName(e.exerciseId).toUpperCase()} · '
+                        '${e.sets >= e.targetSets ? '${e.sets}/${e.targetSets}' : 'SET ${e.sets + 1} OF ${e.targetSets}'}'
+                        '${e.sets > 0 ? ' · +${store.cardXp(act)} XP' : ''}',
+                        key: const ValueKey('workout-line'),
+                        style: mono(11, Colors.white),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       );
     });
   }
 }
 
+/// The last card on the strip: opens the add sheet.
+class _AddCard extends StatelessWidget {
+  const _AddCard({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Pal.of(context);
+    return Semantics(
+      button: true,
+      label: 'Add an exercise',
+      child: GestureDetector(
+        key: const ValueKey('strip-add'),
+        onTap: onTap,
+        child: Container(
+          width: 80,
+          margin: const EdgeInsets.only(right: 12),
+          decoration: BoxDecoration(
+            color: p.panel,
+            border: Border.all(color: p.ink, width: 3),
+            boxShadow: [BoxShadow(color: p.ink, offset: const Offset(4, 4))],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              PxIcon('plus', size: 24, color: p.lime),
+              const SizedBox(height: 4),
+              Text('ADD', style: display(16, p.ink)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One button of the tool row (disabled when [onTap] is null).
+class _Tool extends StatelessWidget {
+  const _Tool({super.key, required this.icon, required this.label, required this.onTap});
+
+  final String icon, label;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Pal.of(context);
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.only(right: 6),
+        child: Semantics(
+          button: true,
+          enabled: onTap != null,
+          label: label,
+          child: GestureDetector(
+            onTap: onTap,
+            child: Opacity(
+              opacity: onTap == null ? 0.35 : 1,
+              child: Container(
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: p.panel,
+                  border: Border.all(color: p.ink, width: 3),
+                  boxShadow: [BoxShadow(color: p.panel2, offset: const Offset(3, 3))],
+                ),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        PxIcon(icon, size: 14, color: p.ink),
+                        const SizedBox(width: 4),
+                        Text(label, style: display(13, p.ink)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// A card on the exercise strip: name, target slots, +extra, status.
 class _StripCard extends StatelessWidget {
-  const _StripCard({super.key, required this.e, required this.active, required this.onTap});
+  const _StripCard({super.key, required this.e, required this.active, required this.onTap, this.skipped = false});
 
   final SessionExercise e;
-  final bool active;
+  final bool active, skipped;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
     final done = e.sets >= e.targetSets;
-    final status = active ? 'NOW' : done ? 'CRUSHED' : 'NEXT UP';
+    final status = done ? 'CRUSHED' : active ? 'NOW' : skipped ? 'SKIPPED' : 'NEXT UP';
     final fg = active ? p.on : p.ink;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 160),
-        width: 132,
+        width: 112,
         margin: const EdgeInsets.only(right: 12),
         padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
         decoration: BoxDecoration(
@@ -335,207 +518,6 @@ class _StripCard extends StatelessWidget {
 
 /// Rarity-ladder colour for mark [k] (filled target slots, records).
 Color rarity(Pal p, int k) => [p.lime, p.sky, p.violet, p.orange, p.pink][k % 5];
-
-/// The area's scene: dark sky, light floor, the object to hit, the hint,
-/// the marks that stay, and the starburst.
-class _World extends StatefulWidget {
-  const _World({
-    required this.area,
-    required this.exercise,
-    required this.burst,
-    required this.burstRun,
-    required this.onHit,
-    required this.onUndo,
-  });
-
-  final Area area;
-  final SessionExercise? exercise;
-  final String? burst;
-  final int burstRun;
-  final VoidCallback onHit, onUndo;
-
-  @override
-  State<_World> createState() => _WorldState();
-}
-
-class _WorldState extends State<_World> with SingleTickerProviderStateMixin {
-  late final _bob = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))
-    ..repeat(reverse: true);
-
-  @override
-  void dispose() {
-    _bob.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final p = Pal.of(context);
-    final a = widget.area;
-    final e = widget.exercise;
-    final accent = Color(a.accent);
-    final still = MediaQuery.disableAnimationsOf(context);
-    return Container(
-      decoration: BoxDecoration(border: Border.all(color: p.ink, width: 4)),
-      child: ClipRect(
-        child: LayoutBuilder(builder: (context, box) {
-          final floorTop = box.maxHeight * 0.55;
-          final objectSize = min(box.maxWidth * 0.26, box.maxHeight * 0.34);
-          final objectCenter = Offset(box.maxWidth * 0.7, floorTop + (box.maxHeight - floorTop) * 0.3);
-          final hintTop = objectCenter.dy - objectSize - 50;
-          final hintWidth = box.maxWidth * 0.56;
-          final hintLeft = min(objectCenter.dx - hintWidth / 2, box.maxWidth - hintWidth - 10);
-          return Stack(
-            children: [
-              Positioned.fill(child: Container(color: Color(a.sky))),
-              Positioned(left: 0, right: 0, top: floorTop, bottom: 0, child: Container(color: Color(a.floor))),
-              // Marks that stay in the world (the count), top right, above
-              // the hint (they never run into it: the box clips).
-              Positioned(
-                right: 10,
-                top: 8,
-                width: box.maxWidth * 0.5,
-                height: max(0, hintTop - 12),
-                child: e == null
-                    ? const SizedBox()
-                    : ClipRect(
-                        child: Align(
-                          alignment: Alignment.topRight,
-                          child: SetMarks(style: a.marks, count: e.sets, color: accent, key: const ValueKey('marks')),
-                        ),
-                      ),
-              ),
-              // The hint, bobbing in hard steps.
-              Positioned(
-                left: hintLeft,
-                width: hintWidth,
-                top: hintTop,
-                child: AnimatedBuilder(
-                  animation: _bob,
-                  builder: (context, child) => Transform.translate(
-                    offset: Offset(0, still ? 0 : (_bob.value * 3).floor() * -2.0),
-                    child: child,
-                  ),
-                  child: Column(
-                    children: [
-                      Tag(a.hint, bg: kNight, fg: accent, size: 12, angle: -2),
-                      if (e != null) ...[
-                        const SizedBox(height: 3),
-                        Text(
-                          '${exerciseName(e.exerciseId).toUpperCase()} · SET ${e.sets + 1} OF ${e.targetSets}',
-                          style: mono(12, Colors.white),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-              // The object: tap = one working set, hold = take one back.
-              Positioned(
-                left: objectCenter.dx - objectSize / 2 - 10,
-                top: objectCenter.dy - objectSize / 2 - 10,
-                width: objectSize + 20,
-                height: objectSize + 20,
-                child: Semantics(
-                  button: true,
-                  label: '${a.hint}: one working set. Hold to take one back.',
-                  child: GestureDetector(
-                    key: const ValueKey('world-object'),
-                    behavior: HitTestBehavior.opaque,
-                    onTap: e == null ? null : widget.onHit,
-                    onLongPress: e == null ? null : widget.onUndo,
-                    child: CustomPaint(
-                      painter: _DashedRing(accent),
-                      child: Center(child: Text(a.object, style: TextStyle(fontSize: objectSize * 0.7))),
-                    ),
-                  ),
-                ),
-              ),
-              // Starburst: +1 SET, CRUSHED! or the 5th-set stamp.
-              if (widget.burst != null)
-                Positioned(
-                  left: objectCenter.dx - 70,
-                  top: objectCenter.dy - objectSize - 20,
-                  child: IgnorePointer(
-                    child: _Burst(key: ValueKey(widget.burstRun), text: widget.burst!, color: accent),
-                  ),
-                ),
-            ],
-          );
-        }),
-      ),
-    );
-  }
-}
-
-class _DashedRing extends CustomPainter {
-  _DashedRing(this.color);
-
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3;
-    final r = size.shortestSide / 2 - 3;
-    final c = size.center(Offset.zero);
-    const dashes = 16;
-    for (var i = 0; i < dashes; i++) {
-      final a0 = i * 2 * pi / dashes;
-      canvas.drawArc(Rect.fromCircle(center: c, radius: r), a0, pi / dashes, false, paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_DashedRing old) => old.color != color;
-}
-
-/// A short starburst label that pops and fades (hard steps).
-class _Burst extends StatefulWidget {
-  const _Burst({super.key, required this.text, required this.color});
-
-  final String text;
-  final Color color;
-
-  @override
-  State<_Burst> createState() => _BurstState();
-}
-
-class _BurstState extends State<_Burst> with SingleTickerProviderStateMixin {
-  late final _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 700))..forward();
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _c,
-      builder: (context, _) {
-        final step = (_c.value * 5).floor() / 5;
-        return Opacity(
-          opacity: _c.value < 0.7 ? 1 : (1 - (_c.value - 0.7) / 0.3).clamp(0.0, 1.0),
-          child: Transform.scale(
-            scale: 0.6 + 0.5 * min(1.0, step * 2),
-            child: Starburst(
-              size: 140,
-              color: widget.color,
-              seconds: 2,
-              child: Text(widget.text, textAlign: TextAlign.center, style: display(18, kNight)),
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
 
 /// The marks an area leaves for each working set, grouped in fives so they
 /// can be counted without numbers (shells, tally, crosses, tickets, flags).
@@ -622,169 +604,3 @@ class _Marks extends CustomPainter {
   bool shouldRepaint(_Marks old) => old.n != n || old.style != style || old.color != color;
 }
 
-/// The active exercise: name, sets / target, XP. Swipe it to switch the
-/// exercise for another one from the class pool; ↺ back to the first one;
-/// ✕ removes it (both only with no sets).
-class ExerciseCard extends StatefulWidget {
-  const ExerciseCard({
-    super.key,
-    required this.slot,
-    required this.xp,
-    required this.color,
-    required this.onSwap,
-    required this.onReset,
-    required this.onDelete,
-  });
-
-  final SessionExercise slot;
-
-  /// XP this card brought today (criticals and streak bonus included).
-  final int xp;
-  final Color color;
-  final VoidCallback onReset, onDelete;
-  final ValueChanged<int> onSwap;
-
-  @override
-  State<ExerciseCard> createState() => _ExerciseCardState();
-}
-
-class _ExerciseCardState extends State<ExerciseCard> {
-  double _dx = 0;
-  bool _dragging = false;
-
-  /// Direction of the last swap, for the slide-in.
-  int _dir = 1;
-
-  void _end(DragEndDetails d) {
-    final v = d.primaryVelocity ?? 0;
-    final go = _dx.abs() > 90 || v.abs() > 700;
-    final dir = (_dx != 0 ? _dx : v) < 0 ? 1 : -1; // swipe left = next exercise
-    setState(() {
-      _dragging = false;
-      _dx = 0;
-      if (go) _dir = dir;
-    });
-    if (go) widget.onSwap(dir);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final p = Pal.of(context);
-    final s = widget.slot;
-    final count = s.sets;
-    final name = exerciseName(s.exerciseId);
-    return Semantics(
-      label: '$name: $count of ${s.targetSets} working sets. Swipe to switch the exercise.',
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onHorizontalDragStart: (_) => setState(() => _dragging = true),
-        onHorizontalDragUpdate: (d) => setState(() => _dx += d.delta.dx),
-        onHorizontalDragEnd: _end,
-        child: AnimatedContainer(
-          duration: Duration(milliseconds: _dragging ? 0 : 220),
-          curve: Curves.easeOutBack,
-          transform: Matrix4.translationValues(_dx, 0, 0)..rotateZ(_dx / 2400),
-          child: Brutal(
-            shadow: widget.color,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        // The name slides in when the exercise is switched.
-                        child: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 260),
-                          transitionBuilder: (child, a) => ClipRect(
-                            child: SlideTransition(
-                              position: Tween(begin: Offset(_dir * 0.6, 0), end: Offset.zero)
-                                  .animate(CurvedAnimation(parent: a, curve: Curves.easeOutCubic)),
-                              child: FadeTransition(opacity: a, child: child),
-                            ),
-                          ),
-                          layoutBuilder: (current, previous) => Stack(
-                            alignment: Alignment.centerLeft,
-                            children: [...previous, if (current != null) current],
-                          ),
-                          child: Text(name.toUpperCase(), key: ValueKey(s.exerciseId), style: display(22, p.ink)),
-                        ),
-                      ),
-                      if (count == 0 && s.switched)
-                        _Mini(key: const ValueKey('reset'), label: '↺', color: p.sky, onTap: widget.onReset),
-                      if (count == 0)
-                        _Mini(key: const ValueKey('delete'), label: '✕', color: p.panel2, onTap: widget.onDelete),
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 220),
-                        transitionBuilder: (child, a) => ScaleTransition(
-                          scale: Tween(begin: 1.8, end: 1.0)
-                              .animate(CurvedAnimation(parent: a, curve: Curves.easeOutBack)),
-                          child: FadeTransition(opacity: a, child: child),
-                        ),
-                        child: Text('$count/${s.targetSets}',
-                            key: ValueKey(count),
-                            style: display(30, count >= s.targetSets && count > 0 ? p.pink : p.ink)),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          count > 0
-                              ? 'WORKING SETS DONE'
-                              : s.switched
-                                  ? 'SWITCHED · ↺ = BACK TO ${exerciseName(s.originalExerciseId).toUpperCase()}'
-                                  : '◀ SWIPE TO SWITCH THE EXERCISE ▶',
-                          style: mono(11, p.ink),
-                          maxLines: 2,
-                        ),
-                      ),
-                      if (count > 0)
-                        Tag(
-                          '+${widget.xp} XP${count > s.targetSets * overTargetCap ? ' · MAX' : count > s.targetSets ? ' 🔥' : ''}',
-                          bg: widget.color,
-                          fg: p.on,
-                          size: 13,
-                          angle: 3,
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Small square button on an exercise card.
-class _Mini extends StatelessWidget {
-  const _Mini({super.key, required this.label, required this.color, required this.onTap});
-
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = Pal.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(right: 10),
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: 34,
-          height: 34,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(color: color, border: Border.all(color: p.ink, width: 3)),
-          child: Text(label, style: display(18, p.on)),
-        ),
-      ),
-    );
-  }
-}

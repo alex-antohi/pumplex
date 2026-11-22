@@ -55,7 +55,7 @@ class GameClass {
   /// Joke line on the freeze-frame intro card.
   final String subtitle;
 
-  /// Placeholder icon (emoji) until the design has class art.
+  /// Icon id in assets/icons (docs/moodboard/icons).
   final String icon;
 
   /// The class exercise POOL (placeholder, TBD by design). A workout takes
@@ -77,7 +77,7 @@ const gameClasses = <GameClass>[
     loadout: "Nothin'. Just you, the floor and the stairs.",
     tags: ['CARDIO', 'BODYWEIGHT', 'SPRINTS'],
     subtitle: 'BUILT FROM STAIRS AND SPITE',
-    icon: '👟',
+    icon: 'class-scrapper',
     exercises: [
       Exercise('scrapper.pushups', 'Push-ups', _b),
       Exercise('scrapper.burpees', 'Burpees', _c),
@@ -101,7 +101,7 @@ const gameClasses = <GameClass>[
     loadout: 'Two dumbbells, one mat, a kettlebell of unknown origin.',
     tags: ['FLOOR WORK', 'SOME CARDIO', 'SOME WEIGHTS'],
     subtitle: 'BUY ONE GAIN, GET ONE FREE',
-    icon: '🗡️',
+    icon: 'class-bruiser',
     exercises: [
       Exercise('bruiser.goblet', 'Goblet squats', _w),
       Exercise('bruiser.pushups', 'Push-ups', _b),
@@ -125,7 +125,7 @@ const gameClasses = <GameClass>[
     loadout: 'A barbell, a rack and a wall of plates.',
     tags: ['STRONGMAN', 'BARBELL', 'HEAVY'],
     subtitle: 'OATH-SWORN TO THE BARBELL',
-    icon: '🛡️',
+    icon: 'class-paladin',
     exercises: [
       Exercise('paladin.squat', 'Back squats', _w),
       Exercise('paladin.deadlift', 'Deadlifts', _w),
@@ -149,7 +149,7 @@ const gameClasses = <GameClass>[
     loadout: 'Cables, pin-stacks and every machine in the building.',
     tags: ['MACHINES', 'CABLES', 'LEAN POWER'],
     subtitle: 'SPEAKS FLUENT PULLEY',
-    icon: '🔮',
+    icon: 'class-cablemancer',
     exercises: [
       Exercise('cablemancer.legpress', 'Leg press', _m),
       Exercise('cablemancer.pulldown', 'Lat pulldown', _m),
@@ -220,8 +220,8 @@ enum MarkStyle {
 }
 
 /// A starting area: the look, the palette and how a set is logged.
-/// Proposals from the design team; the pixel-art scenes come later, so the
-/// app draws a placeholder sky, floor and object (emoji).
+/// Proposals from the design team.
+/// The scene art comes from the design team (assets/areas, lib/game/area_art.dart).
 class Area {
   const Area({
     required this.id,
@@ -242,11 +242,11 @@ class Area {
   final String name;
   final String line;
 
-  /// Placeholder for the scene in lists.
+  /// Icon id in assets/icons (for lists).
   final String icon;
   final MarkStyle marks;
 
-  /// The object to hit (placeholder emoji until the sprites exist).
+  /// Icon id of the object to hit (the scene art is in lib/game/area_art.dart).
   final String object;
 
   /// The bobbing stencil hint over the object.
@@ -268,9 +268,9 @@ const areas = <Area>[
     id: 'beach',
     name: 'Riptide Shore',
     line: 'Moonlit sand, a palm island and a treasure chest full of shells.',
-    icon: '🏝️',
+    icon: 'area-riptide',
     marks: MarkStyle.shells,
-    object: '🧰',
+    object: 'object-chest',
     hint: 'TAP THE CHEST',
     stamp: 'PEARL!',
     sky: 0xFF12061F,
@@ -281,9 +281,9 @@ const areas = <Area>[
     id: 'castle',
     name: 'Gainsgard Keep',
     line: 'Cold stone, a flickering torch and a wall that wants scratches.',
-    icon: '🏰',
+    icon: 'area-gainsgard',
     marks: MarkStyle.tally,
-    object: '🧱',
+    object: 'object-wall',
     hint: 'SCRATCH THE WALL',
     stamp: 'SLASHED!',
     sky: 0xFF3A2A52,
@@ -295,9 +295,9 @@ const areas = <Area>[
     id: 'rustbelt',
     name: 'Rustbelt Flats',
     line: 'A striped sunset, a car wreck and barrels that go boom.',
-    icon: '🏜️',
+    icon: 'area-rustbelt',
     marks: MarkStyle.crosses,
-    object: '🛢️',
+    object: 'object-barrel',
     hint: 'BLOW UP THE BARREL',
     stamp: 'TAGGED!',
     sky: 0xFF1F0D36,
@@ -309,9 +309,9 @@ const areas = <Area>[
     id: 'arcade',
     name: 'Arcade Underpass',
     line: 'Graffiti, a flickering OPEN 24/7 sign and the PUNCH-O-TRON.',
-    icon: '🕹️',
+    icon: 'area-arcade',
     marks: MarkStyle.tickets,
-    object: '🥊',
+    object: 'object-punch',
     hint: 'PUNCH THE MACHINE',
     stamp: 'COMBO!',
     sky: 0xFF12061F,
@@ -323,9 +323,9 @@ const areas = <Area>[
     id: 'summit',
     name: 'Frostbite Summit',
     line: 'Aurora, falling snow and a slope up to the summit flag.',
-    icon: '🏔️',
+    icon: 'area-frostbite',
     marks: MarkStyle.flags,
-    object: '🧊',
+    object: 'object-ice',
     hint: 'SMASH THE ICE',
     stamp: 'SUMMIT!',
     sky: 0xFF1A0B3B,
@@ -355,20 +355,21 @@ class Item {
   final String name;
   final GearSlot slot;
   final int unlockLevel;
+  /// Menu icon (assets/gear/icons, white: tint it).
   final String icon;
 }
 
 const items = <Item>[
-  Item('head.sweatband', 'Sweatband of Mild Effort', GearSlot.head, 2, '🎽'),
-  Item('top.tank', 'Tank Top of Vanity', GearSlot.top, 3, '👕'),
-  Item('shoes.sneakers', 'Squeaky Sneakers', GearSlot.shoes, 4, '👟'),
-  Item('bottom.shorts', 'Shorts, Too Short', GearSlot.bottom, 5, '🩳'),
-  Item('weapon.shaker', 'Protein Shaker +1', GearSlot.weapon, 6, '🥤'),
-  Item('head.crown', 'Crown of Leg Day', GearSlot.head, 8, '👑'),
-  Item('weapon.kettlebell', 'Kettlebell of Doom', GearSlot.weapon, 10, '🔔'),
-  Item('top.cape', 'Cape of Unearned Confidence', GearSlot.top, 12, '🦸'),
-  Item('shoes.boots', 'Boots of Heavy Stomping', GearSlot.shoes, 15, '🥾'),
-  Item('bottom.belt', 'Belt of Brace Yourself', GearSlot.bottom, 18, '🎗️'),
+  Item('head.sweatband', 'Sweatband of Mild Effort', GearSlot.head, 2, 'assets/gear/icons/head.sweatband.png'),
+  Item('top.tank', 'Tank Top of Vanity', GearSlot.top, 3, 'assets/gear/icons/top.tank.png'),
+  Item('shoes.sneakers', 'Squeaky Sneakers', GearSlot.shoes, 4, 'assets/gear/icons/shoes.sneakers.png'),
+  Item('bottom.shorts', 'Shorts, Too Short', GearSlot.bottom, 5, 'assets/gear/icons/bottom.shorts.png'),
+  Item('weapon.shaker', 'Protein Shaker +1', GearSlot.weapon, 6, 'assets/gear/icons/weapon.shaker.png'),
+  Item('head.crown', 'Crown of Leg Day', GearSlot.head, 8, 'assets/gear/icons/head.crown.png'),
+  Item('weapon.kettlebell', 'Kettlebell of Doom', GearSlot.weapon, 10, 'assets/gear/icons/weapon.kettlebell.png'),
+  Item('top.cape', 'Cape of Unearned Confidence', GearSlot.top, 12, 'assets/gear/icons/top.cape.png'),
+  Item('shoes.boots', 'Boots of Heavy Stomping', GearSlot.shoes, 15, 'assets/gear/icons/shoes.boots.png'),
+  Item('bottom.belt', 'Belt of Brace Yourself', GearSlot.bottom, 18, 'assets/gear/icons/bottom.belt.png'),
 ];
 
 Item? itemById(String? id) {
@@ -428,3 +429,12 @@ const levelTitles = [
 ];
 
 String levelTitle(int level) => levelTitles[(level - 1).clamp(0, levelTitles.length - 1)];
+
+/// Design file names for the areas (docs/moodboard/areas, sounds, icons).
+/// The app keeps its own area ids (saved data uses them); only three differ.
+const _areaArtIds = {'beach': 'riptide', 'castle': 'gainsgard', 'summit': 'frostbite'};
+
+extension AreaArtId on Area {
+  /// The design id of this area: `beach` -> `riptide`, and so on.
+  String get artId => _areaArtIds[id] ?? id;
+}

@@ -8,15 +8,17 @@ import 'dart:ui' as ui show FragmentProgram, FragmentShader, ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-const kDisplay = 'sans-serif-condensed';
-const kMono = 'monospace';
+import 'sound.dart';
+
+const kDisplay = 'Anton';
+const kMono = 'Space Mono';
 
 /// Deep ink used behind terminal text and the ticker in both themes.
 const kNight = Color(0xFF1A0B3B);
 
 TextStyle display(double size, [Color? color]) => TextStyle(
       fontFamily: kDisplay,
-      fontWeight: FontWeight.w900,
+      fontWeight: FontWeight.w400, // Anton has one weight
       fontSize: size,
       height: 1.0,
       letterSpacing: 0.4,
@@ -246,6 +248,7 @@ class _BrutalButtonState extends State<BrutalButton> {
         onTap: enabled
             ? () {
                 HapticFeedback.selectionClick();
+                Sfx.play('ui_button');
                 widget.onTap!();
               }
             : null,
@@ -532,7 +535,7 @@ class _TickerState extends State<Ticker> with SingleTickerProviderStateMixin {
   late final _c = AnimationController(vsync: this);
   double _width = 0;
 
-  String get _text => '${widget.items.map((s) => '★ $s').join('      ')}      ';
+  String get _text => '${widget.items.map((s) => '// $s').join('      ')}      ';
 
   TextStyle _style(BuildContext context) =>
       display(15, Pal.of(context).lime).copyWith(letterSpacing: 1.4);
@@ -892,6 +895,52 @@ class _CelFilterState extends State<CelFilter> {
       enabled: active,
       imageFilter: active ? ui.ImageFilter.shader(shader) : _identity,
       child: widget.child,
+    );
+  }
+}
+
+/// A design pixel icon (assets/icons, docs/moodboard/icons). The PNGs are
+/// white, so [color] tints them. Keep [size] a multiple of 24 for square
+/// pixels where the layout allows.
+class PxIcon extends StatelessWidget {
+  const PxIcon(this.id, {super.key, this.size = 24, this.color});
+
+  final String id;
+  final double size;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) => Image.asset(
+        'assets/icons/$id.png',
+        width: size,
+        height: size,
+        color: color ?? Pal.of(context).ink,
+        filterQuality: FilterQuality.none,
+        isAntiAlias: false,
+        excludeFromSemantics: true,
+      );
+}
+
+/// A pixel icon and a label in one row, in the current text style and
+/// colour (for buttons: the design has no text glyphs such as ◀ or ✎).
+class IconText extends StatelessWidget {
+  const IconText(this.icon, this.text, {super.key, this.iconAfter = false});
+
+  final String icon, text;
+  final bool iconAfter;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = DefaultTextStyle.of(context).style;
+    final size = (style.fontSize ?? 16) * 0.9;
+    final i = PxIcon(icon, size: size, color: style.color);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (!iconAfter) ...[i, const SizedBox(width: 6)],
+        Flexible(child: Text(text, maxLines: 1, softWrap: false, overflow: TextOverflow.fade)),
+        if (iconAfter) ...[const SizedBox(width: 6), i],
+      ],
     );
   }
 }

@@ -28,7 +28,7 @@ class _Nav extends StatelessWidget {
       child: Row(
         children: [
           if (onBack != null) ...[
-            BrutalButton(color: p.sky, onTap: onBack, child: const Text('◀ BACK')),
+            BrutalButton(color: p.sky, onTap: onBack, child: const IconText('back', 'BACK')),
             const SizedBox(width: 14),
           ],
           Expanded(
@@ -83,10 +83,11 @@ class CreateView extends StatelessWidget {
       return Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: BrutalButton(
+          key: ValueKey('sex-$sex'),
           small: true,
           color: on ? p.pink : p.panel,
           onTap: () => onCharacter(character.copyWith(sex: sex)),
-          child: SizedBox(width: 34, child: Text(label, textAlign: TextAlign.center, style: display(24, on ? p.on : p.ink))),
+          child: SizedBox(width: 34, height: 26, child: Center(child: PxIcon(label, size: 24, color: on ? p.on : p.ink))),
         ),
       );
     }
@@ -100,12 +101,12 @@ class CreateView extends StatelessWidget {
               Positioned(
                 left: 14,
                 top: stage.top + 6,
-                child: Column(children: [sexButton('male', '♂'), sexButton('female', '♀')]),
+                child: Column(children: [sexButton('male', 'male'), sexButton('female', 'female')]),
               ),
               Positioned(
                 right: 18,
                 top: stage.top + 6,
-                child: BrutalButton(small: true, color: p.orange, onTap: _random, child: const Text('🎲')),
+                child: BrutalButton(small: true, color: p.orange, onTap: _random, child: PxIcon('dice', size: 24, color: p.on)),
               ),
             ],
           ),
@@ -140,7 +141,7 @@ class CreateView extends StatelessWidget {
             ],
           ),
         ),
-        _Nav(next: 'NEXT ▶', onNext: onNext),
+        _Nav(next: 'NEXT', onNext: onNext),
       ],
     );
   }
@@ -257,7 +258,7 @@ class ClassView extends StatelessWidget {
                     ],
                   ),
                 ),
-                _Nav(onBack: onBack, next: editing ? 'NEXT ▶' : 'NEXT: DIFFICULTY', onNext: onNext),
+                _Nav(onBack: onBack, next: editing ? 'NEXT' : 'NEXT: DIFFICULTY', onNext: onNext),
               ],
             ),
           ),
@@ -394,7 +395,25 @@ Color difficultyColor(Pal p, int i) =>
     [const Color(0xFFC9B8E8), p.lime, p.sky, p.violet, p.orange, p.pink][i.clamp(0, 5)];
 
 /// XP gems: a picture of the multiplier, no numbers (rule 3).
-String gems(int i) => '◆' * (i + 1);
+String gems(int i) => '${i + 1} OF ${difficulties.length}';
+
+/// XP gems: a row of gem icons, a picture of the multiplier (no numbers).
+class Gems extends StatelessWidget {
+  const Gems(this.count, {super.key, this.size = 12, required this.color});
+
+  final int count;
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var i = 0; i < count; i++)
+            Padding(padding: const EdgeInsets.only(right: 2), child: PxIcon('gem', size: size, color: color)),
+        ],
+      );
+}
 
 /// Where the detail card sits on the difficulty step (the freeze-frame
 /// title card covers it).
@@ -511,9 +530,7 @@ class DifficultyView extends StatelessWidget {
                       const SizedBox(height: 6),
                       Flexible(child: Text(d.line, style: mono(12, p.ink), overflow: TextOverflow.fade)),
                       const SizedBox(height: 6),
-                      Text(gems(sel), style: display(20, color).copyWith(shadows: [
-                        Shadow(offset: const Offset(1, 1), color: p.ink),
-                      ])),
+                      Gems(sel + 1, size: 18, color: color),
                     ],
                   ),
                 ),
@@ -524,7 +541,7 @@ class DifficultyView extends StatelessWidget {
             left: 0,
             right: 0,
             bottom: 0,
-            child: _Nav(onBack: onBack, next: editing ? 'NEXT ▶' : 'NEXT: STARTING AREA', onNext: onNext),
+            child: _Nav(onBack: onBack, next: editing ? 'NEXT' : 'NEXT: STARTING AREA', onNext: onNext),
           ),
         ],
       );
@@ -577,7 +594,7 @@ class _Rung extends StatelessWidget {
                   child: Text(difficulties[index].name.toUpperCase(), style: display(18, fg)),
                 ),
               ),
-              Text(gems(index), style: display(13, fg)),
+              Gems(index + 1, size: 12, color: fg),
             ],
           ),
         ),
@@ -634,7 +651,7 @@ class AreaView extends StatelessWidget {
             ],
           ),
         ),
-        _Nav(onBack: onBack, next: editing ? 'NEXT ▶' : 'NEXT: READY?', onNext: onNext),
+        _Nav(onBack: onBack, next: editing ? 'NEXT' : 'NEXT: READY?', onNext: onNext),
       ],
     );
   }
@@ -749,7 +766,7 @@ class SummaryView extends StatelessWidget {
               children: [
                 SizedBox(width: 92, child: Shout(label, color: color, size: 12)),
                 Expanded(child: Text(value.toUpperCase(), style: display(19, Colors.white))),
-                Text('✎', style: display(18, color)),
+                PxIcon('edit', size: 18, color: color),
               ],
             ),
           ),
@@ -770,10 +787,10 @@ class SummaryView extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   child: Column(
                     children: [
-                      row(1, 'Class', '${cls.icon} ${cls.name}', classColor(p, cls.id)),
+                      row(1, 'Class', cls.name, classColor(p, cls.id)),
                       row(1, 'Gear', cls.equipment, p.sky),
                       row(2, 'Difficulty', d.name, p.pink),
-                      row(3, 'Area', '${a.icon} ${a.name}', p.orange),
+                      row(3, 'Area', a.name, p.orange),
                     ],
                   ),
                 ),
@@ -781,7 +798,7 @@ class SummaryView extends StatelessWidget {
             ],
           ),
         ),
-        _Nav(onBack: onBack, next: editing ? 'SAVE ✔' : "LET'S GO!!!", onNext: onGo),
+        _Nav(onBack: onBack, next: editing ? 'SAVE' : "LET'S GO!!!", onNext: onGo),
       ],
     );
   }

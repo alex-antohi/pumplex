@@ -22,22 +22,53 @@ int nearestStop(int v) =>
 
 /// Atlas cell (column, row) for [c]'s nearest frame.
 (int, int) spriteCell(Character c) => (
-      spriteStops.indexOf(nearestStop(c.fat)),
-      (c.female ? spriteStops.length : 0) + spriteStops.indexOf(nearestStop(c.muscle)),
-    );
+  spriteStops.indexOf(nearestStop(c.fat)),
+  (c.female ? spriteStops.length : 0) +
+      spriteStops.indexOf(nearestStop(c.muscle)),
+);
 
 /// Readable name of [c]'s frame, e.g. "female/fat0_muscle100".
 String spriteFrame(Character c) =>
     '${c.female ? 'female' : 'male'}/fat${nearestStop(c.fat)}_muscle${nearestStop(c.muscle)}';
 
+/// Class outfit overlay (docs/moodboard/outfits): same cells as the body.
+String outfitAtlas(String classId) => 'assets/outfits/$classId.png';
+
+/// Gear overlay for an item id such as `head.crown` (docs/moodboard/gear).
+String gearAtlas(String itemId) =>
+    'assets/gear/${itemId.split('.').first}/$itemId.png';
+
+/// Gear layer order, bottom to top (docs/moodboard/gear/README.md).
+const gearLayerOrder = [
+  GearSlot.bottom,
+  GearSlot.top,
+  GearSlot.shoes,
+  GearSlot.head,
+  GearSlot.weapon,
+];
+
 /// Every image the character needs, to load before the first frame.
-List<String> get allSpriteAssets => const [bodyAtlas];
+List<String> get allSpriteAssets => [
+  bodyAtlas,
+  for (final c in gameClasses) outfitAtlas(c.id),
+  for (final i in items) gearAtlas(i.id),
+];
 
 /// One atlas cell drawn at [width] × [height] (nearest-neighbour).
 class AtlasSprite extends StatelessWidget {
-  const AtlasSprite({super.key, required this.frame, required this.cell, required this.width, required this.height});
+  const AtlasSprite({
+    super.key,
+    required this.frame,
+    required this.cell,
+    required this.width,
+    required this.height,
+    this.asset = bodyAtlas,
+  });
 
   final String frame;
+
+  /// The atlas image: the body, a class outfit or a gear item (same layout).
+  final String asset;
   final (int, int) cell;
   final double width, height;
 
@@ -49,13 +80,16 @@ class AtlasSprite extends StatelessWidget {
       height: height,
       child: ClipRect(
         child: OverflowBox(
-          alignment: FractionalOffset(cell.$1 / (cols - 1), cell.$2 / (rows - 1)),
+          alignment: FractionalOffset(
+            cell.$1 / (cols - 1),
+            cell.$2 / (rows - 1),
+          ),
           minWidth: width * cols,
           maxWidth: width * cols,
           minHeight: height * rows,
           maxHeight: height * rows,
           child: Image.asset(
-            bodyAtlas,
+            asset,
             width: width * cols,
             height: height * rows,
             fit: BoxFit.fill,
@@ -74,26 +108,42 @@ double heightScale(int height) =>
 
 /// Accent colour of a class (pedestal and highlights).
 Color classColor(Pal p, String id) => switch (id) {
-      'scrapper' => p.orange,
-      'bruiser' => p.sky,
-      'paladin' => p.lime,
-      _ => p.violet,
-    };
+  'scrapper' => p.orange,
+  'bruiser' => p.sky,
+  'paladin' => p.lime,
+  _ => p.violet,
+};
 
 /// The character on a pedestal in the class colour, sized to fill its box.
 /// Bounces once when the frame or the class changes.
 class CharacterSprite extends StatefulWidget {
-  const CharacterSprite({super.key, required this.character, required this.classId});
+  const CharacterSprite({
+    super.key,
+    required this.character,
+    required this.classId,
+    this.gear = const [],
+    this.pedestal = true,
+  });
 
   final Character character;
   final String classId;
+
+  /// Equipped item ids, drawn over the outfit (D21: never changes the body).
+  final Iterable<String> gear;
+
+  /// False in an area scene: the scene has its own ground shadow.
+  final bool pedestal;
 
   @override
   State<CharacterSprite> createState() => _CharacterSpriteState();
 }
 
-class _CharacterSpriteState extends State<CharacterSprite> with SingleTickerProviderStateMixin {
-  late final _bounce = AnimationController(vsync: this, duration: const Duration(milliseconds: 260));
+class _CharacterSpriteState extends State<CharacterSprite>
+    with SingleTickerProviderStateMixin {
+  late final _bounce = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 260),
+  );
 
   @override
   void didUpdateWidget(CharacterSprite old) {
@@ -115,67 +165,82 @@ class _CharacterSpriteState extends State<CharacterSprite> with SingleTickerProv
     final p = Pal.of(context);
     final cls = classById(widget.classId);
     final color = classColor(p, cls.id);
-    return LayoutBuilder(builder: (context, box) {
-      final pedestal = max(10.0, box.maxHeight * 0.1);
-      final room = box.maxHeight - pedestal * 0.55;
-      // Whole-number scale so every sprite pixel stays square.
-      final s = max(1, min(box.maxWidth / spriteWidth, room / (spriteHeight * maxHeightScale)).floor())
-          .toDouble();
-      final w = spriteWidth * s;
-      return Stack(
-        clipBehavior: Clip.none,
-        alignment: Alignment.bottomCenter,
-        children: [
-          // Pedestal.
-          Positioned(
-            bottom: 0,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              width: w * 1.25,
-              height: pedestal,
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.all(Radius.elliptical(w, pedestal)),
-                border: Border.all(color: p.ink, width: max(2, s / 2)),
+    final equipped = {for (final id in widget.gear) itemById(id)?.slot: id};
+    final layers = [
+      bodyAtlas,
+      outfitAtlas(cls.id),
+      for (final slot in gearLayerOrder)
+        if (equipped[slot] != null) gearAtlas(equipped[slot]!),
+    ];
+    return LayoutBuilder(
+      builder: (context, box) {
+        final pedestal = widget.pedestal ? max(10.0, box.maxHeight * 0.1) : 0.0;
+        final room = box.maxHeight - pedestal * 0.55;
+        // Whole-number scale so every sprite pixel stays square.
+        final s = max(
+          1,
+          min(
+            box.maxWidth / spriteWidth,
+            room / (spriteHeight * maxHeightScale),
+          ).floor(),
+        ).toDouble();
+        final w = spriteWidth * s;
+        return Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.bottomCenter,
+          children: [
+            // Pedestal.
+            if (widget.pedestal)
+              Positioned(
+                bottom: 0,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  width: w * 1.25,
+                  height: pedestal,
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.all(
+                      Radius.elliptical(w, pedestal),
+                    ),
+                    border: Border.all(color: p.ink, width: max(2, s / 2)),
+                  ),
+                ),
               ),
-            ),
-          ),
-          Positioned(
-            bottom: pedestal * 0.45,
-            child: AnimatedBuilder(
-              animation: _bounce,
-              builder: (context, child) => Transform.scale(
-                alignment: Alignment.bottomCenter,
-                scaleX: 1 + 0.08 * sin(_bounce.value * pi),
-                scaleY: 1 - 0.06 * sin(_bounce.value * pi),
-                child: child,
-              ),
-              child: TweenAnimationBuilder<double>(
-                tween: Tween(end: heightScale(widget.character.height)),
-                duration: const Duration(milliseconds: 220),
-                builder: (context, h, _) => AtlasSprite(
-                  key: const ValueKey('character-sprite'),
-                  frame: spriteFrame(widget.character),
-                  cell: spriteCell(widget.character),
-                  width: w,
-                  height: spriteHeight * s * h,
+            Positioned(
+              bottom: pedestal * 0.45,
+              child: AnimatedBuilder(
+                animation: _bounce,
+                builder: (context, child) => Transform.scale(
+                  alignment: Alignment.bottomCenter,
+                  scaleX: 1 + 0.08 * sin(_bounce.value * pi),
+                  scaleY: 1 - 0.06 * sin(_bounce.value * pi),
+                  child: child,
+                ),
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween(end: heightScale(widget.character.height)),
+                  duration: const Duration(milliseconds: 220),
+                  builder: (context, h, _) => Stack(
+                    children: [
+                      for (final (i, asset) in layers.indexed)
+                        AtlasSprite(
+                          key: i == 0
+                              ? const ValueKey('character-sprite')
+                              : null,
+                          asset: asset,
+                          frame: spriteFrame(widget.character),
+                          cell: spriteCell(widget.character),
+                          width: w,
+                          height: spriteHeight * s * h,
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-          // Class prop (placeholder until the class outfits are drawn).
-          Positioned(
-            bottom: pedestal * 0.2,
-            right: max(0, box.maxWidth / 2 - w * 0.75),
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 250),
-              transitionBuilder: (child, a) => ScaleTransition(scale: a, child: child),
-              child: Text(cls.icon, key: ValueKey(cls.id), style: TextStyle(fontSize: max(14, s * 7))),
-            ),
-          ),
-        ],
-      );
-    });
+          ],
+        );
+      },
+    );
   }
 }
 

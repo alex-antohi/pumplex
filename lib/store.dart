@@ -17,7 +17,8 @@ class LogStore extends ChangeNotifier {
   LogStore(this._prefs, {DateTime Function()? clock})
       : _clock = clock ?? DateTime.now,
         chaos = ValueNotifier(_prefs.getBool('chaos') ?? false),
-        cel = ValueNotifier(_prefs.getBool('cel') ?? false) {
+        cel = ValueNotifier(_prefs.getBool('cel') ?? false),
+        sound = ValueNotifier(_prefs.getBool('sound') ?? true) {
     _load();
     _migrateClassIds();
   }
@@ -116,6 +117,14 @@ class LogStore extends ChangeNotifier {
   void setCel(bool on) {
     cel.value = on;
     _prefs.setBool('cel', on);
+  }
+
+  /// Sound effects on or off (the design's sound pack), remembered.
+  final ValueNotifier<bool> sound;
+
+  void setSound(bool on) {
+    sound.value = on;
+    _prefs.setBool('sound', on);
   }
 
   // ------------------------------------------------------------- old data

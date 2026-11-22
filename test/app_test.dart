@@ -226,7 +226,9 @@ void main() {
     expect(spriteFrame(c), 'female/fat100_muscle0');
     expect(spriteCell(c), (4, 5)); // atlas column 4, row 5 (first female row)
     expect(spriteCell(const Character(fat: 50, muscle: 75)), (2, 3));
-    expect(allSpriteAssets, [bodyAtlas]);
+    expect(allSpriteAssets.first, bodyAtlas);
+    expect(allSpriteAssets, contains('assets/outfits/paladin.png'));
+    expect(allSpriteAssets, contains('assets/gear/head/head.crown.png'));
   });
 
   // --------------------------------------------------------- session rule
@@ -557,7 +559,7 @@ void main() {
     await t.drag(find.byKey(const ValueKey('slider-FAT %')), const Offset(-400, 0));
     await _frames(t, 4);
     expect(_spriteAsset(t), 'male/fat0_muscle100');
-    await t.tap(find.text('♀'));
+    await t.tap(find.byKey(const ValueKey('sex-female')));
     await _frames(t, 4);
     expect(_spriteAsset(t), 'female/fat0_muscle100');
     final short = t.getSize(find.byKey(const ValueKey('character-sprite'))).height;
@@ -565,7 +567,7 @@ void main() {
     await _frames(t, 8);
     expect(t.getSize(find.byKey(const ValueKey('character-sprite'))).height, greaterThan(short));
 
-    await t.tap(find.text('NEXT ▶'));
+    await t.tap(find.text('NEXT'));
     await t.pump(const Duration(milliseconds: 200));
     // Mid-transition: both scenes are on screen (no blank frame).
     expect(find.text('BUILD YOUR LIFTER'), findsOneWidget);
@@ -634,7 +636,7 @@ void main() {
     final (store, _) = await _store(setUp: true);
     await t.pumpWidget(GymApp(store: store));
     await _frames(t);
-    expect(find.text('TRAIN ▶'), findsOneWidget);
+    expect(find.text('TRAIN'), findsOneWidget);
     expect(find.text('START TRAINING ▶'), findsNothing);
     expect(find.text('I WORKED 💪'), findsNothing);
 
@@ -664,23 +666,23 @@ void main() {
     await t.longPress(card);
     await _frames(t, 70);
     expect(store.todayExercises[0].sets, 5);
-    expect(find.text('5/3'), findsOneWidget);
-    expect(find.text('+${store.cardXp(0)} XP 🔥'), findsOneWidget);
+    expect(find.textContaining('5/3'), findsOneWidget);
+    expect(find.textContaining('+${store.cardXp(0)} XP'), findsOneWidget);
 
-    await t.tap(find.text('◀ HUB'));
+    await t.tap(find.byKey(const ValueKey('workout-hub')));
     await _frames(t);
-    expect(find.text('KEEP GOING ▶'), findsOneWidget);
+    expect(find.text('KEEP GOING'), findsOneWidget);
     expect(find.text('ON · 5 SETS'), findsOneWidget);
 
-    await t.tap(find.text('◀ PAST'));
+    await t.tap(find.byKey(const ValueKey('hub-past')));
     await _frames(t);
     expect(find.textContaining('TODAY · '), findsOneWidget);
-    await t.tap(find.text('HUB ▶'));
+    await t.tap(find.byKey(const ValueKey('history-hub')));
     await _frames(t, 70);
     expect(t.takeException(), isNull);
   });
 
-  testWidgets('workout: swipe a card to switch, ↺ back, add and remove exercises', (t) async {
+  testWidgets('workout tools: swap, back to first, skip, add and remove exercises', (t) async {
     _phone(t);
     final (store, _) = await _store(setUp: true);
     await t.pumpWidget(GymApp(store: store));
@@ -688,44 +690,47 @@ void main() {
     await t.tap(find.byKey(const ValueKey('hub-workout')));
     await _frames(t);
     final first = store.todayExercises[0].exerciseId;
-    final card = find.byKey(const ValueKey('card-0'));
 
-    await t.drag(card, const Offset(-200, 0));
+    await t.tap(find.byKey(const ValueKey('tool-swap')));
     await _frames(t, 10);
     expect(store.todayExercises[0].switched, isTrue);
-    expect(find.text(exerciseName(store.todayExercises[0].exerciseId).toUpperCase()), findsWidgets);
-    await t.tap(find.descendant(of: card, matching: find.text('↺')));
+    expect(find.textContaining(exerciseName(store.todayExercises[0].exerciseId).toUpperCase()), findsWidgets);
+    await t.tap(find.byKey(const ValueKey('tool-first')));
     await _frames(t, 10);
     expect(store.todayExercises[0].exerciseId, first);
+    expect(find.byKey(const ValueKey('tool-first')), findsNothing);
 
     await t.tap(find.byKey(const ValueKey('world-object')));
     await _frames(t, 70); // achievement burst
-    await t.drag(card, const Offset(-200, 0));
+    await t.tap(find.byKey(const ValueKey('tool-swap')));
     await _frames(t, 10);
     expect(store.todayExercises[0].exerciseId, first);
     expect(find.textContaining('SETS ALREADY DONE HERE'), findsOneWidget);
     await _frames(t, 110); // the message goes away
 
-    final n = store.todayCards.length;
-    Future<void> show(Finder f) async {
-      await t.ensureVisible(f);
-      await _frames(t, 4);
-    }
+    // Skip the second exercise: the next open one becomes active.
+    await t.tap(find.byKey(const ValueKey('strip-1')));
+    await _frames(t, 4);
+    await t.tap(find.byKey(const ValueKey('tool-skip')));
+    await _frames(t, 4);
+    expect(find.descendant(of: find.byKey(const ValueKey('strip-1')), matching: find.text('SKIPPED')), findsOneWidget);
+    expect(store.todayExercises[1].sets, 0);
 
-    await show(find.text('+ ADD EXERCISE'));
-    await t.tap(find.text('+ ADD EXERCISE'));
-    await _frames(t, 10);
+    final n = store.todayCards.length;
+    await t.dragUntilVisible(find.byKey(const ValueKey('strip-add')), find.byKey(const ValueKey('strip-0')), const Offset(-150, 0));
+    await _frames(t, 4);
+    await t.tap(find.byKey(const ValueKey('strip-add')));
+    await _frames(t, 20);
     final extra = store.unusedExercises.first;
-    await show(find.byKey(ValueKey('add-${extra.id}')));
     await t.tap(find.byKey(ValueKey('add-${extra.id}')));
-    await _frames(t, 10);
+    await _frames(t, 20);
     expect(store.todayCards.length, n + 1);
 
-    final last = store.todayCards.last;
-    await show(find.byKey(ValueKey('card-$last')));
-    await t.tap(find.descendant(of: find.byKey(ValueKey('card-$last')), matching: find.text('✕')));
+    // The added card is active; remove it.
+    await t.tap(find.byKey(const ValueKey('tool-remove')));
     await _frames(t, 10);
     expect(store.todayCards.length, n);
+    expect(find.textContaining('REMOVED'), findsOneWidget);
     await t.pump(const Duration(seconds: 5));
   });
 
@@ -738,9 +743,9 @@ void main() {
     await _frames(t);
     expect(find.text('CHARACTER · STEP 1 OF 5'), findsOneWidget);
     await t.drag(find.byKey(const ValueKey('slider-FAT %')), const Offset(400, 0));
-    await t.tap(find.text('NEXT ▶'));
+    await t.tap(find.text('NEXT'));
     await _frames(t);
-    await t.tap(find.text('SAVE ✔'));
+    await t.tap(find.text('SAVE'));
     await _frames(t);
     expect(store.profile!.character.fat, 100);
     expect(store.bodyHistory.last.character.fat, 100);
@@ -764,9 +769,9 @@ void main() {
     expect(find.byKey(const ValueKey('intro-card')), findsNothing);
     expect(store.gear.owned, contains('head.sweatband'));
 
-    await t.tap(find.text('◀ HUB'));
+    await t.tap(find.byKey(const ValueKey('workout-hub')));
     await _frames(t);
-    await t.tap(find.text('⚔ GEAR'));
+    await t.tap(find.byKey(const ValueKey('hub-gear')));
     await _frames(t);
     expect(find.text('GEAR · LVL ${levelFor(store.totalXp).level}'), findsOneWidget);
     await t.tap(find.byKey(const ValueKey('item-head.sweatband')));
@@ -784,11 +789,11 @@ void main() {
     await _frames(t);
     await t.tap(find.byKey(const ValueKey('hub-workout')));
     await _frames(t);
-    expect(find.text('◀ HUB'), findsOneWidget);
+    expect(find.byKey(const ValueKey('workout-hub')), findsOneWidget);
     await t.binding.handlePopRoute();
     await _frames(t);
-    expect(find.text('◀ HUB'), findsNothing);
-    expect(find.text('TRAIN ▶'), findsOneWidget);
+    expect(find.byKey(const ValueKey('workout-hub')), findsNothing);
+    expect(find.text('TRAIN'), findsOneWidget);
   });
 
   testWidgets('CEL SHADER toggles from the menu, is remembered, keeps the scene', (t) async {
@@ -842,18 +847,18 @@ void main() {
       }
 
       await tapAndSettle(find.byKey(const ValueKey('hub-workout')));
-      await tapAndSettle(find.text('◀ HUB'));
-      await tapAndSettle(find.text('◀ PAST'));
-      await tapAndSettle(find.text('HUB ▶'));
-      await tapAndSettle(find.text('⚔ GEAR'));
-      await tapAndSettle(find.text('◀ HUB'));
+      await tapAndSettle(find.byKey(const ValueKey('workout-hub')));
+      await tapAndSettle(find.byKey(const ValueKey('hub-past')));
+      await tapAndSettle(find.byKey(const ValueKey('history-hub')));
+      await tapAndSettle(find.byKey(const ValueKey('hub-gear')));
+      await tapAndSettle(find.byKey(const ValueKey('gear-hub')));
       // Profile (design screen 11): change one setup step, then back.
       await tapAndSettle(find.byKey(const ValueKey('hub-profile')));
       expect(find.text('THE PATH'), findsOneWidget);
       await tapAndSettle(find.byKey(const ValueKey('profile-difficulty')));
       expect(find.text('DIFFICULTY · STEP 3 OF 5'), findsOneWidget);
-      await tapAndSettle(find.text('NEXT ▶'));
-      await tapAndSettle(find.text('SAVE ✔'));
+      await tapAndSettle(find.text('NEXT'));
+      await tapAndSettle(find.text('SAVE'));
       await tapAndSettle(find.byKey(const ValueKey('hub-profile')));
       await tapAndSettle(find.byKey(const ValueKey('profile-back')));
       // Menu (design screen 12).
@@ -863,16 +868,16 @@ void main() {
       await tapAndSettle(find.byKey(const ValueKey('profile-back')));
       await tapAndSettle(find.byKey(const ValueKey('menu-open')));
       await tapAndSettle(find.byKey(const ValueKey('menu-edit')));
-      await tapAndSettle(find.text('NEXT ▶')); // editing: straight to the summary
+      await tapAndSettle(find.text('NEXT')); // editing: straight to the summary
       await tapAndSettle(find.text('CLASS'));
       await tapAndSettle(find.byKey(const ValueKey('path-bruiser')));
       await t.pump(introHold);
-      await tapAndSettle(find.text('NEXT ▶'));
+      await tapAndSettle(find.text('NEXT'));
       await tapAndSettle(find.text('DIFFICULTY'));
-      await tapAndSettle(find.text('NEXT ▶'));
+      await tapAndSettle(find.text('NEXT'));
       await tapAndSettle(find.text('AREA'));
-      await tapAndSettle(find.text('NEXT ▶'));
-      await tapAndSettle(find.text('SAVE ✔'));
+      await tapAndSettle(find.text('NEXT'));
+      await tapAndSettle(find.text('SAVE'));
       expect(find.text("TODAY'S WORKOUT"), findsOneWidget);
       await t.pumpWidget(const SizedBox());
     });

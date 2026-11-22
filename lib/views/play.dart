@@ -129,7 +129,7 @@ class HubView extends StatelessWidget {
                       padding: const EdgeInsets.only(bottom: 4),
                       child: Row(
                         children: [
-                          Text('▸ ', style: display(18, color)),
+                          Padding(padding: const EdgeInsets.only(right: 6), child: PxIcon('next', size: 16, color: color)),
                           Expanded(child: Text(exerciseName(s.exerciseId).toUpperCase(), style: display(18, p.ink))),
                           if (s.sets > 0) TallyMarks(count: s.sets, height: 16),
                         ],
@@ -142,10 +142,12 @@ class HubView extends StatelessWidget {
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       decoration: BoxDecoration(color: p.pink, border: Border.all(color: p.ink, width: 4)),
-                      child: Text(
-                        today == null || today.totalSets == 0 ? 'TRAIN ▶' : 'KEEP GOING ▶',
-                        textAlign: TextAlign.center,
+                      child: DefaultTextStyle(
                         style: display(28, p.on).copyWith(letterSpacing: 1.5),
+                        child: Center(
+                          child: IconText('play', today == null || today.totalSets == 0 ? 'TRAIN' : 'KEEP GOING',
+                              iconAfter: true),
+                        ),
                       ),
                     ),
                   ),
@@ -175,17 +177,17 @@ class HubView extends StatelessWidget {
         Positioned(
           left: 14,
           top: stage.top + 8,
-          child: BrutalButton(small: true, color: p.sky, onTap: onHistory, child: const Text('◀ PAST')),
+          child: BrutalButton(key: const ValueKey('hub-past'), small: true, color: p.sky, onTap: onHistory, child: const IconText('history', 'PAST')),
         ),
         Positioned(
           right: 18,
           top: stage.top + 8,
-          child: BrutalButton(small: true, color: p.orange, onTap: onBody, child: const Text('✎ BODY')),
+          child: BrutalButton(key: const ValueKey('hub-body'), small: true, color: p.orange, onTap: onBody, child: const IconText('body', 'BODY')),
         ),
         Positioned(
           right: 18,
           top: stage.top + 60,
-          child: BrutalButton(small: true, color: p.lime, onTap: onGear, child: const Text('⚔ GEAR')),
+          child: BrutalButton(key: const ValueKey('hub-gear'), small: true, color: p.lime, onTap: onGear, child: const IconText('gear', 'GEAR')),
         ),
         Positioned(
           left: 14,
@@ -195,7 +197,7 @@ class HubView extends StatelessWidget {
               small: true,
               color: p.violet,
               onTap: onProfile,
-              child: const Text('★ ME')),
+              child: const IconText('user', 'ME')),
         ),
         // What the character wears (icons until the gear sprites exist).
         Positioned(
@@ -208,7 +210,7 @@ class HubView extends StatelessWidget {
                 if (itemById(id) != null)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 4),
-                    child: Text(itemById(id)!.icon, style: const TextStyle(fontSize: 22)),
+                    child: Image.asset(itemById(id)!.icon, width: 24, height: 24, color: p.ink, filterQuality: FilterQuality.none),
                   ),
             ],
           ),
@@ -244,7 +246,7 @@ class _StreakRow extends StatelessWidget {
         Expanded(
           child: Text(
             'THIS WEEK ${week.days}/${week.n} DAYS'
-            '${streak > 0 ? ' · 🔥 $streak WEEK${streak == 1 ? '' : 'S'}' : ''}',
+            '${streak > 0 ? ' · STREAK $streak WEEK${streak == 1 ? '' : 'S'}' : ''}',
             style: mono(11.5, p.ink),
           ),
         ),
@@ -278,7 +280,7 @@ class HistoryView extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                BrutalButton(small: true, color: p.sky, onTap: onBack, child: const Text('HUB ▶')),
+                BrutalButton(key: const ValueKey('history-hub'), small: true, color: p.sky, onTap: onBack, child: const IconText('next', 'HUB', iconAfter: true)),
                 const SizedBox(height: 10),
                 Text('PAST SESSIONS', style: display(26, p.ink)),
                 const SizedBox(height: 4),
@@ -378,7 +380,7 @@ class _LegacyTile extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          const Text('💪', style: TextStyle(fontSize: 18)),
+          PxIcon('arm', size: 18, color: Pal.of(context).ink),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -416,7 +418,7 @@ class GearView extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                BrutalButton(small: true, color: p.sky, onTap: onBack, child: const Text('◀ HUB')),
+                BrutalButton(key: const ValueKey('gear-hub'), small: true, color: p.sky, onTap: onBack, child: const IconText('back', 'HUB')),
                 const SizedBox(height: 10),
                 Text('GEAR', style: display(26, p.ink)),
                 const SizedBox(height: 4),
@@ -476,11 +478,23 @@ class _ItemChip extends StatelessWidget {
         small: true,
         color: equipped ? p.lime : p.panel,
         onTap: owned ? onTap : null,
-        child: Text(
-          owned
-              ? '${item.icon} ${item.name.toUpperCase()}${equipped ? ' ✔' : ''}'
-              : '🔒 LVL ${item.unlockLevel} · ${item.name.toUpperCase()}',
-        ),
+        child: Builder(builder: (context) {
+          final color = DefaultTextStyle.of(context).style.color;
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              owned
+                  ? Image.asset(item.icon, width: 18, height: 18, color: color, filterQuality: FilterQuality.none)
+                  : PxIcon('lock', size: 18, color: color),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(owned
+                    ? '${item.name.toUpperCase()}${equipped ? ' · ON' : ''}'
+                    : 'LVL ${item.unlockLevel} · ${item.name.toUpperCase()}'),
+              ),
+            ],
+          );
+        }),
       ),
     );
   }
