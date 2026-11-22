@@ -1,8 +1,12 @@
 # PUMPLEX rules table
 
 Date: 21 November 2026. Status: draft v1 (numbers for beta testing).
-Read with [data-schema.md](data-schema.md). Put every number below in one
-constants file in the code, so it is easy to tune.
+Read with [data-schema.md](data-schema.md) and [decisions.md](decisions.md) (D19 wins over this table).
+Every number below is in one constants file, `lib/game/rules.dart`, so it is easy to tune.
+The numbers per difficulty mode are in [app-flow.md](app-flow.md) §3.
+
+In the app now: §1 (except bounties), §2 (except loot drops and new game+) and the weekly streak of §3.
+Not built yet: embers, §4, §5 and gear rarity in §6.
 
 Sources of the ideas: Habitica (source code), D&D 5e, the Dark Souls and
 Bloodborne board games, Gloomhaven. Rule from the brief: **rest never punishes
@@ -44,7 +48,8 @@ XP to go from level L to L + 1 (Habitica's formula):
 | 5 | 150 |
 | 6 and up | round((0.25 × L² + 10 × L + 139.75) / 10) × 10 |
 
-Examples: level 10 → 260, level 20 → 440, level 30 → 670, level 40 → 940, level 50 → 1,260.
+Examples: level 10 → 260, level 20 → 440, level 30 → 660, level 40 → 940, level 50 → 1,260.
+(The first draft said 670 for level 30. The formula gives 660, and the formula wins: D19.)
 
 Pace (a typical session is about 15 sets, or about 200 XP):
 

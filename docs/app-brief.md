@@ -1,8 +1,8 @@
 # PUMPLEX app brief
 
-Date: 21 November 2026. Status: draft v2.
-Sources: `pumplex.drawio` (the 7 systems), `docs/moodboard/` (game look v0.1),
-and the owner's decisions of 21 November 2026.
+Date: 21 November 2026, updated 22 November 2026. Status: draft v2.1.
+Sources: `pumplex.drawio` (the 7 systems), [docs/moodboard/](moodboard/README.md) (game look),
+and the owner's decisions in [decisions.md](decisions.md). The decisions win over this brief.
 
 ## 1. Purpose
 
@@ -38,21 +38,22 @@ Most gym apps ask for every set, rep and kilo. PUMPLEX asks for one thing:
 You pick the class by the equipment that you have. There is one class for each equipment type.
 The class decides the exercises.
 
-| Equipment | Class (working name) | Training style |
-|---|---|---|
-| No equipment | Speedy class | Cardio and bodyweight: push-ups, burpees, sprints, jumps. |
-| Basic home gym (some weights) | Rogue-like class | Middle of the road: floor work, some cardio, some weights. |
-| A lot of free weights | Warrior / paladin | Burly, bulky, strongman. |
-| A lot of machines | Mage / assassin | Stringy and strong. |
+| Equipment | First idea | Class now (working name, id) | Training style |
+|---|---|---|---|
+| No equipment | Speedy class | Scrapper (`scrapper`) | Cardio and bodyweight: push-ups, burpees, sprints, jumps. |
+| Basic home gym (some weights) | Rogue-like class | Bargain Bruiser (`bruiser`) | Middle of the road: floor work, some cardio, some weights. |
+| A lot of free weights | Warrior / paladin | Plate Paladin (`paladin`) | Burly, bulky, strongman. |
+| A lot of machines | Mage / assassin | Cablemancer (`cablemancer`) | Stringy and strong. |
 
-The final class names come from the design phase.
+The class names come from the design team (D9). The final names are still open (D27). The ids are the design ids (D31).
 
 ### 4.2 Character creation (no weight or height input)
 
 - The user never types a weight or a height.
 - Character creation has **sliders**: height, muscle size, fat %.
-- The sliders change the character's look. The mood board has the first
-  body-slider sprites: fat 0 / 50 / 100 × muscle 0 / 50 / 100, male and female.
+- The sliders change the character's look. The app uses the design team's 5 × 5 body atlas:
+  fat 0 / 25 / 50 / 75 / 100 × muscle 0 / 25 / 50 / 75 / 100, male and female.
+  The height slider stretches the sprite (D11).
 - The character is **2D** (pixel art, cel-shaded; see `docs/moodboard/README.md`).
 
 ### 4.3 Difficulty
@@ -61,11 +62,12 @@ The final class names come from the design phase.
 - The levels have fantasy names, not "easy / medium / hard".
 - Main inspiration: the Borderlands games (tone and humour only; all names and art are our own).
 - A colleague is making the mood board and the design. The names come from that work.
+- Now: 6 modes, Sofa, Warm-up, Sweat, Pain, Brutal and Nightmare Mode (D28).
 
 ### 4.4 Free-form sessions
 
 - No 7-day plan. The user opens the app when they want and does a workout.
-- Each workout is a session.
+- Each calendar day with sets is one session (D6).
 - The exact preset workouts (per class and character) are decided later.
 
 ### 4.5 Tracking: count working sets
@@ -80,11 +82,13 @@ The final class names come from the design phase.
 
 - They come from the mood board and design phase.
 - Each area sets the look and the colour palette, and the style of the set marks.
+- Now: 5 areas, Riptide Shore, Gainsgard Keep, Rustbelt Flats, Arcade Underpass and Frostbite Summit
+  ([app-flow.md](app-flow.md) §3).
 
 ### 4.7 Existing data
 
 - Keep the sessions that are logged now. Turn them into XP, for our beta testing.
-- Delete the old kg / reps sets and swaps, after a backup file (see `data-schema.md` §5).
+- Delete the old kg / reps sets and swaps, after a backup file (see [data-schema.md](data-schema.md) §5).
 
 ### 4.8 Still open
 
@@ -106,8 +110,8 @@ The final class names come from the design phase.
 
 1. Open the app (any time).
 2. See today's workout for your class on the hub. Tap it.
-3. Do each exercise. Tap the card for each working set (later: shells, wall marks, and so on).
-4. Get XP for each set. See the level change. The session closes by itself (app-flow.md §4.4).
+3. Do each exercise. Tap the area's object for each working set. The mark (shells, wall scratches and so on) stays in the scene.
+4. Get XP for each set. See the level change. The session closes by itself ([app-flow.md](app-flow.md) §4.4).
 
 ## 7. The app today (main)
 
@@ -118,12 +122,17 @@ The final class names come from the design phase.
 | Old sessions (`sessions_v2`), backup | One-time upgrade: backup file first, then legacy sessions with XP. |
 | 7-day pattern, START TRAINING, I WORKED / I RESTED, preloader | Removed (21 Nov). Free-form sessions, hub, set counting, XP and character creation built. |
 | CEL SHADER mode | Kept (`shaders/cel.frag`). |
-| Old logged sets and swaps | Deleted by the one-time upgrade, after its backup file (owner's decision, data-schema.md §5). |
+| Old logged sets and swaps | Deleted by the one-time upgrade, after its backup file (owner's decision, [data-schema.md](data-schema.md) §5). |
+| Class ids | The design ids since 22 Nov (D31). Saved data migrates once. |
+| Design art | In the app since 22 Nov: fonts, pixel icons, class outfits, gear sprites, area scenes and the sound pack. |
+| Layout | Hub, workout, profile and menu follow the design demo (`docs/demo/`). |
+| Release signing | From `android/key.properties` (see the [README](../README.md)). |
 
-## 8. Next documents
+## 8. Documents
 
 1. App flow: [app-flow.md](app-flow.md).
-2. Data schema: character, class, starting area, difficulty, sessions, set marks, XP.
-3. Rules table: XP per working set, difficulty multipliers, level curve, XP for old sessions.
-4. Class and workout list: the exercises per class (later).
-5. Implementation plan: the build order.
+2. Data schema: [data-schema.md](data-schema.md).
+3. Rules table: [rules.md](rules.md).
+4. Owner decisions: [decisions.md](decisions.md).
+5. Class and workout list: the exercises per class (later, D27).
+6. Implementation plan: the build order (later).

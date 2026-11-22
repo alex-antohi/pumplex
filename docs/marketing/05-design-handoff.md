@@ -17,7 +17,7 @@ platform specs (§1) and the consistency guide (§4).
 | No preloader (D29). | Story S2 does not use the preloader. See the new S2 below. |
 | 5 starting areas, each with its own set mark (moodboard "Starting areas"). | "Beach or castle" becomes "five worlds". Use the real set marks: chest + shells, chalk scratches, barrel, PUNCH-O-TRON, ice block. |
 | Class names: Scrapper, Bargain Bruiser, Plate Paladin, Cablemancer (D9, working names). | Use them. They can still change, so keep them in editable text layers. |
-| 6 difficulty names, Couch Spawn to **Ascended Swolemancer** (D31). | The top difficulty now has the app name in it. Use this: "become the Swolemancer" is the main promise. |
+| 6 difficulty names: Sofa, Warm-up, Sweat, Pain, Brutal and **Nightmare Mode** (D28). The demo's Couch Spawn … Ascended Swolemancer names are dropped (owner, 22 Nov 2026). | Use the MODE names. "Become the Swolemancer" can stay as a slogan, but no difficulty has that name. |
 | A clickable HTML demo of every screen exists (`docs/demo/`). | Instagram and Reddit can show demo screens, marked as "in development". **Google Play cannot** (see §3). |
 
 ## 2. Name and brand
@@ -29,7 +29,7 @@ platform specs (§1) and the consistency guide (§4).
 
 ## 3. Hard rules (read before you start)
 
-1. **Google Play screenshots show the real Android app only.** The HTML demo is not the app. Make P2–P9 after the demo layout is ported into the app (decisions.md §2, last row).
+1. **Google Play screenshots show the real Android app only.** The HTML demo is not the app. Make P2–P9 after the demo layout is ported into the app (decisions.md §2, the `docs/demo/` screens row). The hub, workout, profile and menu are ported now.
 2. **No features that are not built.** On Instagram and Reddit, demo screens get a small "IN DEVELOPMENT" tag (Space Mono, 28 px, MUTED, bottom left).
 3. **Sprites scale by whole numbers only** (4×, 5×, 8×, 10×, 12×), nearest-neighbour. Never smooth them.
 4. **No pure black or dark grey on the feature graphic.** Use STAGE `#2a1148` with pink dots, not BG `#12061f`.
@@ -51,7 +51,7 @@ Everything else uses these.
 |---|---|---|---|
 | A1 | SWOLEMANCER wordmark | Vector (SVG) + pixel version (2 px stroke) | Anton base. Stacked hard shadow PINK + VIOLET. Must read at 140 px wide. Make a stacked (2-line: SWOLE / MANCER) and a 1-line version. |
 | A2 | App icon art | 64 × 64 sprite, 8× = 512 × 512 PNG | A pixel head with a flexed arm, or a hooded "mancer" with a glowing dumbbell. Full-square STAGE background. No text, no rounded corners, no shadow (Play adds them). Must read at 48 px. Send 2–3 options. |
-| A3 | Pixel icon set | 16 × 16 each | ▶, 💪, check, cross, XP star. The app also needs these (decisions.md §2). |
+| A3 | Pixel icon set | 16 × 16 each | ▶, 💪, check, cross, XP star. The app icon set (`docs/moodboard/icons/`) is done; reuse it at promo size. |
 
 ### Batch 2: pictures we can make now
 
@@ -64,7 +64,7 @@ Use the moodboard sprites, the demo screens and the boards.
 | C2 | IG carousel | 1080 × 1350 | NO REPS. NO KILOS. JUST SETS. | REPS and KG crossed out, SETS with a lime check. | A3 |
 | C3 | IG carousel | 1080 × 1350 | SLIDE YOUR BODY. NEVER TYPE YOUR WEIGHT. | SL-M 3 × 3 at 4×. Axes FAT → and MUSCLE ↑. Add the height slider from `02-character.html`. | `body_sliders/male/` |
 | C4 | IG carousel | 1080 × 1350 | YOUR GEAR = YOUR CLASS. | 4 panels: SCRAPPER (no gear), BARGAIN BRUISER (home gym), PLATE PALADIN (free weights), CABLEMANCER (machines). Class colours from `demo.js`. | `03-class.html` |
-| C5 | IG carousel | 1080 × 1350 | FROM COUCH SPAWN TO ASCENDED SWOLEMANCER. | The 6 difficulty names as a ladder, gems 1–6, top rung in PINK. | `04-difficulty.html` |
+| C5 | IG carousel | 1080 × 1350 | FROM SOFA MODE TO NIGHTMARE MODE. | The 6 difficulty names as a ladder, gems 1–6, top rung in PINK. | `04-difficulty.html` |
 | C6 | IG carousel | 1080 × 1350 | FIVE WORLDS. FIVE WAYS TO COUNT A SET. | 5 strips: chest + shells, chalk scratches, barrel, PUNCH-O-TRON, ice block. Each with its call (PEARL!, SLASHED!, TAGGED!, COMBO!, SUMMIT!). | `05-area.html`, `scrapper_rustbelt.html`, moodboard "Starting areas" |
 | C7 | IG carousel | 1080 × 1350 | ONE SET. ONE BOOM. LEVEL UP. | Barrel blast → XP pop → level-up freeze-frame card. | `08-workout.html`, `canvas/Workout.dc.html` |
 | C8 | IG carousel | 1080 × 1350 | TRAIN, NOT TRACK. ANDROID. OFFLINE. | A1 centred, B1–B4 in a row, "link in bio" in Space Mono. | A1 |
@@ -89,7 +89,7 @@ Wait until the demo layout is in the Android app. Then take real screenshots fro
 | P3 | The rule | COUNT SETS. NOTHING ELSE. | Workout: one mark tapped, `SET n OF t` | LIME |
 | P4 | Character | BUILD YOUR BODY. NO SCALE. | Character creation: sex, height, fat, muscle | ORANGE |
 | P5 | Class | YOUR GEAR IS YOUR CLASS. | Class select with the user's body (D25) | SKY |
-| P6 | Difficulty | BECOME THE SWOLEMANCER. | Difficulty ladder, Ascended Swolemancer on top | VIOLET |
+| P6 | Difficulty | BECOME THE SWOLEMANCER. | Difficulty ladder, Nightmare Mode on top | VIOLET |
 | P7 | Worlds | FIVE WORLDS TO TRAIN IN. | Area select, or a split of 2 area workouts | ORANGE + SKY |
 | P8 | Reward | EVERY SET IS XP. | Level-up freeze-frame card, or CRITICAL SET | LIME |
 | P9 | Trust | OFFLINE. YOUR DATA STAYS ON YOUR PHONE. | Past sessions (rows by date) + menu backup | PINK |
@@ -133,6 +133,6 @@ Headline in Anton 104 px, TEXT, max 2 lines, with a hard shadow in the accent co
 ## 8. Open questions for the owner
 
 1. Is the trademark check for SWOLEMANCER done? Batch 1 can start before it, but printing cannot.
-2. Should the top difficulty keep the name "Ascended Swolemancer" now that it is also the app name? This file assumes **yes**.
+2. ~~Should the top difficulty keep the name "Ascended Swolemancer"?~~ Answered: no. The owner dropped those names; the top difficulty is Nightmare Mode (D28).
 3. Is the app free, paid or freemium? This decides R5 (r/bodyweightfitness allows only fully free apps).
 4. Was AI used for any sprites? If yes, the r/indiegaming post must say so.

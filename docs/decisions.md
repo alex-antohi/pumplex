@@ -45,6 +45,7 @@ Ask the owner before you design against a decision. Add each new decision here, 
 ## 2. Where the current boards conflict
 
 Checked on 22 Nov 2026 at commit `b954de3` (design demo and moodboard: "follow owner decisions D6-D30").
+The "What the app does" column was rechecked against the app on 22 Nov 2026 at commit `a237791`.
 
 All earlier conflicts are fixed. The boards and the demo now have the HEIGHT slider, the user's body on class select,
 no preloader, no START TRAINING, no clock, no `SESSION n`, no I WORKED, no reward screen, no DANGER ZONE, rows by date,
@@ -56,12 +57,20 @@ Still open (no decision is broken, but the app and the design differ):
 | Board / file | What it shows | Decision | What the app does | Next step |
 |---|---|---|---|---|
 | `docs/demo/shared/demo.js` exercises per level | 3, 4, 5, 6, 7, 8 exercises (marked PLACEHOLDER). | D15 | 3, 3, 4, 5, 6, 8 (`lib/game/rules.dart`). | Agree one list (the end points, 3 and 8, already match). |
-| `12-menu.html` SOUND | A sound toggle. | None (no sound files yet) | A disabled SOUND row with a SOON tag (placeholder). | Design delivers the sound pack. |
-| `docs/demo/BRIEF.md` "No emojis" | Pixel SVG icons only. | None (design rule) | Emoji placeholders (areas, gear, milestones, buttons). | Design delivers the pixel icon set. The app swaps them in. |
-| `docs/demo/` screens | The new demo layout (character, workout, profile and others). | None | The app still has the first-build layout. | Port the demo layout into the app. |
+| `docs/demo/shared/demo.js` streak N per level | 2, 2, 3, 3, 4, 4 days (marked PLACEHOLDER). | D20 | 2, 2, 2, 3, 3, 4 (`lib/game/rules.dart`). | Agree one list. (Added 22 Nov 2026.) |
+| `12-menu.html` SOUND | A sound toggle. | None (no sound files yet) | A disabled SOUND row with a SOON tag (placeholder). | Design delivers the sound pack. **Done 22 Nov 2026 (`1a2f33e`):** the sound pack is in `assets/sounds` and the SOUND row is a working toggle (`lib/sound.dart`, `audioplayers` with the owner's OK, D26). |
+| `docs/demo/BRIEF.md` "No emojis" | Pixel SVG icons only. | None (design rule) | Emoji placeholders (areas, gear, milestones, buttons). | Design delivers the pixel icon set. The app swaps them in. **Done 22 Nov 2026 (`1a2f33e`):** pixel icons in `assets/icons`. One text glyph is left: ⏱ in the past-sessions rows. |
+| `docs/demo/` screens | The new demo layout (character, workout, profile and others). | None | The app still has the first-build layout. | Port the demo layout into the app. **Partly done 22 Nov 2026:** the hub (07, `f224762`), the workout (08, `1a2f33e`), the profile (11) and the menu (12) follow the demo. Not checked against the demo: setup steps 02–06, past sessions (10) and gear. |
+| `docs/demo/shared/demo.js` area ids | `riptide`, `gainsgard`, `rustbelt`, `arcade`, `frostbite`. | None (D31 is about class ids only) | Saved data keeps `beach`, `castle`, `rustbelt`, `arcade`, `summit`. Art and sound files use the design ids. | Nothing, unless the owner wants the area ids to change too. (Added 22 Nov 2026.) |
 
 Built from the demo: the Profile screen, the full-screen menu and the level titles (Fresh Spawn … Mythic Meathead, design proposals).
 Note: the Workout board allows extra sets up to 9. That is fine, but sets beyond 2× the target give 0 XP (D19).
+
+Code notes (22 Nov 2026, at `a237791`). Where the code and a decision differ:
+
+- D16 says "switch (swipe)". The workout has no swipe now. A SWAP button switches to the next pool exercise (forward only).
+- D31: done. The class ids are `scrapper`, `bruiser`, `paladin`, `cablemancer`, and saved data migrates once (`docs/data-schema.md` §5.2).
+- D28: done. The difficulty ids and names are the 6 MODE names.
 
 ## 3. What design owns
 

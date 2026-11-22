@@ -1,7 +1,8 @@
 # PUMPLEX data schema
 
-Date: 21 November 2026. Status: draft v1.
-Read with [app-brief.md](app-brief.md) and [app-flow.md](app-flow.md).
+Date: 22 November 2026. Status: draft v1.1 (matches the code on `main`).
+Read with [decisions.md](decisions.md) (it wins), [app-brief.md](app-brief.md) and [app-flow.md](app-flow.md).
+The code is in `lib/game/model.dart` and `lib/store.dart`.
 
 All data stays on the phone (`shared_preferences`, JSON values). One user, one character.
 
@@ -12,7 +13,7 @@ All data stays on the phone (`shared_preferences`, JSON values). One user, one c
 | Session | **One session per calendar day.** All set marks on one day are one session. |
 | Body | The user can open the sliders again any time. Keep the history of changes. |
 | Class, difficulty, area | All can change later. Each session saves the ones it used. |
-| Workouts | A set number of exercises (3 at the easiest difficulty, 8 at the hardest), taken from the class pool. Swipe a card to switch an exercise; add, remove, skip (no sets); "back to the first exercise" button. Pools are TBD. |
+| Workouts | A set number of exercises (3 at the easiest difficulty, 8 at the hardest), taken from the class pool. Switch an exercise (SWAP); add, remove, skip (no sets); "back to the first exercise" button (FIRST). Pools are TBD. |
 | Set target | Each exercise has a target number of working sets, from the difficulty. More sets than the target give bonus XP. |
 | XP sources | Working sets, training on a day, streaks, achievements. |
 | Level | The level unlocks gear. The body stays as the sliders set it. |
@@ -100,14 +101,15 @@ Fixed game data (in code, not in storage): `CLASS`, `DIFFICULTY`, `AREA`, `EXERC
 
 | Table | Fields | Notes |
 |---|---|---|
-| Class | `id`, `name`, `equipment` (none / home / free weights / machines), `exercisePool` | One class per equipment type. Names TBD (design). |
-| Difficulty | `id`, `name`, `order`, `exercisesPerWorkout` (3–8), `targetSets`, `xpMultiplier`, `streakN` | Many levels, beginner to expert. Fantasy names TBD (design). |
-| Area | `id`, `name`, `palette`, `markStyle` (shells, wall marks…) | From the mood board. |
-| Exercise | `id`, `name`, `classId`, `kind` | Pools TBD. |
+| Class | `id`, `name`, `equipment` (none / home / free weights / machines), `exercisePool` | One class per equipment type. Ids (D31): `scrapper`, `bruiser`, `paladin`, `cablemancer`. Names are working names (D9). |
+| Difficulty | `id`, `name`, `order`, `exercisesPerWorkout` (3–8), `targetSets`, `xpMultiplier`, `streakN` | 6 levels (D28). Ids: `sofa`, `warmup`, `sweat`, `pain`, `brutal`, `nightmare`. Names are design proposals. |
+| Area | `id`, `name`, `palette`, `markStyle` (shells, wall marks…) | From the mood board. Ids: `beach`, `castle`, `rustbelt`, `arcade`, `summit`. The art id (design folder name) differs for 3: `beach` → `riptide`, `castle` → `gainsgard`, `summit` → `frostbite`. |
+| Exercise | `id`, `name`, `classId`, `kind` | Id = `<class id>.<name>`, for example `paladin.squat`. Pools TBD. |
 | Achievement | `id`, `name`, `condition`, `xp` | List TBD. |
-| Item | `id`, `name`, `slot` (top, bottom, shoes, head, weapon), `unlockLevel`, `sprite` | From the design. |
+| Item | `id`, `name`, `slot` (top, bottom, shoes, head, weapon), `unlockLevel`, `sprite` | Id = `<slot>.<name>`, for example `head.crown`. Sprites in `assets/gear/`. |
 
 Rule: never reuse or rename an `id`. Saved data points to it.
+The one exception is the class id change in D31 (owner decision). The app migrates it once (§5.2).
 
 ## 4. Saved data (in storage)
 
@@ -119,7 +121,8 @@ Rule: never reuse or rename an `id`. Saved data points to it.
 | `xp_events_v1` | List of XP_EVENT. |
 | `achievements_v1` | Map achievement id → unlock time. |
 | `gear_v1` | Owned item ids, and slot → equipped item id. |
-| `chaos`, `cel` | Display settings (exist). |
+| `chaos`, `cel`, `sound` | Menu settings (true / false). `sound` is on by default. |
+| `class_ids_v0_backup` | Written once by the class id migration (§5.2): the old `profile_v1` and `sessions_v3` text. |
 
 **Calculated, never saved:** total XP (sum of XP_EVENT), level (from the level curve), streak (from sessions), set totals.
 This keeps the numbers consistent: change a rule, and the values update.
@@ -128,19 +131,21 @@ This keeps the numbers consistent: change a rule, and the values update.
 
 ```json
 "2026-11-21": {
-  "classId": "warrior", "difficultyId": "d07", "areaId": "castle",
+  "classId": "paladin", "difficultyId": "pain", "areaId": "castle",
   "firstMarkAt": "2026-11-21T18:02:11", "lastMarkAt": "2026-11-21T19:01:40",
   "legacy": false,
   "exercises": [
-    {"position": 0, "exerciseId": "squat", "originalExerciseId": "squat",
+    {"position": 0, "exerciseId": "paladin.squat", "originalExerciseId": "paladin.squat",
      "targetSets": 4, "sets": 5, "added": false, "removed": false},
-    {"position": 1, "exerciseId": "pushup", "originalExerciseId": "dips",
+    {"position": 1, "exerciseId": "paladin.pullups", "originalExerciseId": "paladin.dips",
      "targetSets": 4, "sets": 3, "added": false, "removed": false}
   ]
 }
 ```
 
-## 5. Migration from the current app
+## 5. Migrations
+
+### 5.1 From the old app
 
 On the first launch of the new version, one time:
 
@@ -150,11 +155,30 @@ On the first launch of the new version, one time:
 4. Delete the old keys: `sessions_v2`, `logs_v2`, `swaps_v2`, `snooze2_*`, `session_started_ms`.
 5. Set `profile_v1.schemaVersion = 1`. Then run the initial setup (character, class, difficulty, area).
 
-Backups: the new backup file holds all the keys in section 4. The app still reads old backups (version 2): it runs the same migration on them.
+### 5.2 Class ids (D31, 22 Nov 2026)
+
+The first app build used the class ids `speedy`, `rogue`, `warrior` and `mage`. D31 replaces them with the design ids.
+
+| Old id | New id |
+|---|---|
+| `speedy` | `scrapper` |
+| `rogue` | `bruiser` |
+| `warrior` | `paladin` |
+| `mage` | `cablemancer` |
+
+1. On load, the app maps old ids in `profile_v1` and `sessions_v3` to the new ids. Exercise ids change too: `warrior.squat` becomes `paladin.squat`.
+2. If the saved text still has an old id, the app first copies the old text to `class_ids_v0_backup` (only if that key does not exist yet).
+3. Then it saves `profile_v1` and `sessions_v3` again with the new ids. This runs one time: after it, no old id is left.
+4. A restored backup file goes through the same steps.
+
+### 5.3 Backup files
+
+The backup file (version 3) holds the keys `profile_v1`, `body_history_v1`, `sessions_v3`, `xp_events_v1`, `achievements_v1` and `gear_v1`.
+The menu settings are not in it. The app still reads old backups (version 2): it runs the §5.1 migration on them.
 
 ## 6. Open items
 
 1. ~~Streak unit~~: decided, training days per week.
 2. **Progress:** how to measure it. The schema keeps the sets per exercise per day, so many rules are possible later.
 3. **Rules table:** draft in [rules.md](rules.md). Add to this schema: embers, weekly bounties, bounty board, rebirth count.
-4. **Lists from the design team:** class names, difficulty names, areas, items, achievements, exercise pools.
+4. **Lists from the design team:** final class names, items, achievements, exercise pools (D27). Areas and the 6 difficulty modes are in the app (D28).
