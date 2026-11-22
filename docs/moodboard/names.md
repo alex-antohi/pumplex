@@ -1,8 +1,8 @@
 # Final names sheet
 
 Status: every "Proposed final" name is a design proposal (D9, D14, D27) until the owner confirms. Ids never change.
-Sources: demo = `docs/demo/shared/demo.js`, `docs/demo/11-profile.html`. App = `lib/game/content.dart`.
-Rule: where demo and app differ, the demo wins (BRIEF.md), unless `decisions.md` says otherwise.
+Source: the app (`lib/game/content.dart`). The "Demo" columns are the removed HTML design demo (D42), kept as a record.
+Rule: the app and `decisions.md` win. A "Proposed final" name that differs from the app is only a proposal.
 
 ## Classes (D8, D9)
 
@@ -39,6 +39,8 @@ Rule: where demo and app differ, the demo wins (BRIEF.md), unless `decisions.md`
 | frostbite / summit | Frostbite Summit | Frostbite Summit | Frostbite Summit | Match. |
 
 ## Gear items (D21: one item per slot, 5 slots)
+
+Gear is removed (D38). This section is a record only.
 
 The demo has 5 slots x 5 rarities = 25 items (one drop per level-up). The app has 10 items with fixed unlock levels. Different systems; the owner decides the gear list (D27).
 

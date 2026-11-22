@@ -1,9 +1,10 @@
 # Screen sizes: what shrinks, scrolls or hides
 
-Status: proposed, 22 Nov 2026. Rule order: `docs/decisions.md`, then `docs/demo/HANDOFF.md`, then this file.
-Base: the demo is drawn for 390x844 (`pumplex.css`: `--phone-w 390`, `--phone-h 844`).
+Status: proposed, 22 Nov 2026. Rule order: `docs/decisions.md`, then this file.
+Base: the design is drawn for a 390x844 phone. It came from the HTML design demo, which is removed (D42).
+The CSS names below (`.screen`, `.foot`, `--s4`) are the demo's and are kept as labels. The app does the same in Flutter.
 
-## How the demo layout works
+## How the layout works
 
 - `.phone` is a column: top bar, `.screen`, `.foot`.
 - Under 460 px wide or 700 px high, `.phone` fills the screen (`100%` x `100dvh`), with no border.
@@ -45,7 +46,7 @@ The main button stays visible in `.foot` on every screen. If the content does no
 
 ## Tall phone 412x915 (viewport about 412x850 after bars)
 
-`.screen` gets about 850 - 56 - 88 = 706 px. Do not stretch the demo layout. Add space, not size.
+`.screen` gets about 850 - 56 - 88 = 706 px. Do not stretch the layout. Add space, not size.
 
 | Screen | Grows | Scrolls | Hides |
 |---|---|---|---|
@@ -75,12 +76,12 @@ Scale 2 (104x128) is the minimum everywhere. If it does not fit, hide the sprite
 
 ## The main button and the Android navigation bar
 
-Today the demo has no safe-area code: no `viewport-fit=cover` and no `env()`. The `.foot` bottom padding is a fixed 16 px.
+The removed demo had no safe-area code: its `.foot` bottom padding was a fixed 16 px.
 The app must follow these rules:
 
 | Rule | Value |
 |---|---|
-| Layout mode | Edge to edge. The app draws behind the status and navigation bars. In Flutter, use `SafeArea` / `MediaQuery.padding`. In the web demo, add `viewport-fit=cover`. |
+| Layout mode | Edge to edge. The app draws behind the status and navigation bars. In Flutter, use `SafeArea` / `MediaQuery.padding`. |
 | `.foot` bottom padding | `max(16px, env(safe-area-inset-bottom) + 8px)`. In Flutter: `16 + padding.bottom`. |
 | `.foot` background | Keep `var(--bg)` to the bottom edge, so no scene shows under the bar. |
 | Gesture navigation | Inset is about 24 px. The button sits 8 px above the gesture bar. |

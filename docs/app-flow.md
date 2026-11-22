@@ -58,13 +58,13 @@ flowchart TD
 | 3 | Difficulty | exists | 6 modes from the design board, Sofa to Nightmare Mode. A ladder with XP gems, no numbers. Freeze-frame title card on each pick. |
 | 4 | Starting area | exists | 5 areas from the design board. Each card shows the area's scene art. The class picks the default area. |
 | 5 | Summary | exists | Class, gear (equipment), difficulty, area. Tap a row to change it. LET'S GO (or SAVE when editing). |
-| 6 | Hub | exists | Design demo 07: the area scene with the lifter in it (class outfit and equipped gear), level and XP bar, next workout card, last time, GEAR. Bottom bar: HISTORY, HUB, PROFILE. No streak card (D34). |
-| 7 | Workout | exists | Design demo 08: exercise strip with the day's list and the area scene. No tools (D32). Tap a card to make it active. Tap the object = +1 set, hold = −1. Area marks stay in the world. |
+| 6 | Hub | exists | the area scene with the lifter in it (class outfit and equipped gear), level and XP bar, next workout card, last time, GEAR. Bottom bar: HISTORY, HUB, PROFILE. No streak card (D34). |
+| 7 | Workout | exists | exercise strip with the day's list and the area scene. No tools (D32). Tap a card to make it active. Tap the object = +1 set, hold = −1. Area marks stay in the world. |
 | 8 | Reward | exists | XP on the active exercise line. CRITICAL SET message. Freeze-frame intro card for level-ups; bursts for new gear. No achievement burst (D35). Not a separate screen. |
 | 9 | Past sessions | exists | Training days (sets per exercise against the target, time, class, area, XP) and old saves. |
 | 10 | Gear | exists | Items per slot (head, top, bottom, shoes, weapon), with the gear icons. Locked items show their level. |
-| 11 | Menu | exists | Full screen (design demo 12): YOU (profile, past sessions, edit character), GAINS INSURANCE (save / restore backup), LOOK AND FEEL (chaos mode, cel shader, sound). Opens from ⋮ on every view. |
-| 12 | Profile | exists | Design demo 11: level and level title, XP bar, the path (class, difficulty, world; tap one to change it), PAST SESSIONS, GEAR. No milestones (D35). Opens from PROFILE or the level bar on the hub. Tap the lifter to change the body. |
+| 11 | Menu | exists | Full screen: YOU (profile, past sessions, edit character), GAINS INSURANCE (save / restore backup), LOOK AND FEEL (chaos mode, cel shader, sound). Opens from ⋮ on every view. |
+| 12 | Profile | exists | level and level title, XP bar, the path (class, difficulty, world; tap one to change it), PAST SESSIONS, GEAR. No milestones (D35). Opens from PROFILE or the level bar on the hub. Tap the lifter to change the body. |
 
 Removed: the preloader, START TRAINING and its clock, I WORKED / I RESTED and UNDO,
 the 7-day pattern, rest days, rest-day stats and the preview pages.
@@ -148,7 +148,7 @@ the whole setup from the menu (EDIT CHARACTER).
 
 ### 4.1 Hub
 
-Design: design demo `07-hub.html`.
+The app is the reference for this screen (D42).
 
 - **Scene** (top): the area's scene with the lifter in it. The lifter wears the class outfit and
   the equipped gear. Tags show the area name and "class · difficulty". GEAR (top right) opens the gear.
@@ -163,7 +163,7 @@ Design: design demo `07-hub.html`.
 
 ### 4.2 Workout
 
-Design: design demo `08-workout.html` and `docs/moodboard/README.md` "Workout screen", with the
+Design: `docs/moodboard/README.md` "Workout screen", with the
 owner's rules ([decisions.md](decisions.md)).
 
 - A workout has a set number of exercises from the class exercise **pool**: 3 at the easiest

@@ -24,11 +24,11 @@ The plan is in [docs/app-brief.md](docs/app-brief.md) and
   Keep, Rustbelt Flats, Arcade Underpass, Frostbite Summit; ids `riptide`,
   `gainsgard`, `rustbelt`, `arcade`, `frostbite`, D36). Each area card
   shows the scene art. The class picks the default area; the user can pick any.
-- **Hub** (design demo 07): the area scene with the lifter in it (tap the
+- **Hub**: the area scene with the lifter in it (tap the
   lifter to change the body sliders; changes are kept as a history), the
   level and XP bar, the next workout, the last training day, GEAR, and a
   bottom bar (HISTORY, HUB, PROFILE). There is no streak (D34).
-- **Workout** (design demo 08): an exercise strip with the day's list and
+- **Workout**: an exercise strip with the day's list and
   the area scene from the design PNG layers. Tap a card to make it active.
   Tap the object = one working set, hold = one less; the marks stay in the
   world. No tools: no swap, skip, remove or add (D32). No reps, no kilos, no
@@ -45,9 +45,9 @@ The plan is in [docs/app-brief.md](docs/app-brief.md) and
   before stays.
 - **Old-app data:** a one-time upgrade saves a backup file first, then
   turns the old sessions into XP and deletes the old kg / reps data.
-- **Profile** (design demo 11): level title and the path. Tap a row to
+- **Profile**: level title and the path. Tap a row to
   change the class, difficulty or world. No milestones (D35).
-- Full-screen menu (⋮, design demo 12): profile, past sessions, edit
+- Full-screen menu (⋮): profile, past sessions, edit
   character, save / restore a backup file, chaos mode, **cel shader**
   (`shaders/cel.frag`; needs Impeller) and SOUND.
 - **Design art:** Anton and Space Mono fonts (`assets/fonts`, OFL), pixel

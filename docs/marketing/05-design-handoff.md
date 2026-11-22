@@ -19,9 +19,9 @@ platform specs (§1) and the consistency guide (§4).
 | No preloader (D29). | Story S2 does not use the preloader. See the new S2 below. |
 | 5 starting areas, each with its own set mark (moodboard "Starting areas"). | "Beach or castle" becomes "five worlds". Use the real set marks: chest + shells, chalk scratches, barrel, PUNCH-O-TRON, ice block. |
 | Class names: Scrapper, Bargain Bruiser, Plate Paladin, Cablemancer (D9, working names). | Use them. They can still change, so keep them in editable text layers. |
-| 6 difficulty names: Sofa, Warm-up, Sweat, Pain, Brutal and **Nightmare Mode** (D28). The demo's Couch Spawn … Ascended Swolemancer names are dropped (owner, 22 Nov 2026). | Use the MODE names. "Become the Swolemancer" can stay as a slogan, but no difficulty has that name. |
+| 6 difficulty names: Sofa, Warm-up, Sweat, Pain, Brutal and **Nightmare Mode** (D28). The old design names Couch Spawn … Ascended Swolemancer are dropped (owner, 22 Nov 2026). | Use the MODE names. "Become the Swolemancer" can stay as a slogan, but no difficulty has that name. |
 | "Swolemancer" as a fantasy word (a tagline, not the app name). | It can stay in a slogan, like the class-step kicker "THE SWOLEMANCER'S PATHS". It is never the app name. |
-| A clickable HTML demo of every screen exists (`docs/demo/`). | Instagram and Reddit can show demo screens, marked as "in development". **Google Play cannot** (see §3). |
+| The HTML design demo is removed (D42). | Show the real app, the moodboard sprites and the boards. Never show demo screens. |
 
 ## 2. Name and brand
 
@@ -32,8 +32,8 @@ platform specs (§1) and the consistency guide (§4).
 
 ## 3. Hard rules (read before you start)
 
-1. **Google Play screenshots show the real Android app only.** The HTML demo is not the app. Make P2–P9 after the demo layout is ported into the app (decisions.md §2, the `docs/demo/` screens row). The hub, workout, profile and menu are ported now.
-2. **No features that are not built.** On Instagram and Reddit, demo screens get a small "IN DEVELOPMENT" tag (Space Mono, 28 px, MUTED, bottom left).
+1. **Google Play screenshots show the real Android app only.** Make P2–P9 from the app on a phone.
+2. **No features that are not built.** Show only what the app has now (`docs/decisions.md`).
 3. **Sprites scale by whole numbers only** (4×, 5×, 8×, 10×, 12×), nearest-neighbour. Never smooth them.
 4. **No pure black or dark grey on the feature graphic.** Use STAGE `#2a1148` with pink dots, not BG `#12061f`.
 5. **No body shaming.** Every body is a valid build. Jokes roast the habit, never the body.
@@ -58,16 +58,16 @@ Everything else uses these.
 
 ### Batch 2: pictures we can make now
 
-Use the moodboard sprites, the demo screens and the boards.
+Use the moodboard sprites and the boards.
 
 | ID | Platform | Size | Headline | Content | Source |
 |---|---|---|---|---|---|
 | P1 | Play feature graphic | 1024 × 500, no alpha | PUMPLEX / TRAIN, NOT TRACK. | Left 45 %: A1 + tagline. Right 55 %: B1–B4 at 4× on one floor line. 60 px clear on every edge. Keep the centre calm (a video play button can sit there). | A1, `moodboard/builds/` |
 | C1 | IG carousel | 1080 × 1350 | YOUR GYM APP IS A SPREADSHEET. OURS IS A GAME. | Left: a grey table of reps and kilos (MUTED). Right: B1 at 10×. Diagonal INK split. | B1 (later: `pr_flex` frame) |
 | C2 | IG carousel | 1080 × 1350 | NO REPS. NO KILOS. JUST SETS. | REPS and KG crossed out, SETS with a lime check. | A3 |
-| C3 | IG carousel | 1080 × 1350 | SLIDE YOUR BODY. NEVER TYPE YOUR WEIGHT. | SL-M 3 × 3 at 4×. Axes FAT → and MUSCLE ↑. Add the height slider from `02-character.html`. | `body_sliders/male/` |
-| C4 | IG carousel | 1080 × 1350 | YOUR GEAR = YOUR CLASS. | 4 panels: SCRAPPER (no gear), BARGAIN BRUISER (home gym), PLATE PALADIN (free weights), CABLEMANCER (machines). Class colours from `demo.js`. | `03-class.html` |
-| C5 | IG carousel | 1080 × 1350 | FROM SOFA MODE TO NIGHTMARE MODE. | The 6 difficulty names as a ladder, gems 1–6, top rung in PINK. | `04-difficulty.html` |
+| C3 | IG carousel | 1080 × 1350 | SLIDE YOUR BODY. NEVER TYPE YOUR WEIGHT. | SL-M 3 × 3 at 4×. Axes FAT → and MUSCLE ↑. Add the height slider (see the creator in the app). | `body_sliders/male/` |
+| C4 | IG carousel | 1080 × 1350 | YOUR GEAR = YOUR CLASS. | 4 panels: SCRAPPER (no gear), BARGAIN BRUISER (home gym), PLATE PALADIN (free weights), CABLEMANCER (machines). Class colours from `classColor` in `lib/views/sprite.dart`. | `moodboard/canvas/ClassSelect.dc.html` |
+| C5 | IG carousel | 1080 × 1350 | FROM SOFA MODE TO NIGHTMARE MODE. | The 6 difficulty names as a ladder, gems 1–6, top rung in PINK. | `moodboard/canvas/Difficulty.dc.html` |
 | C6 | IG carousel | 1080 × 1350 | FIVE WORLDS. FIVE WAYS TO COUNT A SET. | 5 strips: chest + shells, chalk scratches, barrel, PUNCH-O-TRON, ice block. Each with its call (PEARL!, SLASHED!, TAGGED!, COMBO!, SUMMIT!). | `05-area.html`, `scrapper_rustbelt.html`, moodboard "Starting areas" |
 | C7 | IG carousel | 1080 × 1350 | ONE SET. ONE BOOM. LEVEL UP. | Barrel blast → XP pop → level-up freeze-frame card. | `08-workout.html`, `canvas/Workout.dc.html` |
 | C8 | IG carousel | 1080 × 1350 | TRAIN, NOT TRACK. ANDROID. OFFLINE. | A1 centred, B1–B4 in a row, "link in bio" in Space Mono. | A1 |
@@ -84,7 +84,7 @@ Use the moodboard sprites, the demo screens and the boards.
 
 ### Batch 3: after the app has the new screens
 
-Wait until the demo layout is in the Android app. Then take real screenshots from a phone (full battery, full signal, no notifications).
+Take real screenshots from a phone (full battery, full signal, no notifications).
 
 | ID | Purpose | Headline | App screen | Accent |
 |---|---|---|---|---|
@@ -129,7 +129,6 @@ Headline in Anton 104 px, TEXT, max 2 lines, with a hard shadow in the accent co
 - [ ] Only colours from `palette.json`. No gradients, glow or blur.
 - [ ] No START TRAINING, I WORKED, clock, reward screen or preloader.
 - [ ] No streak, week target, embers, milestones, medals, workout tool row or ADD card (D32, D34, D35).
-- [ ] Demo screens have the "IN DEVELOPMENT" tag (Instagram and Reddit only).
 - [ ] Headline text is readable at phone size (min 32 px on a 1080 px canvas).
 - [ ] No banned Play words. No system emoji.
 - [ ] "PUMPLEX" is spelled right, with no ™ (until the owner says so, §2).

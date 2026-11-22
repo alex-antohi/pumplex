@@ -17,7 +17,7 @@ It rewrites everything in this folder. Ids never change once shipped.
 
 | Path | What |
 | --- | --- |
-| `svg/<id>.svg` | `fill="currentColor"`, crisp pixel runs. For the demo and design tools. |
+| `svg/<id>.svg` | `fill="currentColor"`, crisp pixel runs. For design tools. |
 | `png/<id>.png` | 24×24, white on transparent. |
 | `png/2.0x/<id>.png`, `png/3.0x/<id>.png` | 48 and 72 px, nearest-neighbour. Flutter picks the right one by screen density. |
 | `icons.json` | The index. |
@@ -36,8 +36,7 @@ It rewrites everything in this folder. Ids never change once shipped.
 | mark | mark-riptide, mark-gainsgard, mark-rustbelt, mark-arcade, mark-frostbite (how each area records a set) |
 | slot | slot-head, slot-top, slot-bottom, slot-shoes, slot-weapon (gear slots, D21) |
 
-The class icons use the demo ids. The app's ids map like this: `speedy` → scrapper, `rogue` → bruiser,
-`warrior` → paladin, `mage` → cablemancer.
+The class icons use the design ids, which the app uses too (D31).
 
 ## For the app
 

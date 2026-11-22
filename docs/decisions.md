@@ -51,6 +51,7 @@ Ask the owner before you design against a decision. Add each new decision here, 
 | D40 | No CEL SHADER mode. | 22 Nov 2026 | Overrides the cel part of D24. The PUMPLEX look stays. |
 | D41 | No sound. The `audioplayers` package is removed. | 22 Nov 2026 | Overrides the owner's earlier OK for sound (D26 exception). |
 | D37 | The app name is PUMPLEX. | 22 Nov 2026 | Marketing drafts that say SWOLEMANCER must change. |
+| D42 | The HTML design demo (`docs/demo/`) is removed. The app and this file are the source of truth for screens, names and numbers. New design proposals go in `docs/moodboard/`. | 22 Nov 2026 | Closes every demo row in §2. Older notes that say "design demo 07" only name the screen a design came from. |
 
 ## 2. Where the current boards conflict
 
@@ -63,21 +64,22 @@ no preloader, no START TRAINING, no clock, no `SESSION n`, no I WORKED, no rewar
 (`docs/moodboard/README.md` "Transitions between views").
 D32–D36 (22 Nov 2026) came after that check. The new conflicts they make are in the table below.
 
-Still open (no decision is broken, but the app and the design differ):
+D42 (22 Nov 2026) closes the demo rows below: the demo is removed, so there is nothing left to update.
+The app is now the reference for the layout, the names and the numbers. The table stays as a record.
 
-| Board / file | What it shows | Decision | What the app does | Next step |
-|---|---|---|---|---|
-| `docs/demo/shared/demo.js` exercises per level | 3, 4, 5, 6, 7, 8 exercises (marked PLACEHOLDER). | D15, D33 | 3, 3, 4, 5, 6, 8 (`lib/game/rules.dart`). | **Decided 22 Nov 2026 (D33):** 3, 3, 4, 5, 6, 8. Design updates `demo.js` to match. |
-| `docs/demo/shared/demo.js` streak N per level | 2, 2, 3, 3, 4, 4 days (marked PLACEHOLDER). | D20, D34 | No streak. | **Decided 22 Nov 2026 (D34):** no streak, so no streak N. Design removes it from `demo.js`. |
-| `12-menu.html` SOUND | A sound toggle. | None (no sound files yet) | A disabled SOUND row with a SOON tag (placeholder). | Design delivers the sound pack. **Done 22 Nov 2026 (`1a2f33e`):** the sound pack is in `assets/sounds` and the SOUND row is a working toggle (`lib/sound.dart`, `audioplayers` with the owner's OK, D26). |
-| `docs/demo/BRIEF.md` "No emojis" | Pixel SVG icons only. | None (design rule) | Emoji placeholders (areas, gear, milestones, buttons). | Design delivers the pixel icon set. The app swaps them in. **Done 22 Nov 2026 (`1a2f33e`):** pixel icons in `assets/icons`. The last text glyph (⏱ in the past-sessions rows) is now the word TIME. |
-| `docs/demo/` screens | The new demo layout (character, workout, profile and others). | None | The app still has the first-build layout. | Port the demo layout into the app. **Partly done 22 Nov 2026:** the hub (07, `f224762`), the workout (08, `1a2f33e`), the profile (11) and the menu (12) follow the demo. Not checked against the demo: setup steps 02–06, past sessions (10) and gear. |
-| `docs/demo/shared/demo.js` area ids | `riptide`, `gainsgard`, `rustbelt`, `arcade`, `frostbite`. | D36 | The same ids. Saved `beach`, `castle`, `summit` migrate once (`docs/data-schema.md` §5.3). | **Decided and done 22 Nov 2026 (D36).** Nothing to do. |
-| `08-workout.html` swipe and tool row | Swipe a card to switch the exercise. Tool row (swap, back to first, skip, remove) and an ADD card. | D32 | No tools. The strip shows the day's list; tap a card to make it active. | Design updates the demo to follow D32. (Added 22 Nov 2026.) |
-| `07-hub.html`, `11-profile.html` and `docs/demo/shared/demo.js` streak | A "this week" card with the week target, streak weeks and embers. The profile's READY TO CLIMB? card counts streak weeks. | D34 | No streak, no week target, no embers, no streak bonus. | Design updates the demo to follow D34. (Added 22 Nov 2026.) |
-| `11-profile.html` milestones | A milestones (achievements) list with pixel medals. | D35 | No achievements, no milestones, no ACHIEVEMENT burst. Only gear unlocks (by level). | Design updates the demo to follow D35. (Added 22 Nov 2026.) |
+| Was in the demo | What it showed | Decision | Outcome |
+|---|---|---|---|
+| `demo.js` exercises per level | 3, 4, 5, 6, 7, 8 (placeholder). | D15, D33 | The app uses 3, 3, 4, 5, 6, 8 (`lib/game/rules.dart`). |
+| `demo.js` streak N per level | 2, 2, 3, 3, 4, 4 days (placeholder). | D20, D34 | No streak. |
+| `12-menu.html` SOUND | A sound toggle. | D26, D41 | Built on 22 Nov 2026 (`1a2f33e`), then removed by D41: no sound. |
+| `BRIEF.md` "No emojis" | Pixel SVG icons only. | Design rule | Done (`1a2f33e`): pixel icons in `assets/icons`. The ⏱ glyph in past sessions is now the word TIME. |
+| Screens 02–12 | The new layout. | None | The hub (07), workout (08), profile (11) and menu (12) were ported. Setup 02–06 and past sessions (10) were never checked against the demo. The app's screens are now the layout. |
+| `demo.js` area ids | `riptide`, `gainsgard`, `rustbelt`, `arcade`, `frostbite`. | D36 | Done: the app uses the same ids. |
+| `08-workout.html` swipe and tool row | Swipe to switch, a tool row and an ADD card. | D32 | The app has no tools. |
+| `07-hub.html`, `11-profile.html` streak | A "this week" card, streak weeks and embers. | D34 | The app has no streak. |
+| `11-profile.html` milestones | A milestones list with pixel medals. | D35 | The app has no achievements. |
 
-Built from the demo: the Profile screen, the full-screen menu and the level titles (Fresh Spawn … Mythic Meathead, design proposals).
+The Profile screen, the full-screen menu and the level titles (Fresh Spawn … Mythic Meathead, design proposals) came from the demo.
 Note: the Workout board allows extra sets up to 9. That is fine, but sets beyond 2× the target give 0 XP (D19).
 
 Code notes (22 Nov 2026, at `a237791`, updated for D32–D37). Where the code and a decision differ:

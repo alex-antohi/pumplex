@@ -23,6 +23,6 @@ Draw the same atlas cell rect from each file at the same position, with `FilterQ
 body (D21): top, bottom, shoes and head pieces sit on the pixels of the starter clothes, hair and face. The cape,
 boot shafts, crown spikes and weapons go slightly outside the body shape but stay inside the 52x64 cell.
 
-The demo's `ITEM_NAMES` list has 5 rarities per slot (25 items). Only the 10 app items are drawn here. For rarity,
+The removed design demo's `ITEM_NAMES` list has 5 rarities per slot (25 items). Only the 10 app items are drawn here. For rarity,
 tint a sprite or add a glow in the app.
 Regenerate with `node tools/moodboard/outfits.mjs`.

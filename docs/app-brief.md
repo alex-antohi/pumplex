@@ -129,7 +129,7 @@ The class names come from the design team (D9). The final names are still open (
 | Streak, week target | Removed (22 Nov, D34). The old streak XP stays as saved XP events. |
 | Achievements, milestones | Removed (22 Nov, D35). The old achievement XP stays. Only gear unlocks remain. |
 | Design art | In the app since 22 Nov: fonts, pixel icons, class outfits, gear sprites, area scenes and the sound pack. |
-| Layout | Hub, workout, profile and menu follow the design demo (`docs/demo/`). |
+| Layout | The app's screens are the layout. The HTML design demo is removed (D42). |
 | Release signing | From `android/key.properties` (see the [README](../README.md)). |
 
 ## 8. Documents
