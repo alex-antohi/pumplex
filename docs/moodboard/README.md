@@ -110,7 +110,8 @@ Neons (highlight / base / shadow):
 Rows 0–4 = male, muscle 0, 25, 50, 75, 100; rows 5–9 = female, same order.
 Cell for (sex, fat, muscle): `x = fat/25 * 52`, `y = ((sex == female ? 5 : 0) + muscle/25) * 64`.
 The canvas's Creator board shows it at 4× with a sex toggle and three 5-step sliders: HEIGHT, FAT and MUSCLE (D10, D11).
-Height has no atlas rows: the app scales the cell evenly, 0.86× to 1.14× (`lib/game/rules.dart`, D45).
+Height has no atlas rows: the app draws five height models by removing or repeating pixel rows of the cell
+(chest 19, hips 37, shins 48 and 50; −4 to +4 rows, `lib/game/rules.dart`, D55), the same rows in every layer.
 The app shows the FAT slider as WEIGHT, 50–200 kg. Skin, hair and facial hair are in [`looks/`](looks/README.md).
 
 ## Animation style test

@@ -1,6 +1,6 @@
 // The 2D character: the mood board's body atlas (docs/moodboard/creator,
 // 5 fat × 5 muscle steps per sex), nearest cell for the slider values,
-// scaled evenly for height. Skin, hair and facial hair come from
+// drawn with more or fewer pixel rows for height (D55). Skin, hair and facial hair come from
 // tools/moodboard/looks.mjs (docs/moodboard/looks). Pixel art only scales with
 // nearest-neighbour sampling (FilterQuality.none).
 
@@ -57,7 +57,20 @@ List<String> get allSpriteAssets => [
   for (final c in gameClasses) outfitAtlas(c.id),
 ];
 
-/// One atlas cell drawn at [width] × [height] (nearest-neighbour).
+/// The source rows of the body cell for [height] (0..100), top to bottom:
+/// the height model of the nearest slider stop (D55).
+List<int> heightRows(int height) {
+  final d = heightSteps[spriteStops.indexOf(nearestStop(height))];
+  final edit = d.abs() == 4 ? heightRows4 : d.abs() == 2 ? heightRows2 : const <int>[];
+  return [
+    for (var y = 0; y < spriteHeight; y++)
+      if (!(d < 0 && edit.contains(y))) ...[y, if (d > 0 && edit.contains(y)) y],
+  ];
+}
+
+/// One atlas cell drawn at [width] × [height] (nearest-neighbour). With
+/// [rows], the cell is drawn row by row from those source rows (the height
+/// models, D55); [height] is then [rows].length pixels.
 class AtlasSprite extends StatelessWidget {
   const AtlasSprite({
     super.key,
@@ -66,6 +79,7 @@ class AtlasSprite extends StatelessWidget {
     required this.width,
     required this.height,
     this.asset = bodyAtlas,
+    this.rows,
   });
 
   final String frame;
@@ -74,10 +88,59 @@ class AtlasSprite extends StatelessWidget {
   final String asset;
   final (int, int) cell;
   final double width, height;
+  final List<int>? rows;
 
   @override
   Widget build(BuildContext context) {
     final cols = spriteStops.length, rows = spriteStops.length * 2;
+    final src = this.rows;
+    if (src != null) {
+      // Runs of consecutive source rows, each cut out of the atlas.
+      final px = width / spriteWidth;
+      final runs = <(int, int)>[];
+      for (final y in src) {
+        if (runs.isNotEmpty && runs.last.$1 + runs.last.$2 == y) {
+          runs.last = (runs.last.$1, runs.last.$2 + 1);
+        } else {
+          runs.add((y, 1));
+        }
+      }
+      final image = Image.asset(
+        asset,
+        width: width * cols,
+        height: spriteHeight * px * rows,
+        fit: BoxFit.fill,
+        filterQuality: FilterQuality.none,
+        isAntiAlias: false,
+        gaplessPlayback: true,
+      );
+      return SizedBox(
+        width: width,
+        height: src.length * px,
+        child: Column(
+          children: [
+            for (final (from, n) in runs)
+              SizedBox(
+                width: width,
+                height: n * px,
+                child: ClipRect(
+                  child: OverflowBox(
+                    alignment: Alignment.topLeft,
+                    minWidth: width * cols,
+                    maxWidth: width * cols,
+                    minHeight: spriteHeight * px * rows,
+                    maxHeight: spriteHeight * px * rows,
+                    child: Transform.translate(
+                      offset: Offset(-cell.$1 * width, -(cell.$2 * spriteHeight + from) * px),
+                      child: image,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      );
+    }
     return SizedBox(
       width: width,
       height: height,
@@ -106,11 +169,6 @@ class AtlasSprite extends StatelessWidget {
   }
 }
 
-/// Size factor of the sprite for the height slider (0..100). The sprite
-/// grows evenly (width and height), it is not stretched.
-double heightScale(int height) =>
-    minHeightScale + (maxHeightScale - minHeightScale) * height / 100;
-
 /// Where [CharacterSprite] draws in a box of [size]: the whole-number pixel
 /// scale, the pedestal height and the sprite rect for [height].
 ({double scale, double pedestal, Rect sprite}) spriteGeometry(Size size, int height, {bool pedestal = true}) {
@@ -118,8 +176,8 @@ double heightScale(int height) =>
   final room = size.height - ped * 0.55;
   // Whole-number scale so every sprite pixel stays square.
   final s = max(1, min(size.width / spriteWidth, room / (spriteHeight * maxHeightScale)).floor()).toDouble();
-  final h = heightScale(height);
-  final w = spriteWidth * s * h, hh = spriteHeight * s * h;
+  // Taller models have more pixel rows, not bigger pixels (D55).
+  final w = spriteWidth * s, hh = heightRows(height).length * s;
   return (scale: s, pedestal: ped, sprite: Rect.fromLTWH((size.width - w) / 2, size.height - ped * 0.45 - hh, w, hh));
 }
 
@@ -173,6 +231,7 @@ class _CharacterSpriteState extends State<CharacterSprite>
   void didUpdateWidget(CharacterSprite old) {
     super.didUpdateWidget(old);
     if (spriteFrame(old.character) != spriteFrame(widget.character) ||
+        nearestStop(old.character.height) != nearestStop(widget.character.height) ||
         old.classId != widget.classId) {
       _bounce.forward(from: 0);
     }
@@ -248,24 +307,20 @@ class _CharacterSpriteState extends State<CharacterSprite>
                   scaleY: 1 - 0.06 * sin(_bounce.value * pi),
                   child: child,
                 ),
-                child: TweenAnimationBuilder<double>(
-                  tween: Tween(end: heightScale(widget.character.height)),
-                  duration: const Duration(milliseconds: 220),
-                  builder: (context, h, _) => Stack(
-                    children: [
-                      for (final (i, asset) in layers.indexed)
-                        AtlasSprite(
-                          key: i == 0
-                              ? const ValueKey('character-sprite')
-                              : null,
-                          asset: asset,
-                          frame: spriteFrame(widget.character),
-                          cell: spriteCell(widget.character),
-                          width: w * h,
-                          height: spriteHeight * s * h,
-                        ),
-                    ],
-                  ),
+                // The height model: rows added or taken out (D55).
+                child: Stack(
+                  children: [
+                    for (final (i, asset) in layers.indexed)
+                      AtlasSprite(
+                        key: i == 0 ? const ValueKey('character-sprite') : null,
+                        asset: asset,
+                        frame: spriteFrame(widget.character),
+                        cell: spriteCell(widget.character),
+                        width: w,
+                        height: heightRows(widget.character.height).length * s,
+                        rows: heightRows(widget.character.height),
+                      ),
+                  ],
                 ),
               ),
             ),

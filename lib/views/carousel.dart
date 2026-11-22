@@ -126,10 +126,10 @@ class CarouselDots extends StatelessWidget {
   }
 }
 
-/// A vertical carousel that follows the finger (D54): drag up for the next
-/// item, down for the one before, round and round. The neighbour shows
-/// while dragging; let go past a fifth of the height (or flick) to move on.
-/// The items' own lists should not scroll vertically, so the drag is ours.
+/// A vertical carousel (D54, D55): flick up for the next item, down for the
+/// one before, round and round. Like the sideways carousels it reacts to the
+/// flick, it does not follow the finger: the next item slides in from the
+/// side of the swipe.
 class VerticalCarousel extends StatefulWidget {
   const VerticalCarousel({
     super.key,
@@ -149,76 +149,47 @@ class VerticalCarousel extends StatefulWidget {
   State<VerticalCarousel> createState() => _VerticalCarouselState();
 }
 
-class _VerticalCarouselState extends State<VerticalCarousel> with SingleTickerProviderStateMixin {
-  late final AnimationController _c;
-
-  @override
-  void initState() {
-    super.initState();
-    _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 260));
-  }
-
-  /// How far the current item is dragged (px, negative = up).
+class _VerticalCarouselState extends State<VerticalCarousel> {
+  /// 1: the new item comes in from below (swipe up), -1: from above.
+  int _dir = 1;
   double _dy = 0;
-  double _height = 1;
 
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  int _wrap(int i) => i % widget.count;
-
-  void _settle(double velocity) {
-    final h = _height;
-    final target = _dy < -h * 0.2 || velocity < -600
-        ? -h
-        : _dy > h * 0.2 || velocity > 600
-            ? h
-            : 0.0;
-    final from = _dy;
-    _c.stop();
-    _c.value = 0;
-    void tick() => setState(() => _dy = from + (target - from) * Curves.easeOutCubic.transform(_c.value));
-    _c.addListener(tick);
-    _c.forward().whenComplete(() {
-      _c.removeListener(tick);
-      if (!mounted) return;
-      if (target != 0) widget.onIndex(_wrap(widget.index + (target < 0 ? 1 : -1)));
-      setState(() => _dy = 0);
-    });
+  void _step(int d) {
+    setState(() => _dir = d);
+    widget.onIndex((widget.index + d) % widget.count);
   }
 
   @override
-  Widget build(BuildContext context) => LayoutBuilder(builder: (context, box) {
-        _height = box.maxHeight;
-        final h = box.maxHeight;
-        final shown = [
-          0,
-          if (_dy < 0) 1,
-          if (_dy > 0) -1,
-        ];
-        return GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onVerticalDragStart: (_) => _c.stop(),
-          onVerticalDragUpdate: (d) => setState(() => _dy = (_dy + d.delta.dy).clamp(-h, h)),
-          onVerticalDragEnd: (d) => _settle(d.primaryVelocity ?? 0),
-          child: ClipRect(
-            child: Stack(
-              children: [
-                for (final o in shown)
-                  Positioned(
-                    key: ValueKey('vc-${_wrap(widget.index + o)}'),
-                    left: 0,
-                    right: 0,
-                    top: o * h + _dy,
-                    height: h,
-                    child: widget.builder(context, _wrap(widget.index + o)),
-                  ),
-              ],
-            ),
+  Widget build(BuildContext context) => GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onVerticalDragStart: (_) => _dy = 0,
+        onVerticalDragUpdate: (d) => _dy += d.delta.dy,
+        onVerticalDragEnd: (d) {
+          final v = d.primaryVelocity ?? 0;
+          if (_dy < -40 || v < -300) {
+            _step(1);
+          } else if (_dy > 40 || v > 300) {
+            _step(-1);
+          }
+        },
+        child: ClipRect(
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 260),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            layoutBuilder: (current, previous) => Stack(children: [...previous, ?current]),
+            transitionBuilder: (child, anim) {
+              final incoming = child.key == ValueKey('vc-${widget.index}');
+              return SlideTransition(
+                position: Tween(
+                  begin: Offset(0, incoming ? _dir.toDouble() : -_dir.toDouble()),
+                  end: Offset.zero,
+                ).animate(anim),
+                child: child,
+              );
+            },
+            child: KeyedSubtree(key: ValueKey('vc-${widget.index}'), child: widget.builder(context, widget.index)),
           ),
-        );
-      });
+        ),
+      );
 }

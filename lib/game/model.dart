@@ -254,11 +254,11 @@ class Session {
       ? null
       : DateTime.parse(lastMarkAt!).difference(DateTime.parse(firstMarkAt!));
 
-  Session copyWith({String? lastMarkAt, List<SessionExercise>? exercises}) => Session(
+  Session copyWith({String? lastMarkAt, String? areaId, List<SessionExercise>? exercises}) => Session(
         date: date,
         classId: classId,
         difficultyId: difficultyId,
-        areaId: areaId,
+        areaId: areaId ?? this.areaId,
         firstMarkAt: firstMarkAt ?? lastMarkAt,
         lastMarkAt: lastMarkAt ?? this.lastMarkAt,
         legacy: legacy,

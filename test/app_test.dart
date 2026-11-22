@@ -373,7 +373,8 @@ void main() {
     final xp = store.totalXp;
     const gym = Profile(character: Character(), classId: 'cablemancer', difficultyId: 'nightmare', areaId: 'riptide');
     store.setProfile(gym);
-    expect((store.todaySession!.classId, store.todaySession!.areaId), ('paladin', 'gainsgard'));
+    // The class keeps today's workout once it has sets; the area shows at once (D55).
+    expect((store.todaySession!.classId, store.todaySession!.areaId), ('paladin', 'riptide'));
     expect(store.totalXp, xp);
     _now = _now.add(const Duration(days: 1));
     expect(store.todayExercises.length, 8);
@@ -597,7 +598,11 @@ void main() {
     final tall = t.getSize(find.byKey(const ValueKey('character-sprite')));
     expect(find.text('2.00 M'), findsOneWidget);
     expect(tall.height, greaterThan(short.height));
-    expect(tall.width / tall.height, closeTo(short.width / short.height, 0.01)); // scaled, not stretched
+    // A height model (D55): more pixel rows, same width, not a scaled picture.
+    expect(tall.width, short.width);
+    expect(heightRows(100).length - heightRows(50).length, 4);
+    expect(heightRows(0).length, spriteHeight - 4);
+    expect(heightRows(100).where((y) => y == 19).length, 2); // the chest row repeated
 
     // Tap the head: the camera zooms in, the panel has skin, hair and facial hair.
     await t.tap(find.byKey(const ValueKey('creator-head')));

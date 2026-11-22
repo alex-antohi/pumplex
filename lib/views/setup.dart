@@ -102,65 +102,72 @@ class CreateView extends StatelessWidget {
     }
 
     final head = headRect(spriteGeometry(stage.size, character.height).sprite).shift(stage.topLeft);
+    // Inside the card: its border starts at (20, 12) in the view.
+    const o = Offset(-20, -12);
+    final card = Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 22, 8),
+      // The body editor is a card (D54) as tall as its content (D55).
+      child: Brutal(
+        key: const ValueKey('body-card'),
+        shadow: p.pink,
+        child: Stack(
+          children: [
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(height: stage.bottom - 12),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 12, 18, 14),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: headOpen ? _headPanel(p) : _bodyPanel(p),
+                  ),
+                ),
+              ],
+            ),
+            if (!headOpen)
+              Positioned(
+                left: 10,
+                top: stage.top - 6,
+                child: Column(children: [sexButton('male', 'male'), sexButton('female', 'female')]),
+              ),
+            // An outline box marks the head: tap it for the head looks.
+            if (!headOpen)
+              Positioned.fromRect(
+                // Ends at the chin, so the shoulders do not hide its bottom edge.
+                rect: Rect.fromLTRB(head.left - 4, head.top - 4, head.right + 4, head.bottom).shift(o),
+                child: IgnorePointer(
+                  child: Container(
+                    key: const ValueKey('head-outline'),
+                    decoration: BoxDecoration(border: Border.all(color: p.lime, width: 3)),
+                  ),
+                ),
+              ),
+            // Tap the head to open (or close) the head looks.
+            Positioned.fromRect(
+              rect: (headOpen ? stage : head.inflate(8)).shift(o),
+              child: GestureDetector(
+                key: const ValueKey('creator-head'),
+                behavior: HitTestBehavior.translucent,
+                onTap: () => onHead(!headOpen),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
     return Column(
       children: [
         Expanded(
-          child: Stack(
-            children: [
-              // The body editor is a card (D54), like the class and area cards.
-              Positioned.fill(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 22, 8),
-                  child: Brutal(key: const ValueKey('body-card'), shadow: p.pink, child: const SizedBox.expand()),
-                ),
-              ),
-              Column(
-                children: [
-        SizedBox(
-          height: stage.bottom,
-          child: Stack(
-            children: [
-              if (!headOpen)
-                Positioned(
-                  left: 30,
-                  top: stage.top + 6,
-                  child: Column(children: [sexButton('male', 'male'), sexButton('female', 'female')]),
-                ),
-              // An outline box marks the head: tap it for the head looks.
-              if (!headOpen)
-                Positioned.fromRect(
-                  // Ends at the chin, so the shoulders do not hide its bottom edge.
-                  rect: Rect.fromLTRB(head.left - 4, head.top - 4, head.right + 4, head.bottom),
-                  child: IgnorePointer(
-                    child: Container(
-                      key: const ValueKey('head-outline'),
-                      decoration: BoxDecoration(border: Border.all(color: p.lime, width: 3)),
-                    ),
-                  ),
-                ),
-              // Tap the head to open (or close) the head looks.
-              Positioned.fromRect(
-                rect: headOpen ? stage : head.inflate(8),
-                child: GestureDetector(
-                  key: const ValueKey('creator-head'),
-                  behavior: HitTestBehavior.translucent,
-                  onTap: () => onHead(!headOpen),
-                ),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: ListView(
-            // In the lifter editor the vertical drag belongs to the carousel (D54).
-            physics: buttons ? null : const NeverScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(32, 12, 40, 16),
-            children: headOpen ? _headPanel(p) : _bodyPanel(p),
-          ),
-        ),
-                ],
-              ),
-            ],
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: SingleChildScrollView(
+              // In the lifter editor the vertical drag belongs to the carousel (D54).
+              physics: buttons ? null : const NeverScrollableScrollPhysics(),
+              child: card,
+            ),
           ),
         ),
         if (buttons) _Nav(next: headOpen ? 'DONE' : 'NEXT', onNext: headOpen ? () => onHead(false) : onNext),
@@ -271,8 +278,8 @@ const _classDotsHeight = 30.0, _classDifficultyHeight = 74.0, _classNavHeight = 
 /// Top of the setup cards (class, area): no title block above them.
 const _setupCardTop = 8.0;
 
-/// Room the class texts keep under the lifter (name to tags).
-const _classTextMin = 130.0;
+/// Height of the class info at the bottom of the class card (name to tags).
+const _classTextMin = 150.0;
 
 /// The class card and, inside it, where the shell draws the lifter, in a
 /// view of [area] with [bottomInset] (the phone's navigation bar).
@@ -286,10 +293,12 @@ const _classTextMin = 130.0;
   // CharacterSprite: pedestal = 10% of the box, the sprite gets the rest
   // minus half of it, at most spriteHeight × maxHeightScale × scale.
   const perScale = spriteHeight * maxHeightScale / 0.945;
-  final avail = card.height - 16 - _classTextMin;
+  final avail = card.height - 12 - _classTextMin;
   final byWidth = (card.width - 24) / spriteWidth;
   final scale = max(2, min(byWidth, avail / perScale).floor());
-  final stage = Rect.fromLTWH(card.left + 12, card.top + 8, card.width - 24, min(avail, perScale * scale + 2));
+  // The lifter stands right on the class info at the bottom (D55).
+  final h = min(avail, perScale * scale + 2);
+  final stage = Rect.fromLTWH(card.left + 12, card.top + 8 + avail - h, card.width - 24, h);
   return (card: card, stage: stage);
 }
 
@@ -344,7 +353,6 @@ class _ClassViewState extends State<ClassView> with SwipeCarousel<ClassView> {
     final dColor = difficultyColor(p, di);
     return LayoutBuilder(builder: (context, box) {
       final card = classLayout(box.biggest, MediaQuery.paddingOf(context).bottom, buttons: widget.buttons).card;
-      final stage = widget.stage;
       return Stack(
         children: [
           // The card: the shell draws the lifter at [stage], at its top.
@@ -357,8 +365,12 @@ class _ClassViewState extends State<ClassView> with SwipeCarousel<ClassView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    SizedBox(height: stage.bottom - card.top),
-                    Expanded(child: slide(cls.id, _ClassText(cls: cls, color: color, scroll: widget.buttons))),
+                    // The lifter fills the top; the class info sits at the bottom (D55).
+                    const Spacer(),
+                    SizedBox(
+                      height: _classTextMin,
+                      child: slide(cls.id, _ClassText(cls: cls, color: color, scroll: widget.buttons)),
+                    ),
                   ],
                 ),
               ),

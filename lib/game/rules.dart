@@ -135,8 +135,17 @@ double heightMetres(int v) => minHeightM + (maxHeightM - minHeightM) * v / 100;
 const minWeightKg = 50, maxWeightKg = 200;
 int weightKg(int fat) => (minWeightKg + (maxWeightKg - minWeightKg) * fat / 100).round();
 
-const minHeightScale = 0.86;
-const maxHeightScale = 1.14;
+/// Height models (D55): five heights, one per slider stop. Each removes
+/// (negative) or repeats (positive) pixel rows of the 52x64 body cell, the
+/// same rows in every layer (body, looks, beard, outfit), so all of them
+/// stay lined up. The rows are the ones that look most like the next row in
+/// every cell (chest 19, hips 37, shins 48 and 50), so the seams do not show.
+const heightSteps = [-4, -2, 0, 2, 4];
+const heightRows2 = [37, 50];
+const heightRows4 = [19, 37, 48, 50];
+
+/// The tallest model, against the 64-row cell (to fit the sprite in a box).
+const maxHeightScale = (64 + 4) / 64;
 
 /// Native sprite size in pixels (docs/moodboard/README.md).
 const spriteWidth = 52;
