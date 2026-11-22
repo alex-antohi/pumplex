@@ -2,16 +2,19 @@
 // rules (docs/decisions.md): one session per calendar day, so there is NO
 // I WORKED button and NO clock (D6, D7).
 //
-// Top to bottom:
-// - Header: ◀ HUB, the class and the area name.
-// - Exercise strip: one card per exercise with its target slots. Tap a
-//   card to make it the active exercise. The list is the one the app picks
-//   for the day: no swap, skip, remove or add (D32).
-// - The area scene (design PNG layers, lib/views/area_scene.dart): TAP THE
-//   OBJECT = one working set, HOLD IT = take the last set back (D17). The
-//   marks stay in the world; at the target the strip moves on.
+// One card, like the starting-area card (D48):
+// - The world on top: the area scene (design PNG layers,
+//   lib/views/area_scene.dart) with the lifter in it. TAP THE OBJECT = one
+//   working set for the exercise shown below, HOLD IT = take the last set
+//   back (D17). The marks stay in the world.
+// - Under the world: the exercise carousel, one exercise at a time (name,
+//   target slots, set line, XP). Swipe it both ways, round and round; dots
+//   show where you are. At the target it moves on to the next open
+//   exercise. The list is the one the app picks for the day: no swap, skip,
+//   remove or add (D32).
 
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -22,16 +25,22 @@ import '../game/model.dart';
 import '../pumplex.dart';
 import '../store.dart';
 import 'area_scene.dart';
+import 'carousel.dart';
 
 const _advanceDelay = Duration(milliseconds: 800);
 
-/// Top of the scene area in the workout view (header and strip above).
-const _sceneTop = 176.0;
+/// The workout card in a view of [area]: the world on top, the exercise
+/// carousel under it.
+Rect workoutCard(Size area) => Rect.fromLTRB(16, 8, area.width - 22, area.height - 14);
 
-/// The scene's rect and whole-number scale in a workout view of [area].
+/// The scene's rect and whole-number scale in a workout view of [area]: edge
+/// to edge in the card; at most 24 px a side are cut off to reach the next
+/// whole-number scale (crop the sides, never stretch).
 (Rect, int) workoutLayout(Size area) {
-  final avail = Rect.fromLTRB(16, _sceneTop, area.width - 22, area.height - 16);
-  final scale = sceneScale(avail.size);
+  final card = workoutCard(area);
+  // Inside the card's 4 px border.
+  final avail = Rect.fromLTWH(card.left + 4, card.top + 4, card.width - 8, card.height * 0.6);
+  final scale = max(1, min((avail.width + 48) / sceneSize.width, avail.height / sceneSize.height).floor());
   return (sceneRectIn(avail, scale), scale);
 }
 
@@ -61,7 +70,17 @@ class WorkoutView extends StatefulWidget {
   State<WorkoutView> createState() => _WorkoutViewState();
 }
 
-class _WorkoutViewState extends State<WorkoutView> {
+class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutView> {
+  // The carousel runs over the day's cards (indexes in todayExercises).
+  @override
+  int get count => _store.todayCards.length;
+
+  @override
+  int get index => max(0, _store.todayCards.indexOf(active));
+
+  @override
+  void select(int i) => setState(() => _active = _store.todayCards[i]);
+
   int? _active;
   String? _burst;
   int _hitRun = 0;
@@ -113,7 +132,12 @@ class _WorkoutViewState extends State<WorkoutView> {
       _advance = Timer(_advanceDelay, () {
         if (!mounted) return;
         final next = _nextOpen(i);
-        if (next != null) setState(() => _active = next);
+        if (next != null) {
+          setState(() {
+            dir = 1;
+            _active = next;
+          });
+        }
       });
     }
   }
@@ -137,76 +161,85 @@ class _WorkoutViewState extends State<WorkoutView> {
     final area = areaById(today?.areaId ?? store.profile?.areaId);
     final art = areaArt[area.id]!;
     final accent = Color(area.accent);
-    final cls = classById(today?.classId ?? store.gameClass.id);
     final e = act < 0 ? null : list[act];
     final firstTime = store.history.where((s) => !s.legacy).isEmpty;
     return LayoutBuilder(builder: (context, box) {
+      final card = workoutCard(box.biggest);
       final (scene, scale) = workoutLayout(box.biggest);
+      final skyLeft = max(scene.left, card.left + 4) + 8;
       return Stack(
         children: [
-          // Header: class and area.
-          Positioned(
-            left: 16,
-            right: 22,
-            top: 6,
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(cls.name.toUpperCase(), style: mono(11, p.ink)),
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Text(area.name.toUpperCase(), style: display(24, accent)),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Exercise strip.
-          Positioned(
-            left: 0,
-            right: 0,
-            top: 60,
-            height: 104,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.fromLTRB(16, 4, 22, 8),
-              children: [
-                for (final i in cards)
-                  _StripCard(
-                    key: ValueKey('strip-$i'),
-                    e: list[i],
-                    active: i == act,
-                    onTap: () => setState(() => _active = i),
-                  ),
-              ],
-            ),
-          ),
-          // The scene: ink frame and a hard shadow in the area colour.
-          sceneFrame(scene, ink: p.ink, shadow: accent),
           Positioned.fromRect(
-            rect: scene,
-            child: AreaScene(
-              art: art,
-              scale: scale,
-              count: e?.sets ?? 0,
-              hitRun: _hitRun,
-              burstText: _burst,
-              hitLabel: '${area.hint}: one working set. Hold to take one back.',
-              onHit: e == null ? null : _hit,
-              onUndo: e == null ? null : _undo,
+            rect: card,
+            child: Brutal(
+              shadow: accent,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // The world, edge to edge (the shell draws the lifter in it).
+                  // TAP THE OBJECT = one working set, HOLD IT = take one back.
+                  Container(
+                    height: scene.height + 3,
+                    decoration: BoxDecoration(border: Border(bottom: BorderSide(color: p.ink, width: 3))),
+                    child: ClipRect(
+                      child: OverflowBox(
+                        alignment: Alignment.topCenter,
+                        minWidth: scene.width,
+                        maxWidth: scene.width,
+                        child: AreaScene(
+                          art: art,
+                          scale: scale,
+                          count: e?.sets ?? 0,
+                          hitRun: _hitRun,
+                          burstText: _burst,
+                          hitLabel: '${area.hint}: one working set. Hold to take one back.',
+                          onHit: e == null ? null : _hit,
+                          onUndo: e == null ? null : _undo,
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Under the world: the exercise carousel. The world adds
+                  // sets to the exercise shown here.
+                  Expanded(
+                    child: cards.isEmpty
+                        ? const SizedBox()
+                        : swipe(
+                            key: const ValueKey('exercise-card'),
+                            child: Column(
+                              children: [
+                                Expanded(
+                                  child: slide(
+                                    'exercise-$act',
+                                    _ExerciseText(
+                                      e: e!,
+                                      position: cards.indexOf(act),
+                                      count: cards.length,
+                                      xp: e.sets > 0 ? store.cardXp(act) : 0,
+                                    ),
+                                  ),
+                                ),
+                                CarouselDots(
+                                  prefix: 'exercise',
+                                  ids: [for (final i in cards) '$i'],
+                                  names: [for (final i in cards) exerciseName(list[i].exerciseId)],
+                                  current: '$act',
+                                  colorOf: (_) => p.orange,
+                                  onTap: jump,
+                                ),
+                                const SizedBox(height: 8),
+                              ],
+                            ),
+                          ),
+                  ),
+                ],
+              ),
             ),
           ),
-          // The hint and the active exercise, over the sky.
+          // The hint over the sky (and the first-workout tip).
           if (e != null)
             Positioned(
-              left: scene.left + 8,
-              right: box.maxWidth - scene.right + 8,
+              left: skyLeft,
               top: scene.top + 8,
               child: IgnorePointer(
                 child: Column(
@@ -218,20 +251,6 @@ class _WorkoutViewState extends State<WorkoutView> {
                       const SizedBox(height: 4),
                       Tag('Only working sets count', bg: p.lime, fg: p.on, size: 11, angle: 1),
                     ],
-                    const SizedBox(height: 4),
-                    Container(
-                      color: kNight,
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      child: Text(
-                        '${exerciseName(e.exerciseId).toUpperCase()} · '
-                        '${e.sets >= e.targetSets ? '${e.sets}/${e.targetSets}' : 'SET ${e.sets + 1} OF ${e.targetSets}'}'
-                        '${e.sets > 0 ? ' · +${store.cardXp(act)} XP' : ''}',
-                        key: const ValueKey('workout-line'),
-                        style: mono(11, Colors.white),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -242,55 +261,60 @@ class _WorkoutViewState extends State<WorkoutView> {
   }
 }
 
-/// A card on the exercise strip: name, target slots, +extra, status.
-class _StripCard extends StatelessWidget {
-  const _StripCard({super.key, required this.e, required this.active, required this.onTap});
+/// The exercise shown under the world: its place in the day's list, the
+/// name, the target slots (filled in rarity colours) with +extra, and the
+/// set line with the XP so far.
+class _ExerciseText extends StatelessWidget {
+  const _ExerciseText({required this.e, required this.position, required this.count, required this.xp});
 
   final SessionExercise e;
-  final bool active;
-  final VoidCallback onTap;
+  final int position, count, xp;
 
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
     final done = e.sets >= e.targetSets;
-    final status = done ? 'CRUSHED' : active ? 'NOW' : 'NEXT UP';
-    final fg = active ? p.on : p.ink;
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        width: 112,
-        margin: const EdgeInsets.only(right: 12),
-        padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
-        decoration: BoxDecoration(
-          color: active ? p.orange : p.panel,
-          border: Border.all(color: p.ink, width: 3),
-          boxShadow: [BoxShadow(color: active ? p.pink : p.ink, offset: const Offset(4, 4))],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(exerciseName(e.exerciseId).toUpperCase(),
-                maxLines: 1, overflow: TextOverflow.ellipsis, style: display(14, fg)),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                for (var k = 0; k < e.targetSets; k++)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 3),
-                    child: Text('X',
-                        style: display(15, k < e.sets ? rarity(p, k) : fg.withValues(alpha: 0.35)).copyWith(
-                          shadows: k < e.sets ? [Shadow(offset: const Offset(1, 1), color: p.ink)] : null,
-                        )),
-                  ),
-                if (e.sets > e.targetSets) Text('+${e.sets - e.targetSets}', style: display(13, fg)),
-              ],
-            ),
-            const Spacer(),
-            Text(status, style: mono(10, fg)),
-          ],
-        ),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Shout('Exercise ${position + 1} of $count', size: 12, color: p.pink),
+              const Spacer(),
+              Text(done ? 'CRUSHED' : 'NOW', style: mono(11, done ? p.lime : p.ink)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(exerciseName(e.exerciseId).toUpperCase(), style: display(34, p.ink).copyWith(shadows: [
+              Shadow(offset: const Offset(2, 2), color: p.orange),
+            ])),
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              for (var k = 0; k < e.targetSets; k++)
+                Text('X',
+                    style: display(36, k < e.sets ? rarity(p, k) : p.ink.withValues(alpha: 0.35)).copyWith(
+                      shadows: k < e.sets ? [Shadow(offset: const Offset(2, 2), color: p.ink)] : null,
+                    )),
+              if (e.sets > e.targetSets) Text('+${e.sets - e.targetSets}', style: display(30, p.ink)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${done ? '${e.sets}/${e.targetSets}' : 'SET ${e.sets + 1} OF ${e.targetSets}'}'
+            '${xp > 0 ? ' · +$xp XP' : ''}',
+            key: const ValueKey('workout-line'),
+            style: mono(13, p.ink),
+          ),
+        ],
       ),
     );
   }

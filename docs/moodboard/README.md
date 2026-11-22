@@ -285,6 +285,9 @@ default area, and the player can still choose any area. Lifters use `creator/bod
 Owner choices (21 Nov 2026): an active-exercise strip, a set target per exercise, this area and class. Owner decisions D6, D7, D15, D16 and D19 apply:
 one session per calendar day that closes by itself, no I WORKED, no clock, no session counter, and XP per set with no reward screen.
 
+**In the app** (D48) the workout is one card: the world on top, and under it an exercise carousel (one exercise at a time,
+swiped both ways, round and round, with dots) in place of the strip and the header. Tapping the world adds to the exercise shown.
+
 Screen, top to bottom (390×844 dp):
 
 1. **Top bar:** the class name (`SCRAPPER`) and the area name. HUB in the bottom bar goes back (every set is already saved, D44). No session counter, no clock.

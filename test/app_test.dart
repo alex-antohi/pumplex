@@ -283,7 +283,7 @@ void main() {
     await t.pump(const Duration(milliseconds: 100));
     expect(find.text('CRUSHED!'), findsOneWidget);
     await _frames(t, 40);
-    await t.tap(find.byKey(const ValueKey('strip-0'))); // back to the first exercise
+    await t.tap(find.byKey(const ValueKey('exercise-dot-0'))); // back to the first exercise
     await _frames(t, 4);
     await t.tap(find.byKey(const ValueKey('world-object')));
     await _frames(t, 4);
@@ -725,8 +725,9 @@ void main() {
     await closeCard();
     // At the target the strip moved on; go back to the first exercise.
     await _frames(t, 20);
-    expect(find.descendant(of: find.byKey(const ValueKey('strip-1')), matching: find.text('NOW')), findsOneWidget);
-    await t.tap(find.byKey(const ValueKey('strip-0')));
+    expect(find.byKey(const ValueKey('exercise-1')), findsOneWidget); // the carousel moved on
+    expect(find.text('NOW'), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('exercise-dot-0')));
     await _frames(t, 4);
     await t.longPress(card);
     await _frames(t, 70);
@@ -755,8 +756,35 @@ void main() {
     for (final k in ['tool-swap', 'tool-first', 'tool-skip', 'tool-remove', 'strip-add']) {
       expect(find.byKey(ValueKey(k)), findsNothing, reason: k);
     }
-    expect(find.byKey(const ValueKey('strip-0')), findsOneWidget);
+    expect(find.byKey(const ValueKey('exercise-dot-0')), findsOneWidget);
     expect(find.byKey(const ValueKey('world-object')), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('workout (D48): swipe the exercise carousel; the world adds to the one shown', (t) async {
+    final (store, _) = await _openApp(t);
+    await t.tap(find.byKey(const ValueKey('hub-workout')));
+    await _frames(t);
+    final n = store.todayCards.length;
+    expect(find.byKey(const ValueKey('exercise-0')), findsOneWidget);
+    expect(find.text('EXERCISE 1 OF $n'), findsOneWidget);
+    final carousel = find.byKey(const ValueKey('exercise-card'));
+    await t.fling(carousel, const Offset(-300, 0), 1000); // next
+    await _frames(t, 10);
+    expect(find.byKey(const ValueKey('exercise-1')), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('world-object')));
+    await _frames(t, 70);
+    if (find.byKey(const ValueKey('intro-card')).evaluate().isNotEmpty) {
+      await t.tap(find.byKey(const ValueKey('intro-card')));
+      await _frames(t, 4);
+    }
+    expect((store.todayExercises[0].sets, store.todayExercises[1].sets), (0, 1));
+    await t.fling(carousel, const Offset(300, 0), 1000); // back
+    await _frames(t, 10);
+    await t.fling(carousel, const Offset(300, 0), 1000); // round to the last one
+    await _frames(t, 10);
+    expect(find.byKey(ValueKey('exercise-${store.todayCards.last}')), findsOneWidget);
+    expect(find.text('EXERCISE $n OF $n'), findsOneWidget);
     expect(t.takeException(), isNull);
   });
 

@@ -30,9 +30,10 @@ The plan is in [docs/app-brief.md](docs/app-brief.md) and
   level and XP bar, the next workout, the last training day and a
   bottom bar (HISTORY, HUB, PROFILE) that also shows on the workout, past
   sessions and the profile (D44). There is no streak (D34).
-- **Workout**: an exercise strip with the day's list and
-  the area scene from the design PNG layers. Tap a card to make it active.
-  Tap the object = one working set, hold = one less; the marks stay in the
+- **Workout** (D48): one card with the world (the area scene with the lifter)
+  on top and an exercise carousel under it: swipe through the day's list.
+  Tap the object = one working set of the exercise shown, hold = one less;
+  the marks stay in the
   world. No tools: no swap, skip, remove or add (D32). No reps, no kilos, no
   I WORKED button, no clock.
 - **Free-form sessions:** one session per calendar day, no buttons to start

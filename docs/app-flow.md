@@ -57,7 +57,7 @@ flowchart TD
 | 4 | Starting area | exists | A swipe card like the class card: the area scene with the lifter in it, the name, the line, what you hit, "YOUR PATH'S HOME" on the default; dots under it (D47). The class picks the default area. |
 | 5 | Summary | exists | Class, equipment, difficulty, area. Tap a row to change it. LET'S GO (or SAVE when editing). |
 | 6 | Hub | exists | the area scene with the lifter in it (class outfit), level and XP bar, next workout card, last time. Bottom bar (D44). No streak card (D34). |
-| 7 | Workout | exists | exercise strip with the day's list and the area scene. No tools (D32). Tap a card to make it active. Tap the object = +1 set, hold = −1. Area marks stay in the world. Bottom bar, HUB lit (D44). |
+| 7 | Workout | exists | One card (D48): the world (area scene with the lifter) on top, an exercise carousel under it (swipe both ways, round and round; dots). No tools (D32). Tap the object = +1 set to the exercise shown, hold = −1. Area marks stay in the world. Bottom bar, HUB lit (D44). |
 | 8 | Reward | exists | XP on the active exercise line. CRITICAL SET message. Freeze-frame intro card for level-ups. No achievement burst (D35). Not a separate screen. |
 | 9 | Past sessions | exists | Training days (sets per exercise against the target, time, class, area, XP) and old saves. Bottom bar (D44). |
 | 10 | Gear | removed | No gear (D38). |
@@ -177,23 +177,25 @@ owner's rules ([decisions.md](decisions.md)).
   difficulty, 8 at the hardest (§3). Each exercise has a **target** number of working sets from
   the difficulty. The pools are placeholders, all in `lib/game/content.dart`. The first exercise
   moves along the pool each day.
-- **Header:** the class name and the area name.
-- **Exercise strip:** one card per exercise of the day's list. Each card shows the name, the
-  target slots as Xs (filled in rarity colours), +n for sets over the target, and a status: NOW,
-  NEXT UP or CRUSHED. Tap a card to make it the active exercise.
+- **One card** (D48), like the starting-area card. No header.
+- **The world** on top of the card: see "World scene" below. It adds sets to the exercise shown
+  under it.
+- **Exercise carousel** under the world: one exercise of the day's list at a time: "EXERCISE n OF
+  m", NOW or CRUSHED, the name, the target slots as Xs (filled in rarity colours), +n for sets over
+  the target, and "SET n OF t" (or sets / target) with the XP so far. Swipe left for the next
+  exercise, right for the one before, round and round. Dots under it; tap one to jump.
 - **No tools** (D32): no swap, no back to the first exercise, no skip, no remove, no add.
   The workout is the list the app picks for the day. To skip an exercise, do no sets on it.
 - Old sessions (from before D32) can still hold removed, added or switched exercises.
-  The strip and the hub do not show removed ones.
+  The carousel and the hub do not show removed ones.
 - **World scene:** the area's scene from the design PNG layers, with the lifter and the area's object.
-  - TAP THE OBJECT: one working set of the active exercise.
+  - TAP THE OBJECT: one working set of the exercise shown in the carousel.
   - HOLD THE OBJECT: take the last set back.
   - Each set plays the object's hit frames and shakes the scene in hard steps (320 ms). A starburst
     says "+1 SET", "CRUSHED!" at the target, or the area's stamp on every 5th set.
   - The marks stay in the world, in the area's mark style, in groups of five.
-  - At the target, the strip moves to the next unfinished exercise after 0.8 s.
-- **Over the sky:** the area's tap hint, and one line with the exercise, "SET n OF t" (or
-  sets / target at the target) and the XP so far.
+  - At the target, the carousel moves to the next unfinished exercise after 0.8 s.
+- **Over the sky:** the area's tap hint.
 - **Tip:** on the first workout, until the first set, a tag says "Only working sets count".
 - No sound (D41).
 - Reduced motion: no scene animation.

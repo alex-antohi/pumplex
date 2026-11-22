@@ -12,6 +12,7 @@ import '../game/model.dart';
 import '../game/rules.dart';
 import '../pumplex.dart';
 import 'area_scene.dart';
+import 'carousel.dart';
 import 'sprite.dart';
 
 /// Bottom row with BACK / NEXT style buttons.
@@ -260,115 +261,6 @@ const _classTextMin = 150.0;
   return (card: card, stage: stage);
 }
 
-/// Swipe handling shared by the setup carousels (class, area): left for
-/// the next item, right for the one before.
-mixin _Swipe<T extends StatefulWidget> on State<T> {
-  /// 1: the new item comes in from the right (swipe left), -1: from the left.
-  int dir = 1;
-  double _dx = 0;
-
-  int get count;
-  int get index;
-  void select(int i);
-
-  /// The item [d] steps away, round and round.
-  void step(int d) {
-    setState(() => dir = d);
-    select((index + d) % count);
-  }
-
-  void jump(int i) {
-    if (i == index) return;
-    setState(() => dir = i > index ? 1 : -1);
-    select(i);
-  }
-
-  /// A swipeable card around [child].
-  Widget swipe({required Key key, required Widget child}) => GestureDetector(
-        key: key,
-        behavior: HitTestBehavior.opaque,
-        onHorizontalDragStart: (_) => _dx = 0,
-        onHorizontalDragUpdate: (d) => _dx += d.delta.dx,
-        onHorizontalDragEnd: (d) {
-          final v = d.primaryVelocity ?? 0;
-          if (_dx < -40 || v < -300) {
-            step(1);
-          } else if (_dx > 40 || v > 300) {
-            step(-1);
-          }
-        },
-        child: child,
-      );
-
-  /// The card content, sliding in the swipe direction when [id] changes.
-  Widget slide(String id, Widget child) => ClipRect(
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 240),
-          switchInCurve: Curves.easeOutCubic,
-          switchOutCurve: Curves.easeInCubic,
-          layoutBuilder: (current, previous) => Stack(
-            alignment: Alignment.topLeft,
-            children: [...previous, ?current],
-          ),
-          transitionBuilder: (c, anim) {
-            final incoming = c.key == ValueKey(id);
-            return SlideTransition(
-              position: Tween(
-                begin: Offset(incoming ? dir.toDouble() : -dir.toDouble(), 0),
-                end: Offset.zero,
-              ).animate(anim),
-              child: c,
-            );
-          },
-          child: KeyedSubtree(key: ValueKey(id), child: child),
-        ),
-      );
-}
-
-/// Dots under a setup carousel: where you are. Tap one to jump.
-class _Dots extends StatelessWidget {
-  const _Dots({required this.prefix, required this.ids, required this.names, required this.current, required this.colorOf, required this.onTap});
-
-  final String prefix;
-  final List<String> ids, names;
-  final String current;
-  final Color Function(String id) colorOf;
-  final ValueChanged<int> onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = Pal.of(context);
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        for (final (i, id) in ids.indexed)
-          GestureDetector(
-            key: ValueKey('$prefix-dot-$id'),
-            behavior: HitTestBehavior.opaque,
-            onTap: () => onTap(i),
-            child: Semantics(
-              label: names[i],
-              selected: id == current,
-              button: true,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 160),
-                  width: id == current ? 26 : 12,
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: id == current ? colorOf(id) : p.panel2,
-                    border: Border.all(color: p.ink, width: 2),
-                  ),
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
 /// Setup step 2 (docs/moodboard/README.md "Class select", D46, D47): one
 /// big card with the lifter, the class name, the equipment, the loadout,
 /// 3 tags and the description. Swipe the card to change the class, both
@@ -397,7 +289,7 @@ class ClassView extends StatefulWidget {
   State<ClassView> createState() => _ClassViewState();
 }
 
-class _ClassViewState extends State<ClassView> with _Swipe<ClassView> {
+class _ClassViewState extends State<ClassView> with SwipeCarousel<ClassView> {
   @override
   int get count => gameClasses.length;
 
@@ -441,7 +333,7 @@ class _ClassViewState extends State<ClassView> with _Swipe<ClassView> {
             right: 0,
             top: card.bottom + 8,
             height: _classDotsHeight - 8,
-            child: _Dots(
+            child: CarouselDots(
               prefix: 'class',
               ids: [for (final c in gameClasses) c.id],
               names: [for (final c in gameClasses) c.name],
@@ -668,7 +560,7 @@ class AreaView extends StatefulWidget {
   State<AreaView> createState() => _AreaViewState();
 }
 
-class _AreaViewState extends State<AreaView> with _Swipe<AreaView> {
+class _AreaViewState extends State<AreaView> with SwipeCarousel<AreaView> {
   @override
   int get count => areas.length;
 
@@ -723,7 +615,7 @@ class _AreaViewState extends State<AreaView> with _Swipe<AreaView> {
             right: 0,
             top: l.card.bottom + 8,
             height: _areaDotsHeight - 8,
-            child: _Dots(
+            child: CarouselDots(
               prefix: 'area',
               ids: [for (final x in areas) x.id],
               names: [for (final x in areas) x.name],
