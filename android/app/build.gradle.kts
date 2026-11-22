@@ -16,7 +16,7 @@ val keyProperties = Properties().apply {
 }
 
 android {
-    namespace = "com.alex.gym_app"
+    namespace = "com.alex.pumplex"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -30,9 +30,8 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        // Keep this id: the installed app (and its data) updates in place.
-        applicationId = "com.alex.gym_app"
+        // Permanent after the first Google Play upload (D58).
+        applicationId = "com.alex.pumplex"
         resValue("string", "app_name", "PUMPLEX")
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.

@@ -97,7 +97,7 @@ data and its migrations, the setup, the workout and the menu.
 
 ## Build a release APK
 
-The app id is `com.alex.gym_app` (D26). Release builds read the signing key
+The app id is `com.alex.pumplex` (D58). Release builds read the signing key
 from `android/key.properties`:
 
 1. Copy `android/key.properties.example` to `android/key.properties`.

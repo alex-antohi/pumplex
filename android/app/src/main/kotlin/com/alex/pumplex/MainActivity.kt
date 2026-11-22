@@ -1,4 +1,4 @@
-package com.alex.gym_app
+package com.alex.pumplex
 
 import android.app.Activity
 import android.content.Intent

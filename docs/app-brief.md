@@ -118,7 +118,7 @@ The class names come from the design team (D9). The final names are still open (
 | Part | Status |
 |---|---|
 | Fixed exercises, sets, reps, kg, rep-outs, PRs, swaps, CSV | Removed (21 Nov). |
-| Alex / Anca flavors | Removed. One app id: `com.alex.gym_app`. |
+| Alex / Anca flavors | Removed. One app id: `com.alex.pumplex` (D58). |
 | Old sessions (`sessions_v2`), backup | One-time upgrade: backup file first, then legacy sessions with XP. |
 | 7-day pattern, START TRAINING, I WORKED / I RESTED, preloader | Removed (21 Nov). Free-form sessions, the workout as home (D49), set counting, XP and character creation built. |
 | CEL SHADER mode, chaos mode | Removed (22 Nov, D39, D40). |
