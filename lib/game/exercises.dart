@@ -109,10 +109,19 @@ class ExerciseGroup {
   final List<CatalogExercise> variants;
 
   /// The axes where the variants differ, with the values in order of use.
-  List<(ModifierAxis, List<String?>)> get axes => [
-        for (final a in modifierAxes)
-          if ({for (final v in variants) v.mods[a.id]}.length > 1)
-            (a, {for (final v in variants) v.mods[a.id]}.toList()..sort(_noneFirst)),
+  List<(ModifierAxis, List<String?>)> get axes => _axes(variants, modifierAxes);
+
+  /// The rows the card shows for [current] (D57): equipment first, then
+  /// only the ways the exercises with [current]'s equipment differ (so a
+  /// dumbbell press has no grip width row).
+  List<(ModifierAxis, List<String?>)> axesFor(CatalogExercise current) => [
+        ..._axes(variants, modifierAxes.take(1)),
+        ..._axes([for (final v in variants) if (v.mods['equip'] == current.mods['equip']) v], modifierAxes.skip(1)),
+      ];
+
+  static List<(ModifierAxis, List<String?>)> _axes(List<CatalogExercise> vs, Iterable<ModifierAxis> axes) => [
+        for (final a in axes)
+          if ({for (final v in vs) v.mods[a.id]}.length > 1) (a, {for (final v in vs) v.mods[a.id]}.toList()..sort(_noneFirst)),
       ];
 
   ExerciseGroup only(List<CatalogExercise> keep) => ExerciseGroup(key, name, keep);
@@ -178,13 +187,26 @@ ExerciseCatalog exerciseCatalog = ExerciseCatalog.empty;
 /// Display name of an exercise id (the id itself if it is unknown).
 String exerciseName(String id) => exerciseCatalog.byId[id]?.name ?? id;
 
+/// What a modifier chip picks (D57): the exercise, and whether it keeps
+/// all of [current]'s other modifiers (`exact`). The equipment row may
+/// change the others; every other row stays within [current]'s equipment.
+/// Null: no exercise of [g] has that value there.
+({CatalogExercise v, bool exact})? chipTarget(ExerciseGroup g, CatalogExercise current, String axis, String? value) {
+  final v = pickVariant(g, current, axis, value, sameEquip: axis != 'equip');
+  if (v == null) return null;
+  final exact = axis == 'equip' || modifierAxes.every((a) => a.id == axis || v.mods[a.id] == current.mods[a.id]);
+  return (v: v, exact: exact);
+}
+
 /// The exercise of [g] to show for the chosen [value] on [axis], keeping as
-/// many of [current]'s other modifiers as it can. Null: no such variant.
-CatalogExercise? pickVariant(ExerciseGroup g, CatalogExercise current, String axis, String? value) {
+/// many of [current]'s other modifiers as it can (and its equipment, with
+/// [sameEquip]). Null: no such variant.
+CatalogExercise? pickVariant(ExerciseGroup g, CatalogExercise current, String axis, String? value, {bool sameEquip = false}) {
   CatalogExercise? best;
   var bestScore = -1;
   for (final v in g.variants) {
     if (v.mods[axis] != value) continue;
+    if (sameEquip && v.mods['equip'] != current.mods['equip']) continue;
     var score = 0;
     for (final a in modifierAxes) {
       if (a.id != axis && v.mods[a.id] == current.mods[a.id]) score++;

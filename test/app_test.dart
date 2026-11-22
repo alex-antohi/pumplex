@@ -245,7 +245,7 @@ void main() {
     expect(difficultyRules.length, difficulties.length);
     expect(gameClasses.map((c) => c.equipment).toSet().length, gameClasses.length);
     final all = exerciseCatalog.all;
-    expect(all.length, 692);
+    expect(all.length, 695); // 692 from the database + 3 added bench presses (D57)
     // No stretching, olympic weightlifting, strongman or neck exercises (D56).
     expect(all.where((e) => {'stretching', 'olympic weightlifting', 'strongman'}.contains(e.category) || e.muscle == 'neck'),
         isEmpty);
@@ -269,6 +269,26 @@ void main() {
     expect(dead.axes.firstWhere((a) => a.$1.id == 'bands').$2, [null, 'Bands', 'Reverse Bands']);
     expect(dead.axes.firstWhere((a) => a.$1.id == 'chains').$2, [null, 'Chains']);
     expect(exerciseCatalog.groupKeyOf('Band_Assisted_Pull-Up'), 'move:pull-up');
+    // Bench press (D57): from any barbell press, Flat, bands and chains are
+    // reachable; dumbbells have no grip width row; a barbell has no one-arm row.
+    final incline = exerciseCatalog.byId['Barbell_Incline_Bench_Press_-_Medium_Grip']!;
+    final flat = chipTarget(bench, incline, 'angle', null)!;
+    expect((flat.v.id, flat.exact), ('Barbell_Bench_Press_-_Medium_Grip', true));
+    final flatBar = flat.v;
+    expect(chipTarget(bench, flatBar, 'bands', 'Bands')!.v.id, 'Bench_Press_-_With_Bands');
+    expect(chipTarget(bench, flatBar, 'chains', 'Chains')!.v.id, 'Bench_Press_with_Chains');
+    expect(chipTarget(bench, incline, 'width', 'Wide Grip')!.v.id, 'Incline_Wide-Grip_Barbell_Bench_Press');
+    final rowsBar = bench.axesFor(flatBar).map((a) => a.$1.id).toList();
+    expect(rowsBar, containsAll(['equip', 'angle', 'width', 'bands', 'chains']));
+    expect(rowsBar, isNot(contains('side')));
+    final db = exerciseCatalog.byId['Dumbbell_Bench_Press']!;
+    final rowsDb = bench.axesFor(db).map((a) => a.$1.id).toList();
+    expect(rowsDb, containsAll(['equip', 'angle', 'side']));
+    expect(rowsDb, isNot(contains('width')));
+    expect(exerciseCatalog.all.where((e) => e.mods['equip'] == 'Dumbbell' && e.mods.containsKey('width')), isEmpty);
+    // The equipment row may change other modifiers; other rows stay in the equipment.
+    expect(chipTarget(bench, flatBar, 'equip', 'Dumbbell')!.v.mods['equip'], 'Dumbbell');
+    expect(chipTarget(bench, flatBar, 'side', 'One Arm'), isNull);
     // All dips are one move, with a Type row.
     final dip = exerciseCatalog.byKey['move:dip']!;
     expect(dip.variants.length, 7);

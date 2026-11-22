@@ -70,7 +70,7 @@ const NORMAL = [
 
 // Exercises that belong to another move than their name says.
 const OVERRIDE = {
-  'Incline Dumbbell Press': 'Bench Press', 'Close-Grip Dumbbell Press': 'Bench Press', 'Smith Machine Decline Press': 'Bench Press',
+  'Incline Dumbbell Press': 'Bench Press', 'Smith Machine Decline Press': 'Bench Press',
   'Close-Grip EZ-Bar Press': 'Bench Press', 'Seated Cable Rows': 'Seated Cable Row',
 };
 // Exercises whose names the parser cannot split: move name and modifiers by hand.
@@ -82,7 +82,37 @@ const EXPLICIT = {
   'Parallel Bar Dip': ['Dip', { type: 'Parallel Bar' }],
   'Ring Dips': ['Dip', { type: 'Rings' }],
   'Dip Machine': ['Dip', {}],
+  // Dumbbells have no grip width: pressed together, it is a squeeze press.
+  'Close-Grip Dumbbell Press': ['Bench Press', { type: 'Squeeze' }],
 };
+
+// Database fields that are wrong for the move (D57).
+const FIX = {
+  'Bench Press - With Bands': { equipment: 'barbell' }, // a barbell bench press with bands
+};
+
+// Exercises the database lacks but a gym has (D57): [id, name, copy fields from, move, modifiers].
+const EXTRA = [
+  ['Incline_Close-Grip_Barbell_Bench_Press', 'Incline Close-Grip Barbell Bench Press', 'Barbell_Incline_Bench_Press_-_Medium_Grip',
+    'Bench Press', { angle: 'Incline', width: 'Close Grip' }],
+  ['Incline_Wide-Grip_Barbell_Bench_Press', 'Incline Wide-Grip Barbell Bench Press', 'Barbell_Incline_Bench_Press_-_Medium_Grip',
+    'Bench Press', { angle: 'Incline', width: 'Wide Grip' }],
+  ['Decline_Close-Grip_Barbell_Bench_Press', 'Decline Close-Grip Barbell Bench Press', 'Decline_Barbell_Bench_Press',
+    'Bench Press', { angle: 'Decline', width: 'Close Grip' }],
+];
+for (const [id, name, from, base, mods] of EXTRA) {
+  EXPLICIT[name] = [base, mods];
+  if (all.some((e) => e.id === id)) continue;
+  const src = all.find((e) => e.id === from);
+  if (!src) throw new Error(`EXTRA ${id}: no source ${from}`);
+  const { base: _b, mods: _m, ...fields } = src;
+  all.push({ ...fields, id, name, custom: true });
+}
+
+// Grip width exists for bars, cables, machines and the body; not for
+// dumbbells or kettlebells. Where a move has a width row, no width means
+// Medium Grip (D57).
+const WIDTH_EQUIP = new Set(['Barbell', 'EZ Bar', 'Smith Machine', 'Machine', 'Cable', 'Bodyweight']);
 // Whole groups that are the same move.
 const MERGE = {
   'press': 'Shoulder Press', 'military press': 'Shoulder Press', 'curl': 'Bicep Curl', 'wrist curl over a bench': 'Wrist Curl',
@@ -127,12 +157,14 @@ function parse(name) {
 }
 
 // Old base and mods fields are dropped first, so the tool can run on its own output.
-const rows = all.map(({ base: _oldBase, mods: _oldMods, ...e }) => {
-  const p = EXPLICIT[e.name] ? { base: EXPLICIT[e.name][0], mods: EXPLICIT[e.name][1] } : parse(e.name);
+const rows = all.map(({ base: _oldBase, mods: _oldMods, ...raw }) => {
+  const e = { ...raw, ...FIX[raw.name] };
+  const p = EXPLICIT[e.name] ? { base: EXPLICIT[e.name][0], mods: { ...EXPLICIT[e.name][1] } } : parse(e.name);
   let base = OVERRIDE[e.name] ?? p.base;
   base = MERGE[base.toLowerCase()] ?? base;
   const mods = { equip: equipLabel(e), ...p.mods };
   if (mods.bands === 'Bands' && mods.equip === 'Bands') delete mods.bands;
+  if (!WIDTH_EQUIP.has(mods.equip)) delete mods.width;
   return { e, base, mods };
 });
 
@@ -141,6 +173,10 @@ for (const r of rows) {
   const k = r.base.toLowerCase();
   if (!groups.has(k)) groups.set(k, []);
   groups.get(k).push(r);
+}
+for (const g of groups.values()) {
+  const withWidth = new Set(g.filter((r) => r.mods.width).map((r) => r.mods.equip));
+  for (const r of g) if (!r.mods.width && withWidth.has(r.mods.equip)) r.mods.width = 'Medium Grip';
 }
 const AX = ['equip', 'type', ...Object.keys(AXES)];
 const keyOf = (r) => AX.map((a) => r.mods[a] ?? '').join('|');

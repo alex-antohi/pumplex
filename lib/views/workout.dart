@@ -440,8 +440,9 @@ class _ExerciseText extends StatelessWidget {
             key: const ValueKey('workout-line'),
             style: mono(13, p.ink),
           ),
-          // Modifiers: one row per way the move's exercises differ.
-          for (final (axis, values) in full.axes) ...[
+          // Modifiers: equipment first, then one row per way the exercises
+          // with this equipment differ (D57).
+          for (final (axis, values) in full.axesFor(v)) ...[
             const SizedBox(height: 10),
             Text(axis.label.toUpperCase(), style: mono(10.5, p.ink.withValues(alpha: 0.7))),
             const SizedBox(height: 4),
@@ -454,7 +455,7 @@ class _ExerciseText extends StatelessWidget {
                     key: ValueKey('mod-${axis.id}-${value ?? 'none'}'),
                     label: value ?? axis.none,
                     selected: v.mods[axis.id] == value,
-                    target: v.mods[axis.id] == value ? null : pickVariant(g, v, axis.id, value),
+                    target: v.mods[axis.id] == value ? null : chipTarget(g, v, axis.id, value),
                     onPick: onPick,
                   ),
               ],
@@ -467,35 +468,37 @@ class _ExerciseText extends StatelessWidget {
 }
 
 /// One modifier value on the card. Greyed out when no exercise of the move
-/// has it within the filters.
+/// has it (with this equipment, within the filters). A thin border means a
+/// tap also changes another modifier (D57).
 class _ModChip extends StatelessWidget {
   const _ModChip({super.key, required this.label, required this.selected, required this.target, required this.onPick});
 
   final String label;
   final bool selected;
 
-  /// The exercise a tap picks (null when selected or not available).
-  final CatalogExercise? target;
+  /// What a tap picks (null when selected or not available).
+  final ({CatalogExercise v, bool exact})? target;
   final ValueChanged<String> onPick;
 
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
     final off = !selected && target == null;
+    final jump = target != null && !target!.exact;
     return Semantics(
       button: true,
       selected: selected,
       enabled: !off,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: target == null ? null : () => onPick(target!.id),
+        onTap: target == null ? null : () => onPick(target!.v.id),
         child: Opacity(
-          opacity: off ? 0.3 : 1,
+          opacity: off ? 0.3 : jump ? 0.7 : 1,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
             decoration: BoxDecoration(
               color: selected ? p.lime : p.panel,
-              border: Border.all(color: p.ink, width: 2),
+              border: Border.all(color: p.ink, width: jump ? 1 : 2),
               boxShadow: selected ? [BoxShadow(color: p.ink, offset: const Offset(2, 2))] : null,
             ),
             child: Text(label.toUpperCase(), style: display(13, selected ? p.on : p.ink)),
