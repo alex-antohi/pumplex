@@ -822,6 +822,22 @@ void main() {
     await t.fling(find.byKey(const ValueKey('class-card')), const Offset(-300, 0), 1000);
     await _frames(t, 10);
     expect(store.profile!.classId, 'cablemancer'); // Plate Paladin -> the next one
+    // D52: the minimised workout is a square (the arena); the lifter and
+    // last-session tiles sit beside it and open their cards below.
+    final win = t.getRect(find.byKey(const ValueKey('mini-workout')));
+    expect(win.width, closeTo(win.height, 1));
+    expect(find.byKey(const ValueKey('tile-lifter')), findsOneWidget);
+    expect(find.byKey(const ValueKey('tile-session')), findsOneWidget);
+    expect(find.descendant(of: find.byKey(const ValueKey('tile-lifter')), matching: find.text('CABLEMANCER')), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('tile-session')));
+    await _frames(t, 10);
+    expect(find.byKey(const ValueKey('profile-sessions')), findsOneWidget);
+    expect(find.byKey(const ValueKey('class-card')), findsNothing);
+    await t.tap(find.byKey(const ValueKey('tile-lifter')));
+    await _frames(t, 10);
+    expect(find.byKey(const ValueKey('profile-lifter')), findsOneWidget);
+    expect(find.byKey(const ValueKey('profile-sessions')), findsNothing);
+    expect(find.byIcon(Icons.edit), findsNothing);
     // Back to the full-screen workout.
     await t.tap(find.byKey(const ValueKey('mini-workout')));
     await _frames(t, 20);

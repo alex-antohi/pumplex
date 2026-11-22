@@ -163,8 +163,10 @@ class _GameShellState extends State<GameShell> {
   /// The lifter profile is open: the workout is minimised (D50).
   bool _lifter = false;
 
-  /// The setup screen open under the minimised workout (D51): 0 character,
-  /// 1 class and difficulty, 2 area; null = the lifter profile.
+  /// What shows under the minimised workout: null = the lifter profile (both
+  /// cards); 0 character, 1 class and difficulty, 2 area (the setup screens,
+  /// D51); 3 the past-sessions card, 4 the lifter card (from the tiles, D52).
+  /// From 0 on, the two cards show as tiles beside the minimised workout.
   int? _lifterEdit;
 
   /// Back to the full-screen workout.
@@ -182,15 +184,32 @@ class _GameShellState extends State<GameShell> {
         areaId: _areaId,
       ));
 
-  /// The minimised workout window at the top left, in a view of [size]: small
-  /// enough that the lifter profile fits under it (D51).
-  static Rect _miniRect(Size size) => Rect.fromLTWH(16, 10, size.width * 0.3, size.height * 0.3);
+  /// The minimised workout at the top left, in a view of [size]: a square,
+  /// the arena only (D52). Tile [i] of the top row: 0 the arena, 1 the
+  /// lifter card, 2 the last session.
+  static Rect _tileRect(Size size, int i) {
+    final side = (size.width - 16 - 22 - 2 * 10) / 3;
+    return Rect.fromLTWH(16 + i * (side + 10), 10, side, side);
+  }
 
   /// Under the minimised workout (D51): the lifter profile, or one setup
   /// screen without BACK / NEXT. It is the same screen as in the first
   /// setup, smaller. Every change saves at once (a slider when it is let go).
   Widget _lifterPanel(Size size, double inset) {
     final edit = _lifterEdit;
+    if (edit == 3 || edit == 4) {
+      return Padding(
+        padding: EdgeInsets.fromLTRB(16, 0, 22, 14 + inset),
+        child: SingleChildScrollView(
+          child: edit == 3
+              ? SessionsCard(store: _store)
+              : LifterCard(store: _store, onEditStep: (step) => setState(() {
+                    _resetDraft();
+                    _lifterEdit = step;
+                  })),
+        ),
+      );
+    }
     if (_store.profile == null || edit == null) {
       return Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 22, 0),
@@ -500,8 +519,11 @@ class _GameShellState extends State<GameShell> {
                     final inset = MediaQuery.paddingOf(context).bottom;
                     final stage = stageRect(_scene, box.biggest, bottomInset: inset);
                     final full = Offset.zero & box.biggest;
-                    final mini = _miniRect(box.biggest);
-                    final k = mini.width / full.width;
+                    final mini = _tileRect(box.biggest, 0);
+                    // The arena (a square of the workout) lands on the mini window.
+                    final arena = workoutArena(box.biggest, inset);
+                    final k = mini.width / arena.width;
+                    final tiles = _lifterEdit != null;
                     // The lifter profile (D50): the workout and the lifter shrink
                     // into a window at the top left; the profile shows under it.
                     return TweenAnimationBuilder<double>(
@@ -509,9 +531,12 @@ class _GameShellState extends State<GameShell> {
                       duration: const Duration(milliseconds: 420),
                       curve: Curves.easeInOutCubic,
                       builder: (context, t, _) {
-                        final s = 1 - (1 - k) * t;
-                        final shrink = Matrix4.translationValues(mini.left * t, mini.top * t, 0)
-                            .multiplied(Matrix4.diagonal3Values(s, s, 1));
+                        final s = 1 + (k - 1) * t;
+                        final shrink = Matrix4.translationValues(
+                          (mini.left - arena.left * k) * t,
+                          (mini.top - arena.top * k) * t,
+                          0,
+                        ).multiplied(Matrix4.diagonal3Values(s, s, 1));
                         final window = Rect.lerp(full, mini, t)!;
                         return Stack(
                           children: [
@@ -528,6 +553,10 @@ class _GameShellState extends State<GameShell> {
                                     child: LayoutBuilder(
                                       builder: (context, region) => AnimatedSwitcher(
                                         duration: const Duration(milliseconds: 200),
+                                        layoutBuilder: (current, previous) => Stack(
+                                          alignment: Alignment.topCenter,
+                                          children: [...previous, ?current],
+                                        ),
                                         child: KeyedSubtree(
                                           key: ValueKey(_lifterEdit),
                                           child: _lifterPanel(region.biggest, inset),
@@ -537,6 +566,11 @@ class _GameShellState extends State<GameShell> {
                                   ),
                                 ),
                               ),
+                            Positioned.fill(
+                              child: ClipRect(
+                                clipper: _WindowClip(window),
+                                child: Stack(
+                                  children: [
                             Positioned.fill(
                               child: Transform(
                                 transform: shrink,
@@ -580,6 +614,28 @@ class _GameShellState extends State<GameShell> {
                                 ),
                               ),
                             ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            // The lifter and last-session tiles beside it while
+                            // something is edited or opened from them (D52).
+                            if (t > 0 && tiles) ...[
+                              Positioned.fromRect(
+                                rect: _tileRect(box.biggest, 1),
+                                child: Opacity(
+                                  opacity: t,
+                                  child: LifterTile(store: _store, on: _lifterEdit == 4, onTap: () => setState(() => _lifterEdit = 4)),
+                                ),
+                              ),
+                              Positioned.fromRect(
+                                rect: _tileRect(box.biggest, 2),
+                                child: Opacity(
+                                  opacity: t,
+                                  child: SessionTile(store: _store, on: _lifterEdit == 3, onTap: () => setState(() => _lifterEdit = 3)),
+                                ),
+                              ),
+                            ],
                             // The minimised workout window: tap it to go back.
                             if (t > 0)
                               Positioned.fromRect(
@@ -703,4 +759,17 @@ class _TopLevel extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Clips to the minimised workout window while it shrinks (D52).
+class _WindowClip extends CustomClipper<Rect> {
+  _WindowClip(this.rect);
+
+  final Rect rect;
+
+  @override
+  Rect getClip(Size size) => rect;
+
+  @override
+  bool shouldReclip(_WindowClip old) => old.rect != rect;
 }

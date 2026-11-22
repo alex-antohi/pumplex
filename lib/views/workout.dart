@@ -47,6 +47,16 @@ Rect workoutCard(Size area, [double bottomInset = 0]) =>
   return (sceneRectIn(avail, scale), scale);
 }
 
+/// The arena only (D52): the visible part of the scene in the workout card,
+/// cut to a square around its middle. The minimised workout shows this.
+Rect workoutArena(Size area, [double bottomInset = 0]) {
+  final card = workoutCard(area, bottomInset);
+  final (scene, _) = workoutLayout(area, bottomInset);
+  final a = Rect.fromLTRB(max(scene.left, card.left + 4), scene.top, min(scene.right, card.right - 4), scene.bottom);
+  final side = min(a.width, a.height);
+  return Rect.fromCenter(center: a.center, width: side, height: side);
+}
+
 /// The lifter's place in the scene: the design's lifter position (the same
 /// in every area), feet on the shadow.
 Rect workoutStage(Size area, [double bottomInset = 0]) {

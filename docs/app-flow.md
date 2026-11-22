@@ -60,7 +60,7 @@ flowchart TD
 | 9 | Past sessions | removed | Now the past-sessions card of the lifter profile (D50). |
 | 10 | Gear | removed | No gear (D38). |
 | 11 | Menu | removed | No ⋮ menu (D50): no menu screen and no save / restore backup buttons. |
-| 12 | Lifter profile | exists | Tap the lifter (or the level bar) on the workout (D50): the workout shrinks into a window at the top left (30%, D51); under it a past-sessions card (carousel) and a lifter card (BODY, CLASS, DIFFICULTY, AREA). A row opens its setup screen in the same place, without BACK / NEXT; changes save at once. Tap the small workout to go back. |
+| 12 | Lifter profile | exists | Tap the lifter (or the level bar) on the workout (D50): the workout shrinks into a square tile at the top left that shows only the arena (D52); under it a past-sessions card (carousel) and a lifter card (BODY, CLASS, DIFFICULTY, AREA, no edit icons). A row opens its setup screen below, without BACK / NEXT, saving at once (D51); then a lifter tile and a last-session tile sit beside the arena tile and open their cards below (D52). Tap the arena tile to go back. |
 
 Removed: the preloader, START TRAINING and its clock, I WORKED / I RESTED and UNDO,
 the 7-day pattern, rest days, rest-day stats and the preview pages.
@@ -156,13 +156,16 @@ There is no hub screen (D49), no bottom bar and no menu (D50). The app opens on 
 
 - **Level and XP bar:** in the PUMPLEX bar on the workout.
 - **Lifter profile** (D50): tap the lifter in the world, or the level bar. The workout and the lifter
-  shrink into a window at the top left (30% of the view, D51), with nothing beside it. Under it:
+  shrink into a square tile at the top left that shows only the arena (D52). Under it:
   - **Past sessions:** one training day at a time (§5), swipe both ways, round and round; "n / m" shows where you are.
-  - **The lifter:** BODY (height and weight), CLASS, DIFFICULTY, AREA, each with a change pencil (no GEAR row, D51).
+  - **The lifter:** BODY (height and weight), CLASS, DIFFICULTY, AREA. No GEAR row (D51), no edit icons (D52); tap a row.
     A row opens its setup screen in the profile's place: the same screen as in the first setup, smaller and
     without BACK / NEXT. Every change saves at once; a slider saves when it is let go, so each body change
     is one entry in the history (for charts later).
-  - Tap the small workout window to make the workout full screen again.
+  - While a row's screen is open, the top row has three tiles (D52): the arena, a lifter tile (class,
+    difficulty, area) and a last-session tile (date, sets, XP). The last-session tile opens the
+    past-sessions carousel below; the lifter tile opens the full lifter card below.
+  - Tap the arena tile to make the workout full screen again.
 - **The phone's back button** leaves the app, on every screen (D51).
 
 ### 4.2 Workout
