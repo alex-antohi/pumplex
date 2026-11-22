@@ -46,12 +46,13 @@ enum Scene { migrate, create, classSelect, area, summary, workout }
 /// The views leave this rect free; the shell draws the one character there,
 /// so it glides from place to place when the scene changes.
 /// [bottomInset] is the phone's navigation bar, for views that keep it.
-Rect stageRect(Scene s, Size a, {double bottomInset = 0}) {
+/// [buttons] false: a setup screen without BACK / NEXT (the lifter editor).
+Rect stageRect(Scene s, Size a, {double bottomInset = 0, bool buttons = true}) {
   final w = a.width, h = a.height;
   return switch (s) {
     Scene.create => Rect.fromLTWH(0, 8, w, h * 0.42),
-    Scene.classSelect => classLayout(a, bottomInset).stage,
-    Scene.area => areaLayout(a, bottomInset).stage,
+    Scene.classSelect => classLayout(a, bottomInset, buttons: buttons).stage,
+    Scene.area => areaLayout(a, bottomInset, buttons: buttons).stage,
     Scene.summary => Rect.fromLTWH(0, 10, w, h * 0.40),
     Scene.migrate => Rect.fromLTWH(0, 10, w, h * 0.34),
     Scene.workout => workoutStage(a, bottomInset),
@@ -162,14 +163,123 @@ class _GameShellState extends State<GameShell> {
   /// The lifter profile is open: the workout is minimised (D50).
   bool _lifter = false;
 
-  /// The minimised workout window at the top left, in a view of [size].
-  static Rect _miniRect(Size size) => Rect.fromLTWH(16, 10, size.width * 0.42, size.height * 0.42);
+  /// The setup screen open under the minimised workout (D51): 0 character,
+  /// 1 class and difficulty, 2 area; null = the lifter profile.
+  int? _lifterEdit;
+
+  /// Back to the full-screen workout.
+  void _closeLifter() => setState(() {
+        _lifter = false;
+        _lifterEdit = null;
+        _head = false;
+      });
+
+  /// Saves the draft as the profile (the lifter editor saves every change).
+  void _saveDraft() => _store.setProfile(Profile(
+        character: _char,
+        classId: _classId,
+        difficultyId: _difficultyId,
+        areaId: _areaId,
+      ));
+
+  /// The minimised workout window at the top left, in a view of [size]: small
+  /// enough that the lifter profile fits under it (D51).
+  static Rect _miniRect(Size size) => Rect.fromLTWH(16, 10, size.width * 0.3, size.height * 0.3);
+
+  /// Under the minimised workout (D51): the lifter profile, or one setup
+  /// screen without BACK / NEXT. It is the same screen as in the first
+  /// setup, smaller. Every change saves at once (a slider when it is let go).
+  Widget _lifterPanel(Size size, double inset) {
+    final edit = _lifterEdit;
+    if (_store.profile == null || edit == null) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 22, 0),
+        child: LifterProfile(
+          key: const ValueKey('lifter-profile'),
+          store: _store,
+          onEditStep: (step) => setState(() {
+            _resetDraft();
+            _lifterEdit = step;
+          }),
+        ),
+      );
+    }
+    final scene = _setupSteps[edit];
+    final stage = stageRect(scene, size, bottomInset: inset, buttons: false);
+    final view = switch (scene) {
+      Scene.create => CreateView(
+          stage: stage,
+          character: _char,
+          buttons: false,
+          onCharacter: (c) {
+            final tapped = c.sex != _char.sex || c.skin != _char.skin || c.hair != _char.hair || c.facialHair != _char.facialHair;
+            setState(() => _char = c);
+            if (tapped) _saveDraft();
+          },
+          onSlideEnd: _saveDraft,
+          onNext: () {},
+          headOpen: _head,
+          onHead: (open) => setState(() => _head = open),
+        ),
+      Scene.classSelect => ClassView(
+          stage: stage,
+          classId: _classId,
+          difficultyId: _difficultyId,
+          editing: true,
+          buttons: false,
+          onPick: (id) {
+            setState(() => _classId = id);
+            _saveDraft();
+          },
+          onDifficulty: (id) {
+            setState(() => _difficultyId = id);
+            _saveDraft();
+          },
+          onBack: () {},
+          onNext: () {},
+        ),
+      _ => AreaView(
+          stage: stage,
+          areaId: _areaId,
+          classId: _classId,
+          editing: true,
+          buttons: false,
+          onPick: (id) {
+            setState(() => _areaId = id);
+            _saveDraft();
+          },
+          onBack: () {},
+          onNext: () {},
+        ),
+    };
+    return Stack(
+      key: ValueKey('lifter-edit-$edit'),
+      children: [
+        Positioned.fill(child: view),
+        // The screen's own lifter (the small workout window has its own).
+        Positioned.fromRect(
+          rect: stage,
+          child: IgnorePointer(
+            child: CharacterSprite(
+              key: const ValueKey('edit-lifter'),
+              character: _char,
+              classId: _classId,
+              pedestal: scene != Scene.area,
+              zoomHead: scene == Scene.create && _head,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
 
   void _go(Scene to, [Motion motion = Motion.zoomIn]) {
     if (to == _scene) return;
     setState(() {
       _head = false;
       _lifter = false;
+      _lifterEdit = null;
       _scene = to;
       _motion = motion;
       _intro = null;
@@ -210,14 +320,6 @@ class _GameShellState extends State<GameShell> {
   /// The setup steps a summary or profile EDIT opens (0 body, 1 class,
   /// 2 difficulty, 3 area).
   static const _setupSteps = [Scene.create, Scene.classSelect, Scene.area];
-
-  /// Opens one setup step to change it. NEXT leads to the summary, which
-  /// saves (D13).
-  void _editStep(int step) {
-    _resetDraft();
-    _editing = true;
-    _go(_setupSteps[step], Motion.zoomOut);
-  }
 
   void _pickClass(String id) {
     setState(() {
@@ -299,7 +401,6 @@ class _GameShellState extends State<GameShell> {
 
   void _back() {
     if (_head) return setState(() => _head = false);
-    if (_lifter) return setState(() => _lifter = false);
     final to = _backTo;
     if (to == null) return;
     if (_scene == Scene.create) _editing = false;
@@ -373,12 +474,8 @@ class _GameShellState extends State<GameShell> {
     final profile = _store.profile;
     final char = _inSetup || profile == null ? _char : profile.character;
     final classId = _inSetup || profile == null ? _classId : profile.classId;
-    return PopScope(
-      canPop: _backTo == null && !_head && !_lifter,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) _back();
-      },
-      child: AnnotatedRegion<SystemUiOverlayStyle>(
+    // The phone's back button leaves the app, everywhere (D51).
+    return AnnotatedRegion<SystemUiOverlayStyle>(
         value: SystemUiOverlayStyle.light,
         child: Scaffold(
           body: DotBackground(
@@ -420,18 +517,22 @@ class _GameShellState extends State<GameShell> {
                           children: [
                             if (t > 0)
                               Positioned(
-                                left: 16,
-                                right: 22,
-                                top: mini.bottom + 18,
+                                left: 0,
+                                right: 0,
+                                top: mini.bottom + 14,
                                 bottom: 0,
                                 child: Opacity(
                                   opacity: t,
                                   child: IgnorePointer(
                                     ignoring: !_lifter,
-                                    child: LifterProfile(
-                                      key: const ValueKey('lifter-profile'),
-                                      store: _store,
-                                      onEditStep: _editStep,
+                                    child: LayoutBuilder(
+                                      builder: (context, region) => AnimatedSwitcher(
+                                        duration: const Duration(milliseconds: 200),
+                                        child: KeyedSubtree(
+                                          key: ValueKey(_lifterEdit),
+                                          child: _lifterPanel(region.biggest, inset),
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -486,7 +587,7 @@ class _GameShellState extends State<GameShell> {
                                 child: GestureDetector(
                                   key: const ValueKey('mini-workout'),
                                   behavior: HitTestBehavior.opaque,
-                                  onTap: _lifter ? () => setState(() => _lifter = false) : null,
+                                  onTap: _lifter ? _closeLifter : null,
                                   child: DecoratedBox(
                                     decoration: BoxDecoration(
                                       border: Border.all(color: p.ink.withValues(alpha: t), width: 3),
@@ -506,7 +607,6 @@ class _GameShellState extends State<GameShell> {
             ),
           ),
         ),
-      ),
     );
   }
 }

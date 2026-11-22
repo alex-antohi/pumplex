@@ -17,8 +17,8 @@ class LifterProfile extends StatefulWidget {
 
   final LogStore store;
 
-  /// Opens one setup step to change it: 0 body, 1 class and difficulty,
-  /// 2 area (D13). NEXT leads to the summary, which saves.
+  /// Opens an editor under the minimised workout (D51): 0 body, 1 class
+  /// and difficulty, 2 area. Changes save at once.
   final ValueChanged<int> onEditStep;
 
   @override
@@ -113,7 +113,6 @@ class _LifterProfileState extends State<LifterProfile> with SwipeCarousel<Lifter
                 if (c != null)
                   row(0, 'body', 'Body', '${heightMetres(c.height).toStringAsFixed(2)} M · ${weightKg(c.fat)} KG', p.lime),
                 row(1, 'class', 'Class', cls.name, color),
-                row(1, 'gear', 'Gear', cls.equipment, p.sky),
                 row(1, 'difficulty', 'Difficulty', difficulties[di].name, p.pink),
                 row(2, 'area', 'Area', area.name, p.orange),
               ],

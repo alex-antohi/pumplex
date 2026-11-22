@@ -796,20 +796,37 @@ void main() {
     expect(find.byKey(const ValueKey('lifter-profile')), findsOneWidget);
     expect(t.getRect(find.byKey(const ValueKey('world-object'))).width, lessThan(full.width * 0.6)); // minimised
     expect(find.byKey(const ValueKey('profile-sessions')), findsOneWidget);
-    for (final k in ['profile-body', 'profile-class', 'profile-gear', 'profile-difficulty', 'profile-area']) {
+    for (final k in ['profile-body', 'profile-class', 'profile-difficulty', 'profile-area']) {
       expect(find.byKey(ValueKey(k)), findsOneWidget, reason: k);
     }
+    expect(find.byKey(const ValueKey('profile-gear')), findsNothing); // no GEAR row (D51)
+    // BODY: the creator screen opens under the small workout, without buttons (D51).
+    final bodies = store.bodyHistory.length;
     await t.tap(find.byKey(const ValueKey('profile-body')));
     await _frames(t);
-    expect(find.text('CHARACTER · STEP 1 OF 4'), findsOneWidget);
+    expect(find.text('BUILD YOUR LIFTER'), findsOneWidget);
+    expect(find.text('NEXT'), findsNothing);
     await t.drag(find.byKey(const ValueKey('slider-WEIGHT')), const Offset(400, 0));
-    await t.tap(find.text('NEXT'));
+    await _frames(t, 4);
+    expect(store.profile!.character.fat, 100); // saved when the drag ends
+    expect(store.bodyHistory.length, bodies + 1); // one history entry for the drag
+    // CLASS: the class screen, no buttons; a swipe saves.
+    await t.tap(find.byKey(const ValueKey('mini-workout')));
+    await _frames(t, 20);
+    await t.tap(find.byKey(const ValueKey('workout-character')));
+    await _frames(t, 20);
+    await t.tap(find.byKey(const ValueKey('profile-class')));
     await _frames(t);
-    await t.tap(find.text('SAVE'));
-    await _frames(t);
-    expect(store.profile!.character.fat, 100);
-    expect(store.bodyHistory.last.character.fat, 100);
-    expect(find.byKey(const ValueKey('world-object')), findsOneWidget); // the workout is home (D49)
+    expect(find.byKey(const ValueKey('class-card')), findsOneWidget);
+    expect(find.text('NEXT: STARTING AREA'), findsNothing);
+    await t.fling(find.byKey(const ValueKey('class-card')), const Offset(-300, 0), 1000);
+    await _frames(t, 10);
+    expect(store.profile!.classId, 'cablemancer'); // Plate Paladin -> the next one
+    // Back to the full-screen workout.
+    await t.tap(find.byKey(const ValueKey('mini-workout')));
+    await _frames(t, 20);
+    expect(find.byKey(const ValueKey('lifter-profile')), findsNothing);
+    expect(find.byKey(const ValueKey('world-object')), findsOneWidget);
   });
 
   testWidgets('a level-up shows the freeze-frame card', (t) async {
@@ -825,15 +842,12 @@ void main() {
     expect(find.byKey(const ValueKey('hub-gear')), findsNothing); // no gear (D38)
   });
 
-  testWidgets('android back closes the lifter profile, back to the workout', (t) async {
+  testWidgets('the phone back button leaves the app, even from the lifter profile (D51)', (t) async {
     await _openApp(t);
     await t.tap(find.byKey(const ValueKey('top-level'))); // the level bar opens the lifter profile too
     await _frames(t);
     expect(find.byKey(const ValueKey('lifter-profile')), findsOneWidget);
-    await t.binding.handlePopRoute();
-    await _frames(t);
-    expect(find.byKey(const ValueKey('lifter-profile')), findsNothing);
-    expect(find.byKey(const ValueKey('world-object')), findsOneWidget);
+    expect(find.byType(PopScope), findsNothing); // nothing holds the back button
   });
 
   testWidgets('BODY on the lifter card keeps the body in the creator', (t) async {
@@ -842,8 +856,9 @@ void main() {
     await _frames(t, 20);
     await t.tap(find.byKey(const ValueKey('profile-body')));
     await _frames(t);
-    expect(find.text('CHARACTER · STEP 1 OF 4'), findsOneWidget);
-    expect(_spriteAsset(t), spriteFrame(_profile.character));
+    expect(find.text('BUILD YOUR LIFTER'), findsOneWidget);
+    final edit = t.widget<AtlasSprite>(find.descendant(of: find.byKey(const ValueKey('edit-lifter')), matching: find.byKey(const ValueKey('character-sprite'))));
+    expect(edit.frame, spriteFrame(_profile.character));
     await t.pump(const Duration(seconds: 5));
   });
 
@@ -865,24 +880,15 @@ void main() {
       await t.fling(find.byKey(const ValueKey('session-card')), const Offset(-300, 0), 1000);
       await _frames(t);
       await tapAndSettle(find.byKey(const ValueKey('mini-workout')));
-      // Change one setup step from the lifter card, then save.
-      await tapAndSettle(find.byKey(const ValueKey('top-level')));
-      await tapAndSettle(find.byKey(const ValueKey('profile-difficulty')));
-      expect(find.text('CLASS · STEP 2 OF 4'), findsOneWidget); // difficulty is on the class step (D47)
-      await tapAndSettle(find.text('NEXT'));
-      await tapAndSettle(find.text('SAVE'));
-      // BODY opens the whole edit flow.
-      await tapAndSettle(find.byKey(const ValueKey('workout-character')));
-      await tapAndSettle(find.byKey(const ValueKey('profile-body')));
-      await tapAndSettle(find.text('NEXT')); // editing: straight to the summary
-      await tapAndSettle(find.text('CLASS'));
-      await tapAndSettle(find.byKey(const ValueKey('class-dot-bruiser')));
-      await tapAndSettle(find.text('NEXT'));
-      await tapAndSettle(find.text('DIFFICULTY'));
-      await tapAndSettle(find.text('NEXT'));
-      await tapAndSettle(find.text('AREA'));
-      await tapAndSettle(find.text('NEXT'));
-      await tapAndSettle(find.text('SAVE'));
+      // Each lifter row opens its setup screen under the small workout (D51).
+      for (final row in ['profile-body', 'profile-difficulty', 'profile-area']) {
+        await tapAndSettle(find.byKey(const ValueKey('top-level')));
+        await tapAndSettle(find.byKey(ValueKey(row)));
+        if (row == 'profile-difficulty') await tapAndSettle(find.byKey(const ValueKey('class-dot-bruiser')));
+        if (row == 'profile-area') await tapAndSettle(find.byKey(const ValueKey('area-dot-arcade')));
+        await tapAndSettle(find.byKey(const ValueKey('mini-workout')));
+      }
+      expect((store.profile!.classId, store.profile!.areaId), ('bruiser', 'arcade'));
       expect(find.byKey(const ValueKey('world-object')), findsOneWidget); // the workout is home (D49)
       await t.pumpWidget(const SizedBox());
     });

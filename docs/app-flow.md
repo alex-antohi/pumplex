@@ -40,8 +40,8 @@ flowchart TD
 
     work -. tap the lifter or the level bar .-> lifter[Lifter profile under the minimised workout: past sessions, lifter card]
     lifter -. tap the small workout .-> work
-    lifter -. BODY .-> char
-    lifter -. CLASS, DIFFICULTY, AREA .-> cls
+    lifter -. BODY, CLASS, DIFFICULTY, AREA .-> edit[The setup screen under the small workout, no BACK / NEXT, saves at once]
+    edit -. tap the small workout .-> work
 ```
 
 ## 2. Screens (scenes)
@@ -60,7 +60,7 @@ flowchart TD
 | 9 | Past sessions | removed | Now the past-sessions card of the lifter profile (D50). |
 | 10 | Gear | removed | No gear (D38). |
 | 11 | Menu | removed | No ⋮ menu (D50): no menu screen and no save / restore backup buttons. |
-| 12 | Lifter profile | exists | Tap the lifter (or the level bar) on the workout (D50): the workout shrinks into a window at the top left; under it a past-sessions card (carousel, swipe both ways, round and round) and a lifter card (BODY, CLASS, GEAR, DIFFICULTY, AREA; tap one to change it). Tap the small workout (or Android back) to go back. |
+| 12 | Lifter profile | exists | Tap the lifter (or the level bar) on the workout (D50): the workout shrinks into a window at the top left (30%, D51); under it a past-sessions card (carousel) and a lifter card (BODY, CLASS, DIFFICULTY, AREA). A row opens its setup screen in the same place, without BACK / NEXT; changes save at once. Tap the small workout to go back. |
 
 Removed: the preloader, START TRAINING and its clock, I WORKED / I RESTED and UNDO,
 the 7-day pattern, rest days, rest-day stats and the preview pages.
@@ -69,8 +69,9 @@ the streak and the hub's "This week" card (D34), and the achievements and milest
 
 ## 3. Initial setup
 
-Show it on the first launch. Later, the lifter card of the lifter profile opens it again: BODY opens
-the character step, CLASS and DIFFICULTY the class step, AREA the area step (D50).
+Show it on the first launch. Later, the lifter card of the lifter profile opens the same screens under
+the small workout (D51): BODY the character screen, CLASS and DIFFICULTY the class screen, AREA the area
+screen. There they have no BACK / NEXT and every change saves at once. BACK / NEXT exist only in the first setup.
 
 1. **Character.**
    - Pick male or female. Sliders (D45):
@@ -155,12 +156,14 @@ There is no hub screen (D49), no bottom bar and no menu (D50). The app opens on 
 
 - **Level and XP bar:** in the PUMPLEX bar on the workout.
 - **Lifter profile** (D50): tap the lifter in the world, or the level bar. The workout and the lifter
-  shrink into a window at the top left (42% of the view), with nothing beside it. Under it:
+  shrink into a window at the top left (30% of the view, D51), with nothing beside it. Under it:
   - **Past sessions:** one training day at a time (§5), swipe both ways, round and round; "n / m" shows where you are.
-  - **The lifter:** BODY (height and weight), CLASS, GEAR, DIFFICULTY, AREA, each with a change pencil.
-    BODY opens the character step, CLASS / GEAR / DIFFICULTY the class step, AREA the area step. NEXT leads to the
-    summary, which saves; each body change is kept in a history (for charts later).
-  - Tap the small workout window (or Android back) to make the workout full screen again.
+  - **The lifter:** BODY (height and weight), CLASS, DIFFICULTY, AREA, each with a change pencil (no GEAR row, D51).
+    A row opens its setup screen in the profile's place: the same screen as in the first setup, smaller and
+    without BACK / NEXT. Every change saves at once; a slider saves when it is let go, so each body change
+    is one entry in the history (for charts later).
+  - Tap the small workout window to make the workout full screen again.
+- **The phone's back button** leaves the app, on every screen (D51).
 
 ### 4.2 Workout
 

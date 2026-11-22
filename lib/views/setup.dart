@@ -64,12 +64,21 @@ class CreateView extends StatelessWidget {
     required this.onNext,
     required this.headOpen,
     required this.onHead,
+    this.buttons = true,
+    this.onSlideEnd,
   });
 
   final Rect stage;
   final Character character;
   final ValueChanged<Character> onCharacter;
   final VoidCallback onNext;
+
+  /// False when editing the lifter under the minimised workout (D51): no
+  /// NEXT / DONE row; tap the head again to close the head looks.
+  final bool buttons;
+
+  /// A slider drag ended (the lifter editor saves then, D51).
+  final VoidCallback? onSlideEnd;
 
   /// The head looks panel is open (the shell zooms the character in).
   final bool headOpen;
@@ -135,7 +144,7 @@ class CreateView extends StatelessWidget {
             children: headOpen ? _headPanel(p) : _bodyPanel(p),
           ),
         ),
-        _Nav(next: headOpen ? 'DONE' : 'NEXT', onNext: headOpen ? () => onHead(false) : onNext),
+        if (buttons) _Nav(next: headOpen ? 'DONE' : 'NEXT', onNext: headOpen ? () => onHead(false) : onNext),
       ],
     );
   }
@@ -148,17 +157,20 @@ class CreateView extends StatelessWidget {
           shown: '${heightMetres(character.height).toStringAsFixed(2)} M',
           value: character.height,
           onChanged: (v) => onCharacter(character.copyWith(height: v)),
+          onChangeEnd: (_) => onSlideEnd?.call(),
         ),
         _BodySlider(
           label: 'WEIGHT',
           shown: '${weightKg(character.fat)} KG',
           value: character.fat,
           onChanged: (v) => onCharacter(character.copyWith(fat: v)),
+          onChangeEnd: (_) => onSlideEnd?.call(),
         ),
         _BodySlider(
           label: 'MUSCLE',
           value: character.muscle,
           onChanged: (v) => onCharacter(character.copyWith(muscle: v)),
+          onChangeEnd: (_) => onSlideEnd?.call(),
         ),
       ];
 
@@ -248,9 +260,10 @@ const _classTextMin = 150.0;
 /// The lifter gets the biggest whole-number scale that leaves
 /// [_classTextMin] for the texts, and the stage is cut to that size, so
 /// there is no empty band above the head.
-({Rect card, Rect stage}) classLayout(Size area, double bottomInset) {
+/// [buttons] false: no BACK / NEXT row under it (the lifter editor, D51).
+({Rect card, Rect stage}) classLayout(Size area, double bottomInset, {bool buttons = true}) {
   final card = Rect.fromLTRB(16, _setupCardTop, area.width - 22,
-      area.height - bottomInset - _classNavHeight - _classDifficultyHeight - _classDotsHeight);
+      area.height - bottomInset - (buttons ? _classNavHeight : 8) - _classDifficultyHeight - _classDotsHeight);
   // CharacterSprite: pedestal = 10% of the box, the sprite gets the rest
   // minus half of it, at most spriteHeight × maxHeightScale × scale.
   const perScale = spriteHeight * maxHeightScale / 0.945;
@@ -277,6 +290,7 @@ class ClassView extends StatefulWidget {
     required this.onBack,
     required this.onNext,
     required this.editing,
+    this.buttons = true,
   });
 
   final Rect stage;
@@ -284,6 +298,9 @@ class ClassView extends StatefulWidget {
   final ValueChanged<String> onPick, onDifficulty;
   final VoidCallback onBack, onNext;
   final bool editing;
+
+  /// False when editing the lifter under the minimised workout (D51).
+  final bool buttons;
 
   @override
   State<ClassView> createState() => _ClassViewState();
@@ -307,7 +324,7 @@ class _ClassViewState extends State<ClassView> with SwipeCarousel<ClassView> {
     final di = difficultyIndex(widget.difficultyId);
     final dColor = difficultyColor(p, di);
     return LayoutBuilder(builder: (context, box) {
-      final card = classLayout(box.biggest, MediaQuery.paddingOf(context).bottom).card;
+      final card = classLayout(box.biggest, MediaQuery.paddingOf(context).bottom, buttons: widget.buttons).card;
       final stage = widget.stage;
       return Stack(
         children: [
@@ -386,12 +403,13 @@ class _ClassViewState extends State<ClassView> with SwipeCarousel<ClassView> {
               ],
             ),
           ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: _Nav(onBack: widget.onBack, next: widget.editing ? 'NEXT' : 'NEXT: STARTING AREA', onNext: widget.onNext),
-          ),
+          if (widget.buttons)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: _Nav(onBack: widget.onBack, next: widget.editing ? 'NEXT' : 'NEXT: STARTING AREA', onNext: widget.onNext),
+            ),
         ],
       );
     });
@@ -446,12 +464,16 @@ class _BodySlider extends StatelessWidget {
     this.shown,
     required this.value,
     required this.onChanged,
+    this.onChangeEnd,
   });
 
   final String label;
   final String? shown;
   final int value;
   final ValueChanged<int> onChanged;
+
+  /// The drag ended (the editors save then, D51).
+  final ValueChanged<int>? onChangeEnd;
 
   @override
   Widget build(BuildContext context) {
@@ -480,6 +502,7 @@ class _BodySlider extends StatelessWidget {
             value: value.toDouble(),
             max: 100,
             onChanged: (v) => onChanged(v.round()),
+            onChangeEnd: onChangeEnd == null ? null : (v) => onChangeEnd!(v.round()),
           ),
         ),
       ],
@@ -524,8 +547,9 @@ const _areaDotsHeight = 30.0;
 /// draws the lifter (standing in the scene, like on the hub). The scene
 /// fills the top of the card edge to edge; at most 24 px a side are cut
 /// off to reach the next whole-number scale (crop the sides, never stretch).
-({Rect card, Rect scene, int scale, Rect stage}) areaLayout(Size area, double bottomInset) {
-  final card = Rect.fromLTRB(16, _setupCardTop, area.width - 22, area.height - bottomInset - _classNavHeight - _areaDotsHeight);
+({Rect card, Rect scene, int scale, Rect stage}) areaLayout(Size area, double bottomInset, {bool buttons = true}) {
+  final card = Rect.fromLTRB(16, _setupCardTop, area.width - 22,
+      area.height - bottomInset - (buttons ? _classNavHeight : 8) - _areaDotsHeight);
   // Inside the card's 4 px border.
   final avail = Rect.fromLTWH(card.left + 4, card.top + 4, card.width - 8, card.height * 0.62);
   final scale = max(1, min((avail.width + 48) / sceneSize.width, avail.height / sceneSize.height).floor());
@@ -548,6 +572,7 @@ class AreaView extends StatefulWidget {
     required this.onPick,
     required this.onBack,
     required this.onNext,
+    this.buttons = true,
   });
 
   final Rect stage;
@@ -555,6 +580,9 @@ class AreaView extends StatefulWidget {
   final bool editing;
   final ValueChanged<String> onPick;
   final VoidCallback onBack, onNext;
+
+  /// False when editing the lifter under the minimised workout (D51).
+  final bool buttons;
 
   @override
   State<AreaView> createState() => _AreaViewState();
@@ -576,7 +604,7 @@ class _AreaViewState extends State<AreaView> with SwipeCarousel<AreaView> {
     final a = areaById(widget.areaId);
     final accent = Color(a.accent);
     return LayoutBuilder(builder: (context, box) {
-      final l = areaLayout(box.biggest, MediaQuery.paddingOf(context).bottom);
+      final l = areaLayout(box.biggest, MediaQuery.paddingOf(context).bottom, buttons: widget.buttons);
       return Stack(
         children: [
           Positioned.fromRect(
@@ -624,12 +652,13 @@ class _AreaViewState extends State<AreaView> with SwipeCarousel<AreaView> {
               onTap: jump,
             ),
           ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: _Nav(onBack: widget.onBack, next: widget.editing ? 'NEXT' : 'NEXT: READY?', onNext: widget.onNext),
-          ),
+          if (widget.buttons)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: _Nav(onBack: widget.onBack, next: widget.editing ? 'NEXT' : 'NEXT: READY?', onNext: widget.onNext),
+            ),
         ],
       );
     });

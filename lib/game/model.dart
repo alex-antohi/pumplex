@@ -134,11 +134,12 @@ class Profile {
   final int schemaVersion;
   final String createdAt;
 
-  Profile copyWith({Character? character, String? createdAt}) => Profile(
+  Profile copyWith({Character? character, String? classId, String? difficultyId, String? areaId, String? createdAt}) =>
+      Profile(
         character: character ?? this.character,
-        classId: classId,
-        difficultyId: difficultyId,
-        areaId: areaId,
+        classId: classId ?? this.classId,
+        difficultyId: difficultyId ?? this.difficultyId,
+        areaId: areaId ?? this.areaId,
         schemaVersion: schemaVersion,
         createdAt: createdAt ?? this.createdAt,
       );

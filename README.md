@@ -49,9 +49,11 @@ The plan is in [docs/app-brief.md](docs/app-brief.md) and
   that the streak and achievements gave before stays.
 - **Old-app data:** a one-time upgrade saves a backup file first, then
   turns the old sessions into XP and deletes the old kg / reps data.
-- **Lifter profile** (D50): a past-sessions card (swipe through the training
-  days) and a lifter card (BODY, CLASS, GEAR, DIFFICULTY, AREA; tap one to
-  change it; body changes are kept as a history). No milestones (D35). No
+- **Lifter profile** (D50, D51): a past-sessions card (swipe through the
+  training days) and a lifter card (BODY, CLASS, DIFFICULTY, AREA). A row opens
+  the same setup screen under the small workout, without BACK / NEXT; changes
+  save at once (body changes are kept as a history). The phone's back button
+  leaves the app. No milestones (D35). No
   backup save / restore screen, no chaos mode, cel shader or sound (D39–D41).
 - **Design art:** Anton and Space Mono fonts (`assets/fonts`, OFL), pixel
   icons (`assets/icons`), class outfits and area scenes.
