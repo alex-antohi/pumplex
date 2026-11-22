@@ -5,6 +5,8 @@ are gone (D29, D7, D19); the other files keep their numbers.
 Open `docs/demo/index.html` in a browser. Each screen is one HTML file; they link to each other
 and share state through `localStorage`, so the demo plays like the real app.
 
+**Source of truth:** when a canvas board (`docs/moodboard/canvas/*.dc.html`) and the demo differ, the demo wins (`docs/decisions.md` still wins over both).
+
 Read before you design a screen:
 
 1. `docs/decisions.md` (the owner's decisions D1–D30; they win over everything below), then
