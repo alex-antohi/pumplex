@@ -91,8 +91,11 @@
     var tags = el.querySelector(".cls-tags");
     k.tags.forEach(function (t) { var s = document.createElement("span"); s.className = "nametag"; s.textContent = t; tags.appendChild(s); });
     var spr = el.querySelector(".cls-spr");
-    PX.sprite(spr, k.body, 3);
-    spr.setAttribute("aria-label", k.name + ": " + k.equipment);
+    /* D25: the user's own body from step 1; the class colour (later the outfit) shows the class */
+    PX.sprite(spr, PX.get().character, 3);
+    var label = "You as " + k.name + ": " + k.equipment;
+    spr.setAttribute("aria-label", label);
+    PX.onAtlas(function () { spr.setAttribute("aria-label", label); }); /* the recoloured sprite repaints once the atlas loads */
   }
 
   var saved = PX.get().cls, start = Math.max(0, IDS.indexOf(saved));

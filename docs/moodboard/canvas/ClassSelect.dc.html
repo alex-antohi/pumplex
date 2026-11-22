@@ -83,35 +83,38 @@ class Component extends DCLogic {
   }
   renderVals() {
     const classes = [
-      { name: 'SCRAPPER', color: '#ffa033', sex: 'f', fat: 0, mus: 25,
+      { name: 'SCRAPPER', color: '#ffa033',
         loadout: 'Nothin’. Just you, the floor and the stairs.',
         tags: ['CARDIO', 'BODYWEIGHT', 'SPRINTS'],
         joke: 'BUILT FROM STAIRS AND SPITE',
         desc: 'No gym, no gear, no problem. Builds every workout out of floors, stairs and pure spite. Homemade, held together with tape, and very loud about it.' },
-      { name: 'BARGAIN BRUISER', color: '#3fd2ff', sex: 'm', fat: 25, mus: 50,
+      { name: 'BARGAIN BRUISER', color: '#3fd2ff',
         loadout: 'Two dumbbells, one mat, a kettlebell of unknown origin.',
         tags: ['FLOOR WORK', 'SOME CARDIO', 'SOME WEIGHTS'],
         joke: 'BUY ONE GAIN, GET ONE FREE',
         desc: 'Kitted out from the clearance aisle. Every piece of gear is store-brand, slightly wobbly and fully committed. Cheap kit, real gains.' },
-      { name: 'PLATE PALADIN', color: '#c6ff3d', sex: 'm', fat: 75, mus: 100,
+      { name: 'PLATE PALADIN', color: '#c6ff3d',
         loadout: 'A barbell, a rack and a wall of plates.',
         tags: ['STRONGMAN', 'BARBELL', 'HEAVY'],
         joke: 'OATH-SWORN TO THE BARBELL',
         desc: 'Sworn to the barbell. Carries plates like holy relics and drops them like thunder. Big, burly, unbothered.' },
-      { name: 'CABLEMANCER', color: '#a77bff', sex: 'f', fat: 0, mus: 75,
+      { name: 'CABLEMANCER', color: '#a77bff',
         loadout: 'Cables, pin-stacks and every machine in the building.',
         tags: ['MACHINES', 'CABLES', 'LEAN POWER'],
         joke: 'SPEAKS FLUENT PULLEY',
         desc: 'Bends steel cables and pin-stacks to their will. Thin as a wire, strong as the machine. Never waits for the squat rack.' },
     ];
     const k = classes[this.state.i];
-    const row = (k.sex === 'm' ? 0 : 5) + k.mus / 25;
+    /* D25: the card shows the user's own body from step 1 (the Creator board's default here), not a body per class.
+       The class colour, and later the class outfit, shows the class. */
+    const me = { sex: 'm', fat: 25, mus: 50 };
+    const row = (me.sex === 'm' ? 0 : 5) + me.mus / 25;
     const c = {
       name: k.name, color: k.color, loadout: k.loadout, desc: k.desc, joke: k.joke,
       t0: k.tags[0], t1: k.tags[1], t2: k.tags[2],
       frozen: this.state.intro ? 'frozen' : '',
-      pos: (-(k.fat / 25) * 156) + 'px ' + (-row * 192) + 'px',
-      alt: k.name + ' path preview: ' + (k.sex === 'm' ? 'male' : 'female') + ' lifter, fat ' + k.fat + ', muscle ' + k.mus,
+      pos: (-(me.fat / 25) * 156) + 'px ' + (-row * 192) + 'px',
+      alt: 'You as ' + k.name + ': ' + (me.sex === 'm' ? 'male' : 'female') + ' lifter, fat ' + me.fat + ', muscle ' + me.mus,
     };
     const r = (n) => n === this.state.i
       ? { on: 'true', bg: classes[n].color, fg: '#0b0414', sh: '4px 4px 0 #ff5fb0' }

@@ -171,7 +171,8 @@
   if (/[?&]test=areas\b/.test(q)) sessions = sessions.map(function (x, i) {
     var y = {}; for (var k in x) y[k] = x[k]; y.areaId = PX.AREA_ORDER[i % PX.AREA_ORDER.length]; return y;
   });
-  sessions.sort(function (a, b) { return b.start - a.start; });
+  /* one session per calendar day (D6): rows are named and sorted by date, newest first */
+  sessions.sort(function (a, b) { return a.date < b.date ? 1 : -1; });
 
   var LADDER = ["muted", "lime", "sky", "violet", "orange", "pink"];
   function rung(i) { return "var(--" + LADDER[Math.min(i, LADDER.length - 1)] + ")"; }
@@ -185,7 +186,6 @@
 
   /* ---------- empty state ---------- */
   if (!sessions.length) {
-    document.getElementById("his-cta").textContent = "START TRAINING";
     screen.innerHTML =
       '<div class="his-empty">' +
         '<div class="his-e-stage stage">' +
@@ -195,7 +195,7 @@
         '</div>' +
         '<h1 class="title">NO LEGENDS YET</h1>' +
         '<p class="sub">Every workout you finish lands here, marks and all. Right now it is just you and the dust.</p>' +
-        '<div class="his-ghost" aria-hidden="true"><span>SESSION 1<b>YOUR FIRST WIN</b></span>' +
+        '<div class="his-ghost" aria-hidden="true"><span>TODAY?<b>YOUR FIRST WIN</b></span>' +
           '<div><span class="his-m-x">X</span><span class="his-m-x">X</span><span class="his-m-x">X</span></div></div>' +
       '</div>';
     PX.sprite(document.getElementById("his-e-sprite"), s.character, 3);
@@ -204,13 +204,12 @@
 
   /* ---------- summary: short messages, not a stat table ---------- */
   var G = PX.game();
-  var totalMin = 0, totalSets = 0;
-  sessions.forEach(function (x) { totalMin += x.minutes || 0; totalSets += PX.sessionSets(x); });
-  var effort = PX.fmtMinutes(totalMin);
+  var totalSets = 0;
+  sessions.forEach(function (x) { totalSets += PX.sessionSets(x); });
   var legacyN = sessions.filter(function (x) { return x.legacy; }).length, total = sessions.length - legacyN;
   document.getElementById("his-head").hidden = false;
   document.getElementById("his-sum").innerHTML =
-    "<b>" + total + "</b> SESSION" + (total === 1 ? "" : "S") + (legacyN ? " + " + legacyN + " FROM THE OLD APP" : "") + " · <b>" + effort + "</b> OF PURE EFFORT";
+    "<b>" + total + "</b> TRAINING DAY" + (total === 1 ? "" : "S") + (legacyN ? " + " + legacyN + " FROM THE OLD APP" : "") + " · <b>" + totalSets + "</b> WORKING SETS";
   var quips = [
     totalSets + " working sets. Zero spreadsheets.",
     totalSets + " sets logged. The barrels have filed a complaint.",
@@ -247,20 +246,23 @@
     return { t: "SHOWED UP. COUNTS.", c: "var(--orange)" };
   }
 
-  function startTime(ts) { var d = new Date(ts); return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); }
+  function ago(date) {
+    var n = Math.round((new Date(PX.today() + "T00:00") - new Date(date + "T00:00")) / 864e5);
+    return n <= 0 ? "TODAY" : n === 1 ? "YESTERDAY" : n + " DAYS AGO";
+  }
 
   /* ---------- groups: THIS WEEK (since Monday) / EARLIER ---------- */
-  var now = new Date(), monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7)).getTime();
-  var html = "", lastGroup = null, total = sessions.filter(function (x) { return !x.legacy; }).length, seen = 0;
+  var monday = PX.weekKey(PX.today());
+  var html = "", lastGroup = null, seen = 0;
   var groupCounts = { week: 0, earlier: 0 };
-  sessions.forEach(function (x) { groupCounts[x.start >= monday ? "week" : "earlier"]++; });
+  sessions.forEach(function (x) { groupCounts[x.date >= monday ? "week" : "earlier"]++; });
 
   sessions.forEach(function (x, idx) {
-    var grp = x.start >= monday ? "week" : "earlier";
+    var grp = x.date >= monday ? "week" : "earlier";
     if (grp !== lastGroup) {
       var n = groupCounts[grp];
       html += '<div class="his-group"><span>' + (grp === "week" ? "THIS WEEK" : "EARLIER") + "</span><i></i><small>" +
-        n + " SESSION" + (n === 1 ? "" : "S") + "</small></div>";
+        n + " DAY" + (n === 1 ? "" : "S") + "</small></div>";
       lastGroup = grp;
     }
     var ar = PX.area(x.areaId) || PX.area("rustbelt");
@@ -277,8 +279,7 @@
     var exs = PX.live(x.exercises), target = 0;
     exs.forEach(function (e) { target += e.targetSets; });
     var done = PX.sessionSets(x), v = verdict(done, target);
-    var took = PX.fmtMinutes(x.minutes || 0);
-    var number = total - seen + 1, open = seen === 1, bodyId = "his-b-" + esc(x.date);
+    var open = seen === 1, bodyId = "his-b-" + esc(x.date);
     var strip = "", rows = "";
     exs.forEach(function (e) {
       var name = PX.exercise(e.exerciseId).name, n = e.sets || 0;
@@ -291,16 +292,15 @@
     html +=
       '<article class="his-card" data-open="' + open + '" style="--area-c:' + PX.c(ar.color) + ";--area-floor:" + ar.floor + '">' +
         '<button class="his-tog" type="button" aria-expanded="' + open + '" aria-controls="' + bodyId + '">' +
-          '<span class="his-row1"><span><span class="his-no">SESSION ' + number + '</span>' +
+          '<span class="his-row1"><span><span class="his-no">' + ago(x.date) + '</span>' +
             '<span class="his-date">' + PX.fmtDate(x.date) + "</span></span>" +
             '<span class="his-xp">+' + xpRow.total + " <small>XP</small></span></span>" +
-          '<span class="his-meta"><span class="his-took">' + PX.icon("history") + took + "</span>" +
-            '<span class="nametag his-area">' + esc(ar.name) + "</span>" +
+          '<span class="his-meta"><span class="nametag his-area">' + esc(ar.name) + "</span>" +
             '<svg class="his-chev" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 8h4v3h3v3h2v-3h3V8h4v3h-3v3h-3v3h-4v-3H7v-3H4z"/></svg></span>' +
           '<span class="his-strip" aria-label="' + done + ' working sets">' + strip + "</span>" +
         "</button>" +
         '<div class="his-body" id="' + bodyId + '">' + rows +
-          '<div class="his-foot"><span>STARTED ' + startTime(x.start) + " · " + done + " SETS</span>" +
+          '<div class="his-foot"><span>' + done + " OF " + target + " SETS</span>" +
           '<span class="his-stamp" style="--stamp-c:' + v.c + '">' + v.t + "</span></div>" +
         "</div>" +
       "</article>";

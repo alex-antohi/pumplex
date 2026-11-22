@@ -118,13 +118,6 @@
 .men-row[aria-checked="true"] .men-ico svg { animation: men-flick .3s steps(3, end); }
 @keyframes men-flick { 0% { transform: scale(1.6); } 100% { transform: none; } }
 
-/* danger zone */
-.men-danger .men-label i { color: var(--pink); }
-.men-danger .men-label::after { background: repeating-linear-gradient(-45deg, var(--pink-lo) 0 6px, transparent 6px 12px); height: 8px; }
-.men-row.men-bad { border: 3px solid var(--pink); box-shadow: 4px 4px 0 var(--pink-lo); background: var(--bg); }
-.men-row.men-bad:active { box-shadow: 0 0 0 var(--pink-lo); }
-.men-row.men-bad .men-ico { color: var(--pink); border-color: var(--pink-lo); }
-.men-row.men-bad b { color: var(--pink); }
 
 /* version line */
 .men-ver {
@@ -168,7 +161,6 @@
 .men-acts .btn { min-height: 52px; }
 .btn.men-hot { background: var(--sheet-c, var(--men-c)); color: var(--ink); box-shadow: 4px 4px 0 var(--ink); }
 .btn.men-hot:active { box-shadow: 0 0 0 var(--ink); }
-.men-sheet.men-sheet-bad { --sheet-c: var(--pink); }
 </style>
 </head>
 <body class="px">
@@ -246,15 +238,7 @@
       </div>
     </div>
 
-    <div class="men-group men-danger">
-      <h2 class="men-label"><i>04</i> DANGER ZONE</h2>
-      <div class="men-list">
-        <button class="men-row men-bad" type="button" id="men-restart">
-          <span class="men-ico" data-icon="skull" aria-hidden="true"></span>
-          <span class="men-txt"><b>RESTART SETUP</b><small>New lifter, new path. Your sessions and XP stay.</small></span>
-        </button>
-      </div>
-    </div>
+    <!-- No DANGER ZONE and no RESTART SETUP (D30, D13): the setup changes one choice at a time from the profile (?edit=1). -->
 
     <p class="men-ver"><b id="men-ver">PUMPLEX</b> DESIGN DEMO<br>ALL DATA STAYS ON THIS PHONE</p>
   </section>
@@ -277,17 +261,6 @@
     </div>
   </div>
 
-  <div class="men-scrim" id="men-restart-sheet" hidden>
-    <div class="men-sheet men-sheet-bad" role="alertdialog" aria-modal="true" aria-labelledby="men-rx-t" aria-describedby="men-rx-d">
-      <span class="men-warn"><span data-icon="skull" aria-hidden="true"></span>DANGER ZONE</span>
-      <h2 id="men-rx-t">RUN THE SETUP AGAIN?</h2>
-      <p id="men-rx-d"></p>
-      <div class="men-acts">
-        <button class="btn ghost" type="button" data-close>KEEP IT</button>
-        <button class="btn men-hot" type="button" id="men-restart-ok">RESTART</button>
-      </div>
-    </div>
-  </div>
 </main>
 
 <script>
@@ -298,7 +271,6 @@
   /* icons this screen needs that shared/demo.js doesn't have, in the same pixel style */
   var EXTRA = {
     sound: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9h4l5-5h2v16h-2l-5-5H3z"/><rect x="16" y="9" width="2" height="6"/><rect x="19" y="6" width="2" height="12"/></svg>',
-    skull: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 3h10v2h2v8h-2v3h-2v3H9v-3H7v-3H5V5h2zm1 6v3h3V9zm5 0v3h3V9z"/><rect x="9" y="20" width="2" height="2"/><rect x="13" y="20" width="2" height="2"/></svg>'
   };
   function ico(name) { return EXTRA[name] || PX.icon(name); }
   document.querySelectorAll("[data-icon]").forEach(function (el) { el.innerHTML = ico(el.getAttribute("data-icon")); });
@@ -411,14 +383,6 @@
     busy($("men-restore"), "UNPACKING", function () { PX.toast("RESTORED"); });
   };
 
-  /* brief 4.7 and data-schema: logged sessions are kept; the setup choices change, the history does not */
-  $("men-rx-d").innerHTML = "<strong>You pick a new body, path, difficulty and world.</strong> " +
-    (n ? "All " + n + " sessions, your XP and your gear stay." : "Nothing logged yet, so nothing to lose.");
-  $("men-restart").onclick = function () { openSheet("men-restart-sheet"); };
-  $("men-restart-ok").onclick = function () {
-    PX.save({ setupDone: false, cls: null, difficulty: null, area: null, current: null });
-    PX.go("character");
-  };
 })();
 </script>
 </body>

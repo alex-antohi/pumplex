@@ -3,8 +3,8 @@
 Owner decisions win over this document: read [docs/decisions.md](../decisions.md) first.
 
 Visual direction for the PUMPLEX game side: pixel-art characters, cel-shaded,
-on the app's dark theme. These are **style tests**. Character classes are not
-decided yet.
+on the app's dark theme. The classes are decided: one per equipment type (D8, D9).
+Only their final names are still open.
 
 Source: the "PUMPLEX Game Moodboard" design canvas on claude.ai
 (https://claude.ai/artifact/UhACEHxxvFme5njX4ZjuV5), exported 2026-11-21.
@@ -21,7 +21,7 @@ This folder is the copy in the repo. Use it as the reference when building game 
 | `game_look.html` | Board 1, "Game look v0.1": 4 test builds, 3 style rules, palette. Opens in a browser. |
 | `body_sliders.html` | Board 2, "Body sliders": a 3×3 fat × muscle grid for male and female. Opens in a browser. |
 | `animation.html` | Board 4, "Animation style test": idle, front squat and PR flex loops on 6 bodies, playing. Opens in a browser. |
-| `readability.html` | Board 5, "Phone readability": a lifter card on the real Heavy Lower page at 3×/4×/5×, the sprite on every app ground, a 1×–5× size ladder, findings. Opens in a browser. |
+| `readability.html` | Board 5, "Phone readability": a lifter card on a workout page at 3×/4×/5×, the sprite on every app ground, a 1×–5× size ladder, findings. Opens in a browser. |
 | `builds/*.png` | 4 test-build sprites, 40×64 px. |
 | `body_sliders/{male,female}/fat{0,50,100}_muscle{0,50,100}.png` | 18 body-slider sprites, 52×64 px. |
 | `creator/body_atlas.png` | 50-body atlas used by board 3, "Character creator": 5 fat steps × 5 muscle steps × 2 sexes, 52×64 cells. |
@@ -29,7 +29,7 @@ This folder is the copy in the repo. Use it as the reference when building game 
 | `animation/<sex>_fat<F>_muscle<M>/` | Per body: `<anim>_<i>_<pose>.png` frames (80×72), `<anim>_sheet.png` strips, `preview_3x.png` contact sheet. |
 | `canvas/ClassSelect.dc.html` | Board 6, "Class select": setup step 2, picking a class by equipment. Interactive, runs only inside the canvas. The copy and layout are in "Class select" below. |
 | `canvas/StartingAreas.dc.html` | Board 7, "Starting areas": setup step 4, five areas with scene, palette, default path and a working tap-to-mark demo. Interactive, runs only inside the canvas. Spec in "Starting areas" below. |
-| `canvas/Workout.dc.html` | Board 8, "Workout": the play screen (app-flow §4.2) in Rustbelt Flats for a Scrapper: exercise strip, barrel = one working set, long-press undo, I WORKED and a reward overlay. Interactive, runs only inside the canvas. Spec in "Workout screen" below. |
+| `canvas/Workout.dc.html` | Board 8, "Workout": the play screen (app-flow §4.2) in Rustbelt Flats for a Scrapper: exercise strip (swipe to switch, add, remove), barrel = one working set, long-press undo, an XP pop on each set and the level-up card. Interactive, runs only inside the canvas. Spec in "Workout screen" below. |
 | `canvas/Difficulty.dc.html` | Board 9, "Difficulty": setup step 3, a six-rung ladder of fantasy-named levels with XP gems and a title card. Interactive, runs only inside the canvas. Spec in "Difficulty" below. |
 | `scrapper_rustbelt.html` | Board 10, "Scrapper × Rustbelt Flats": one class in one area, five takes (High Noon, Dusk Drive-In, Dust Devil, Midnight Scrapyard, Toxic Dawn). Hand-painted 172×224 canvas scenes at 2×, 100 ms stepped ambient loops, the lifter's idle and PR-flex frames, the working barrel (tap = set, hold = undo), and 3–4 deliberately useless interactions per take with a global "useless taps" counter. Opens in a browser. |
 | `canvas/` | Design-canvas source (`canvas.json`, `*.dc.html`), including the interactive Creator and Class select boards, which only run inside the canvas. Only needed to re-import into the canvas. |
@@ -111,7 +111,8 @@ Neons (highlight / base / shadow):
 260×640 px, 52×64 cells, no gaps. Column = fat (0, 25, 50, 75, 100).
 Rows 0–4 = male, muscle 0, 25, 50, 75, 100; rows 5–9 = female, same order.
 Cell for (sex, fat, muscle): `x = fat/25 * 52`, `y = ((sex == female ? 5 : 0) + muscle/25) * 64`.
-The canvas's Creator board shows it at 4× with two 5-step sliders and a sex toggle.
+The canvas's Creator board shows it at 4× with a sex toggle and three 5-step sliders: HEIGHT, FAT and MUSCLE (D10, D11).
+Height has no atlas rows: the app stretches the cell vertically, 0.86× to 1.14× (`lib/game/rules.dart`).
 
 ## Animation style test
 
@@ -131,8 +132,8 @@ colours stay the same as the source.
 | Animation | Frames (pose ms) | Notes |
 | --- | --- | --- |
 | `idle` | rest 420 · out 300 · out 260 · rest 300 | Upper body sinks 1 px on the out-breath. |
-| `front_squat` | top 500 · d1 140 · d2 140 · d3 160 · bottom 260 · d2 90 · d1 90 | Heavy Lower main lift. Bar racked on the shoulders. Down slow, up fast. |
-| `pr_flex` | dip 120 · air2 90 · air4 120 · air2 90 · land 90 · hold 700 · rest 400 | For a new PR. Hop, then a double-biceps hold. |
+| `front_squat` | top 500 · d1 140 · d2 140 · d3 160 · bottom 260 · d2 90 · d1 90 | A main barbell lift. Bar racked on the shoulders. Down slow, up fast. |
+| `pr_flex` | dip 120 · air2 90 · air4 120 · air2 90 · land 90 · hold 700 · rest 400 | For a level-up or a critical set (there are no PRs, D2). Hop, then a double-biceps hold. |
 
 Rough spots that still need hand-drawn keyframes: the squat bottom on the skinniest
 bodies, the fists on the bar (plain blocks), and the flex forearms on fat-100 bodies (very wide).
@@ -165,8 +166,8 @@ three **training tags** take its place.
 Screen, top to bottom (390×844 dp):
 
 1. Kicker `STEP 2 OF 5 · THE SWOLEMANCER'S PATHS`, title **CHOOSE YOUR PATH**, subline **What do you train with?**
-2. Preview card: the lifter at 3× from `creator/body_atlas.png` (until there are class outfits, each class
-   shows a body that hints at it), the class name in its colour, the loadout line and 3 tags.
+2. Preview card: **the user's own body from step 1** at 3× (D25). The class colour, and later the class outfit,
+   shows the class, not a different body. Then the class name in its colour, the loadout line and 3 tags.
    The card's hard shadow takes the class colour.
 3. A short description in the voice of an RPG class intro, which also hints at the equipment.
 4. Four class buttons (a radio group): class name on the left, equipment on the right. The picked one fills with its colour.
@@ -197,8 +198,7 @@ The tone of each class follows the gun-maker table in `borderlands-reference.md`
 | Lots of free weights | **Plate Paladin** | Jakobs: old-school, heavy | lime `#c6ff3d` | A barbell, a rack and a wall of plates. | STRONGMAN · BARBELL · HEAVY | OATH-SWORN TO THE BARBELL | Sworn to the barbell. Carries plates like holy relics and drops them like thunder. Big, burly, unbothered. |
 | Lots of machines | **Cablemancer** | Maliwan / Hyperion: sleek, high-tech | violet `#a77bff` | Cables, pin-stacks and every machine in the building. | MACHINES · CABLES · LEAN POWER | SPEAKS FLUENT PULLEY | Bends steel cables and pin-stacks to their will. Thin as a wire, strong as the machine. Never waits for the squat rack. |
 
-Preview bodies (atlas cells): Scrapper F fat 0 / muscle 25 · Bargain Bruiser M 25 / 50 ·
-Plate Paladin M 75 / 100 · Cablemancer F 0 / 75.
+Preview body: always the user's own body from step 1 (D25). There is no preview body per class.
 
 The names are **proposals**. Brief 4.1 says the final names come from the
 design phase. They copy the tone of Borderlands' class names (one punchy archetype word,
@@ -210,7 +210,24 @@ often a mashup) but are our own. Other options:
 
 Still open: class outfits (the preview uses the starter outfit).
 
-**No height slider.** Owner decision, 21 November 2026, overrides brief 4.2: character creation is body type + fat + muscle only.
+## Transitions between views (D23)
+
+The whole app feels like one screen: every change of view is an animated transition, never a jump, a blank or a black flash.
+**The lifter stays on screen** between views and moves to its new spot (a shared element). The boards show each step as a separate
+phone frame only for layout; this table is the motion between them. All motion is hard-stepped (`steps()`), 240–320 ms.
+With reduced motion, the panels cross-fade in 2 steps and the lifter does not move.
+
+| From → to | Lifter | Panels | Ms |
+| --- | --- | --- | --- |
+| First launch → 1 Creator | Drops onto the stage floor from the top, one squash on landing | The sliders panel slides up from the bottom | 320 |
+| 1 Creator → 2 Class select | Shrinks from 4× to 3× and steps onto the preview card | The sliders slide out left, the class card slides in from the right; then the class freeze-frame card | 280 |
+| 2 Class select → 3 Difficulty | Stays at 3×, moves to the left of the ladder | The class card slides out left, the ladder rises from the bottom rung up | 280 |
+| 3 Difficulty → 4 Starting area | Stays on the floor line | The ladder slides out left; the area scene wipes in behind the lifter from the right, floor first, then the sky | 320 |
+| 4 Starting area → 5 Summary | Stays in the area scene | The camera pulls back 1 step; the four choice chips stamp in around the lifter, one by one | 320 |
+| 5 Summary → Hub (LET'S GO) | Stays in the same scene, now the hub's | The chips fly to their hub spots (class tag, level, workout card); the HUD and nav slide in | 320 |
+| Any BACK in the setup | The same move, reversed | Reversed | same |
+| Profile → one setup step (`?edit=1`) and back | Stays | The profile slides down, the step's panel slides up; SAVE reverses it | 280 |
+| Hub → Workout (TRAIN ▶) and ◀ HUB | Stays in the scene | The camera zooms 1 step into the scene; the exercise strip drops in from the top; ◀ HUB reverses it | 240 |
 
 ## Starting areas (setup step 4)
 
@@ -262,16 +279,18 @@ default area, and the player can still choose any area. Lifters use `creator/bod
 ## Workout screen (play, app-flow §4.2)
 
 **Reference board, not an app screen.** Shown in Rustbelt Flats for a Scrapper (no equipment: push-ups, burpees, sprints).
-Owner choices (21 Nov 2026): an active-exercise strip, a set target per exercise, this area and class, and a simple reward overlay.
+Owner choices (21 Nov 2026): an active-exercise strip, a set target per exercise, this area and class. Owner decisions D6, D7, D15, D16 and D19 apply:
+one session per calendar day that closes by itself, no I WORKED, no clock, no session counter, and XP per set with no reward screen.
 
 Screen, top to bottom (390×844 dp):
 
-1. **Top bar:** `SESSION 14 · SCRAPPER`, the area name, and the running clock (`mm:ss` on an ink box with a lime border; it keeps running, as app-flow §4.2 says).
-2. **Exercise strip:** one card per exercise (3 here). Each card shows the name, **target slots** (outlined Xs, filled in rarity-ladder colours as sets land), `+n` for extra sets, and a status: NOW / NEXT UP / CRUSHED.
-   The active card is orange with a pink hard shadow. **Tap a card to switch** the active exercise.
+1. **Top bar:** **◀ HUB** (back to the hub; every set is already saved), the class name (`SCRAPPER`) and the area name. No session counter, no clock.
+2. **Exercise strip:** one card per exercise, 3 to 8 from the difficulty (D15). Each card shows the name, **target slots** (outlined Xs, filled in rarity-ladder colours as sets land), `+n` for extra sets, and a status: NOW / NEXT UP / CRUSHED.
+   The active card is orange with a pink hard shadow. Tap a card to make it active. **Swipe a card** to switch the exercise for another
+   from the class pool, **↺** returns a switched card to the first exercise, **✕** removes a card, and **+ ADD EXERCISE** adds one from the pool (D16).
 3. **The world:** the Rustbelt Flats scene with the lifter at 3×. A bobbing hint says **BLOW UP THE BARREL** with `<EXERCISE> · SET n OF t` under it.
    The scrap sign shows the **active exercise's** Xs: filled ones in rarity colours, outlined ones still to do.
-4. **I WORKED** (lime, full width). It's disabled until at least one set is logged.
+4. No finish button. The day's session closes by itself at midnight; a second visit on the same day adds to it (D6, D7).
 
 Rules:
 - **Tap the barrel = one working set of the active exercise.** It explodes, the scene shakes, a new barrel rolls in, and an X lands on the sign. The burst says **+1 SET**, or **CRUSHED!** when the target is reached.
@@ -279,7 +298,9 @@ Rules:
 - When an exercise reaches its target, the strip **moves to the next unfinished exercise** after 0.8 s. Extra sets are allowed (up to 9).
 - The **targets come from the app** (brief rule 4). 3 × 3 here is a placeholder until the workout lists per class exist (brief §8).
 - **First-workout tip** (app-flow §4.2), at the top of the scene: "ONLY WORKING SETS COUNT. WARM-UPS DON'T. HOLD THE BARREL TO TAKE ONE BACK." with an OK button.
-- **Reward overlay on I WORKED:** freeze-frame stripes, a **WORKOUT CRUSHED** stencil slam, `+[XP] XP` (placeholder: XP rules are still open, brief 4.8), the sets per exercise, the time, and **BACK TO HUB**.
+- **XP on each set** (D19, `docs/rules.md`): every set pops `+n XP` over the scene. A critical set (3%, ×2) pops **CRITICAL SET!!!** in pink.
+- **Level-up:** the freeze-frame title card (same as Class select) slams **LEVEL n** with the level title. Gear that drops shows on that card.
+  There is no reward overlay and no end-of-workout screen.
 
 For other areas, swap the scene and the action object. Everything else stays the same (see "Starting areas").
 
@@ -311,7 +332,7 @@ It closes after 1.8 s or on tap.
 | 5 | orange `#ffa033` | **BRUTAL MODE** | Years of serious lifting. Very hard workouts. | THE RACK FEARS YOU NOW | 5 |
 | 6 | pink `#ff5fb0` | **NIGHTMARE MODE** | Many years, competition level. The hardest workouts there are. | GRAVITY FILED A COMPLAINT | 6 |
 
-- The gem count is a **picture of the XP multiplier**, not the number. The real multipliers come with the XP rules (brief §8, item 3).
+- The gem count is a **picture of the XP multiplier**, not the number. The multipliers are in `docs/rules.md` (D19): 1.0 at the easiest level to 2.0 at the hardest, in even steps.
 - The colours follow the rarity ladder from `borderlands-reference.md` §4, so harder reads as rarer.
 - Don't use **"Chaos mode"** (already an app menu feature) or Borderlands' own difficulty names.
 - The tone is loud and silly, never mean about bodies, as the reference asks.
