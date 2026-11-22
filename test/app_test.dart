@@ -37,7 +37,7 @@ const _oldSwaps = '{"hu1":{"S00004":"Floor Press"}}';
 
 const _profile = Profile(
   character: Character(sex: 'female', height: 80, muscle: 100, fat: 0),
-  classId: 'warrior',
+  classId: 'paladin',
   difficultyId: 'sweat', // 4 exercises, 3 target sets, ×1.4, streak N 2
   areaId: 'castle',
 );
@@ -102,6 +102,32 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(() => _now = DateTime(2026, 11, 21, 10));
 
+  test('class id migration (D31): old ids become design ids once, old text kept', () async {
+    const oldProfile = '{"classId":"warrior","difficultyId":"sweat","areaId":"gainsgard","character":{}}';
+    const oldSessions = '{"2026-11-20":{"classId":"warrior","difficultyId":"sweat","areaId":"gainsgard",'
+        '"exercises":[{"position":0,"exerciseId":"warrior.squat","originalExerciseId":"warrior.bench",'
+        '"targetSets":3,"sets":2}]}}';
+    SharedPreferences.setMockInitialValues({'profile_v1': oldProfile, 'sessions_v3': oldSessions});
+    final prefs = await SharedPreferences.getInstance();
+    final store = LogStore(prefs, clock: () => _now);
+    expect(store.profile!.classId, 'paladin');
+    final s = store.history.single;
+    expect(s.classId, 'paladin');
+    expect(s.exercises.single.exerciseId, 'paladin.squat');
+    expect(s.exercises.single.originalExerciseId, 'paladin.bench');
+    expect(s.exercises.single.sets, 2);
+    expect(prefs.getString('profile_v1'), isNot(contains('warrior')));
+    expect(prefs.getString('sessions_v3'), isNot(contains('warrior')));
+    final backup = jsonDecode(prefs.getString(LogStore.classIdBackupKey)!) as Map;
+    expect(backup['profile'], oldProfile);
+    expect(backup['sessions'], oldSessions);
+    // A second launch changes nothing.
+    final again = LogStore(prefs, clock: () => _now);
+    expect(again.profile!.classId, 'paladin');
+    expect(newClassId('scrapper'), 'scrapper');
+    expect(newExerciseId('custom'), 'custom');
+  });
+
   // ------------------------------------------------------------ fixed data
 
   test('rules table: set XP, over target, cap, critical, streak, level curve', () {
@@ -119,7 +145,7 @@ void main() {
     expect(set(1, d: 5), 20);
     expect(xpPerLegacySession, 150);
     // Repeatable criticals, about 3% of sets.
-    expect(isCritical('2026-11-21', 'warrior.squat', 1), isCritical('2026-11-21', 'warrior.squat', 1));
+    expect(isCritical('2026-11-21', 'paladin.squat', 1), isCritical('2026-11-21', 'paladin.squat', 1));
     final crits = [for (var i = 1; i <= 10000; i++) isCritical('2026-11-21', 'x', i)].where((c) => c).length;
     expect(crits, inInclusiveRange(200, 400));
     // Habitica level curve.
@@ -151,7 +177,7 @@ void main() {
       expect(areas.where((a) => a.defaultFor == c.id).length, 1, reason: c.id);
       expect(defaultAreaFor(c.id).defaultFor, c.id);
     }
-    expect(defaultAreaFor('warrior').id, 'castle');
+    expect(defaultAreaFor('paladin').id, 'castle');
     expect(areaById('nope').id, areas.first.id);
   });
 
@@ -216,7 +242,7 @@ void main() {
     store.addSet(1);
     final s = store.todaySession!;
     expect(store.sessions.keys, ['2026-11-21']);
-    expect((s.classId, s.difficultyId, s.areaId, s.legacy), ('warrior', 'sweat', 'castle', false));
+    expect((s.classId, s.difficultyId, s.areaId, s.legacy), ('paladin', 'sweat', 'castle', false));
     expect((s.firstMarkAt, s.lastMarkAt), ('2026-11-21T07:00:00', '2026-11-21T18:00:00'));
     expect(s.exercises.map((e) => e.exerciseId), plan);
     expect([s.exercises[0].sets, s.exercises[1].sets], [2, 1]);
@@ -244,12 +270,12 @@ void main() {
 
   test('a workout: N exercises from the pool, each with a target', () async {
     final (store, _) = await _store(setUp: true);
-    final pool = classById('warrior').exercises.map((e) => e.id).toSet();
+    final pool = classById('paladin').exercises.map((e) => e.id).toSet();
     final list = store.todayExercises;
     expect(list.length, rulesFor(_d).exercisesPerWorkout);
     expect(list.every((e) => pool.contains(e.exerciseId) && e.targetSets == rulesFor(_d).targetSets), isTrue);
     expect(list.map((e) => e.exerciseId).toSet().length, list.length);
-    expect(LogStore.planFor(classById('mage'), 5, '2026-11-21').length, 8);
+    expect(LogStore.planFor(classById('cablemancer'), 5, '2026-11-21').length, 8);
   });
 
   test('swipe switches, ↺ brings it back, add and remove keep the record', () async {
@@ -286,13 +312,13 @@ void main() {
     final (store, _) = await _store(setUp: true);
     store.addSet(0);
     final xp = store.totalXp;
-    const gym = Profile(character: Character(), classId: 'mage', difficultyId: 'nightmare', areaId: 'beach');
+    const gym = Profile(character: Character(), classId: 'cablemancer', difficultyId: 'nightmare', areaId: 'beach');
     store.setProfile(gym);
-    expect((store.todaySession!.classId, store.todaySession!.areaId), ('warrior', 'castle'));
+    expect((store.todaySession!.classId, store.todaySession!.areaId), ('paladin', 'castle'));
     expect(store.totalXp, xp);
     _now = _now.add(const Duration(days: 1));
     expect(store.todayExercises.length, 8);
-    expect(store.todayExercises.first.exerciseId, startsWith('mage.'));
+    expect(store.todayExercises.first.exerciseId, startsWith('cablemancer.'));
     store.addSet(0);
     expect(store.todaySession!.areaId, 'beach');
     expect(store.sessions['2026-11-21']!.difficultyId, 'sweat');
@@ -301,7 +327,7 @@ void main() {
     final (fresh, _) = await _store(setUp: true);
     fresh.swap(0, 1);
     fresh.setProfile(gym);
-    expect(fresh.todayExercises.first.exerciseId, startsWith('mage.'));
+    expect(fresh.todayExercises.first.exerciseId, startsWith('cablemancer.'));
   });
 
   test('body sliders keep a history of changes', () async {
@@ -448,7 +474,7 @@ void main() {
 
     final (other, otherPrefs) = await _store(old: true); // un-migrated old data on this phone
     await other.importBackup(backup);
-    expect(other.profile!.classId, 'warrior');
+    expect(other.profile!.classId, 'paladin');
     expect(other.sessions.length, 2);
     expect(other.bodyHistory.length, 1);
     expect(other.todaySession!.exercises[2].removed, isTrue);
@@ -551,9 +577,9 @@ void main() {
     // Class select: one class per equipment type; a pick shows the
     // freeze-frame intro card and the frozen (greyscale) character.
     expect(find.text('LOTS OF FREE WEIGHTS'), findsOneWidget);
-    await t.ensureVisible(find.byKey(const ValueKey('path-warrior')));
+    await t.ensureVisible(find.byKey(const ValueKey('path-paladin')));
     await _frames(t, 4);
-    await t.tap(find.byKey(const ValueKey('path-warrior')));
+    await t.tap(find.byKey(const ValueKey('path-paladin')));
     await t.pump(const Duration(milliseconds: 100));
     expect(find.byKey(const ValueKey('intro-card')), findsOneWidget);
     expect(find.text('OATH-SWORN TO THE BARBELL'), findsOneWidget);
@@ -568,13 +594,13 @@ void main() {
     expect(find.text('A BARBELL, A RACK AND A WALL OF PLATES.'.toLowerCase()), findsNothing);
     expect(find.text('A barbell, a rack and a wall of plates.'), findsOneWidget); // loadout
     expect(find.text('STRONGMAN'), findsOneWidget); // tags
-    await t.ensureVisible(find.byKey(const ValueKey('path-mage')));
-    await t.tap(find.byKey(const ValueKey('path-mage')));
+    await t.ensureVisible(find.byKey(const ValueKey('path-cablemancer')));
+    await t.tap(find.byKey(const ValueKey('path-cablemancer')));
     await t.pump(const Duration(milliseconds: 100));
     await t.tap(find.byKey(const ValueKey('intro-card'))); // closes on a tap
     await t.pump(const Duration(milliseconds: 100));
     expect(find.byKey(const ValueKey('intro-card')), findsNothing);
-    await t.tap(find.byKey(const ValueKey('path-warrior')));
+    await t.tap(find.byKey(const ValueKey('path-paladin')));
     await t.pump(const Duration(milliseconds: 100));
     await t.tap(find.text('NEXT: DIFFICULTY'));
     await _frames(t);
@@ -596,7 +622,7 @@ void main() {
 
     final saved = Profile.fromJson(jsonDecode(prefs.getString('profile_v1')!) as Map<String, dynamic>);
     expect(saved.character, const Character(sex: 'female', height: 100, muscle: 100, fat: 0));
-    expect((saved.classId, saved.difficultyId, saved.areaId, saved.schemaVersion), ('warrior', 'sweat', 'castle', 1));
+    expect((saved.classId, saved.difficultyId, saved.areaId, saved.schemaVersion), ('paladin', 'sweat', 'castle', 1));
     expect(find.text("TODAY'S WORKOUT"), findsOneWidget);
     expect(find.text(exerciseName(store.todayExercises.first.exerciseId).toUpperCase()), findsOneWidget);
     expect(find.textContaining('THIS WEEK 0/2 DAYS'), findsOneWidget);
@@ -839,7 +865,7 @@ void main() {
       await tapAndSettle(find.byKey(const ValueKey('menu-edit')));
       await tapAndSettle(find.text('NEXT ▶')); // editing: straight to the summary
       await tapAndSettle(find.text('CLASS'));
-      await tapAndSettle(find.byKey(const ValueKey('path-rogue')));
+      await tapAndSettle(find.byKey(const ValueKey('path-bruiser')));
       await t.pump(introHold);
       await tapAndSettle(find.text('NEXT ▶'));
       await tapAndSettle(find.text('DIFFICULTY'));

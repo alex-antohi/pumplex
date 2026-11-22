@@ -133,7 +133,7 @@ class Profile {
 
   factory Profile.fromJson(Map<String, dynamic> j) => Profile(
         character: Character.fromJson(Map<String, dynamic>.from(j['character'] as Map? ?? {})),
-        classId: j['classId'] as String? ?? '',
+        classId: newClassId(j['classId'] as String? ?? ''),
         difficultyId: j['difficultyId'] as String? ?? '',
         areaId: j['areaId'] as String? ?? '',
         schemaVersion: (j['schemaVersion'] as num?)?.toInt() ?? 1,
@@ -189,8 +189,8 @@ class SessionExercise {
 
   factory SessionExercise.fromJson(Map<String, dynamic> j) => SessionExercise(
         position: (j['position'] as num?)?.toInt() ?? 0,
-        exerciseId: j['exerciseId'] as String,
-        originalExerciseId: j['originalExerciseId'] as String? ?? j['exerciseId'] as String,
+        exerciseId: newExerciseId(j['exerciseId'] as String),
+        originalExerciseId: newExerciseId(j['originalExerciseId'] as String? ?? j['exerciseId'] as String),
         targetSets: (j['targetSets'] as num?)?.toInt() ?? 0,
         sets: (j['sets'] as num?)?.toInt().clamp(0, 9999) ?? 0,
         added: j['added'] as bool? ?? false,
@@ -255,7 +255,7 @@ class Session {
 
   factory Session.fromJson(String date, Map<String, dynamic> j) => Session(
         date: date,
-        classId: j['classId'] as String? ?? '',
+        classId: newClassId(j['classId'] as String? ?? ''),
         difficultyId: j['difficultyId'] as String? ?? '',
         areaId: j['areaId'] as String? ?? '',
         firstMarkAt: j['firstMarkAt'] as String?,
@@ -306,4 +306,20 @@ class Gear {
         owned: [for (final o in j['owned'] as List? ?? const []) o as String],
         equipped: Map<String, String>.from(j['equipped'] as Map? ?? {}),
       );
+}
+
+// ------------------------------------------------ class id migration (D31)
+
+/// Old class ids (before 22 Nov 2026) and the design ids that replace them.
+const oldClassIds = {'speedy': 'scrapper', 'rogue': 'bruiser', 'warrior': 'paladin', 'mage': 'cablemancer'};
+
+/// The current class id for a saved one. Unknown ids pass through.
+String newClassId(String id) => oldClassIds[id] ?? id;
+
+/// Exercise ids start with the class id: `warrior.squat` becomes `paladin.squat`.
+String newExerciseId(String id) {
+  final dot = id.indexOf('.');
+  if (dot < 0) return id;
+  final to = oldClassIds[id.substring(0, dot)];
+  return to == null ? id : '$to${id.substring(dot)}';
 }

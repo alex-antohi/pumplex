@@ -19,6 +19,7 @@ class LogStore extends ChangeNotifier {
         chaos = ValueNotifier(_prefs.getBool('chaos') ?? false),
         cel = ValueNotifier(_prefs.getBool('cel') ?? false) {
     _load();
+    _migrateClassIds();
   }
 
   static const _profileKey = 'profile_v1';
@@ -46,6 +47,25 @@ class LogStore extends ChangeNotifier {
   dynamic _json(String key, Object fallback) {
     final raw = _prefs.getString(key);
     return raw == null ? fallback : jsonDecode(raw);
+  }
+
+  /// Copy of the profile and sessions as they were before the class id
+  /// migration (D31), kept on the phone.
+  static const classIdBackupKey = 'class_ids_v0_backup';
+
+  /// One-time: saved data with the old class ids (speedy, rogue, warrior,
+  /// mage) is written back with the design ids. _load already maps the ids;
+  /// this keeps a copy of the old text first, then saves the new text.
+  void _migrateClassIds() {
+    final rawProfile = _prefs.getString(_profileKey) ?? '';
+    final rawSessions = _prefs.getString(_sessionsKey) ?? '';
+    final old = RegExp('"(${oldClassIds.keys.join('|')})[".]');
+    if (!old.hasMatch(rawProfile) && !old.hasMatch(rawSessions)) return;
+    if (!_prefs.containsKey(classIdBackupKey)) {
+      _prefs.setString(classIdBackupKey, jsonEncode({'profile': rawProfile, 'sessions': rawSessions}));
+    }
+    if (_profile != null) _prefs.setString(_profileKey, jsonEncode(_profile!.toJson()));
+    _saveSessions();
   }
 
   void _load() {
@@ -603,6 +623,7 @@ class LogStore extends ChangeNotifier {
     // Old-app keys on this phone are left alone: only the migration deletes
     // them, after its own backup file.
     _load();
+    _migrateClassIds();
     _unlocks.clear();
     notifyListeners();
   }

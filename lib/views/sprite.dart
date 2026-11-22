@@ -74,9 +74,9 @@ double heightScale(int height) =>
 
 /// Accent colour of a class (pedestal and highlights).
 Color classColor(Pal p, String id) => switch (id) {
-      'speedy' => p.orange,
-      'rogue' => p.sky,
-      'warrior' => p.lime,
+      'scrapper' => p.orange,
+      'bruiser' => p.sky,
+      'paladin' => p.lime,
       _ => p.violet,
     };
 
