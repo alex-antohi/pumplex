@@ -1,0 +1,85 @@
+{
+  "sampleRate": 44100,
+  "bits": 16,
+  "channels": 1,
+  "peakDbfs": -3,
+  "sounds": [
+    {
+      "id": "set_riptide",
+      "file": "set_riptide.wav",
+      "ms": 360,
+      "when": "Set logged, area Riptide (chest open and shell clack)",
+      "peakDb": -3
+    },
+    {
+      "id": "set_gainsgard",
+      "file": "set_gainsgard.wav",
+      "ms": 340,
+      "when": "Set logged, area Gainsgard (chalk scratch and thump)",
+      "peakDb": -3
+    },
+    {
+      "id": "set_rustbelt",
+      "file": "set_rustbelt.wav",
+      "ms": 390,
+      "when": "Set logged, area Rustbelt (barrel boom)",
+      "peakDb": -3
+    },
+    {
+      "id": "set_arcade",
+      "file": "set_arcade.wav",
+      "ms": 330,
+      "when": "Set logged, area Arcade (punch-o-tron pad)",
+      "peakDb": -3
+    },
+    {
+      "id": "set_frostbite",
+      "file": "set_frostbite.wav",
+      "ms": 380,
+      "when": "Set logged, area Frostbite (ice smash)",
+      "peakDb": -3
+    },
+    {
+      "id": "stamp5",
+      "file": "stamp5.wav",
+      "ms": 320,
+      "when": "5th mark of a set gets stamped (ka-chunk)",
+      "peakDb": -3
+    },
+    {
+      "id": "critical",
+      "file": "critical.wav",
+      "ms": 390,
+      "when": "Critical set (bigger and brasher than a normal set)",
+      "peakDb": -3
+    },
+    {
+      "id": "levelup",
+      "file": "levelup.wav",
+      "ms": 1400,
+      "when": "Level-up (fanfare, plays with the flex animation)",
+      "peakDb": -3
+    },
+    {
+      "id": "ui_button",
+      "file": "ui_button.wav",
+      "ms": 70,
+      "when": "Any button tap in the menu or flow",
+      "peakDb": -3
+    },
+    {
+      "id": "ui_toggle",
+      "file": "ui_toggle.wav",
+      "ms": 120,
+      "when": "A toggle flips (the SOUND toggle plays it when turned on)",
+      "peakDb": -3
+    },
+    {
+      "id": "set_back",
+      "file": "set_back.wav",
+      "ms": 360,
+      "when": "Take a set back (undo): sad wobbly slide down",
+      "peakDb": -3
+    }
+  ]
+}
