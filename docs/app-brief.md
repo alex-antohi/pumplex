@@ -1,6 +1,6 @@
 # PUMPLEX app brief
 
-Date: 21 November 2026, updated 22 November 2026. Status: draft v2.1.
+Date: 21 November 2026, updated 22 November 2026 (D32–D37). Status: draft v2.2.
 Sources: `pumplex.drawio` (the 7 systems), [docs/moodboard/](moodboard/README.md) (game look),
 and the owner's decisions in [decisions.md](decisions.md). The decisions win over this brief.
 
@@ -75,8 +75,8 @@ The class names come from the design team (D9). The final names are still open (
 - A workout lists exercises, for example squats and push-ups.
 - For each exercise, the user marks **how many working sets** they did.
 - The **mark depends on the starting area**. Examples:
-  - Beach area: put shells in a pouch.
-  - Castle area: scratch marks on a wall.
+  - Riptide Shore: put shells in a pouch.
+  - Gainsgard Keep: scratch marks on a wall.
 
 ### 4.6 Starting areas
 
@@ -98,7 +98,7 @@ The class names come from the design team (D9). The final names are still open (
 
 | Group | System | Now means |
 |---|---|---|
-| Main goal | Motivation System | XP and levels; harder difficulty gives more XP; change exercises when there is no progress. |
+| Main goal | Motivation System | XP and levels; harder difficulty gives more XP. No streak and no achievements (D34, D35). The workout has no swap (D32), so "change exercises when there is no progress" is on hold. |
 | Main game loop | Workouts | Preset workouts from the class (equipment) and the character. |
 | Main game loop | Tracking Sets | Count working sets per exercise, with area-themed marks. |
 | Initial setup | Character Creation | Sliders: height, muscle, fat %. 2D look. |
@@ -124,6 +124,10 @@ The class names come from the design team (D9). The final names are still open (
 | CEL SHADER mode | Kept (`shaders/cel.frag`). |
 | Old logged sets and swaps | Deleted by the one-time upgrade, after its backup file (owner's decision, [data-schema.md](data-schema.md) §5). |
 | Class ids | The design ids since 22 Nov (D31). Saved data migrates once. |
+| Area ids | The design ids since 22 Nov (D36): `riptide`, `gainsgard`, `rustbelt`, `arcade`, `frostbite`. Saved data migrates once. |
+| Workout tools (swap, back to first, skip, remove, add) | Removed (22 Nov, D32). The workout is the list the app picks for the day. |
+| Streak, week target | Removed (22 Nov, D34). The old streak XP stays as saved XP events. |
+| Achievements, milestones | Removed (22 Nov, D35). The old achievement XP stays. Only gear unlocks remain. |
 | Design art | In the app since 22 Nov: fonts, pixel icons, class outfits, gear sprites, area scenes and the sound pack. |
 | Layout | Hub, workout, profile and menu follow the design demo (`docs/demo/`). |
 | Release signing | From `android/key.properties` (see the [README](../README.md)). |

@@ -1,9 +1,10 @@
 // PUMPLEX fixed game data (docs/data-schema.md §3): every NAME of the game
 // lives here (classes, exercise pools, difficulty levels, starting areas,
-// gear items, achievements). All are working names and placeholders until
+// gear items). All are working names and placeholders until
 // the design team sends the real ones. The numbers are in rules.dart.
 //
-// Rule: never reuse or rename an id. Saved data points to it.
+// Rule: never reuse or rename an id. Saved data points to it. (The class
+// and area renames, D31 and D36, migrate saved data once: model.dart.)
 
 enum ExerciseKind { bodyweight, weights, machine, cardio }
 
@@ -59,8 +60,7 @@ class GameClass {
   final String icon;
 
   /// The class exercise POOL (placeholder, TBD by design). A workout takes
-  /// `exercisesPerWorkout` of them (rules.dart); the user can swap, add
-  /// and remove exercises from this pool.
+  /// `exercisesPerWorkout` of them (rules.dart), a new start each day (D32).
   final List<Exercise> exercises;
 }
 
@@ -179,7 +179,7 @@ String exerciseName(String id) => exercisesById[id]?.name ?? id;
 
 /// Difficulty modes, easiest first (docs/moodboard/README.md "Difficulty":
 /// 6 levels, every name is `<WORD> MODE`, proposals). The numbers
-/// (exercises, target sets, XP multiplier, streak N) are in rules.dart,
+/// (exercises, target sets, XP multiplier) are in rules.dart,
 /// same order. The gems are a picture of the multiplier, not the number.
 class Difficulty {
   const Difficulty(this.id, this.name, this.line, this.joke);
@@ -265,7 +265,7 @@ class Area {
 
 const areas = <Area>[
   Area(
-    id: 'beach',
+    id: 'riptide',
     name: 'Riptide Shore',
     line: 'Moonlit sand, a palm island and a treasure chest full of shells.',
     icon: 'area-riptide',
@@ -278,7 +278,7 @@ const areas = <Area>[
     accent: 0xFFFF5FB0,
   ),
   Area(
-    id: 'castle',
+    id: 'gainsgard',
     name: 'Gainsgard Keep',
     line: 'Cold stone, a flickering torch and a wall that wants scratches.',
     icon: 'area-gainsgard',
@@ -320,7 +320,7 @@ const areas = <Area>[
     defaultFor: 'bruiser',
   ),
   Area(
-    id: 'summit',
+    id: 'frostbite',
     name: 'Frostbite Summit',
     line: 'Aurora, falling snow and a slope up to the summit flag.',
     icon: 'area-frostbite',
@@ -374,31 +374,6 @@ const items = <Item>[
 
 Item? itemById(String? id) => items.where((i) => i.id == id).firstOrNull;
 
-// ----------------------------------------------------------- achievements
-
-/// What an achievement condition can look at (computed by the store).
-typedef AchievementStats = ({int totalSets, int trainingDays, int bestStreakWeeks, int level});
-
-class Achievement {
-  const Achievement(this.id, this.name, this.line, this.xp, this.met);
-
-  final String id;
-  final String name;
-  final String line;
-
-  /// XP when it unlocks (a number, so it belongs to the rules table later).
-  final int xp;
-  final bool Function(AchievementStats s) met;
-}
-
-final achievements = <Achievement>[
-  Achievement('first_set', 'First Blood', 'Mark your first working set.', 25, (s) => s.totalSets >= 1),
-  Achievement('sets_100', 'Century of Suffering', 'Do 100 working sets.', 150, (s) => s.totalSets >= 100),
-  Achievement('days_10', 'Regular', 'Train on 10 days.', 100, (s) => s.trainingDays >= 10),
-  Achievement('streak_4', 'Month of Iron', 'Hit your week target 4 weeks in a row.', 200, (s) => s.bestStreakWeeks >= 4),
-  Achievement('level_5', 'Getting Somewhere', 'Reach level 5.', 0, (s) => s.level >= 5),
-];
-
 /// Kicker line of the class-select step (design: marketing working name).
 const pathsKicker = "THE SWOLEMANCER'S PATHS";
 
@@ -424,12 +399,3 @@ const levelTitles = [
 ];
 
 String levelTitle(int level) => levelTitles[(level - 1).clamp(0, levelTitles.length - 1)];
-
-/// Design file names for the areas (docs/moodboard/areas, sounds, icons).
-/// The app keeps its own area ids (saved data uses them); only three differ.
-const _areaArtIds = {'beach': 'riptide', 'castle': 'gainsgard', 'summit': 'frostbite'};
-
-extension AreaArtId on Area {
-  /// The design id of this area: `beach` -> `riptide`, and so on.
-  String get artId => _areaArtIds[id] ?? id;
-}

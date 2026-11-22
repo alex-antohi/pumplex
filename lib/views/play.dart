@@ -114,7 +114,7 @@ class HubView extends StatelessWidget {
         children: [
           // The area scene, framed (the lifter stands in it).
           sceneFrame(scene, ink: p.ink, shadow: accent),
-          Positioned.fromRect(rect: scene, child: AreaScene(art: areaArt[area.artId]!, scale: scale)),
+          Positioned.fromRect(rect: scene, child: AreaScene(art: areaArt[area.id]!, scale: scale)),
           // Where: the area name, top left over the sky.
           Positioned(
             left: scene.left + 8,
@@ -223,23 +223,6 @@ class HubView extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 18),
-                Brutal(
-                  shadow: p.orange,
-                  offset: 5,
-                  border: 3,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Shout('This week', color: p.ink, size: 14),
-                        const SizedBox(height: 8),
-                        _StreakRow(week: store.thisWeek, streak: store.streakWeeks),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
                 Text(
                   trained.isEmpty
                       ? 'NO CLOCK. NO PLAN. EVERY SET TODAY COUNTS FOR TODAY.'
@@ -309,41 +292,6 @@ class _NavButton extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// This week's training days against the target, and the streak.
-class _StreakRow extends StatelessWidget {
-  const _StreakRow({required this.week, required this.streak});
-
-  final ({int days, int n}) week;
-  final int streak;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = Pal.of(context);
-    return Row(
-      children: [
-        for (var i = 0; i < week.n; i++)
-          Container(
-            width: 22,
-            height: 22,
-            margin: const EdgeInsets.only(right: 6),
-            decoration: BoxDecoration(
-              color: i < week.days ? p.orange : p.panel,
-              border: Border.all(color: p.ink, width: 3),
-            ),
-          ),
-        const SizedBox(width: 6),
-        Expanded(
-          child: Text(
-            'THIS WEEK ${week.days}/${week.n} DAYS'
-            '${streak > 0 ? ' · STREAK $streak WEEK${streak == 1 ? '' : 'S'}' : ''}',
-            style: mono(11.5, p.ink),
-          ),
-        ),
-      ],
     );
   }
 }

@@ -1,12 +1,13 @@
 # PUMPLEX rules table
 
-Date: 21 November 2026. Status: draft v1 (numbers for beta testing).
-Read with [data-schema.md](data-schema.md) and [decisions.md](decisions.md) (D19 wins over this table).
+Date: 21 November 2026, updated 22 November 2026 (D33–D35). Status: draft v1.1 (numbers for beta testing).
+Read with [data-schema.md](data-schema.md) and [decisions.md](decisions.md) (D19 wins over this table; D34 and D35 win over D19).
 Every number below is in one constants file, `lib/game/rules.dart`, so it is easy to tune.
 The numbers per difficulty mode are in [app-flow.md](app-flow.md) §3.
 
-In the app now: §1 (except bounties), §2 (except loot drops and new game+) and the weekly streak of §3.
-Not built yet: embers, §4, §5 and gear rarity in §6.
+In the app now: §1 (except bounties), §2 (except loot drops and new game+).
+Removed on 22 Nov 2026: the streak and embers of §3 (D34) and achievements (D35).
+Not built yet: §4, §5 and gear rarity in §6.
 
 Sources of the ideas: Habitica (source code), D&D 5e, the Dark Souls and
 Bloodborne board games, Gloomhaven. Rule from the brief: **rest never punishes
@@ -20,11 +21,11 @@ the user.** So there is no HP loss, no lost XP and no dropped currency.
 | Set above the target | × 1.5, up to 2 × the target | Bonus without farming |
 | Set beyond 2 × the target | 0 | Habitica diminishing returns |
 | First set of the day | + 50 | Daily bonus |
-| Weekly streak (N training days met) | + 5% XP per week in a row, max + 25% | Habitica streak bonus |
 | Critical set | 3% chance, × 2 XP, "CRITICAL SET!" | Habitica crits |
 | Bounty done | + 100 to + 300 | Gloomhaven battle goals |
-| Achievement | per achievement (list TBD) | Habitica achievements |
 | Old session (beta) | 150 each | Legacy conversion |
+| ~~Weekly streak~~ | Removed (D34). The old streak XP stays as saved `streak` XP events. | Habitica streak bonus |
+| ~~Achievement~~ | Removed (D35). The old achievement XP stays as saved `achievement` XP events. | Habitica achievements |
 
 **Difficulty multiplier:** 1.0 at the lowest difficulty, rising in even steps to 2.0 at the highest.
 
@@ -33,10 +34,14 @@ the user.** So there is no HP loss, no lost XP and no dropped currency.
 1. Base = 10 × difficulty multiplier.
 2. If the set number is above the target and up to 2 × the target: × 1.5. Above 2 × the target: 0.
 3. Critical roll (3%): × 2.
-4. Streak bonus: × (1 + 0.05 × weeks in a row, max 0.25).
-5. Round to a whole number.
+4. Round to a whole number.
+
+There is no streak step (D34).
 
 The roll for a critical set must be repeatable (use a seed from the date, the exercise and the set number), so recalculating XP gives the same total.
+
+**Total XP** = the XP of every set + 50 for each training day + the saved XP events (`legacy`, and the old `streak` and `achievement` XP).
+The app calculates the set and day XP from the sessions every time. A rule change updates them.
 
 ## 2. Level curve
 
@@ -61,12 +66,10 @@ Pace (a typical session is about 15 sets, or about 200 XP):
 
 **Level 50: new game+** (Habitica rebirth, Gloomhaven retirement). Optional. The level goes back to 1. The character keeps a cosmetic badge and its gear, and gets + 10% XP for each completed run (max + 30%).
 
-## 3. Streak
+## 3. Streak (removed)
 
-- The streak counts **training days per calendar week**. N comes from the difficulty.
-- A week with N or more training days continues the streak. Missing days inside the week never break it.
-- **Embers** (the Dark Souls spark, as a reward): a perfect week (N met) earns 1 ember, max 3. When a week misses N, 1 ember is used and the streak continues.
-- With no ember, the streak goes to 0. Nothing else is lost.
+- There is no streak, no week target and no embers (D34, 22 Nov 2026).
+- Old rule, kept only for the one-time XP freeze ([data-schema.md](data-schema.md) §5.4): a week with N training days was a streak week (N by difficulty: 2, 2, 2, 3, 3, 4). Each streak week in a row gave + 5% set XP, max + 25%.
 
 ## 4. How to measure progress
 
@@ -82,10 +85,12 @@ There are no kilos or reps, so progress comes from set targets and consistency.
 
 - If an exercise gets no new checkmark in 3 weeks (and you did it at least twice in that time), the card suggests a swap from the class pool.
 - This is the "change exercises when no progress" arrow in `pumplex.drawio`.
+- **On hold:** the workout has no swap (D32). Ask the owner before you build this.
 
 ### 4.3 Difficulty climb (D&D milestones)
 
-- If the weekly streak target is met 3 weeks in a row, and most of the workout's exercises have 3 or more stars, the app suggests the next difficulty level.
+- If most of the workout's exercises have 3 or more stars, the app suggests the next difficulty level.
+  (The first draft also needed the weekly streak target 3 weeks in a row. D34 removes the streak.)
 - The user decides. It is never automatic. The user can also go down at any time.
 
 ### 4.4 Character stats (Dark Souls stats)
@@ -130,8 +135,8 @@ Working sets feed one stat, by the exercise type:
 ## 8. Data needed (check against data-schema.md)
 
 - Per exercise: checkmarks and stars (calculated from sessions).
-- Embers count, bounties this week, bounty board checkmarks.
+- Bounties this week, bounty board checkmarks.
 - Stats (calculated from sessions).
 - Rebirth count (new game+).
 
-The schema does not yet store embers, bounties, the bounty board or the rebirth count. Add them in the next schema update.
+The schema does not yet store bounties, the bounty board or the rebirth count. Add them in the next schema update.

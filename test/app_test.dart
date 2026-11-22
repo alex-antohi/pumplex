@@ -38,8 +38,8 @@ const _oldSwaps = '{"hu1":{"S00004":"Floor Press"}}';
 const _profile = Profile(
   character: Character(sex: 'female', height: 80, muscle: 100, fat: 0),
   classId: 'paladin',
-  difficultyId: 'sweat', // 4 exercises, 3 target sets, ×1.4, streak N 2
-  areaId: 'castle',
+  difficultyId: 'sweat', // 4 exercises, 3 target sets, ×1.4
+  areaId: 'gainsgard',
 );
 const _d = 2; // difficulty index of 'sweat'
 
@@ -137,20 +137,90 @@ void main() {
     expect(newExerciseId('custom'), 'custom');
   });
 
+  test('area id migration (D36): old ids become design ids once, old text kept', () async {
+    const oldProfile = '{"classId":"scrapper","difficultyId":"sofa","areaId":"beach","character":{}}';
+    const oldSessions = '{"2026-11-20":{"classId":"scrapper","difficultyId":"sofa","areaId":"summit",'
+        '"exercises":[{"position":0,"exerciseId":"scrapper.pushup","originalExerciseId":"scrapper.pushup",'
+        '"targetSets":2,"sets":1}]},"2026-11-19":{"classId":"scrapper","difficultyId":"sofa","areaId":"castle",'
+        '"exercises":[{"position":0,"exerciseId":"scrapper.pushup","originalExerciseId":"scrapper.pushup",'
+        '"targetSets":2,"sets":1}]}}';
+    SharedPreferences.setMockInitialValues({'profile_v1': oldProfile, 'sessions_v3': oldSessions});
+    final prefs = await SharedPreferences.getInstance();
+    final store = LogStore(prefs, clock: () => _now);
+    expect(store.profile!.areaId, 'riptide');
+    expect({for (final s in store.history) s.date: s.areaId}, {'2026-11-20': 'frostbite', '2026-11-19': 'gainsgard'});
+    for (final old in ['beach', 'castle', 'summit']) {
+      expect('${prefs.getString('profile_v1')}${prefs.getString('sessions_v3')}', isNot(contains('"$old"')));
+    }
+    final backup = jsonDecode(prefs.getString(LogStore.areaIdBackupKey)!) as Map;
+    expect((backup['profile'], backup['sessions']), (oldProfile, oldSessions));
+    expect(prefs.containsKey(LogStore.classIdBackupKey), isFalse); // the class ids were new already
+    expect(LogStore(prefs, clock: () => _now).profile!.areaId, 'riptide');
+    expect(newAreaId('arcade'), 'arcade');
+    expect(areas.map((a) => a.id), ['riptide', 'gainsgard', 'rustbelt', 'arcade', 'frostbite']);
+  });
+
+  test('no streak (D34): the old streak bonus is saved once as XP, nothing is lost', () async {
+    // Sweat Mode: 2 training days a week made a streak week. 9 + 10 Nov is
+    // a streak week, so the session on 16 Nov had +5% set XP.
+    Map<String, Object> day(int sets) => {
+          'classId': 'paladin',
+          'difficultyId': 'sweat',
+          'areaId': 'gainsgard',
+          'exercises': [
+            {'position': 0, 'exerciseId': 'paladin.squat', 'originalExerciseId': 'paladin.squat', 'targetSets': 3, 'sets': sets},
+          ],
+        };
+    final sessions = {'2026-11-09': day(2), '2026-11-10': day(2), '2026-11-16': day(5)};
+    SharedPreferences.setMockInitialValues({
+      'profile_v1': jsonEncode(_profile.toJson()),
+      'sessions_v3': jsonEncode(sessions),
+      'achievements_v1': '{"first_set":"2026-11-09T10:00:00"}',
+      'xp_events_v1': jsonEncode([
+        {'at': '2026-11-09T10:00:00', 'source': 'achievement', 'amount': 25, 'ref': 'first_set'},
+      ]),
+    });
+    final prefs = await SharedPreferences.getInstance();
+    final store = LogStore(prefs, clock: () => _now);
+    var bonus = 0, sets = 0;
+    for (var n = 1; n <= 5; n++) {
+      final xp = setXp(setNumber: n, target: 3, difficulty: _d, critical: isCritical('2026-11-16', 'paladin.squat', n));
+      bonus += (xp * 1.05).round() - xp.round();
+      sets += xp.round();
+    }
+    expect(bonus, greaterThan(0));
+    final streak = store.xpEvents.where((e) => e.source == 'streak').toList();
+    expect((streak.single.ref, streak.single.amount), ('2026-11-16', bonus));
+    expect(store.xpOfSession(store.sessions['2026-11-16']!), sets + xpFirstSetOfDay + bonus);
+    // Achievement XP stays; the achievements list is gone (D35).
+    expect(store.xpEvents.where((e) => e.source == 'achievement').single.amount, 25);
+    expect(prefs.containsKey('achievements_v1'), isFalse);
+    // A second launch adds nothing; new sessions get no streak bonus.
+    final total = store.totalXp;
+    final again = LogStore(prefs, clock: () => _now);
+    expect(again.totalXp, total);
+    expect(prefs.getBool(LogStore.streakFrozenKey), isTrue);
+    again.addSet(0);
+    expect(again.xpEvents.where((e) => e.source == 'streak').length, 1);
+
+    // A version-3 backup (made before D34) gets its streak XP worked out on import.
+    final v3 = jsonEncode({'app': 'pumplex', 'version': 3, 'sessions_v3': sessions, 'achievements_v1': {'first_set': 'x'}});
+    await again.importBackup(v3);
+    expect(again.xpEvents.where((e) => e.source == 'streak').single.amount, bonus);
+    expect(jsonDecode(again.backupJson()), isNot(contains('achievements_v1')));
+  });
+
   // ------------------------------------------------------------ fixed data
 
-  test('rules table: set XP, over target, cap, critical, streak, level curve', () {
+  test('rules table: set XP, over target, cap, critical, level curve', () {
     expect(difficultyRules.first.xpMultiplier, 1.0);
     expect(difficultyRules.last.xpMultiplier, 2.0);
-    int set(int n, {bool crit = false, int streak = 0, int d = 0}) =>
-        xpForSet(setNumber: n, target: 3, difficulty: d, critical: crit, streakWeeks: streak);
+    int set(int n, {bool crit = false, int d = 0}) => xpForSet(setNumber: n, target: 3, difficulty: d, critical: crit);
     expect(set(3), 10); // within the target
     expect(set(4), 15); // above the target: ×1.5
     expect(set(6), 15); // up to 2× the target
     expect(set(7), 0); // beyond 2× the target
     expect(set(1, crit: true), 20);
-    expect(set(1, streak: 2), 11); // +10%
-    expect(set(1, streak: 9), 13); // capped at +25% (12.5 rounds up)
     expect(set(1, d: 5), 20);
     expect(xpPerLegacySession, 150);
     // Repeatable criticals, about 3% of sets.
@@ -167,12 +237,12 @@ void main() {
     expect(difficultyRules.length, difficulties.length);
     expect(difficultyRules.first.exercisesPerWorkout, 3);
     expect(difficultyRules.last.exercisesPerWorkout, 8);
+    expect([for (final r in difficultyRules) r.exercisesPerWorkout], [3, 3, 4, 5, 6, 8]); // D33
     expect(gameClasses.map((c) => c.equipment).toSet().length, gameClasses.length);
-    expect(gameClasses.every((c) => c.exercises.length > 8), isTrue); // room to swap at 8
+    expect(gameClasses.every((c) => c.exercises.length >= 8), isTrue); // enough for Nightmare Mode
     final ids = [for (final c in gameClasses) for (final e in c.exercises) e.id];
     expect(ids.toSet().length, ids.length);
     expect(items.map((i) => i.id).toSet().length, items.length);
-    expect(achievements.map((a) => a.id).toSet().length, achievements.length);
     expect(GearSlot.values.every((s) => items.any((i) => i.slot == s)), isTrue);
   });
 
@@ -186,7 +256,7 @@ void main() {
       expect(areas.where((a) => a.defaultFor == c.id).length, 1, reason: c.id);
       expect(defaultAreaFor(c.id).defaultFor, c.id);
     }
-    expect(defaultAreaFor('paladin').id, 'castle');
+    expect(defaultAreaFor('paladin').id, 'gainsgard');
     expect(areaById('nope').id, areas.first.id);
   });
 
@@ -205,7 +275,7 @@ void main() {
   testWidgets('the workout: CRUSHED! at the target, the area stamp on every 5th set', (t) async {
     _phone(t);
     final (store, _) = await _store(setUp: true); // Gainsgard Keep: SLASHED!
-    store.addSet(0); // level-ups and achievements happen here, not on screen
+    store.addSet(0); // level-ups and gear happen here, not on screen
     store.addSet(0);
     store.takeUnlocks();
     await t.pumpWidget(GymApp(store: store));
@@ -253,7 +323,7 @@ void main() {
     store.addSet(1);
     final s = store.todaySession!;
     expect(store.sessions.keys, ['2026-11-21']);
-    expect((s.classId, s.difficultyId, s.areaId, s.legacy), ('paladin', 'sweat', 'castle', false));
+    expect((s.classId, s.difficultyId, s.areaId, s.legacy), ('paladin', 'sweat', 'gainsgard', false));
     expect((s.firstMarkAt, s.lastMarkAt), ('2026-11-21T07:00:00', '2026-11-21T18:00:00'));
     expect(s.exercises.map((e) => e.exerciseId), plan);
     expect([s.exercises[0].sets, s.exercises[1].sets], [2, 1]);
@@ -272,7 +342,8 @@ void main() {
     store.addSet(0);
     expect(store.sessions.keys.toSet(), {'2026-11-21', '2026-11-22'});
     _now = DateTime(2026, 11, 23, 9);
-    store.swap(0, 1); // a change without sets
+    store.addSet(0); // a set taken back: a session with no sets
+    store.removeSet(0);
     expect(store.sessions.length, 3);
     expect(store.history.map((s) => s.date), ['2026-11-22', '2026-11-21']);
   });
@@ -289,54 +360,25 @@ void main() {
     expect(LogStore.planFor(classById('cablemancer'), 5, '2026-11-21').length, 8);
   });
 
-  test('swipe switches, ↺ brings it back, add and remove keep the record', () async {
-    final (store, _) = await _store(setUp: true);
-    final first = store.todayExercises[0].exerciseId;
-    final others = store.todayExercises.skip(1).map((e) => e.exerciseId).toSet();
-    expect(store.swap(0, 1), isTrue);
-    final sw = store.todayExercises[0];
-    expect((sw.switched, sw.originalExerciseId), (true, first));
-    expect(others.contains(sw.exerciseId), isFalse); // never a duplicate
-    expect(store.swap(0, 1), isTrue);
-    expect(store.todayExercises[0].exerciseId, isNot(anyOf(first, sw.exerciseId)));
-    expect(store.resetSlot(0), isTrue);
-    expect(store.todayExercises[0].exerciseId, first);
-
-    store.addSet(0); // a card with sets cannot be switched or removed
-    expect(store.swap(0, 1), isFalse);
-    expect(store.removeSlot(0), isFalse);
-
-    final extra = store.unusedExercises.first.id;
-    store.addExercise(extra);
-    expect((store.todayExercises.last.exerciseId, store.todayExercises.last.added), (extra, true));
-    final n = store.todayExercises.length;
-    expect(store.removeSlot(n - 1), isTrue);
-    expect(store.todayExercises.length, n); // still there, marked removed
-    expect(store.todayExercises.last.removed, isTrue);
-    expect(store.todayCards.length, n - 1);
-    store.addExercise(extra); // comes back
-    expect(store.todayExercises.length, n);
-    expect(store.todayExercises.last.removed, isFalse);
-  });
-
   test('class, difficulty and area can change; each session keeps its own', () async {
     final (store, _) = await _store(setUp: true);
     store.addSet(0);
     final xp = store.totalXp;
-    const gym = Profile(character: Character(), classId: 'cablemancer', difficultyId: 'nightmare', areaId: 'beach');
+    const gym = Profile(character: Character(), classId: 'cablemancer', difficultyId: 'nightmare', areaId: 'riptide');
     store.setProfile(gym);
-    expect((store.todaySession!.classId, store.todaySession!.areaId), ('paladin', 'castle'));
+    expect((store.todaySession!.classId, store.todaySession!.areaId), ('paladin', 'gainsgard'));
     expect(store.totalXp, xp);
     _now = _now.add(const Duration(days: 1));
     expect(store.todayExercises.length, 8);
     expect(store.todayExercises.first.exerciseId, startsWith('cablemancer.'));
     store.addSet(0);
-    expect(store.todaySession!.areaId, 'beach');
+    expect(store.todaySession!.areaId, 'riptide');
     expect(store.sessions['2026-11-21']!.difficultyId, 'sweat');
 
     // With no sets yet, a change makes today's workout again.
     final (fresh, _) = await _store(setUp: true);
-    fresh.swap(0, 1);
+    fresh.addSet(0);
+    fresh.removeSet(0);
     fresh.setProfile(gym);
     expect(fresh.todayExercises.first.exerciseId, startsWith('cablemancer.'));
   });
@@ -356,79 +398,42 @@ void main() {
 
   // ------------------------------------------------------------------- XP
 
-  test('XP: sets (over target, criticals), first set of the day, streak bonus', () async {
+  test('XP: sets (over target, criticals) and the first set of the day; no streak', () async {
     final (store, _) = await _store(setUp: true);
     for (var i = 0; i < 7; i++) {
       store.addSet(0); // target 3: sets 4-6 ×1.5, set 7 gives 0
     }
-    int expected(Session s, int streak) => [
+    int expected(Session s) => [
           for (final e in s.exercises)
             for (var n = 1; n <= e.sets; n++)
-              xpForSet(
-                  setNumber: n,
-                  target: e.targetSets,
-                  difficulty: _d,
-                  critical: isCritical(s.date, e.exerciseId, n),
-                  streakWeeks: streak),
+              xpForSet(setNumber: n, target: e.targetSets, difficulty: _d, critical: isCritical(s.date, e.exerciseId, n)),
         ].fold(0, (a, b) => a + b);
     final sat = store.todaySession!;
-    expect(store.xpEvents.where((e) => e.source == 'sets').single.amount, expected(sat, 0));
+    expect(store.xpEvents.where((e) => e.source == 'sets').single.amount, expected(sat));
     expect(store.xpEvents.where((e) => e.source == 'day').single.amount, xpFirstSetOfDay);
-    expect(store.cardXp(0), expected(sat, 0));
-    expect(store.thisWeek, (days: 1, n: 2));
-    expect(store.streakWeeks, 0);
+    expect(store.cardXp(0), expected(sat));
 
-    // Sunday: 2nd training day this week -> a streak week.
-    _now = DateTime(2026, 11, 22, 9);
-    store.addSet(0);
-    expect(store.thisWeek, (days: 2, n: 2));
-    expect(store.streakWeeks, 1);
-
-    // Next week: Monday and Friday (missed days in between do not matter).
-    // Their sets get the +5% bonus for one streak week in a row.
-    _now = DateTime(2026, 11, 23, 9);
-    expect(store.streakBonusWeeks, 1);
-    for (var i = 0; i < 4; i++) {
+    // Training days in later weeks give no extra XP (D34).
+    for (final d in [22, 23, 27, 30]) {
+      _now = DateTime(2026, 11, d, 9);
       store.addSet(0);
     }
-    expect(store.streakWeeks, 1); // last week still stands
-    _now = DateTime(2026, 11, 27, 9);
-    store.addSet(0);
-    expect(store.streakWeeks, 2);
-
-    final s = store.sessions;
-    final achievementXp = store.xpEvents.where((e) => e.source == 'achievement').fold(0, (a, e) => a + e.amount);
-    expect(
-        store.totalXp,
-        expected(s['2026-11-21']!, 0) +
-            expected(s['2026-11-22']!, 0) +
-            expected(s['2026-11-23']!, 1) +
-            expected(s['2026-11-27']!, 1) +
-            4 * xpFirstSetOfDay +
-            achievementXp);
-    final streakXp = store.xpEvents.where((e) => e.source == 'streak').fold(0, (a, e) => a + e.amount);
-    expect(streakXp, expected(s['2026-11-23']!, 1) + expected(s['2026-11-27']!, 1)
-        - expected(s['2026-11-23']!, 0) - expected(s['2026-11-27']!, 0));
-
-    // A week below N breaks the run of weeks.
-    _now = DateTime(2026, 12, 10, 9);
-    expect(store.streakWeeks, 0);
+    final s = store.sessions.values;
+    expect(store.totalXp, s.fold(0, (a, x) => a + expected(x)) + s.length * xpFirstSetOfDay);
+    expect(store.xpEvents.where((e) => e.source == 'streak' || e.source == 'achievement'), isEmpty);
+    for (final x in s) {
+      expect(store.xpOfSession(x), expected(x) + xpFirstSetOfDay);
+    }
   });
 
-  test('achievements unlock once with saved XP; levels unlock and equip gear', () async {
+  test('levels unlock and equip gear; nothing else unlocks (D35)', () async {
     final (store, prefs) = await _store(setUp: true);
     store.addSet(0);
-    expect(store.achievementsUnlocked.keys, contains('first_set'));
-    final saved = jsonDecode(prefs.getString('xp_events_v1')!) as List;
-    expect(saved.where((e) => e['source'] == 'achievement' && e['ref'] == 'first_set').length, 1);
-    expect(store.takeUnlocks().map((u) => u.name), contains('First Blood'));
-    expect(store.takeUnlocks(), isEmpty);
-    store.addSet(0);
-    expect(saved.length, (jsonDecode(prefs.getString('xp_events_v1')!) as List).length); // no repeat
-
+    final first = store.takeUnlocks(); // gear only: no achievements
     for (var i = 1; levelFor(store.totalXp).level < 3; i = i % 3 + 1) {
       store.addSet(i); // spread over cards: sets beyond 2× target give no XP
     }
+    expect([...first, ...store.takeUnlocks()].every((u) => u.title.contains('GEAR')), isTrue);
     expect(store.gear.owned, containsAll(['head.sweatband', 'top.tank']));
     expect(store.gear.equipped['head'], 'head.sweatband'); // empty slot: auto-equipped
     store.equip(GearSlot.head, null);
@@ -436,6 +441,7 @@ void main() {
     store.equip(GearSlot.weapon, 'weapon.kettlebell'); // not owned: ignored
     expect(store.gear.equipped.containsKey('weapon'), isFalse);
     expect(LogStore(prefs, clock: () => _now).gear.owned, store.gear.owned);
+    expect(prefs.containsKey('achievements_v1'), isFalse);
   });
 
   // ------------------------------------------------------------- migration
@@ -465,7 +471,6 @@ void main() {
     expect(events.length, _oldWorkoutDates);
     expect(store.totalXp, greaterThanOrEqualTo(_oldWorkoutDates * xpPerLegacySession));
     expect(store.history.length, _oldWorkoutDates);
-    expect(store.streakWeeks, 0); // legacy days give their own XP only
 
     await store.migrateOld(); // running it again changes nothing
     expect(store.xpEvents.where((e) => e.source == 'legacy').length, _oldWorkoutDates);
@@ -477,18 +482,17 @@ void main() {
     store.addSet(0);
     _now = _now.add(const Duration(days: 1));
     store.addSet(1);
-    store.removeSlot(2);
     final backup = store.backupJson();
     final data = jsonDecode(backup) as Map;
-    expect(data['version'], 3);
-    expect(data.keys, containsAll(['profile_v1', 'body_history_v1', 'sessions_v3', 'xp_events_v1', 'achievements_v1', 'gear_v1']));
+    expect(data['version'], 4);
+    expect(data.keys, containsAll(['profile_v1', 'body_history_v1', 'sessions_v3', 'xp_events_v1', 'gear_v1']));
 
     final (other, otherPrefs) = await _store(old: true); // un-migrated old data on this phone
     await other.importBackup(backup);
     expect(other.profile!.classId, 'paladin');
     expect(other.sessions.length, 2);
     expect(other.bodyHistory.length, 1);
-    expect(other.todaySession!.exercises[2].removed, isTrue);
+    expect(other.todaySession!.exercises[1].sets, 1);
     expect(other.backupJson(), backup);
     expect(otherPrefs.getString('logs_v2'), _oldLogs); // only the migration deletes old keys
     await expectLater(other.importBackup('not json'), throwsA(anything));
@@ -624,7 +628,7 @@ void main() {
     await t.tap(find.text('NEXT: STARTING AREA'));
     await _frames(t);
     expect(find.text("YOUR PATH'S HOME"), findsOneWidget); // Plate Paladin -> Gainsgard Keep
-    await t.tap(find.byKey(const ValueKey('area-castle')));
+    await t.tap(find.byKey(const ValueKey('area-gainsgard')));
     await t.tap(find.text('NEXT: READY?'));
     await _frames(t);
     expect(find.text('SWEAT MODE'), findsOneWidget);
@@ -633,10 +637,10 @@ void main() {
 
     final saved = Profile.fromJson(jsonDecode(prefs.getString('profile_v1')!) as Map<String, dynamic>);
     expect(saved.character, const Character(sex: 'female', height: 100, muscle: 100, fat: 0));
-    expect((saved.classId, saved.difficultyId, saved.areaId, saved.schemaVersion), ('paladin', 'sweat', 'castle', 1));
+    expect((saved.classId, saved.difficultyId, saved.areaId, saved.schemaVersion), ('paladin', 'sweat', 'gainsgard', 1));
     expect(find.text('NEXT WORKOUT'), findsOneWidget);
     expect(find.text(exerciseName(store.todayExercises.first.exerciseId).toUpperCase()), findsOneWidget);
-    expect(find.textContaining('THIS WEEK 0/2 DAYS'), findsOneWidget);
+    expect(find.textContaining('THIS WEEK'), findsNothing); // no streak (D34)
     expect(pushes.pushes, 1); // only the home route: views never push routes
   });
 
@@ -650,7 +654,7 @@ void main() {
     await _frames(t);
     final card = find.byKey(const ValueKey('world-object'));
     await t.tap(card);
-    await _frames(t, 70); // level-up intro card and achievement burst
+    await _frames(t, 70); // level-up intro card
     // A level-up card closes on the next tap: close it first.
     Future<void> closeCard() async {
       if (find.byKey(const ValueKey('intro-card')).evaluate().isNotEmpty) {
@@ -689,53 +693,17 @@ void main() {
     expect(t.takeException(), isNull);
   });
 
-  testWidgets('workout tools: swap, back to first, skip, add and remove exercises', (t) async {
-    final (store, _) = await _openApp(t);
+  testWidgets('workout: no tools, no add card; the hub and profile show no streak or milestones', (t) async {
+    await _openApp(t);
+    expect(find.text('THIS WEEK'), findsNothing);
     await t.tap(find.byKey(const ValueKey('hub-workout')));
     await _frames(t);
-    final first = store.todayExercises[0].exerciseId;
-
-    await t.tap(find.byKey(const ValueKey('tool-swap')));
-    await _frames(t, 10);
-    expect(store.todayExercises[0].switched, isTrue);
-    expect(find.textContaining(exerciseName(store.todayExercises[0].exerciseId).toUpperCase()), findsWidgets);
-    await t.tap(find.byKey(const ValueKey('tool-first')));
-    await _frames(t, 10);
-    expect(store.todayExercises[0].exerciseId, first);
-    expect(find.byKey(const ValueKey('tool-first')), findsNothing);
-
-    await t.tap(find.byKey(const ValueKey('world-object')));
-    await _frames(t, 70); // achievement burst
-    await t.tap(find.byKey(const ValueKey('tool-swap')));
-    await _frames(t, 10);
-    expect(store.todayExercises[0].exerciseId, first);
-    expect(find.textContaining('SETS ALREADY DONE HERE'), findsOneWidget);
-    await _frames(t, 110); // the message goes away
-
-    // Skip the second exercise: the next open one becomes active.
-    await t.tap(find.byKey(const ValueKey('strip-1')));
-    await _frames(t, 4);
-    await t.tap(find.byKey(const ValueKey('tool-skip')));
-    await _frames(t, 4);
-    expect(find.descendant(of: find.byKey(const ValueKey('strip-1')), matching: find.text('SKIPPED')), findsOneWidget);
-    expect(store.todayExercises[1].sets, 0);
-
-    final n = store.todayCards.length;
-    await t.dragUntilVisible(find.byKey(const ValueKey('strip-add')), find.byKey(const ValueKey('strip-0')), const Offset(-150, 0));
-    await _frames(t, 4);
-    await t.tap(find.byKey(const ValueKey('strip-add')));
-    await _frames(t, 20);
-    final extra = store.unusedExercises.first;
-    await t.tap(find.byKey(ValueKey('add-${extra.id}')));
-    await _frames(t, 20);
-    expect(store.todayCards.length, n + 1);
-
-    // The added card is active; remove it.
-    await t.tap(find.byKey(const ValueKey('tool-remove')));
-    await _frames(t, 10);
-    expect(store.todayCards.length, n);
-    expect(find.textContaining('REMOVED'), findsOneWidget);
-    await t.pump(const Duration(seconds: 5));
+    for (final k in ['tool-swap', 'tool-first', 'tool-skip', 'tool-remove', 'strip-add']) {
+      expect(find.byKey(ValueKey(k)), findsNothing, reason: k);
+    }
+    expect(find.byKey(const ValueKey('strip-0')), findsOneWidget);
+    expect(find.byKey(const ValueKey('world-object')), findsOneWidget);
+    expect(t.takeException(), isNull);
   });
 
   testWidgets('tap the character on the hub to edit the body sliders', (t) async {

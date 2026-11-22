@@ -3,6 +3,10 @@
 Date: 21 November 2026. Status: draft v1. Owner: naming lead.
 Input: `docs/app-brief.md`, `docs/moodboard/README.md`.
 
+**Decided (D37, 22 Nov 2026): the app name is PUMPLEX.** This file is the name research from before
+that decision. SWOLEMANCER below is a candidate that was not picked. It can stay as a fantasy word in a
+tagline (for example the class-step kicker "THE SWOLEMANCER'S PATHS"), but never as the app name.
+
 ## 1. Summary
 
 | Rank | Name | Tagline |
@@ -168,6 +172,7 @@ a fight with King.
 2. Run a full search in USPTO, EUIPO (TMview) and WIPO (Global Brand Database), classes 9, 28 and 41.
 3. Test the top 3 with 5–10 people from the audience. Ask: "What kind of app is this?"
 4. After the decision, buy the domains and set up the handles. (This doc does not register anything.)
+5. **Decided:** PUMPLEX (D37). Do steps 1, 2 and 4 for PUMPLEX only.
 
 ## Sources
 

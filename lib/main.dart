@@ -132,7 +132,7 @@ class _GameShellState extends State<GameShell> {
   void _onStore() {
     if (!mounted) return;
     setState(() {});
-    // Achievements and gear: a burst for the first, a message for the rest.
+    // New gear: a burst for the first, a message for the rest.
     final news = _store.takeUnlocks();
     if (news.isEmpty) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -271,7 +271,7 @@ class _GameShellState extends State<GameShell> {
     final before = levelFor(_store.totalXp).level;
     _store.addSet(i);
     final crit = _store.lastSetCritical(i);
-    Sfx.play(crit ? 'critical' : 'set_${areaById(_store.todaySession?.areaId ?? _store.profile?.areaId).artId}');
+    Sfx.play(crit ? 'critical' : 'set_${areaById(_store.todaySession?.areaId ?? _store.profile?.areaId).id}');
     if (_store.todayExercises[i].sets % 5 == 0) Sfx.play('stamp5');
     if (crit) {
       HapticFeedback.heavyImpact();
@@ -293,13 +293,6 @@ class _GameShellState extends State<GameShell> {
   void _removeSet(int i) {
     _store.removeSet(i);
     Sfx.play('set_back');
-  }
-
-  void _swap(int i, int dir) {
-    if (_store.swap(i, dir)) return;
-    _snack(_store.todayExercises[i].sets > 0
-        ? 'SETS ALREADY DONE HERE. HOLD TO TAKE THEM AWAY, OR ADD AN EXERCISE.'
-        : 'NO OTHER EXERCISE LEFT IN THE POOL.');
   }
 
   // ------------------------------------------------------- freeze-frame card
@@ -508,7 +501,6 @@ class _GameShellState extends State<GameShell> {
             store: _store,
             onAdd: _addSet,
             onRemove: _removeSet,
-            onSwap: _swap,
             onBack: _back,
           ),
         Scene.history => HistoryView(stage: stage, store: _store, onBack: _back),

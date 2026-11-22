@@ -13,20 +13,19 @@ typedef DifficultyRules = ({
   int exercisesPerWorkout, // 3 at the easiest, 8 at the hardest
   int targetSets, // working sets per exercise
   double xpMultiplier, // 1.0 at the lowest, even steps to 2.0 at the highest
-  int streakN, // training days per calendar week for the streak
 });
 
 /// Per difficulty level, in the order of `difficulties`
 /// (lib/game/content.dart): the design team's 6 modes. Multiplier in even
 /// steps from 1.0 to 2.0 (rules.md §1); 3 exercises at the easiest, 8 at
-/// the hardest (data-schema.md). Targets and streak N are placeholders.
+/// the hardest (exercise counts: D33). Targets are placeholders.
 const difficultyRules = <DifficultyRules>[
-  (exercisesPerWorkout: 3, targetSets: 2, xpMultiplier: 1.0, streakN: 2), // Sofa
-  (exercisesPerWorkout: 3, targetSets: 3, xpMultiplier: 1.2, streakN: 2), // Warm-up
-  (exercisesPerWorkout: 4, targetSets: 3, xpMultiplier: 1.4, streakN: 2), // Sweat
-  (exercisesPerWorkout: 5, targetSets: 4, xpMultiplier: 1.6, streakN: 3), // Pain
-  (exercisesPerWorkout: 6, targetSets: 4, xpMultiplier: 1.8, streakN: 3), // Brutal
-  (exercisesPerWorkout: 8, targetSets: 5, xpMultiplier: 2.0, streakN: 4), // Nightmare
+  (exercisesPerWorkout: 3, targetSets: 2, xpMultiplier: 1.0), // Sofa
+  (exercisesPerWorkout: 3, targetSets: 3, xpMultiplier: 1.2), // Warm-up
+  (exercisesPerWorkout: 4, targetSets: 3, xpMultiplier: 1.4), // Sweat
+  (exercisesPerWorkout: 5, targetSets: 4, xpMultiplier: 1.6), // Pain
+  (exercisesPerWorkout: 6, targetSets: 4, xpMultiplier: 1.8), // Brutal
+  (exercisesPerWorkout: 8, targetSets: 5, xpMultiplier: 2.0), // Nightmare
 ];
 
 DifficultyRules rulesFor(int difficulty) =>
@@ -44,10 +43,6 @@ const overTargetCap = 2;
 
 /// XP for the first working set of the day.
 const xpFirstSetOfDay = 50;
-
-/// Streak bonus: +5% set XP per streak week in a row, at most +25%.
-const streakBonusPerWeek = 0.05;
-const streakBonusMax = 0.25;
 
 /// Critical set: 3% chance, ×2 XP. The roll is repeatable (seed from the
 /// date, the exercise and the set number), so XP can be computed again.
@@ -67,25 +62,19 @@ bool isCritical(String date, String exerciseId, int setNumber) {
   return h % 10000 < (critChance * 10000).round();
 }
 
-/// Streak multiplier for [weeks] streak weeks in a row.
-double streakMultiplier(int weeks) => 1 + min(streakBonusMax, streakBonusPerWeek * max(0, weeks));
-
 /// XP of set number [setNumber] (from 1) on an exercise with [target] sets,
-/// in the order of rules.md §1: base, over target, critical, streak, round.
-int xpForSet({
-  required int setNumber,
-  required int target,
-  required int difficulty,
-  bool critical = false,
-  int streakWeeks = 0,
-}) {
-  var xp = xpPerSet * rulesFor(difficulty).xpMultiplier;
+/// before rounding, in the order of rules.md §1: base, over target, critical.
+double setXp({required int setNumber, required int target, required int difficulty, bool critical = false}) {
   if (setNumber > target * overTargetCap) return 0;
+  var xp = xpPerSet * rulesFor(difficulty).xpMultiplier;
   if (setNumber > target) xp *= overTargetMultiplier;
   if (critical) xp *= critMultiplier;
-  xp *= streakMultiplier(streakWeeks);
-  return xp.round();
+  return xp;
 }
+
+/// [setXp], rounded.
+int xpForSet({required int setNumber, required int target, required int difficulty, bool critical = false}) =>
+    setXp(setNumber: setNumber, target: target, difficulty: difficulty, critical: critical).round();
 
 // ---------------------------------------------------------------- levels
 
@@ -115,14 +104,11 @@ int xpToNext(int level) {
 // - Every set mark and workout change on the same calendar day belongs to
 //   that day's session. The session opens on the first one.
 // - A new day starts a new session (the old one simply stays as it is).
-// - A day with no working sets does not count (skipped day): no XP, no
-//   streak day, not shown in history.
+// - A day with no working sets does not count (skipped day): no XP, not
+//   shown in history.
 //
-// THE STREAK: training days per calendar week (Monday to Sunday). A week
-// with at least `streakN` training days is a streak week. Missing days
-// inside a week never break it. N comes from the difficulty of the last
-// session of that week. The streak bonus of a session uses the streak
-// weeks in a row BEFORE that session's week (so it never changes later).
+// No streak (D34) and no achievements (D35). The XP they gave before is
+// kept as saved XP events (lib/store.dart).
 
 // ------------------------------------------------------------- character
 

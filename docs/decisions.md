@@ -41,6 +41,12 @@ Ask the owner before you design against a decision. Add each new decision here, 
 | D29 | No preloader. The app opens straight on the hub (or the creator on the first launch). | 21 Nov 2026 | Overrides design demo `01-preloader.html`. |
 | D30 | No "wipe all data" / RESTART SETUP button. The setup changes with EDIT CHARACTER, and the XP and sessions stay. | 21 Nov 2026 | Overrides the DANGER ZONE in design demo `12-menu.html`. |
 | D31 | The class ids are the design ids: `scrapper`, `bruiser`, `paladin`, `cablemancer`. | 22 Nov 2026 | Overrides the app's `speedy`, `rogue`, `warrior`, `mage`. The app must rename them and migrate saved data once. Area, asset and icon file names already use these ids. Note: an earlier D31 (22 Nov 2026, difficulty names Couch Spawn …) was dropped by the owner the same day; see D28. |
+| D32 | The workout has no tools: no swap, no back to the first exercise, no skip, no remove, no add. The workout is the list the app picks for the day. | 22 Nov 2026 | Overrides D16 and the demo `08-workout.html` swipe and tool row. |
+| D33 | Exercises per workout, Sofa to Nightmare: 3, 3, 4, 5, 6, 8. | 22 Nov 2026 | D15. Overrides the demo's placeholder 3, 4, 5, 6, 7, 8. |
+| D34 | No streak. No streak count, no streak XP bonus, no week target. XP that old sessions earned with a streak bonus stays. | 22 Nov 2026 | Overrides D20 and the streak part of D19. |
+| D35 | No achievements. XP that users already got from achievements stays. | 22 Nov 2026 | Overrides the achievements part of D19 and D27. |
+| D36 | The area ids are the design ids: `riptide`, `gainsgard`, `rustbelt`, `arcade`, `frostbite`. The app migrates saved data once (`beach` → `riptide`, `castle` → `gainsgard`, `summit` → `frostbite`). | 22 Nov 2026 | Like D31 for classes. |
+| D37 | The app name is PUMPLEX. | 22 Nov 2026 | Marketing drafts that say SWOLEMANCER must change. |
 
 ## 2. Where the current boards conflict
 
@@ -49,26 +55,36 @@ The "What the app does" column was rechecked against the app on 22 Nov 2026 at c
 
 All earlier conflicts are fixed. The boards and the demo now have the HEIGHT slider, the user's body on class select,
 no preloader, no START TRAINING, no clock, no `SESSION n`, no I WORKED, no reward screen, no DANGER ZONE, rows by date,
-6 difficulty levels, XP from `docs/rules.md`, 3 to 8 exercises with swap, add and remove, and a D23 transitions table
+6 difficulty levels, XP from `docs/rules.md`, 3 to 8 exercises, and a D23 transitions table
 (`docs/moodboard/README.md` "Transitions between views").
+D32–D36 (22 Nov 2026) came after that check. The new conflicts they make are in the table below.
 
 Still open (no decision is broken, but the app and the design differ):
 
 | Board / file | What it shows | Decision | What the app does | Next step |
 |---|---|---|---|---|
-| `docs/demo/shared/demo.js` exercises per level | 3, 4, 5, 6, 7, 8 exercises (marked PLACEHOLDER). | D15 | 3, 3, 4, 5, 6, 8 (`lib/game/rules.dart`). | Agree one list (the end points, 3 and 8, already match). |
-| `docs/demo/shared/demo.js` streak N per level | 2, 2, 3, 3, 4, 4 days (marked PLACEHOLDER). | D20 | 2, 2, 2, 3, 3, 4 (`lib/game/rules.dart`). | Agree one list. (Added 22 Nov 2026.) |
+| `docs/demo/shared/demo.js` exercises per level | 3, 4, 5, 6, 7, 8 exercises (marked PLACEHOLDER). | D15, D33 | 3, 3, 4, 5, 6, 8 (`lib/game/rules.dart`). | **Decided 22 Nov 2026 (D33):** 3, 3, 4, 5, 6, 8. Design updates `demo.js` to match. |
+| `docs/demo/shared/demo.js` streak N per level | 2, 2, 3, 3, 4, 4 days (marked PLACEHOLDER). | D20, D34 | No streak. | **Decided 22 Nov 2026 (D34):** no streak, so no streak N. Design removes it from `demo.js`. |
 | `12-menu.html` SOUND | A sound toggle. | None (no sound files yet) | A disabled SOUND row with a SOON tag (placeholder). | Design delivers the sound pack. **Done 22 Nov 2026 (`1a2f33e`):** the sound pack is in `assets/sounds` and the SOUND row is a working toggle (`lib/sound.dart`, `audioplayers` with the owner's OK, D26). |
 | `docs/demo/BRIEF.md` "No emojis" | Pixel SVG icons only. | None (design rule) | Emoji placeholders (areas, gear, milestones, buttons). | Design delivers the pixel icon set. The app swaps them in. **Done 22 Nov 2026 (`1a2f33e`):** pixel icons in `assets/icons`. The last text glyph (⏱ in the past-sessions rows) is now the word TIME. |
 | `docs/demo/` screens | The new demo layout (character, workout, profile and others). | None | The app still has the first-build layout. | Port the demo layout into the app. **Partly done 22 Nov 2026:** the hub (07, `f224762`), the workout (08, `1a2f33e`), the profile (11) and the menu (12) follow the demo. Not checked against the demo: setup steps 02–06, past sessions (10) and gear. |
-| `docs/demo/shared/demo.js` area ids | `riptide`, `gainsgard`, `rustbelt`, `arcade`, `frostbite`. | None (D31 is about class ids only) | Saved data keeps `beach`, `castle`, `rustbelt`, `arcade`, `summit`. Art and sound files use the design ids. | Nothing, unless the owner wants the area ids to change too. (Added 22 Nov 2026.) |
+| `docs/demo/shared/demo.js` area ids | `riptide`, `gainsgard`, `rustbelt`, `arcade`, `frostbite`. | D36 | The same ids. Saved `beach`, `castle`, `summit` migrate once (`docs/data-schema.md` §5.3). | **Decided and done 22 Nov 2026 (D36).** Nothing to do. |
+| `08-workout.html` swipe and tool row | Swipe a card to switch the exercise. Tool row (swap, back to first, skip, remove) and an ADD card. | D32 | No tools. The strip shows the day's list; tap a card to make it active. | Design updates the demo to follow D32. (Added 22 Nov 2026.) |
+| `07-hub.html`, `11-profile.html` and `docs/demo/shared/demo.js` streak | A "this week" card with the week target, streak weeks and embers. The profile's READY TO CLIMB? card counts streak weeks. | D34 | No streak, no week target, no embers, no streak bonus. | Design updates the demo to follow D34. (Added 22 Nov 2026.) |
+| `11-profile.html` milestones | A milestones (achievements) list with pixel medals. | D35 | No achievements, no milestones, no ACHIEVEMENT burst. Only gear unlocks (by level). | Design updates the demo to follow D35. (Added 22 Nov 2026.) |
 
 Built from the demo: the Profile screen, the full-screen menu and the level titles (Fresh Spawn … Mythic Meathead, design proposals).
 Note: the Workout board allows extra sets up to 9. That is fine, but sets beyond 2× the target give 0 XP (D19).
 
-Code notes (22 Nov 2026, at `a237791`). Where the code and a decision differ:
+Code notes (22 Nov 2026, at `a237791`, updated for D32–D37). Where the code and a decision differ:
 
-- D16 says "switch (swipe)". The workout has no swipe now. A SWAP button switches to the next pool exercise (forward only).
+- D16 (switch by swipe) is replaced by D32: done. The workout has no tools (no swipe, SWAP, FIRST, SKIP, REMOVE or ADD).
+  Old sessions can still hold removed, added or switched exercises. The model keeps those fields for old data.
+- D33: done. Exercises per workout are 3, 3, 4, 5, 6, 8 (`lib/game/rules.dart`).
+- D34: done. No streak, no week target, no streak bonus. The old streak XP is saved once as `streak` XP events (`docs/data-schema.md` §5.4).
+- D35: done. No achievements and no milestones. The key `achievements_v1` is deleted on start; the saved `achievement` XP events stay.
+- D36: done. The area ids are the design ids, and saved data migrates once (`docs/data-schema.md` §5.3). The separate art id is gone.
+- D37: done in the docs. The app name is PUMPLEX. The class-select kicker "THE SWOLEMANCER'S PATHS" stays as a tagline (`lib/game/content.dart`).
 - D31: done. The class ids are `scrapper`, `bruiser`, `paladin`, `cablemancer`, and saved data migrates once (`docs/data-schema.md` §5.2).
 - D28: done. The difficulty ids and names are the 6 MODE names.
 
@@ -79,4 +95,4 @@ All of this stays inside the decisions above.
 - Starting areas and their scenes (D18).
 - The set-mark style for each area (D17, D18).
 - Pixel art: body frames, class outfits, gear sprites, area scenes, animations.
-- Names: classes, difficulty levels, areas, items, achievements (D9, D14).
+- Names: classes, difficulty levels, areas, items (D9, D14). No achievements (D35).

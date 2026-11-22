@@ -5,7 +5,6 @@
 //   body_history_v1   List of BodyChange
 //   sessions_v3       Map date -> Session (with its SessionExercise list)
 //   xp_events_v1      List of XpEvent (only the ones that cannot be computed)
-//   achievements_v1   Map achievement id -> unlock time
 //   gear_v1           {owned: [item id], equipped: {slot: item id}}
 //   chaos, cel        Display settings
 //
@@ -14,10 +13,11 @@
 // - BodyChange also stores `sex`, so a history entry is a full body.
 // - XP: the schema says "total XP = sum of XP_EVENT, calculated, never
 //   saved" and "change a rule, and the values update". So the XP events
-//   for sets, training days and streaks are COMPUTED from the sessions
-//   with rules.dart every time. Only events that cannot be computed again
-//   are saved in xp_events_v1: `legacy` (written by the migration) and
-//   `achievement` (written when it unlocks). The total is the sum of both.
+//   for sets and training days are COMPUTED from the sessions with
+//   rules.dart every time. Only events that cannot be computed again are
+//   saved in xp_events_v1: `legacy` (old-app days), and `streak` and
+//   `achievement` (kept from before D34 and D35 removed them). The total
+//   is the sum of both.
 // - A removed exercise stays in the session with `removed: true`.
 // - An added exercise has `added: true` and originalExerciseId = its own id.
 
@@ -130,7 +130,7 @@ class Profile {
         character: Character.fromJson(Map<String, dynamic>.from(j['character'] as Map? ?? {})),
         classId: newClassId(j['classId'] as String? ?? ''),
         difficultyId: j['difficultyId'] as String? ?? '',
-        areaId: j['areaId'] as String? ?? '',
+        areaId: newAreaId(j['areaId'] as String? ?? ''),
         schemaVersion: (j['schemaVersion'] as num?)?.toInt() ?? 1,
         createdAt: j['createdAt'] as String? ?? '',
       );
@@ -252,7 +252,7 @@ class Session {
         date: date,
         classId: newClassId(j['classId'] as String? ?? ''),
         difficultyId: j['difficultyId'] as String? ?? '',
-        areaId: j['areaId'] as String? ?? '',
+        areaId: newAreaId(j['areaId'] as String? ?? ''),
         firstMarkAt: j['firstMarkAt'] as String?,
         lastMarkAt: j['lastMarkAt'] as String?,
         legacy: j['legacy'] as bool? ?? false,
@@ -273,7 +273,7 @@ class XpEvent {
   final String source;
   final int amount;
 
-  /// Session date or achievement id.
+  /// Session date (or, for an old achievement event, its id).
   final String ref;
 
   Map<String, dynamic> toJson() => {'at': at, 'source': source, 'amount': amount, 'ref': ref};
@@ -318,3 +318,11 @@ String newExerciseId(String id) {
   final to = oldClassIds[id.substring(0, dot)];
   return to == null ? id : '$to${id.substring(dot)}';
 }
+
+// ------------------------------------------------- area id migration (D36)
+
+/// Old area ids (before 22 Nov 2026) and the design ids that replace them.
+const oldAreaIds = {'beach': 'riptide', 'castle': 'gainsgard', 'summit': 'frostbite'};
+
+/// The current area id for a saved one. Unknown ids pass through.
+String newAreaId(String id) => oldAreaIds[id] ?? id;

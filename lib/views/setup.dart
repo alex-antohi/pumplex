@@ -690,7 +690,7 @@ class _AreaCard extends StatelessWidget {
             SizedBox(
               width: 88,
               height: 75,
-              child: FittedBox(child: AreaScene(art: areaArt[area.artId]!, scale: 1)),
+              child: FittedBox(child: AreaScene(art: areaArt[area.id]!, scale: 1)),
             ),
             const SizedBox(width: 10),
             Expanded(

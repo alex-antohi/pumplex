@@ -21,16 +21,18 @@ The plan is in [docs/app-brief.md](docs/app-brief.md) and
 - **Difficulty:** 6 modes from the design board (Sofa to Nightmare Mode) on a
   ladder with XP gems. Harder modes give more exercises, sets and XP.
 - **Starting areas:** 5 areas from the design board (Riptide Shore, Gainsgard
-  Keep, Rustbelt Flats, Arcade Underpass, Frostbite Summit). Each area card
+  Keep, Rustbelt Flats, Arcade Underpass, Frostbite Summit; ids `riptide`,
+  `gainsgard`, `rustbelt`, `arcade`, `frostbite`, D36). Each area card
   shows the scene art. The class picks the default area; the user can pick any.
 - **Hub** (design demo 07): the area scene with the lifter in it (tap the
   lifter to change the body sliders; changes are kept as a history), the
-  level and XP bar, the next workout, this week's streak, the last training
-  day, GEAR, and a bottom bar (HISTORY, HUB, PROFILE).
-- **Workout** (design demo 08): an exercise strip with an ADD card, a tool
-  row (SWAP, FIRST, SKIP, REMOVE) and the area scene from the design PNG
-  layers. Tap the object = one working set, hold = one less; the marks stay
-  in the world. No reps, no kilos, no I WORKED button, no clock.
+  level and XP bar, the next workout, the last training day, GEAR, and a
+  bottom bar (HISTORY, HUB, PROFILE). There is no streak (D34).
+- **Workout** (design demo 08): an exercise strip with the day's list and
+  the area scene from the design PNG layers. Tap a card to make it active.
+  Tap the object = one working set, hold = one less; the marks stay in the
+  world. No tools: no swap, skip, remove or add (D32). No reps, no kilos, no
+  I WORKED button, no clock.
 - **Free-form sessions:** one session per calendar day, no buttons to start
   or stop. The rule is in [docs/app-flow.md](docs/app-flow.md) §4.4.
 - The whole app is one screen: views change with a camera zoom or slide.
@@ -38,12 +40,13 @@ The plan is in [docs/app-brief.md](docs/app-brief.md) and
   freeze-frame intro card, also used for level-ups.
 - XP from [docs/rules.md](docs/rules.md): sets × difficulty (×1.5 over the
   target, 0 past 2× the target), 3% critical sets, +50 for the first set of
-  the day, a week-streak bonus, achievements. Habitica level curve. Levels
-  unlock gear (one item per slot).
+  the day. Habitica level curve. Levels unlock gear (one item per slot).
+  No streak bonus and no achievements (D34, D35). The XP that they gave
+  before stays.
 - **Old-app data:** a one-time upgrade saves a backup file first, then
   turns the old sessions into XP and deletes the old kg / reps data.
-- **Profile** (design demo 11): level title, the path, milestones. Tap a
-  row to change the class, difficulty or world.
+- **Profile** (design demo 11): level title and the path. Tap a row to
+  change the class, difficulty or world. No milestones (D35).
 - Full-screen menu (⋮, design demo 12): profile, past sessions, edit
   character, save / restore a backup file, chaos mode, **cel shader**
   (`shaders/cel.frag`; needs Impeller) and SOUND.
@@ -52,7 +55,7 @@ The plan is in [docs/app-brief.md](docs/app-brief.md) and
   sound pack (`assets/sounds`, played with `audioplayers`).
 
 Code map: game numbers in `lib/game/rules.dart`, names (classes, exercises,
-difficulties, areas, gear, achievements) in `lib/game/content.dart`, the saved
+difficulties, areas, gear) in `lib/game/content.dart`, the saved
 data (to [docs/data-schema.md](docs/data-schema.md)) in `lib/game/model.dart`
 and `lib/store.dart`, views in `lib/views/`, sound in `lib/sound.dart`.
 `lib/game/area_art.dart` is generated: run `node tools/app/area_art.mjs`
@@ -114,7 +117,7 @@ uninstall first.
 | [docs/app-brief.md](docs/app-brief.md) | Purpose, product rules, scope and the 7 systems. |
 | [docs/app-flow.md](docs/app-flow.md) | Screens, setup steps, play, the session rule, history and special cases. |
 | [docs/data-schema.md](docs/data-schema.md) | Saved data: keys, fields, ids and the migrations. |
-| [docs/rules.md](docs/rules.md) | The rules table: XP, level curve, streak and later systems. |
+| [docs/rules.md](docs/rules.md) | The rules table: XP, level curve and later systems. |
 | [docs/marketing/](docs/marketing/01-name.md) | Name research, promo pictures, promo text, marketing ideas and the promo design handoff. |
 | [docs/moodboard/](docs/moodboard/README.md) | Design team: the game look, sprites, areas, icons and sounds. |
 | [docs/demo/](docs/demo/BRIEF.md) | Design team: the clickable HTML demo and the [handoff to the app](docs/demo/HANDOFF.md). |

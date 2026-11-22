@@ -13,8 +13,8 @@ import 'sprite.dart';
 
 // ----------------------------------------------------------------- profile
 
-/// "YOUR LIFTER": level and title, the path (class, difficulty, area) and
-/// the milestones (achievements). Design: docs/demo/11-profile.html.
+/// "YOUR LIFTER": level and title and the path (class, difficulty, area).
+/// Design: docs/demo/11-profile.html, without the milestones (D35).
 class ProfileView extends StatelessWidget {
   const ProfileView({
     super.key,
@@ -41,7 +41,6 @@ class ProfileView extends StatelessWidget {
     final cls = store.gameClass;
     final di = store.difficulty;
     final area = areaById(store.profile?.areaId);
-    final got = store.achievementsUnlocked;
     final days = store.history.length;
     return Stack(
       children: [
@@ -103,15 +102,6 @@ class ProfileView extends StatelessWidget {
               color: Color(area.accent),
               onTap: () => onEditStep(3),
             ),
-            const SizedBox(height: 18),
-            Shout('Milestones', color: p.violet, size: 15),
-            const SizedBox(height: 8),
-            if (got.isEmpty)
-              const Terminal(['NO MEDALS YET.', 'YOUR FIRST SET UNLOCKS FIRST BLOOD.']),
-            for (final a in achievements) _Milestone(name: a.name, line: a.line, open: got.containsKey(a.id)),
-            const SizedBox(height: 6),
-            // Placeholder note: the achievements list is still open (D27).
-            Text('MORE MILESTONES COMING. THE LIST IS A PLACEHOLDER.', style: mono(10.5, p.ink)),
             const SizedBox(height: 18),
             Row(
               children: [
@@ -189,48 +179,6 @@ class _PathRow extends StatelessWidget {
               Text('CHANGE', style: display(14, color)),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Milestone extends StatelessWidget {
-  const _Milestone({required this.name, required this.line, required this.open});
-
-  final String name, line;
-  final bool open;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = Pal.of(context);
-    return Opacity(
-      opacity: open ? 1 : 0.55,
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Row(
-          children: [
-            Container(
-              width: 34,
-              height: 34,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: open ? p.orange : p.panel,
-                border: Border.all(color: p.ink, width: 3),
-              ),
-              child: PxIcon(open ? 'star' : 'lock', size: 18, color: p.ink),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(name.toUpperCase(), style: display(16, p.ink)),
-                  Text(line, style: mono(11, p.ink)),
-                ],
-              ),
-            ),
-          ],
         ),
       ),
     );

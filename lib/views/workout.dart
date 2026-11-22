@@ -4,11 +4,9 @@
 //
 // Top to bottom:
 // - Header: ◀ HUB, the class and the area name.
-// - Exercise strip: one card per exercise with its target slots, then an
-//   ADD card. Tap a card to make it the active exercise.
-// - Tool row for the active exercise: SWAP (another exercise from the
-//   class pool), FIRST (back to the first exercise), SKIP (do no sets, go
-//   to the next one) and REMOVE (D15, D16).
+// - Exercise strip: one card per exercise with its target slots. Tap a
+//   card to make it the active exercise. The list is the one the app picks
+//   for the day: no swap, skip, remove or add (D32).
 // - The area scene (design PNG layers, lib/views/area_scene.dart): TAP THE
 //   OBJECT = one working set, HOLD IT = take the last set back (D17). The
 //   marks stay in the world; at the target the strip moves on.
@@ -27,8 +25,8 @@ import 'area_scene.dart';
 
 const _advanceDelay = Duration(milliseconds: 800);
 
-/// Top of the scene area in the workout view (header, strip, tools above).
-const _sceneTop = 220.0;
+/// Top of the scene area in the workout view (header and strip above).
+const _sceneTop = 176.0;
 
 /// The scene's rect and whole-number scale in a workout view of [area].
 (Rect, int) workoutLayout(Size area) {
@@ -51,7 +49,6 @@ class WorkoutView extends StatefulWidget {
     required this.store,
     required this.onAdd,
     required this.onRemove,
-    required this.onSwap,
     required this.onBack,
   });
 
@@ -60,9 +57,6 @@ class WorkoutView extends StatefulWidget {
 
   /// Index in `store.todayExercises` -> one set more / one set less.
   final ValueChanged<int> onAdd, onRemove;
-
-  /// Index, direction (+1 next, -1 previous).
-  final void Function(int i, int dir) onSwap;
   final VoidCallback onBack;
 
   @override
@@ -71,7 +65,6 @@ class WorkoutView extends StatefulWidget {
 
 class _WorkoutViewState extends State<WorkoutView> {
   int? _active;
-  final Set<int> _skipped = {};
   String? _burst;
   int _hitRun = 0;
   Timer? _advance;
@@ -84,17 +77,16 @@ class _WorkoutViewState extends State<WorkoutView> {
     if (cards.isEmpty) return -1;
     if (_active != null && cards.contains(_active)) return _active!;
     final list = _store.todayExercises;
-    return cards.firstWhere((i) => list[i].sets < list[i].targetSets && !_skipped.contains(i),
-        orElse: () => cards.first);
+    return cards.firstWhere((i) => list[i].sets < list[i].targetSets, orElse: () => cards.first);
   }
 
-  /// The next card after [i] that is below its target and not skipped.
+  /// The next card after [i] that is below its target.
   int? _nextOpen(int i) {
     final cards = _store.todayCards, list = _store.todayExercises;
     final at = cards.indexOf(i);
     for (var k = 1; k < cards.length; k++) {
       final j = cards[(at + k) % cards.length];
-      if (list[j].sets < list[j].targetSets && !_skipped.contains(j)) return j;
+      if (list[j].sets < list[j].targetSets) return j;
     }
     return null;
   }
@@ -114,7 +106,6 @@ class _WorkoutViewState extends State<WorkoutView> {
     HapticFeedback.lightImpact();
     setState(() {
       _active = i;
-      _skipped.remove(i);
       _burst = e.sets == e.targetSets ? 'CRUSHED!' : e.sets % 5 == 0 ? area.stamp : '+1 SET';
       _hitRun++;
     });
@@ -137,69 +128,6 @@ class _WorkoutViewState extends State<WorkoutView> {
     setState(() => _burst = null); // undo has no effect animation
   }
 
-  void _skip(int i) => setState(() {
-        _skipped.add(i);
-        _active = _nextOpen(i) ?? i;
-      });
-
-  void _removeCard(int i) {
-    final name = exerciseName(_store.todayExercises[i].exerciseId).toUpperCase();
-    if (!_store.removeSlot(i)) return;
-    setState(() => _active = null);
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text('$name REMOVED'), duration: const Duration(seconds: 3)));
-  }
-
-  Future<void> _openAdd() async {
-    final p = Pal.of(context);
-    final unused = _store.unusedExercises;
-    final id = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: p.panel,
-      shape: const RoundedRectangleBorder(),
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Shout('Add an exercise · from your path', color: p.ink),
-              const SizedBox(height: 12),
-              if (unused.isEmpty)
-                Text('Every exercise of your path is already in. Greedy. Respect.', style: mono(12, p.ink))
-              else
-                Flexible(
-                  child: SingleChildScrollView(
-                    child: Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: [
-                        for (final e in unused)
-                          BrutalButton(
-                            key: ValueKey('add-${e.id}'),
-                            small: true,
-                            color: p.panel2,
-                            onTap: () => Navigator.pop(context, e.id),
-                            child: Text(e.name.toUpperCase()),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 14),
-              BrutalButton(color: p.panel2, onTap: () => Navigator.pop(context), child: const Text('CANCEL')),
-            ],
-          ),
-        ),
-      ),
-    );
-    if (id == null || !mounted) return;
-    _store.addExercise(id);
-    setState(() => _active = _store.todayExercises.length - 1);
-  }
-
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
@@ -209,12 +137,10 @@ class _WorkoutViewState extends State<WorkoutView> {
     final act = active;
     final today = store.todaySession;
     final area = areaById(today?.areaId ?? store.profile?.areaId);
-    final art = areaArt[area.artId]!;
+    final art = areaArt[area.id]!;
     final accent = Color(area.accent);
     final cls = classById(today?.classId ?? store.gameClass.id);
     final e = act < 0 ? null : list[act];
-    // SKIP and REMOVE: only for an exercise with no sets, and never the last one.
-    final canDrop = e != null && e.sets == 0 && cards.length >= 2;
     final firstTime = store.history.where((s) => !s.legacy).isEmpty;
     return LayoutBuilder(builder: (context, box) {
       final (scene, scale) = workoutLayout(box.biggest);
@@ -251,7 +177,7 @@ class _WorkoutViewState extends State<WorkoutView> {
               ],
             ),
           ),
-          // Exercise strip, then the ADD card.
+          // Exercise strip.
           Positioned(
             left: 0,
             right: 0,
@@ -266,50 +192,11 @@ class _WorkoutViewState extends State<WorkoutView> {
                     key: ValueKey('strip-$i'),
                     e: list[i],
                     active: i == act,
-                    skipped: _skipped.contains(i) && list[i].sets == 0,
                     onTap: () => setState(() => _active = i),
                   ),
-                _AddCard(onTap: _openAdd),
               ],
             ),
           ),
-          // Tools for the active exercise.
-          if (e != null)
-            Positioned(
-              left: 16,
-              right: 22,
-              top: 166,
-              height: 44,
-              child: Row(
-                children: [
-                  _Tool(
-                    key: const ValueKey('tool-swap'),
-                    icon: 'swap',
-                    label: 'SWAP',
-                    onTap: () => widget.onSwap(act, 1),
-                  ),
-                  if (e.switched)
-                    _Tool(
-                      key: const ValueKey('tool-first'),
-                      icon: 'undo',
-                      label: 'FIRST',
-                      onTap: e.sets > 0 ? null : () => store.resetSlot(act),
-                    ),
-                  _Tool(
-                    key: const ValueKey('tool-skip'),
-                    icon: 'skip',
-                    label: 'SKIP',
-                    onTap: canDrop ? () => _skip(act) : null,
-                  ),
-                  _Tool(
-                    key: const ValueKey('tool-remove'),
-                    icon: 'trash',
-                    label: 'REMOVE',
-                    onTap: canDrop ? () => _removeCard(act) : null,
-                  ),
-                ],
-              ),
-            ),
           // The scene: ink frame and a hard shadow in the area colour.
           sceneFrame(scene, ink: p.ink, shadow: accent),
           Positioned.fromRect(
@@ -365,107 +252,19 @@ class _WorkoutViewState extends State<WorkoutView> {
   }
 }
 
-/// The last card on the strip: opens the add sheet.
-class _AddCard extends StatelessWidget {
-  const _AddCard({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = Pal.of(context);
-    return Semantics(
-      button: true,
-      label: 'Add an exercise',
-      child: GestureDetector(
-        key: const ValueKey('strip-add'),
-        onTap: onTap,
-        child: Container(
-          width: 80,
-          margin: const EdgeInsets.only(right: 12),
-          decoration: BoxDecoration(
-            color: p.panel,
-            border: Border.all(color: p.ink, width: 3),
-            boxShadow: [BoxShadow(color: p.ink, offset: const Offset(4, 4))],
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              PxIcon('plus', size: 24, color: p.lime),
-              const SizedBox(height: 4),
-              Text('ADD', style: display(16, p.ink)),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// One button of the tool row (disabled when [onTap] is null).
-class _Tool extends StatelessWidget {
-  const _Tool({super.key, required this.icon, required this.label, required this.onTap});
-
-  final String icon, label;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = Pal.of(context);
-    return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.only(right: 6),
-        child: Semantics(
-          button: true,
-          enabled: onTap != null,
-          label: label,
-          child: GestureDetector(
-            onTap: onTap,
-            child: Opacity(
-              opacity: onTap == null ? 0.35 : 1,
-              child: Container(
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: p.panel,
-                  border: Border.all(color: p.ink, width: 3),
-                  boxShadow: [BoxShadow(color: p.panel2, offset: const Offset(3, 3))],
-                ),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        PxIcon(icon, size: 14, color: p.ink),
-                        const SizedBox(width: 4),
-                        Text(label, style: display(13, p.ink)),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 /// A card on the exercise strip: name, target slots, +extra, status.
 class _StripCard extends StatelessWidget {
-  const _StripCard({super.key, required this.e, required this.active, required this.onTap, this.skipped = false});
+  const _StripCard({super.key, required this.e, required this.active, required this.onTap});
 
   final SessionExercise e;
-  final bool active, skipped;
+  final bool active;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
     final done = e.sets >= e.targetSets;
-    final status = done ? 'CRUSHED' : active ? 'NOW' : skipped ? 'SKIPPED' : 'NEXT UP';
+    final status = done ? 'CRUSHED' : active ? 'NOW' : 'NEXT UP';
     final fg = active ? p.on : p.ink;
     return GestureDetector(
       onTap: onTap,
