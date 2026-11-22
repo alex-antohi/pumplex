@@ -43,9 +43,13 @@ const AXES = {
     ['Rope', /\brope attachment\b/i],
     ['V-Bar', /\bv-bar attachment\b/i],
   ],
-  extra: [
-    ['Chains', /\bwith chains\b|\bchains\b/i],
+  bands: [
+    ['Band Assisted', /\bband assisted\b/i],
+    ['Reverse Bands', /\breverse bands?\b/i],
     ['Bands', /\bwith bands?\b|\bbands?\b/i],
+  ],
+  chains: [
+    ['Chains', /\bwith chains\b|\bchains?\b/i],
   ],
 };
 
@@ -61,7 +65,7 @@ const NORMAL = [
   [/\bextensions\b/gi, 'Extension'], [/\bpresses\b/gi, 'Press'], [/\bdeadlifts\b/gi, 'Deadlift'], [/\bshrugs\b/gi, 'Shrug'],
   [/\bkickbacks\b/gi, 'Kickback'], [/\bswings\b/gi, 'Swing'], [/\bthrusters\b/gi, 'Thruster'], [/\bpulldowns\b/gi, 'Pulldown'],
   [/\bskull ?crushers?\b/gi, 'Skullcrusher'], [/\bgood mornings\b/gi, 'Good Morning'], [/\bhyperextensions\b/gi, 'Hyperextension'],
-  [/\btriceps?\b/gi, 'Triceps'], [/\bbiceps?\b/gi, 'Bicep'],
+  [/\btriceps?\b/gi, 'Triceps'], [/\bbiceps?\b/gi, 'Bicep'], [/\bcross over\b/gi, 'Crossover'],
 ];
 
 // Exercises that belong to another move than their name says.
@@ -69,10 +73,21 @@ const OVERRIDE = {
   'Incline Dumbbell Press': 'Bench Press', 'Close-Grip Dumbbell Press': 'Bench Press', 'Smith Machine Decline Press': 'Bench Press',
   'Close-Grip EZ-Bar Press': 'Bench Press', 'Seated Cable Rows': 'Seated Cable Row',
 };
+// Exercises whose names the parser cannot split: move name and modifiers by hand.
+const EXPLICIT = {
+  'Dips - Chest Version': ['Dip', { type: 'Chest' }],
+  'Dips - Triceps Version': ['Dip', { type: 'Triceps' }],
+  'Bench Dips': ['Dip', { type: 'Bench' }],
+  'Weighted Bench Dip': ['Dip', { type: 'Weighted Bench' }],
+  'Parallel Bar Dip': ['Dip', { type: 'Parallel Bar' }],
+  'Ring Dips': ['Dip', { type: 'Rings' }],
+  'Dip Machine': ['Dip', {}],
+};
 // Whole groups that are the same move.
 const MERGE = {
   'press': 'Shoulder Press', 'military press': 'Shoulder Press', 'curl': 'Bicep Curl', 'wrist curl over a bench': 'Wrist Curl',
   'side lateral raise': 'Lateral Raise', 'front lat pulldown': 'Lat Pulldown', 'glute': 'Glute Stretch', 'hamstring': 'Hamstring Stretch',
+  'power squat': 'Squat', 'back fly': 'Reverse Fly', 'hamstring curl': 'Leg Curl', 'weighted sit-up': 'Sit-Up',
 };
 const EQUIP_LABEL = {
   'body only': 'Bodyweight', barbell: 'Barbell', dumbbell: 'Dumbbell', kettlebells: 'Kettlebell', cable: 'Cable', machine: 'Machine',
@@ -113,11 +128,11 @@ function parse(name) {
 
 // Old base and mods fields are dropped first, so the tool can run on its own output.
 const rows = all.map(({ base: _oldBase, mods: _oldMods, ...e }) => {
-  const p = parse(e.name);
+  const p = EXPLICIT[e.name] ? { base: EXPLICIT[e.name][0], mods: EXPLICIT[e.name][1] } : parse(e.name);
   let base = OVERRIDE[e.name] ?? p.base;
   base = MERGE[base.toLowerCase()] ?? base;
   const mods = { equip: equipLabel(e), ...p.mods };
-  if (mods.extra === 'Bands' && mods.equip === 'Bands') delete mods.extra;
+  if (mods.bands === 'Bands' && mods.equip === 'Bands') delete mods.bands;
   return { e, base, mods };
 });
 
@@ -127,7 +142,7 @@ for (const r of rows) {
   if (!groups.has(k)) groups.set(k, []);
   groups.get(k).push(r);
 }
-const AX = ['equip', ...Object.keys(AXES)];
+const AX = ['equip', 'type', ...Object.keys(AXES)];
 const keyOf = (r) => AX.map((a) => r.mods[a] ?? '').join('|');
 // Two exercises with the same modifiers in one group: the shorter name
 // stays, the other becomes its own move.

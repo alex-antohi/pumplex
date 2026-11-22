@@ -83,6 +83,7 @@ class ModifierAxis {
 /// by tools/exercise_variants.mjs ("Close Grip", "Medium Grip", "Wide Grip").
 const modifierAxes = <ModifierAxis>[
   ModifierAxis('equip', 'Equipment', 'Any'),
+  ModifierAxis('type', 'Type', 'Standard'),
   ModifierAxis('angle', 'Angle', 'Flat'),
   ModifierAxis('width', 'Grip width', 'Standard'),
   ModifierAxis('hand', 'Grip', 'Standard'),
@@ -90,7 +91,8 @@ const modifierAxes = <ModifierAxis>[
   ModifierAxis('side', 'Arms / legs', 'Both'),
   ModifierAxis('position', 'Position', 'Standard'),
   ModifierAxis('attach', 'Attachment', 'Standard'),
-  ModifierAxis('extra', 'Add-on', 'None'),
+  ModifierAxis('bands', 'Bands', 'No Bands'),
+  ModifierAxis('chains', 'Chains', 'No Chains'),
 ];
 
 /// One card of the workout: a move and its exercises (one, for an

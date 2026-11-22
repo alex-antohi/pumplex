@@ -264,6 +264,15 @@ void main() {
     expect(pickVariant(bench, barbell, 'equip', 'Dumbbell')!.mods['equip'], 'Dumbbell');
     expect(exerciseCatalog.groupOf('Pushups')!.variants.length, greaterThan(5));
     expect(exerciseCatalog.byKey['Leg_Press'], isNull); // Leg Press is a move with variations
+    // Bands and chains are their own rows.
+    final dead = exerciseCatalog.byKey['move:deadlift']!;
+    expect(dead.axes.firstWhere((a) => a.$1.id == 'bands').$2, [null, 'Bands', 'Reverse Bands']);
+    expect(dead.axes.firstWhere((a) => a.$1.id == 'chains').$2, [null, 'Chains']);
+    expect(exerciseCatalog.groupKeyOf('Band_Assisted_Pull-Up'), 'move:pull-up');
+    // All dips are one move, with a Type row.
+    final dip = exerciseCatalog.byKey['move:dip']!;
+    expect(dip.variants.length, 7);
+    expect(dip.axes.firstWhere((a) => a.$1.id == 'type').$2, containsAll(['Chest', 'Triceps', 'Bench']));
     expect(all.map((e) => e.id).toSet().length, all.length);
     expect(all.every((e) => !e.id.contains('.')), isTrue); // old ids have a dot (D54)
     expect(exerciseCatalog.byId['Pushups']!.equipment, 'body only');
@@ -858,6 +867,13 @@ void main() {
     expect(find.descendant(of: find.byKey(const ValueKey('filter-class')), matching: find.text('PLATE PALADIN')), findsOneWidget);
     expect(find.descendant(of: find.byKey(const ValueKey('filter-difficulty')), matching: find.text('SWEAT MODE')), findsOneWidget);
     expect(find.descendant(of: find.byKey(const ValueKey('filter-body')), matching: find.text('ALL BODY PARTS')), findsOneWidget);
+    // All four filter tags sit on one row; the card has no muscle / level / equipment line.
+    final ys = [
+      for (final k in ['filter-class', 'filter-difficulty', 'filter-body', 'filter-favorites'])
+        t.getCenter(find.byKey(ValueKey(k))).dy,
+    ];
+    expect(ys.every((y) => (y - ys.first).abs() < 1), isTrue);
+    expect(find.byKey(const ValueKey('exercise-info')), findsNothing);
     // The level and XP bar sits in the PUMPLEX bar.
     expect(find.byKey(const ValueKey('top-level')), findsOneWidget);
     final carousel = find.byKey(const ValueKey('exercise-card'));

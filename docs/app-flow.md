@@ -187,7 +187,7 @@ owner's rules ([decisions.md](decisions.md)).
 - **Moves** (D55): exercises that are one move with different equipment, angle, grip and so on share one
   card. Under the name, the card shows the exercise picked (its database name) and one chip row per way
   the move's exercises differ (EQUIPMENT, ANGLE, GRIP WIDTH, GRIP, STANCE, ARMS / LEGS, POSITION,
-  ATTACHMENT, ADD-ON). A tap on a chip picks that exercise; chips the filters hide are greyed out. The
+  ATTACHMENT, BANDS, CHAINS, TYPE). The card has no muscle, level or equipment line, and the four filter tags sit on one row that shrinks to fit. A tap on a chip picks that exercise; chips the filters hide are greyed out. The
   card starts on the exercise picked today, else the one used last today, else the simplest. Sets,
   the set marks and the 10-set XP cap count per card.
 - **Exercise carousel** under them: one card at a time from the filtered list, sorted:

@@ -186,14 +186,16 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
                     ),
                   ),
                   // Filter tags: class, difficulty and body part open the
-                  // sheet; the star shows favorites only.
+                  // sheet; the star shows favorites only. All four sit on
+                  // one row, which shrinks to fit when the names are long.
                   Padding(
                     key: const ValueKey('workout-filters'),
                     padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
-                    child: Wrap(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Row(
                       spacing: 6,
-                      runSpacing: 6,
-                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         _TapTag(
                           key: const ValueKey('filter-class'),
@@ -225,6 +227,7 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
                           ),
                         ),
                       ],
+                      ),
                     ),
                   ),
                   // Under the tags: the exercise carousel. The world adds
@@ -419,11 +422,6 @@ class _ExerciseText extends StatelessWidget {
           ),
           if (full.variants.length > 1)
             Text(v.name.toUpperCase(), key: const ValueKey('exercise-variant'), style: display(15, p.orange)),
-          Text(
-            '${v.muscle} · ${levels[v.level]} · ${v.equipment}'.toUpperCase(),
-            key: const ValueKey('exercise-info'),
-            style: mono(11.5, p.ink),
-          ),
           const SizedBox(height: 6),
           if (sets > 0)
             Wrap(
