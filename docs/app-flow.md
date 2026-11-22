@@ -74,7 +74,7 @@ the small workout (D51): BODY the character screen, CLASS and DIFFICULTY the cla
 screen. There they have no BACK / NEXT and every change saves at once. BACK / NEXT exist only in the first setup.
 
 1. **Character.**
-   - Pick male or female. Sliders (D45):
+   - The body editor is a card (D54). Pick male or female. Sliders (D45):
      - HEIGHT, 1.50 M to 2.00 M. Only the current value shows, above the slider on the right.
      - WEIGHT, 50 KG to 200 KG. Only the current value shows, the same way. It picks the fat column of the atlas.
      - MUSCLE, with no value and no end labels.
@@ -92,7 +92,7 @@ screen. There they have no BACK / NEXT and every change saves at once. BACK / NE
 2. **Class select and difficulty** (design: `docs/moodboard/README.md` "Class select", D46, D47).
    - No step kicker, title or subtitle in the view: the PUMPLEX bar says "CLASS · STEP 2 OF 4".
    - One big card fills the top (D46): the user's lifter (from step 1) on top, then the class name
-     in its colour, the equipment, the loadout, 3 tags and the description. No stat table. The
+     in its colour, the equipment, the loadout and 3 tags (no description, D54). No stat table. The
      card's hard shadow takes the class colour. The lifter gets the biggest whole-number scale that
      leaves room for the texts; the texts scroll on a short phone.
    - Swipe the card left for the next class, right for the one before, round and round. Dots under
@@ -139,9 +139,10 @@ screen. There they have no BACK / NEXT and every change saves at once. BACK / NE
      `assets/areas/`. Old saved ids (`beach`, `castle`, `summit`) migrate once
      ([data-schema.md](data-schema.md) §5.3).
    - The class picks the default area until the user picks one. The user can choose any area.
-   - One swipe card like the class card: the area's scene edge to edge at a whole-number scale
-     (the sides may be cut a little, never stretched) with the lifter standing in it, then the name,
-     the line, what you hit (e.g. SCRATCH THE WALL) and "YOUR PATH'S HOME" on the default area.
+   - One swipe card like the class card: the arena fills the card (D54) at the biggest whole-number
+     scale for its height (the sides may be cut, never stretched; the sky colour fills any room above)
+     with the lifter standing in it; the name, the line, what you hit (e.g. SCRATCH THE WALL) and
+     "YOUR PATH'S HOME" on the default area sit at the bottom.
      Swipe both ways, round and round; dots under the card.
    - The scenes are the design team's PNG layers (`assets/areas/<area id>/`). `tools/app/area_art.mjs`
      turns their `anim.json` files into `lib/game/area_art.dart`.
@@ -159,8 +160,9 @@ There is no hub screen (D49), no bottom bar and no menu (D50). The app opens on 
   shrink into a square tile at the top left that shows only the arena (D52).
   - Beside it: the **last-session tile** (date, sets, XP). Under them: the **lifter editor**, starting on BODY.
   - **The lifter editor** is the setup screen of one property, without BACK / NEXT (D51): BODY (the character
-    screen), CLASS (the class card with the difficulty slider) or AREA (the area card). Swipe it up for the next
-    property, down for the one before, round and round (a vertical carousel: it slides in from the swipe side); small bars at its right edge show which. Every change
+    screen, in a card), CLASS (the class card with the difficulty slider) or AREA (the area card). It is a vertical
+    carousel (D54): drag up for the next property, down for the one before, round and round (down from BODY is
+    AREA); the screen follows the finger and settles on let-go; small bars at its right edge show which. Every change
     saves at once; a slider saves when it is let go, so each body change is one entry in the history.
   - **Tap the session tile:** the past-sessions card takes the space (one training day at a time, swipe both
     ways, round and round, "n / m"), and the lifter becomes a tile (class, difficulty, area). Tap the lifter

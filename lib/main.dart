@@ -9,6 +9,7 @@ import 'game/model.dart';
 import 'game/rules.dart';
 import 'pumplex.dart';
 import 'store.dart';
+import 'views/carousel.dart';
 import 'views/intro.dart';
 import 'views/profile.dart';
 import 'views/scene.dart';
@@ -50,7 +51,8 @@ enum Scene { migrate, create, classSelect, area, summary, workout }
 Rect stageRect(Scene s, Size a, {double bottomInset = 0, bool buttons = true}) {
   final w = a.width, h = a.height;
   return switch (s) {
-    Scene.create => Rect.fromLTWH(0, 8, w, h * 0.42),
+    // Inside the body card (D54).
+    Scene.create => Rect.fromLTWH(20, 16, w - 42, h * 0.40),
     Scene.classSelect => classLayout(a, bottomInset, buttons: buttons).stage,
     Scene.area => areaLayout(a, bottomInset, buttons: buttons).stage,
     Scene.summary => Rect.fromLTWH(0, 10, w, h * 0.40),
@@ -168,9 +170,14 @@ class _GameShellState extends State<GameShell> {
   /// sessions card (the lifter is a tile). none = the profile is closed.
   _Focus _focus = _Focus.none;
 
-  /// The property the lifter editor shows: 0 body, 1 class and difficulty,
-  /// 2 area (the setup screens, D51). Swipe up / down to change it (D53).
+  /// The property the lifter editor shows, in [_propSteps]: 0 body, 1 class
+  /// and difficulty, 2 area (the setup screens, D51). Swipe up for the next,
+  /// down for the one before, round and round (D53, D54).
   int _prop = 0;
+
+  /// The lifter editor's order (D54): BODY, CLASS, AREA. Up from BODY is
+  /// CLASS; down from BODY is AREA (round and round).
+  static const _propSteps = [Scene.create, Scene.classSelect, Scene.area];
 
   /// The session the sessions card shows (0 = the newest).
   int _sessionIndex = 0;
@@ -192,30 +199,7 @@ class _GameShellState extends State<GameShell> {
         _head = false;
       });
 
-  /// 1: the next property comes in from below (swipe up), -1: from above.
-  int _propDir = 1;
 
-  /// Where and when a finger went down on the lifter editor.
-  Offset? _swipeFrom;
-  Duration _swipeAt = Duration.zero;
-
-  /// Swipe up (next) or down (before) on the lifter editor: the next
-  /// property, round and round (D53). Read from the raw pointer, so it works
-  /// over the screens' own lists and sliders: a quick, mostly vertical move.
-  void _swipeEnd(PointerUpEvent e) {
-    final from = _swipeFrom;
-    _swipeFrom = null;
-    if (from == null) return;
-    final d = e.position - from;
-    final quick = e.timeStamp - _swipeAt < const Duration(milliseconds: 700);
-    if (!quick || d.dy.abs() < 80 || d.dy.abs() < d.dx.abs() * 2) return;
-    setState(() {
-      _focus = _Focus.lifter;
-      _head = false;
-      _propDir = d.dy < 0 ? 1 : -1;
-      _prop = (_prop + _propDir) % 3; // round and round: AREA -> BODY, BODY -> AREA
-    });
-  }
 
   /// Saves the draft as the profile (the lifter editor saves every change).
   void _saveDraft() => _store.setProfile(Profile(
@@ -233,11 +217,11 @@ class _GameShellState extends State<GameShell> {
     return Rect.fromLTWH(16 + i * (side + 10), 10, side, side);
   }
 
-  /// The lifter editor (D51): the setup screen of [_prop] in a box of
-  /// [size], without BACK / NEXT. Every change saves at once (a slider
+  /// The lifter editor (D51): the setup screen of property [prop] in a box
+  /// of [size], without BACK / NEXT. Every change saves at once (a slider
   /// when it is let go).
-  Widget _editor(Size size, double inset) {
-    final scene = _setupSteps[_prop];
+  Widget _editor(Size size, double inset, int prop) {
+    final scene = _propSteps[prop];
     final stage = stageRect(scene, size, bottomInset: inset, buttons: false);
     final view = switch (scene) {
       Scene.create => CreateView(
@@ -286,7 +270,7 @@ class _GameShellState extends State<GameShell> {
         ),
     };
     return Stack(
-      key: ValueKey('lifter-edit-$_prop'),
+      key: ValueKey('lifter-edit-$prop'),
       children: [
         Positioned.fill(child: view),
         // Which property: body, class, area (swipe up / down).
@@ -300,10 +284,10 @@ class _GameShellState extends State<GameShell> {
                   Container(
                     key: ValueKey('prop-dot-$i'),
                     width: 10,
-                    height: i == _prop ? 22 : 10,
+                    height: i == prop ? 22 : 10,
                     margin: const EdgeInsets.only(bottom: 5),
                     decoration: BoxDecoration(
-                      color: i == _prop ? Pal.of(context).lime : Pal.of(context).panel2,
+                      color: i == prop ? Pal.of(context).lime : Pal.of(context).panel2,
                       border: Border.all(color: Pal.of(context).ink, width: 2),
                     ),
                   ),
@@ -342,36 +326,17 @@ class _GameShellState extends State<GameShell> {
         );
       case _Focus.lifter:
       case _Focus.none:
-        return Listener(
+        // A vertical carousel (D54): drag up / down, the next property follows
+        // the finger, round and round.
+        return VerticalCarousel(
           key: const ValueKey('lifter-editor'),
-          onPointerDown: (e) {
-            _swipeFrom = e.position;
-            _swipeAt = e.timeStamp;
-          },
-          onPointerUp: _swipeEnd,
-          // A vertical carousel: the next property slides in from the swipe side.
-          child: ClipRect(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 280),
-              switchInCurve: Curves.easeOutCubic,
-              switchOutCurve: Curves.easeInCubic,
-              layoutBuilder: (current, previous) => Stack(children: [...previous, ?current]),
-              transitionBuilder: (child, anim) {
-                final incoming = child.key == ValueKey('prop-$_prop');
-                return SlideTransition(
-                  position: Tween(
-                    begin: Offset(0, incoming ? _propDir.toDouble() : -_propDir.toDouble()),
-                    end: Offset.zero,
-                  ).animate(anim),
-                  child: child,
-                );
-              },
-              child: KeyedSubtree(
-                key: ValueKey('prop-$_prop'),
-                child: LayoutBuilder(builder: (context, box) => _editor(box.biggest, inset)),
-              ),
-            ),
-          ),
+          index: _prop,
+          count: _propSteps.length,
+          onIndex: (i) => setState(() {
+            _prop = i;
+            _head = false;
+          }),
+          builder: (context, i) => LayoutBuilder(builder: (context, box) => _editor(box.biggest, inset, i)),
         );
     }
   }

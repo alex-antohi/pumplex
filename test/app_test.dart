@@ -632,7 +632,7 @@ void main() {
     expect(find.byKey(const ValueKey('path-paladin')), findsNothing);
     expect(shown(), 'SCRAPPER');
     expect(find.text('NO EQUIPMENT'), findsOneWidget);
-    expect(find.text(classById('scrapper').style), findsOneWidget); // the description is in the card
+    expect(find.text(classById('scrapper').style), findsNothing); // no description under the tags (D54)
     await t.fling(classCard, const Offset(-300, 0), 1000); // swipe left: next
     await _frames(t, 10);
     expect(shown(), 'BARGAIN BRUISER');
@@ -807,28 +807,28 @@ void main() {
     expect(find.text('BUILD YOUR LIFTER'), findsOneWidget);
     expect(find.text('NEXT'), findsNothing);
     expect(find.byKey(const ValueKey('profile-lifter')), findsNothing); // no lifter card (D53)
-    // Swipe the editor up: CLASS.
-    await t.fling(find.byKey(const ValueKey('lifter-editor')), const Offset(0, -300), 1000);
+    expect(find.byKey(const ValueKey('body-card')), findsOneWidget); // BODY is a card (D54)
+    // The vertical carousel (D54): BODY, CLASS, AREA. Down from BODY is AREA.
+    final editor = find.byKey(const ValueKey('lifter-editor'));
+    await t.fling(editor, const Offset(0, 300), 1000);
+    await _frames(t, 20);
+    expect(find.byKey(const ValueKey('area-card')), findsOneWidget);
+    // Up from AREA is BODY, up from BODY is CLASS.
+    await t.fling(editor, const Offset(0, -300), 1000);
+    await _frames(t, 20);
+    expect(find.text('BUILD YOUR LIFTER'), findsOneWidget);
+    await t.fling(editor, const Offset(0, -300), 1000);
     await _frames(t, 20);
     expect(find.byKey(const ValueKey('class-card')), findsOneWidget);
     await t.fling(find.byKey(const ValueKey('class-card')), const Offset(-300, 0), 1000);
     await _frames(t, 10);
     expect(store.profile!.classId, 'cablemancer'); // saved at once
-    // Up again: AREA. Down twice: back to BODY.
-    final editor = find.byKey(const ValueKey('lifter-editor'));
-    await t.fling(editor, const Offset(0, -300), 1000);
-    await _frames(t, 20);
-    expect(find.byKey(const ValueKey('area-card')), findsOneWidget);
-    for (var i = 0; i < 2; i++) {
-      await t.fling(editor, const Offset(0, 300), 1000);
-      await _frames(t, 20);
-    }
-    expect(find.text('BUILD YOUR LIFTER'), findsOneWidget);
-    // Circular both ways: down from BODY is AREA, up from AREA is BODY.
+    // Down from CLASS is BODY.
     await t.fling(editor, const Offset(0, 300), 1000);
     await _frames(t, 20);
-    expect(find.byKey(const ValueKey('area-card')), findsOneWidget);
-    await t.fling(editor, const Offset(0, -300), 1000);
+    expect(find.text('BUILD YOUR LIFTER'), findsOneWidget);
+    // A slow drag that is let go early springs back.
+    await t.drag(editor, const Offset(0, -40));
     await _frames(t, 20);
     expect(find.text('BUILD YOUR LIFTER'), findsOneWidget);
     final bodies = store.bodyHistory.length;
@@ -902,7 +902,7 @@ void main() {
       await t.fling(find.byKey(const ValueKey('session-card')), const Offset(-300, 0), 1000);
       await _frames(t);
       await tapAndSettle(find.byKey(const ValueKey('mini-workout')));
-      // The lifter editor (D53): swipe up for CLASS, then AREA, then BODY again.
+      // The lifter editor (D54): swipe up for CLASS, then AREA, then BODY again.
       await tapAndSettle(find.byKey(const ValueKey('top-level')));
       await t.fling(find.byKey(const ValueKey('lifter-editor')), const Offset(0, -300), 1000);
       await _frames(t);
