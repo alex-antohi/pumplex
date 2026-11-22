@@ -1,0 +1,599 @@
+{
+  "frameSize": [
+    80,
+    72
+  ],
+  "bodyOffset": [
+    14,
+    8
+  ],
+  "scaleHint": "whole numbers only, nearest-neighbour",
+  "layout": "Per animation one atlas <anim>_atlas.png. Atlas cell = 80x72 (body_atlas 52x64 cell + 14,8 offset, so bars/arms fit). Within a pose block: x = col*80 (col = fat/25), y = row*72 (row = (female?5:0) + muscle/25). Pose blocks sit side by side in sheetOrder, each 5 cols (400 px) wide: x = (poseIndex*5 + col)*80.",
+  "blockSize": [
+    400,
+    720
+  ],
+  "rowFormula": "(female ? 5 : 0) + muscle/25",
+  "colFormula": "fat/25",
+  "compat": {
+    "level_up_flex": "Renamed from pr_flex (animate.mjs, 6-body style test). Same poses and timing; only the key and note changed. Old per-body folders in docs/moodboard/animation/<body>/pr_flex_* are unchanged."
+  },
+  "animations": {
+    "idle": {
+      "note": "Breathing. Upper body sinks 1 px on the out-breath; feet never move.",
+      "loop": true,
+      "atlas": "idle_atlas.png",
+      "atlasSize": [
+        800,
+        720
+      ],
+      "sheetOrder": [
+        "rest",
+        "out"
+      ],
+      "frames": [
+        {
+          "pose": "rest",
+          "ms": 420
+        },
+        {
+          "pose": "out",
+          "ms": 300
+        },
+        {
+          "pose": "out",
+          "ms": 260
+        },
+        {
+          "pose": "rest",
+          "ms": 300
+        }
+      ]
+    },
+    "front_squat": {
+      "note": "Heavy Lower main lift. Bar racked on the front of the shoulders, elbows forward. Down slow, up fast, pause at the top.",
+      "loop": true,
+      "atlas": "front_squat_atlas.png",
+      "atlasSize": [
+        2000,
+        720
+      ],
+      "sheetOrder": [
+        "top",
+        "d1",
+        "d2",
+        "d3",
+        "bottom"
+      ],
+      "frames": [
+        {
+          "pose": "top",
+          "ms": 500
+        },
+        {
+          "pose": "d1",
+          "ms": 140
+        },
+        {
+          "pose": "d2",
+          "ms": 140
+        },
+        {
+          "pose": "d3",
+          "ms": 160
+        },
+        {
+          "pose": "bottom",
+          "ms": 260
+        },
+        {
+          "pose": "d2",
+          "ms": 90
+        },
+        {
+          "pose": "d1",
+          "ms": 90
+        }
+      ]
+    },
+    "level_up_flex": {
+      "note": "Plays on level-up or a critical set (no PRs, D2). Dip, hop, land in a double-biceps hold.",
+      "loop": true,
+      "atlas": "level_up_flex_atlas.png",
+      "atlasSize": [
+        2400,
+        720
+      ],
+      "sheetOrder": [
+        "dip",
+        "air2",
+        "air4",
+        "land",
+        "hold",
+        "rest"
+      ],
+      "frames": [
+        {
+          "pose": "dip",
+          "ms": 120
+        },
+        {
+          "pose": "air2",
+          "ms": 90
+        },
+        {
+          "pose": "air4",
+          "ms": 120
+        },
+        {
+          "pose": "air2",
+          "ms": 90
+        },
+        {
+          "pose": "land",
+          "ms": 90
+        },
+        {
+          "pose": "hold",
+          "ms": 700
+        },
+        {
+          "pose": "rest",
+          "ms": 400
+        }
+      ]
+    }
+  },
+  "bodies": [
+    {
+      "id": "male_fat0_muscle0",
+      "sex": "male",
+      "fat": 0,
+      "muscle": 0,
+      "col": 0,
+      "row": 0,
+      "ok": true
+    },
+    {
+      "id": "male_fat25_muscle0",
+      "sex": "male",
+      "fat": 25,
+      "muscle": 0,
+      "col": 1,
+      "row": 0,
+      "ok": true
+    },
+    {
+      "id": "male_fat50_muscle0",
+      "sex": "male",
+      "fat": 50,
+      "muscle": 0,
+      "col": 2,
+      "row": 0,
+      "ok": true
+    },
+    {
+      "id": "male_fat75_muscle0",
+      "sex": "male",
+      "fat": 75,
+      "muscle": 0,
+      "col": 3,
+      "row": 0,
+      "ok": true
+    },
+    {
+      "id": "male_fat100_muscle0",
+      "sex": "male",
+      "fat": 100,
+      "muscle": 0,
+      "col": 4,
+      "row": 0,
+      "ok": true
+    },
+    {
+      "id": "male_fat0_muscle25",
+      "sex": "male",
+      "fat": 0,
+      "muscle": 25,
+      "col": 0,
+      "row": 1,
+      "ok": true
+    },
+    {
+      "id": "male_fat25_muscle25",
+      "sex": "male",
+      "fat": 25,
+      "muscle": 25,
+      "col": 1,
+      "row": 1,
+      "ok": true
+    },
+    {
+      "id": "male_fat50_muscle25",
+      "sex": "male",
+      "fat": 50,
+      "muscle": 25,
+      "col": 2,
+      "row": 1,
+      "ok": true
+    },
+    {
+      "id": "male_fat75_muscle25",
+      "sex": "male",
+      "fat": 75,
+      "muscle": 25,
+      "col": 3,
+      "row": 1,
+      "ok": true
+    },
+    {
+      "id": "male_fat100_muscle25",
+      "sex": "male",
+      "fat": 100,
+      "muscle": 25,
+      "col": 4,
+      "row": 1,
+      "ok": true
+    },
+    {
+      "id": "male_fat0_muscle50",
+      "sex": "male",
+      "fat": 0,
+      "muscle": 50,
+      "col": 0,
+      "row": 2,
+      "ok": true
+    },
+    {
+      "id": "male_fat25_muscle50",
+      "sex": "male",
+      "fat": 25,
+      "muscle": 50,
+      "col": 1,
+      "row": 2,
+      "ok": true
+    },
+    {
+      "id": "male_fat50_muscle50",
+      "sex": "male",
+      "fat": 50,
+      "muscle": 50,
+      "col": 2,
+      "row": 2,
+      "ok": true
+    },
+    {
+      "id": "male_fat75_muscle50",
+      "sex": "male",
+      "fat": 75,
+      "muscle": 50,
+      "col": 3,
+      "row": 2,
+      "ok": true
+    },
+    {
+      "id": "male_fat100_muscle50",
+      "sex": "male",
+      "fat": 100,
+      "muscle": 50,
+      "col": 4,
+      "row": 2,
+      "ok": true
+    },
+    {
+      "id": "male_fat0_muscle75",
+      "sex": "male",
+      "fat": 0,
+      "muscle": 75,
+      "col": 0,
+      "row": 3,
+      "ok": true
+    },
+    {
+      "id": "male_fat25_muscle75",
+      "sex": "male",
+      "fat": 25,
+      "muscle": 75,
+      "col": 1,
+      "row": 3,
+      "ok": true
+    },
+    {
+      "id": "male_fat50_muscle75",
+      "sex": "male",
+      "fat": 50,
+      "muscle": 75,
+      "col": 2,
+      "row": 3,
+      "ok": true
+    },
+    {
+      "id": "male_fat75_muscle75",
+      "sex": "male",
+      "fat": 75,
+      "muscle": 75,
+      "col": 3,
+      "row": 3,
+      "ok": true
+    },
+    {
+      "id": "male_fat100_muscle75",
+      "sex": "male",
+      "fat": 100,
+      "muscle": 75,
+      "col": 4,
+      "row": 3,
+      "ok": true
+    },
+    {
+      "id": "male_fat0_muscle100",
+      "sex": "male",
+      "fat": 0,
+      "muscle": 100,
+      "col": 0,
+      "row": 4,
+      "ok": true
+    },
+    {
+      "id": "male_fat25_muscle100",
+      "sex": "male",
+      "fat": 25,
+      "muscle": 100,
+      "col": 1,
+      "row": 4,
+      "ok": true
+    },
+    {
+      "id": "male_fat50_muscle100",
+      "sex": "male",
+      "fat": 50,
+      "muscle": 100,
+      "col": 2,
+      "row": 4,
+      "ok": true
+    },
+    {
+      "id": "male_fat75_muscle100",
+      "sex": "male",
+      "fat": 75,
+      "muscle": 100,
+      "col": 3,
+      "row": 4,
+      "ok": true
+    },
+    {
+      "id": "male_fat100_muscle100",
+      "sex": "male",
+      "fat": 100,
+      "muscle": 100,
+      "col": 4,
+      "row": 4,
+      "ok": true
+    },
+    {
+      "id": "female_fat0_muscle0",
+      "sex": "female",
+      "fat": 0,
+      "muscle": 0,
+      "col": 0,
+      "row": 5,
+      "ok": true
+    },
+    {
+      "id": "female_fat25_muscle0",
+      "sex": "female",
+      "fat": 25,
+      "muscle": 0,
+      "col": 1,
+      "row": 5,
+      "ok": true
+    },
+    {
+      "id": "female_fat50_muscle0",
+      "sex": "female",
+      "fat": 50,
+      "muscle": 0,
+      "col": 2,
+      "row": 5,
+      "ok": true
+    },
+    {
+      "id": "female_fat75_muscle0",
+      "sex": "female",
+      "fat": 75,
+      "muscle": 0,
+      "col": 3,
+      "row": 5,
+      "ok": true
+    },
+    {
+      "id": "female_fat100_muscle0",
+      "sex": "female",
+      "fat": 100,
+      "muscle": 0,
+      "col": 4,
+      "row": 5,
+      "ok": true
+    },
+    {
+      "id": "female_fat0_muscle25",
+      "sex": "female",
+      "fat": 0,
+      "muscle": 25,
+      "col": 0,
+      "row": 6,
+      "ok": true
+    },
+    {
+      "id": "female_fat25_muscle25",
+      "sex": "female",
+      "fat": 25,
+      "muscle": 25,
+      "col": 1,
+      "row": 6,
+      "ok": true
+    },
+    {
+      "id": "female_fat50_muscle25",
+      "sex": "female",
+      "fat": 50,
+      "muscle": 25,
+      "col": 2,
+      "row": 6,
+      "ok": true
+    },
+    {
+      "id": "female_fat75_muscle25",
+      "sex": "female",
+      "fat": 75,
+      "muscle": 25,
+      "col": 3,
+      "row": 6,
+      "ok": true
+    },
+    {
+      "id": "female_fat100_muscle25",
+      "sex": "female",
+      "fat": 100,
+      "muscle": 25,
+      "col": 4,
+      "row": 6,
+      "ok": true
+    },
+    {
+      "id": "female_fat0_muscle50",
+      "sex": "female",
+      "fat": 0,
+      "muscle": 50,
+      "col": 0,
+      "row": 7,
+      "ok": true
+    },
+    {
+      "id": "female_fat25_muscle50",
+      "sex": "female",
+      "fat": 25,
+      "muscle": 50,
+      "col": 1,
+      "row": 7,
+      "ok": true
+    },
+    {
+      "id": "female_fat50_muscle50",
+      "sex": "female",
+      "fat": 50,
+      "muscle": 50,
+      "col": 2,
+      "row": 7,
+      "ok": true
+    },
+    {
+      "id": "female_fat75_muscle50",
+      "sex": "female",
+      "fat": 75,
+      "muscle": 50,
+      "col": 3,
+      "row": 7,
+      "ok": true
+    },
+    {
+      "id": "female_fat100_muscle50",
+      "sex": "female",
+      "fat": 100,
+      "muscle": 50,
+      "col": 4,
+      "row": 7,
+      "ok": true
+    },
+    {
+      "id": "female_fat0_muscle75",
+      "sex": "female",
+      "fat": 0,
+      "muscle": 75,
+      "col": 0,
+      "row": 8,
+      "ok": true
+    },
+    {
+      "id": "female_fat25_muscle75",
+      "sex": "female",
+      "fat": 25,
+      "muscle": 75,
+      "col": 1,
+      "row": 8,
+      "ok": true
+    },
+    {
+      "id": "female_fat50_muscle75",
+      "sex": "female",
+      "fat": 50,
+      "muscle": 75,
+      "col": 2,
+      "row": 8,
+      "ok": true
+    },
+    {
+      "id": "female_fat75_muscle75",
+      "sex": "female",
+      "fat": 75,
+      "muscle": 75,
+      "col": 3,
+      "row": 8,
+      "ok": true
+    },
+    {
+      "id": "female_fat100_muscle75",
+      "sex": "female",
+      "fat": 100,
+      "muscle": 75,
+      "col": 4,
+      "row": 8,
+      "ok": true
+    },
+    {
+      "id": "female_fat0_muscle100",
+      "sex": "female",
+      "fat": 0,
+      "muscle": 100,
+      "col": 0,
+      "row": 9,
+      "ok": true
+    },
+    {
+      "id": "female_fat25_muscle100",
+      "sex": "female",
+      "fat": 25,
+      "muscle": 100,
+      "col": 1,
+      "row": 9,
+      "ok": true
+    },
+    {
+      "id": "female_fat50_muscle100",
+      "sex": "female",
+      "fat": 50,
+      "muscle": 100,
+      "col": 2,
+      "row": 9,
+      "ok": true
+    },
+    {
+      "id": "female_fat75_muscle100",
+      "sex": "female",
+      "fat": 75,
+      "muscle": 100,
+      "col": 3,
+      "row": 9,
+      "ok": true
+    },
+    {
+      "id": "female_fat100_muscle100",
+      "sex": "female",
+      "fat": 100,
+      "muscle": 100,
+      "col": 4,
+      "row": 9,
+      "ok": true
+    }
+  ]
+}
