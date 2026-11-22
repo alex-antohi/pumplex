@@ -462,7 +462,7 @@ class _SessionTile extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              '${session.totalSets} SETS${took == null ? '' : ' · ⏱ ${fmtDuration(took)}'} · '
+              '${session.totalSets} SETS${took == null ? '' : ' · TIME ${fmtDuration(took)}'} · '
               '${classById(session.classId).name.toUpperCase()} · ${areaById(session.areaId).name.toUpperCase()}',
               style: mono(11.5, p.ink),
             ),
@@ -493,7 +493,7 @@ class _LegacyTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
-    final took = session.duration == null ? '' : ' · ⏱ ${fmtDuration(session.duration!)}';
+    final took = session.duration == null ? '' : ' · TIME ${fmtDuration(session.duration!)}';
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
@@ -559,7 +559,7 @@ class GearView extends StatelessWidget {
               ],
               Terminal([
                 'YOU ARE LVL $level.',
-                'THE GEAR ART COMES FROM THE DESIGN TEAM. FOR NOW: ICONS.',
+                'TAP AN ITEM YOU OWN TO PUT IT ON OR TAKE IT OFF.',
               ]),
             ],
           ),
