@@ -123,10 +123,11 @@ double heightScale(int height) =>
   return (scale: s, pedestal: ped, sprite: Rect.fromLTWH((size.width - w) / 2, size.height - ped * 0.45 - hh, w, hh));
 }
 
-/// The head inside a sprite rect: cell rows 0-17, columns 16-35.
+/// The head inside a sprite rect: cell rows 1-14 (hair to chin; the
+/// shoulders start at row 16), columns 16-35.
 Rect headRect(Rect sprite) {
   final px = sprite.width / spriteWidth;
-  return Rect.fromLTWH(sprite.left + 16 * px, sprite.top, 20 * px, 18 * px);
+  return Rect.fromLTWH(sprite.left + 16 * px, sprite.top + px, 20 * px, 14 * px);
 }
 
 /// Accent colour of a class (pedestal and highlights).

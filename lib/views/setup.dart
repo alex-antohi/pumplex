@@ -104,6 +104,18 @@ class CreateView extends StatelessWidget {
                   top: stage.top + 6,
                   child: Column(children: [sexButton('male', 'male'), sexButton('female', 'female')]),
                 ),
+              // An outline box marks the head: tap it for the head looks.
+              if (!headOpen)
+                Positioned.fromRect(
+                  // Ends at the chin, so the shoulders do not hide its bottom edge.
+                  rect: Rect.fromLTRB(head.left - 4, head.top - 4, head.right + 4, head.bottom),
+                  child: IgnorePointer(
+                    child: Container(
+                      key: const ValueKey('head-outline'),
+                      decoration: BoxDecoration(border: Border.all(color: p.lime, width: 3)),
+                    ),
+                  ),
+                ),
               // Tap the head to open (or close) the head looks.
               Positioned.fromRect(
                 rect: headOpen ? stage : head.inflate(8),
@@ -129,19 +141,15 @@ class CreateView extends StatelessWidget {
 
   List<Widget> _bodyPanel(Pal p) => [
         Shout('Build your lifter', size: 14, color: p.pink),
-        const SizedBox(height: 4),
-        Text('TAP THE HEAD FOR SKIN AND HAIR.', style: mono(11, p.ink)),
         const SizedBox(height: 10),
         _BodySlider(
           label: 'HEIGHT',
-          ends: '${heightMetres(0).toStringAsFixed(2)} M · ${heightMetres(100).toStringAsFixed(2)} M',
           shown: '${heightMetres(character.height).toStringAsFixed(2)} M',
           value: character.height,
           onChanged: (v) => onCharacter(character.copyWith(height: v)),
         ),
         _BodySlider(
           label: 'WEIGHT',
-          ends: '$minWeightKg KG · $maxWeightKg KG',
           shown: '${weightKg(character.fat)} KG',
           value: character.fat,
           onChanged: (v) => onCharacter(character.copyWith(fat: v)),
@@ -383,19 +391,18 @@ class _PathButton extends StatelessWidget {
   }
 }
 
-/// A body slider (0..100). [ends] (lowest · highest) shows above the slider
-/// on the right; [shown] is the live value next to the label.
+/// A body slider (0..100). [shown] is the current value, above the slider
+/// on the right.
 class _BodySlider extends StatelessWidget {
   const _BodySlider({
     required this.label,
-    this.ends,
     this.shown,
     required this.value,
     required this.onChanged,
   });
 
   final String label;
-  final String? ends, shown;
+  final String? shown;
   final int value;
   final ValueChanged<int> onChanged;
 
@@ -408,20 +415,8 @@ class _BodySlider extends StatelessWidget {
         Row(
           children: [
             Shout(label, size: 14),
-            if (shown != null) ...[
-              const SizedBox(width: 10),
-              Text(shown!, key: ValueKey('value-$label'), style: display(16, p.lime)),
-            ],
-            const SizedBox(width: 10),
-            Expanded(
-              child: ends == null
-                  ? const SizedBox()
-                  : FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerRight,
-                      child: Text(ends!, style: mono(11, p.ink)),
-                    ),
-            ),
+            const Spacer(),
+            if (shown != null) Text(shown!, key: ValueKey('value-$label'), style: display(16, p.lime)),
           ],
         ),
         SliderTheme(

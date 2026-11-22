@@ -577,8 +577,10 @@ void main() {
     expect(_spriteAsset(t), 'male/fat50_muscle50');
     expect(find.byKey(const ValueKey('menu-open')), findsNothing); // no menu on the first setup
     expect(find.byIcon(Icons.casino), findsNothing);
-    expect(find.text('1.50 M · 2.00 M'), findsOneWidget);
-    expect(find.text('50 KG · 200 KG'), findsOneWidget);
+    expect(find.text('1.50 M · 2.00 M'), findsNothing); // only the current value
+    expect(find.text('50 KG · 200 KG'), findsNothing);
+    expect(find.textContaining('TAP THE HEAD'), findsNothing);
+    expect(find.byKey(const ValueKey('head-outline')), findsOneWidget);
     expect(find.text('1.75 M'), findsOneWidget);
     expect(find.text('125 KG'), findsOneWidget);
 
@@ -604,6 +606,7 @@ void main() {
     await t.tap(find.byKey(const ValueKey('creator-head')));
     await _frames(t, 30);
     expect(find.text('YOUR HEAD'), findsOneWidget);
+    expect(find.byKey(const ValueKey('head-outline')), findsNothing);
     expect(find.text('BUILD YOUR LIFTER'), findsNothing);
     for (final k in ['look-skin-deep', 'look-hair-blonde', 'look-facial-beard']) {
       await t.tap(find.byKey(ValueKey(k)));
