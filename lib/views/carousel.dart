@@ -11,7 +11,8 @@ import '../pumplex.dart';
 mixin SwipeCarousel<T extends StatefulWidget> on State<T> {
   /// 1: the new item comes in from the right (swipe left), -1: from the left.
   int dir = 1;
-  double _dx = 0;
+  /// Where the finger went down and where it is now (both axes).
+  Offset _from = Offset.zero, _to = Offset.zero;
 
   int get count;
   int get index;
@@ -35,13 +36,17 @@ mixin SwipeCarousel<T extends StatefulWidget> on State<T> {
   Widget swipe({required Key key, required Widget child}) => GestureDetector(
         key: key,
         behavior: HitTestBehavior.opaque,
-        onHorizontalDragStart: (_) => _dx = 0,
-        onHorizontalDragUpdate: (d) => _dx += d.delta.dx,
+        onHorizontalDragDown: (d) => _from = _to = d.globalPosition,
+        onHorizontalDragUpdate: (d) => _to = d.globalPosition,
         onHorizontalDragEnd: (d) {
+          // Only a sideways swipe counts: one that went mostly up or down
+          // (with a little drift) does nothing (D57).
+          final move = _to - _from;
+          if (move.dx.abs() < move.dy.abs() * 1.5) return;
           final v = d.primaryVelocity ?? 0;
-          if (_dx < -40 || v < -300) {
+          if (move.dx < -40 || v < -300) {
             step(1);
-          } else if (_dx > 40 || v > 300) {
+          } else if (move.dx > 40 || v > 300) {
             step(-1);
           }
         },

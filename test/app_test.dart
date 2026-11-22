@@ -779,6 +779,10 @@ void main() {
     await t.drag(find.byKey(const ValueKey('exercise-card')), const Offset(0, -200));
     await _frames(t, 10);
     expect(find.byKey(const ValueKey('exercise-0')), findsOneWidget);
+    // A swipe up with a little sideways drift does nothing either (D57).
+    await t.fling(find.byKey(const ValueKey('exercise-card')), const Offset(-60, -260), 1200);
+    await _frames(t, 10);
+    expect(find.byKey(const ValueKey('exercise-0')), findsOneWidget);
     expect(t.getRect(find.byKey(const ValueKey('workout-line'))), before);
     // Filter tags with the defaults (D49).
     expect(find.descendant(of: find.byKey(const ValueKey('filter-class')), matching: find.text('PLATE PALADIN')), findsOneWidget);
