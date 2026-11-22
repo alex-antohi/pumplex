@@ -82,7 +82,7 @@ class ProfileView extends StatelessWidget {
               value: difficulties[di].name,
               sub: 'DIFFICULTY ${gems(di)}',
               color: difficultyColor(p, di),
-              onTap: () => onEditStep(2),
+              onTap: () => onEditStep(1),
             ),
             _PathRow(
               key: const ValueKey('profile-area'),
@@ -90,7 +90,7 @@ class ProfileView extends StatelessWidget {
               value: area.name,
               sub: area.line,
               color: Color(area.accent),
-              onTap: () => onEditStep(3),
+              onTap: () => onEditStep(2),
             ),
             const SizedBox(height: 18),
             BrutalButton(

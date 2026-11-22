@@ -19,12 +19,12 @@ The plan is in [docs/app-brief.md](docs/app-brief.md) and
 - **Classes:** Scrapper, Bargain Bruiser, Plate Paladin, Cablemancer (ids
   `scrapper`, `bruiser`, `paladin`, `cablemancer`, D31). The character wears
   the class outfit.
-- **Difficulty:** 6 modes from the design board (Sofa to Nightmare Mode) on a
-  ladder with XP gems. Harder modes give more exercises, sets and XP.
+- **Difficulty:** 6 modes from the design board (Sofa to Nightmare Mode), a
+  slider on the class step (D47). Harder modes give more exercises, sets and XP.
 - **Starting areas:** 5 areas from the design board (Riptide Shore, Gainsgard
   Keep, Rustbelt Flats, Arcade Underpass, Frostbite Summit; ids `riptide`,
   `gainsgard`, `rustbelt`, `arcade`, `frostbite`, D36). Each area card
-  shows the scene art. The class picks the default area; the user can pick any.
+  shows the scene art. The class picks the default area; the user can pick any. Picked on a swipe card, like the class (D47).
 - **Hub**: the area scene with the lifter in it (tap the
   lifter to change the body sliders; changes are kept as a history), the
   level and XP bar, the next workout, the last training day and a
@@ -38,9 +38,9 @@ The plan is in [docs/app-brief.md](docs/app-brief.md) and
 - **Free-form sessions:** one session per calendar day, no buttons to start
   or stop. The rule is in [docs/app-flow.md](docs/app-flow.md) §4.4.
 - The whole app is one screen: views change with a camera zoom or slide.
-- Class select ("CHOOSE YOUR PATH", design in `docs/moodboard/`): swipe one big
-  class card, both ways, round and round (D46). The freeze-frame intro card shows
-  on difficulty picks and level-ups.
+- Setup has 4 steps (D47): character, class with the difficulty slider (swipe
+  one big class card, both ways, round and round, D46), starting area (a swipe
+  card too) and the summary. The freeze-frame intro card shows on level-ups.
 - XP from [docs/rules.md](docs/rules.md): sets × difficulty (×1.5 over the
   target, 0 past 2× the target), 3% critical sets, +50 for the first set of
   the day. Habitica level curve. A level gives a level title.

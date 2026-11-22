@@ -30,9 +30,8 @@ flowchart TD
     migrate -- NOT NOW / no file --> setupDone
     old -- no --> setupDone{Setup done?}
     setupDone -- no --> char[Character: sliders]
-    char --> cls[Class: CHOOSE YOUR PATH, swipe the card]
-    cls --> diff[Difficulty: 6 modes, ladder, freeze-frame title card]
-    diff --> area[Starting area: 5 areas, the class picks the default]
+    char --> cls[Class: swipe the card, difficulty slider]
+    cls --> area[Starting area: swipe the card, the class picks the default]
     area --> summary[Summary: READY? LET'S GO]
     summary --> hub
     setupDone -- yes --> hub[Hub: area scene with the lifter, level, XP bar, next workout, last time]
@@ -53,9 +52,9 @@ flowchart TD
 |---|---|---|---|
 | 0 | Upgrade | exists | Only with old-app data. SAVE BACKUP & UPGRADE, or NOT NOW. |
 | 1 | Character | exists | WoW-style: the character large in the centre on a pedestal. Sex toggle; sliders HEIGHT (1.50–2.00 m), WEIGHT (50–200 kg) and MUSCLE, with the current height and weight on the right. A lime box marks the head: tap it for skin, hair and facial hair (D45). Changes live. No ⋮ menu button on the first setup. The sprite comes from the 5×5 body atlas. |
-| 2 | Class select | exists | CHOOSE YOUR PATH: one big card (lifter, class name, equipment, loadout, 3 tags, description). Swipe to change the class, both ways, round and round; dots under the card (D46). NEXT: DIFFICULTY. |
-| 3 | Difficulty | exists | 6 modes from the design board, Sofa to Nightmare Mode. A ladder with XP gems, no numbers. Freeze-frame title card on each pick. |
-| 4 | Starting area | exists | 5 areas from the design board. Each card shows the area's scene art. The class picks the default area. |
+| 2 | Class select | exists | One big card (lifter, class name, equipment, loadout, 3 tags, description). Swipe to change the class, both ways, round and round; dots under the card (D46). Under them the DIFFICULTY slider, the mode name on the right (D47). No titles in the view. NEXT: STARTING AREA. |
+| 3 | Difficulty | removed | Now the slider on the class step (D47). |
+| 4 | Starting area | exists | A swipe card like the class card: the area scene with the lifter in it, the name, the line, what you hit, "YOUR PATH'S HOME" on the default; dots under it (D47). The class picks the default area. |
 | 5 | Summary | exists | Class, equipment, difficulty, area. Tap a row to change it. LET'S GO (or SAVE when editing). |
 | 6 | Hub | exists | the area scene with the lifter in it (class outfit), level and XP bar, next workout card, last time. Bottom bar (D44). No streak card (D34). |
 | 7 | Workout | exists | exercise strip with the day's list and the area scene. No tools (D32). Tap a card to make it active. Tap the object = +1 set, hold = −1. Area marks stay in the world. Bottom bar, HUB lit (D44). |
@@ -91,11 +90,12 @@ the whole setup from the menu (EDIT CHARACTER).
      `docs/moodboard/creator/body_atlas.png`). Fat and muscle each have stops at 0/25/50/75/100,
      per sex. The app shows the nearest cell for in-between values.
    - The HEIGHT slider scales the sprite evenly, 0.86× to 1.14× (D11, D45). Nearest-neighbour scaling only.
-2. **Class select** (design: `docs/moodboard/README.md` "Class select").
-   - Kicker `STEP 2 OF 5 · THE SWOLEMANCER'S PATHS`, title CHOOSE YOUR PATH, subline "What do you train with?".
-   - One big card fills the space between the title and BACK / NEXT (D46): the user's lifter (from
-     step 1) on top, then the class name in its colour, the equipment, the loadout, 3 tags and the
-     description. No stat table. The card's hard shadow takes the class colour.
+2. **Class select and difficulty** (design: `docs/moodboard/README.md` "Class select", D46, D47).
+   - No step kicker, title or subtitle in the view: the PUMPLEX bar says "CLASS · STEP 2 OF 4".
+   - One big card fills the top (D46): the user's lifter (from step 1) on top, then the class name
+     in its colour, the equipment, the loadout, 3 tags and the description. No stat table. The
+     card's hard shadow takes the class colour. The lifter gets the biggest whole-number scale that
+     leaves room for the texts; the texts scroll on a short phone.
    - Swipe the card left for the next class, right for the one before, round and round. Dots under
      the card show the class; tap a dot to jump. No class buttons and no freeze-frame card here.
      One class per equipment type.
@@ -108,20 +108,10 @@ the whole setup from the menu (EDIT CHARACTER).
      | Lots of free weights | Plate Paladin | `paladin` | lime |
      | Lots of machines | Cablemancer | `cablemancer` | violet |
 
-   - Each pick shows the **freeze-frame intro card** over the preview card: the lifter goes greyscale
-     with high contrast, dark stripes cover the card, the class name slams in as a stencil tag
-     (−6°, from 2.2× in 6 hard steps over 420 ms), the joke subtitle slides in on an ink strip (−3°).
-     It closes after 1.8 s or on a tap. A new pick restarts it. Reduced motion: no slam or slide.
-   - NEXT: DIFFICULTY.
-   - The preview shows the body the user made in step 1, in the class outfit (D25).
-3. **Difficulty** (design: `docs/moodboard/README.md` "Difficulty").
-   - 6 modes, names in `lib/game/content.dart`: Sofa, Warm-up, Sweat, Pain, Brutal, Nightmare Mode (D28).
-     Ids: `sofa`, `warmup`, `sweat`, `pain`, `brutal`, `nightmare`.
-   - A vertical ladder, the hardest mode on top. Each rung has a diamond in its rarity colour and
-     XP gems. The ladder shows no numbers.
-   - A detail card: "DIFFICULTY n OF 6", who the mode is for, and the XP gems.
-   - Each pick shows the freeze-frame title card over the detail card (the same card as in step 2).
-   - The numbers per mode are in `lib/game/rules.dart`:
+   - **Difficulty** (D47): a slider under the dots, 6 stops, the mode name above it on the right in
+     its rarity colour. No ladder and no freeze-frame card. Names in `lib/game/content.dart`:
+     Sofa, Warm-up, Sweat, Pain, Brutal, Nightmare Mode (D28). Ids: `sofa`, `warmup`, `sweat`,
+     `pain`, `brutal`, `nightmare`. The numbers per mode are in `lib/game/rules.dart`:
 
      | Mode | Exercises (D33) | Target sets | XP multiplier |
      |---|---|---|---|
@@ -133,7 +123,9 @@ the whole setup from the menu (EDIT CHARACTER).
      | Nightmare | 8 | 5 | 2.0 |
 
    - NEXT: STARTING AREA.
-4. **Starting area** (design: `docs/moodboard/README.md` "Starting areas").
+   - The preview shows the body the user made in step 1, in the class outfit (D25).
+3. **Starting area** (design: `docs/moodboard/README.md` "Starting areas", D47).
+   - No titles in the view: the PUMPLEX bar says "STARTING AREA · STEP 3 OF 4".
    - 5 areas. Each area has an object to hit, a set-mark style and a stamp for every 5th set:
 
      | Area | Id | Object | Set marks | Stamp | Default for |
@@ -148,12 +140,14 @@ the whole setup from the menu (EDIT CHARACTER).
      `assets/areas/`. Old saved ids (`beach`, `castle`, `summit`) migrate once
      ([data-schema.md](data-schema.md) §5.3).
    - The class picks the default area until the user picks one. The user can choose any area.
-   - Each area card shows a small copy of the area's scene art.
-     The default area shows "YOUR PATH'S HOME".
+   - One swipe card like the class card: the area's scene edge to edge at a whole-number scale
+     (the sides may be cut a little, never stretched) with the lifter standing in it, then the name,
+     the line, what you hit (e.g. SCRATCH THE WALL) and "YOUR PATH'S HOME" on the default area.
+     Swipe both ways, round and round; dots under the card.
    - The scenes are the design team's PNG layers (`assets/areas/<area id>/`). `tools/app/area_art.mjs`
      turns their `anim.json` files into `lib/game/area_art.dart`.
    - NEXT: READY?.
-5. **Summary.** LET'S GO saves the profile. If old sessions were upgraded, the welcome burst shows their XP.
+4. **Summary** ("STEP 4 OF 4 · READY?"). Its DIFFICULTY row opens the class step. LET'S GO saves the profile. If old sessions were upgraded, the welcome burst shows their XP.
 
 ## 4. Play
 

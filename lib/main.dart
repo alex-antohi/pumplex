@@ -41,7 +41,7 @@ class GymApp extends StatelessWidget {
 }
 
 /// Every view of the app. They are scenes of ONE screen (see GameShell).
-enum Scene { migrate, create, classSelect, difficulty, area, summary, hub, workout, history, profile, menu }
+enum Scene { migrate, create, classSelect, area, summary, hub, workout, history, profile, menu }
 
 /// Where the character stands in each scene, inside the content area.
 /// The views leave this rect free; the shell draws the one character there,
@@ -52,8 +52,7 @@ Rect stageRect(Scene s, Size a, {double bottomInset = 0}) {
   return switch (s) {
     Scene.create => Rect.fromLTWH(0, 8, w, h * 0.42),
     Scene.classSelect => classLayout(a, bottomInset).stage,
-    Scene.difficulty => Rect.fromLTWH(w * 0.76, 2, w * 0.2, 88),
-    Scene.area => Rect.fromLTWH(12, 8, w * 0.30, h * 0.22),
+    Scene.area => areaLayout(a, bottomInset).stage,
     Scene.summary => Rect.fromLTWH(0, 10, w, h * 0.40),
     Scene.hub => hubStage(a),
     Scene.migrate => Rect.fromLTWH(0, 10, w, h * 0.34),
@@ -211,7 +210,7 @@ class _GameShellState extends State<GameShell> {
 
   /// The setup steps a summary or profile EDIT opens (0 body, 1 class,
   /// 2 difficulty, 3 area).
-  static const _setupSteps = [Scene.create, Scene.classSelect, Scene.difficulty, Scene.area];
+  static const _setupSteps = [Scene.create, Scene.classSelect, Scene.area];
 
   /// Opens one setup step to change it. NEXT leads to the summary, which
   /// saves (D13).
@@ -230,11 +229,8 @@ class _GameShellState extends State<GameShell> {
     // No freeze-frame intro card on the class carousel (D46).
   }
 
-  void _pickDifficulty(String id) {
-    setState(() => _difficultyId = id);
-    final i = difficultyIndex(id);
-    _showIntro((title: difficulties[i].name, subtitle: difficulties[i].joke, color: difficultyColor(Pal.of(context), i)));
-  }
+  /// The difficulty slider on the class step (D47): no freeze-frame card.
+  void _pickDifficulty(String id) => setState(() => _difficultyId = id);
 
   // ---------------------------------------------------------------- workout
 
@@ -357,11 +353,10 @@ class _GameShellState extends State<GameShell> {
     final l = levelFor(_store.totalXp).level;
     return switch (_scene) {
       Scene.migrate => 'OLD SAVE · ONE-TIME UPGRADE',
-      Scene.create => 'CHARACTER · STEP 1 OF 5',
-      Scene.classSelect => 'CLASS · STEP 2 OF 5',
-      Scene.difficulty => 'DIFFICULTY · STEP 3 OF 5',
-      Scene.area => 'STARTING AREA · STEP 4 OF 5',
-      Scene.summary => 'READY? · STEP 5 OF 5',
+      Scene.create => 'CHARACTER · STEP 1 OF 4',
+      Scene.classSelect => 'CLASS · STEP 2 OF 4',
+      Scene.area => 'STARTING AREA · STEP 3 OF 4',
+      Scene.summary => 'READY? · STEP 4 OF 4',
       Scene.hub => 'LVL $l · ${_store.gameClass.name.toUpperCase()} · ${areaById(_store.profile?.areaId).name.toUpperCase()}',
       Scene.workout => 'WORKOUT · ${_store.todaySession?.totalSets ?? 0} SETS · LVL $l',
       Scene.history => 'PAST SESSIONS · LVL $l',
@@ -375,8 +370,7 @@ class _GameShellState extends State<GameShell> {
         Scene.migrate => null,
         Scene.create => _editing ? Scene.hub : null,
         Scene.classSelect => Scene.create,
-        Scene.difficulty => Scene.classSelect,
-        Scene.area => Scene.difficulty,
+        Scene.area => Scene.classSelect,
         Scene.summary => Scene.area,
         Scene.workout || Scene.history || Scene.profile => Scene.hub,
         Scene.menu => _menuFrom,
@@ -410,16 +404,10 @@ class _GameShellState extends State<GameShell> {
         Scene.classSelect => ClassView(
             stage: stage,
             classId: _classId,
-            editing: _editing,
-            onPick: _pickClass,
-            onBack: _back,
-            onNext: () => _go(_editing ? Scene.summary : Scene.difficulty),
-          ),
-        Scene.difficulty => DifficultyView(
-            stage: stage,
             difficultyId: _difficultyId,
             editing: _editing,
-            onPick: _pickDifficulty,
+            onPick: _pickClass,
+            onDifficulty: _pickDifficulty,
             onBack: _back,
             onNext: () => _go(_editing ? Scene.summary : Scene.area),
           ),
@@ -561,22 +549,15 @@ class _GameShellState extends State<GameShell> {
                               child: CharacterSprite(
                                 character: char,
                                 classId: classId,
-                                pedestal: _scene != Scene.workout && _scene != Scene.hub,
+                                // In an area scene the scene has its own ground.
+                                pedestal: _scene != Scene.workout && _scene != Scene.hub && _scene != Scene.area,
                                 zoomHead: _scene == Scene.create && _head,
                               ),
                             ),
                           ),
                         ),
-                        // Freeze-frame intro card: over the preview card on
-                        // the difficulty step, over the whole view on level-ups.
-                        if (_intro != null)
-                          switch (_scene) {
-                            Scene.difficulty => Positioned.fromRect(
-                                rect: difficultyCardRect(box.biggest),
-                                child: _introCard(),
-                              ),
-                            _ => Positioned.fill(child: _introCard()),
-                          },
+                        // Freeze-frame intro card: level-ups, over the whole view.
+                        if (_intro != null) Positioned.fill(child: _introCard()),
                       ],
                     ));
                   }),

@@ -547,7 +547,7 @@ void main() {
     await _frames(t);
     expect(files.single, contains('Floor Press')); // the old data, saved first
     expect(prefs.containsKey('logs_v2'), isFalse);
-    expect(find.text('CHARACTER · STEP 1 OF 5'), findsOneWidget);
+    expect(find.text('CHARACTER · STEP 1 OF 4'), findsOneWidget);
     await t.pump(const Duration(seconds: 5));
   });
 
@@ -558,7 +558,7 @@ void main() {
     await _frames(t);
     await t.tap(find.text('NOT NOW'));
     await _frames(t);
-    expect(find.text('CHARACTER · STEP 1 OF 5'), findsOneWidget);
+    expect(find.text('CHARACTER · STEP 1 OF 4'), findsOneWidget);
     expect(prefs.getString('logs_v2'), _oldLogs);
   });
 
@@ -572,7 +572,7 @@ void main() {
       home: GameShell(store: store),
     ));
     await _frames(t);
-    expect(find.text('CHARACTER · STEP 1 OF 5'), findsOneWidget);
+    expect(find.text('CHARACTER · STEP 1 OF 4'), findsOneWidget);
     expect(_spriteAsset(t), 'male/fat50_muscle50');
     expect(find.byKey(const ValueKey('menu-open')), findsNothing); // no menu on the first setup
     expect(find.byIcon(Icons.casino), findsNothing);
@@ -621,10 +621,10 @@ void main() {
     await t.pump(const Duration(milliseconds: 200));
     // Mid-transition: both scenes are on screen (no blank frame).
     expect(find.text('BUILD YOUR LIFTER'), findsOneWidget);
-    expect(find.text('CHOOSE YOUR PATH'), findsWidgets);
+    expect(find.byKey(const ValueKey('class-card')), findsOneWidget);
     await _frames(t);
     expect(find.text('BUILD YOUR LIFTER'), findsNothing);
-    expect(find.text('CLASS · STEP 2 OF 5'), findsOneWidget);
+    expect(find.text('CLASS · STEP 2 OF 4'), findsOneWidget);
 
     // Class select (D46): one big card; swipe it to change the class, both
     // ways and round and round. No class buttons, no freeze-frame card.
@@ -654,18 +654,34 @@ void main() {
     expect(find.text('A barbell, a rack and a wall of plates.'), findsOneWidget); // loadout
     expect(find.text('STRONGMAN'), findsOneWidget); // tags
     expect(find.byKey(const ValueKey('intro-card')), findsNothing);
-    await t.tap(find.text('NEXT: DIFFICULTY'));
-    await _frames(t);
+    // Difficulty (D47): a slider on the class step, the mode name on the right.
+    // No titles in the view, no freeze-frame card.
+    expect(find.text('CHOOSE YOUR PATH'), findsNothing);
+    expect(find.text('HOW HARD DO YOU GO?'), findsNothing);
+    t.widget<Slider>(find.byKey(const ValueKey('slider-DIFFICULTY'))).onChanged!(2);
+    await _frames(t, 4);
+    expect(find.text('SWEAT MODE'), findsOneWidget);
     expect(find.byKey(const ValueKey('intro-card')), findsNothing);
-    expect(find.text('HOW HARD DO YOU GO?'), findsWidgets);
-    await t.tap(find.byKey(const ValueKey('difficulty-sweat')));
-    await t.pump(const Duration(milliseconds: 100));
-    expect(find.text('TOWEL STRONGLY RECOMMENDED'), findsOneWidget); // title card
-    expect(find.text('DIFFICULTY 3 OF 6'), findsOneWidget);
     await t.tap(find.text('NEXT: STARTING AREA'));
     await _frames(t);
-    expect(find.text("YOUR PATH'S HOME"), findsOneWidget); // Plate Paladin -> Gainsgard Keep
-    await t.tap(find.byKey(const ValueKey('area-gainsgard')));
+    expect(find.text('STARTING AREA · STEP 3 OF 4'), findsOneWidget);
+    // Area (D47): one card like the class card; swipe it, round and round.
+    // Plate Paladin's default area shows first.
+    final areaCard = find.byKey(const ValueKey('area-card'));
+    expect(find.text('GAINSGARD KEEP'), findsOneWidget);
+    expect(find.text("YOUR PATH'S HOME"), findsOneWidget);
+    expect(find.text('SCRATCH THE WALL'), findsOneWidget);
+    await t.fling(areaCard, const Offset(-300, 0), 1000);
+    await _frames(t, 10);
+    expect(find.text('RUSTBELT FLATS'), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('area-dot-riptide')));
+    await _frames(t, 10);
+    expect(find.text('RIPTIDE SHORE'), findsOneWidget);
+    await t.fling(areaCard, const Offset(300, 0), 1000); // round to the last one
+    await _frames(t, 10);
+    expect(find.text('FROSTBITE SUMMIT'), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('area-dot-gainsgard')));
+    await _frames(t, 10);
     await t.tap(find.text('NEXT: READY?'));
     await _frames(t);
     expect(find.text('SWEAT MODE'), findsOneWidget);
@@ -748,7 +764,7 @@ void main() {
     final (store, _) = await _openApp(t);
     await t.tap(find.byKey(const ValueKey('hub-character')));
     await _frames(t);
-    expect(find.text('CHARACTER · STEP 1 OF 5'), findsOneWidget);
+    expect(find.text('CHARACTER · STEP 1 OF 4'), findsOneWidget);
     await t.drag(find.byKey(const ValueKey('slider-WEIGHT')), const Offset(400, 0));
     await t.tap(find.text('NEXT'));
     await _frames(t);
@@ -796,7 +812,7 @@ void main() {
     }
     await t.tap(find.byKey(const ValueKey('menu-edit')));
     await _frames(t);
-    expect(find.text('CHARACTER · STEP 1 OF 5'), findsOneWidget);
+    expect(find.text('CHARACTER · STEP 1 OF 4'), findsOneWidget);
     expect(_spriteAsset(t), spriteFrame(_profile.character));
     await t.pump(const Duration(seconds: 5));
   });
@@ -822,7 +838,7 @@ void main() {
       await tapAndSettle(find.byKey(const ValueKey('nav-profile')));
       expect(find.text('THE PATH'), findsOneWidget);
       await tapAndSettle(find.byKey(const ValueKey('profile-difficulty')));
-      expect(find.text('DIFFICULTY · STEP 3 OF 5'), findsOneWidget);
+      expect(find.text('CLASS · STEP 2 OF 4'), findsOneWidget); // difficulty is on the class step (D47)
       await tapAndSettle(find.text('NEXT'));
       await tapAndSettle(find.text('SAVE'));
       await tapAndSettle(find.byKey(const ValueKey('nav-profile')));

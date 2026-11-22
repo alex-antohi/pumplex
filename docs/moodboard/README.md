@@ -164,19 +164,20 @@ equipment the class trains with) and three **training tags** take its place.
 
 Screen, top to bottom (390×844 dp):
 
-1. Kicker `STEP 2 OF 5 · THE SWOLEMANCER'S PATHS`, title **CHOOSE YOUR PATH**, subline **What do you train with?**
+1. No kicker, title or subtitle in the view (D47): the PUMPLEX bar says `CLASS · STEP 2 OF 4`.
 2. One big card that fills the space down to the dots (D46): **the user's own body from step 1** on top (D25).
    The class colour and the class outfit show the class, not a different body. Then the class name in its colour,
    the equipment, the loadout line, 3 tags and a short description in the voice of an RPG class intro.
    The card's hard shadow takes the class colour.
 3. Swipe the card to change the class: left for the next, right for the one before, round and round.
    The texts slide with the swipe. Four dots under the card show the class; tap one to jump. No class buttons.
-4. **BACK** and **NEXT: DIFFICULTY**.
+4. **DIFFICULTY** slider under the dots (D47): 6 stops, the mode name above it on the right in its rarity colour.
+5. **BACK** and **NEXT: STARTING AREA**.
 
 ### Freeze-frame intro card
 
-From `borderlands-reference.md` (character intro card). The app shows it on a difficulty pick and on level-up,
-not on class select (D46). Each time it shows:
+From `borderlands-reference.md` (character intro card). The app shows it on level-up only,
+not on class select (D46) or on a difficulty pick (D47). Each time it shows:
 
 - The preview **freezes**: the sprite goes greyscale with high contrast, and dark diagonal stripes cover the card.
 - The class name **slams in** as a stencil tag: an Anton 40 px name on the class colour, with a 4 px ink border,
@@ -229,7 +230,9 @@ With reduced motion, the panels cross-fade in 2 steps and the lifter does not mo
 | Profile → one setup step (`?edit=1`) and back | Stays | The profile slides down, the step's panel slides up; SAVE reverses it | 280 |
 | Hub → Workout (TRAIN ▶) and back (HUB in the bottom bar) | Stays in the scene | The camera zooms 1 step into the scene; the exercise strip drops in from the top; HUB reverses it | 240 |
 
-## Starting areas (setup step 4)
+## Starting areas (setup step 3)
+
+**In the app** (D47) the area is picked on a swipe card like the class card: the scene with the lifter in it, then the name, line, hint and default tag.
 
 **Reference board, not an app screen.** Like every board here, it shows the look and the behaviour for the Flutter build.
 Shapes are placeholders for pixel-art scenes.
@@ -304,7 +307,9 @@ Rules:
 
 For other areas, swap the scene and the action object. Everything else stays the same (see "Starting areas").
 
-## Difficulty (setup step 3)
+## Difficulty (reference board)
+
+**In the app** (D47) difficulty is a slider on the class step, not a ladder screen. The names, colours and jokes below still apply.
 
 **Reference board, not an app screen.** Brief 4.3: many levels from total beginner to years of lifting, fantasy names, Borderlands tone.
 Owner choices (21 Nov 2026): **6 levels**, a **vertical ladder** picker, XP shown as **gems with no numbers**, and names written here (proposals).
