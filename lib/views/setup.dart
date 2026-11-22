@@ -170,7 +170,8 @@ class CreateView extends StatelessWidget {
             ),
           ),
         ),
-        if (buttons) _Nav(next: headOpen ? 'DONE' : 'NEXT', onNext: headOpen ? () => onHead(false) : onNext),
+        // NEXT names the next screen (D56).
+        if (buttons) _Nav(next: headOpen ? 'DONE' : 'NEXT: CLASS', onNext: headOpen ? () => onHead(false) : onNext),
       ],
     );
   }

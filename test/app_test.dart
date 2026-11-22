@@ -620,7 +620,8 @@ void main() {
     await _frames(t, 30);
     expect(find.text('BUILD YOUR LIFTER'), findsOneWidget);
 
-    await t.tap(find.text('NEXT'));
+    expect(find.text('NEXT'), findsNothing);
+    await t.tap(find.text('NEXT: CLASS')); // NEXT names the next screen (D56)
     await t.pump(const Duration(milliseconds: 200));
     // Mid-transition: both scenes are on screen (no blank frame).
     expect(find.text('BUILD YOUR LIFTER'), findsOneWidget);
@@ -689,7 +690,10 @@ void main() {
     await _frames(t);
     expect(find.text('SWEAT MODE'), findsOneWidget);
     await t.tap(find.text("LET'S GO!!!"));
-    await _frames(t, 70); // welcome burst
+    await _frames(t, 10);
+    expect(find.text("LET'S\nGO!!!"), findsOneWidget); // the welcome burst: only LET'S GO (D56)
+    expect(find.text('THE BAR IS WAITING.'), findsNothing);
+    await _frames(t, 60);
 
     final saved = Profile.fromJson(jsonDecode(prefs.getString('profile_v1')!) as Map<String, dynamic>);
     expect(saved.character,
@@ -770,6 +774,12 @@ void main() {
     final n = store.todayCards.length;
     expect(find.byKey(const ValueKey('exercise-0')), findsOneWidget);
     expect(find.text('EXERCISE 1 OF $n'), findsNothing); // no "x of y" (D49)
+    // Up / down does nothing to the exercise carousel (D56).
+    final before = t.getRect(find.byKey(const ValueKey('workout-line')));
+    await t.drag(find.byKey(const ValueKey('exercise-card')), const Offset(0, -200));
+    await _frames(t, 10);
+    expect(find.byKey(const ValueKey('exercise-0')), findsOneWidget);
+    expect(t.getRect(find.byKey(const ValueKey('workout-line'))), before);
     // Filter tags with the defaults (D49).
     expect(find.descendant(of: find.byKey(const ValueKey('filter-class')), matching: find.text('PLATE PALADIN')), findsOneWidget);
     expect(find.descendant(of: find.byKey(const ValueKey('filter-difficulty')), matching: find.text('SWEAT MODE')), findsOneWidget);

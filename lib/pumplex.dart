@@ -522,9 +522,9 @@ final _celebrated = <String>{};
 void celebratePr(
   BuildContext context, {
   required String id,
-  required String exercise,
-  required String big,
-  required String sub,
+  String exercise = '',
+  String big = '',
+  String sub = '',
   String title = 'NEW\nPR!!!',
 }) {
   if (!_celebrated.add(id)) return;
@@ -595,12 +595,16 @@ class _PrBurstState extends State<_PrBurst> with SingleTickerProviderStateMixin 
           seconds: 3,
           child: Text(widget.title, textAlign: TextAlign.center, style: display(36, p.on)),
         ),
-        const SizedBox(height: 18),
-        Tag(widget.exercise, bg: p.lime, fg: p.on, size: 24),
-        const SizedBox(height: 16),
-        big,
-        const SizedBox(height: 10),
-        Text(widget.sub, textAlign: TextAlign.center, style: mono(15, p.lime)),
+        // Empty texts are left out (the welcome shows only its title, D56).
+        if (widget.exercise.isNotEmpty) ...[
+          const SizedBox(height: 18),
+          Tag(widget.exercise, bg: p.lime, fg: p.on, size: 24),
+        ],
+        if (widget.big.isNotEmpty) ...[const SizedBox(height: 16), big],
+        if (widget.sub.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Text(widget.sub, textAlign: TextAlign.center, style: mono(15, p.lime)),
+        ],
       ],
     );
     return IgnorePointer(

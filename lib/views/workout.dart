@@ -316,6 +316,8 @@ class _ExerciseText extends StatelessWidget {
     final p = Pal.of(context);
     final done = e.sets >= e.targetSets;
     return SingleChildScrollView(
+      // Only left / right moves the exercise carousel (D56): no vertical scroll.
+      physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

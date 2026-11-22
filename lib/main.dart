@@ -376,15 +376,9 @@ class _GameShellState extends State<GameShell> {
         context,
         id: 'welcome-${DateTime.now().microsecondsSinceEpoch}',
         title: "LET'S\nGO!!!",
-        exercise: classById(_classId).name,
-        big: 'LVL ${levelFor(_store.totalXp).level}',
-        sub: _legacyXp > 0 ? 'OLD SAVES: +$_legacyXp XP (BETA).' : 'THE BAR IS WAITING.',
       );
     }
   }
-
-  int get _legacyXp =>
-      _store.xpEvents.where((e) => e.source == 'legacy').fold(0, (a, e) => a + e.amount);
 
   /// The setup steps a summary or profile EDIT opens (0 body, 1 class,
   /// 2 difficulty, 3 area).
