@@ -5,8 +5,6 @@
 //   body_history_v1   List of BodyChange
 //   sessions_v3       Map date -> Session (with its SessionExercise list)
 //   xp_events_v1      List of XpEvent (only the ones that cannot be computed)
-//   gear_v1           {owned: [item id], equipped: {slot: item id}}
-//   chaos, cel        Display settings
 //
 // Choices made here, where the schema leaves room:
 // - Times are local ISO-8601 strings without a zone ("2026-11-21T18:02:11").
@@ -283,23 +281,6 @@ class XpEvent {
         source: j['source'] as String? ?? '',
         amount: (j['amount'] as num?)?.toInt() ?? 0,
         ref: j['ref'] as String? ?? '',
-      );
-}
-
-/// gear_v1: owned items and what each slot wears.
-class Gear {
-  const Gear({this.owned = const [], this.equipped = const {}});
-
-  final List<String> owned;
-
-  /// Slot name -> item id.
-  final Map<String, String> equipped;
-
-  Map<String, dynamic> toJson() => {'owned': owned, 'equipped': equipped};
-
-  factory Gear.fromJson(Map<String, dynamic> j) => Gear(
-        owned: [for (final o in j['owned'] as List? ?? const []) o as String],
-        equipped: Map<String, String>.from(j['equipped'] as Map? ?? {}),
       );
 }
 

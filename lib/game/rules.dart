@@ -2,7 +2,7 @@
 //
 // Numbers from docs/rules.md (rules table draft v1, beta testing). Change
 // them here and nowhere else. Not built yet (later in rules.md): embers,
-// mastery stars, bounties, gear drops with rarity, new game+.
+// mastery stars, bounties, new game+.
 
 import 'dart:math';
 

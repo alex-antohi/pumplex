@@ -1,6 +1,6 @@
 // PUMPLEX fixed game data (docs/data-schema.md §3): every NAME of the game
 // lives here (classes, exercise pools, difficulty levels, starting areas,
-// gear items). All are working names and placeholders until
+// and level titles). All are working names and placeholders until
 // the design team sends the real ones. The numbers are in rules.dart.
 //
 // Rule: never reuse or rename an id. Saved data points to it. (The class
@@ -340,39 +340,6 @@ Area areaById(String? id) => areas.firstWhere((a) => a.id == id, orElse: () => a
 /// The default area of class [classId] (the drawio's "Background changes").
 Area defaultAreaFor(String classId) =>
     areas.firstWhere((a) => a.defaultFor == classId, orElse: () => areas.first);
-
-// ------------------------------------------------------------------- gear
-
-enum GearSlot { head, top, bottom, shoes, weapon }
-
-/// A gear item. The level unlocks it; the user equips one per slot.
-/// The sprites are in assets/gear. The body never changes with gear.
-class Item {
-  const Item(this.id, this.name, this.slot, this.unlockLevel, this.icon);
-
-  final String id;
-  final String name;
-  final GearSlot slot;
-  final int unlockLevel;
-
-  /// Menu icon (assets/gear/icons, white: tint it).
-  final String icon;
-}
-
-const items = <Item>[
-  Item('head.sweatband', 'Sweatband of Mild Effort', GearSlot.head, 2, 'assets/gear/icons/head.sweatband.png'),
-  Item('top.tank', 'Tank Top of Vanity', GearSlot.top, 3, 'assets/gear/icons/top.tank.png'),
-  Item('shoes.sneakers', 'Squeaky Sneakers', GearSlot.shoes, 4, 'assets/gear/icons/shoes.sneakers.png'),
-  Item('bottom.shorts', 'Shorts, Too Short', GearSlot.bottom, 5, 'assets/gear/icons/bottom.shorts.png'),
-  Item('weapon.shaker', 'Protein Shaker +1', GearSlot.weapon, 6, 'assets/gear/icons/weapon.shaker.png'),
-  Item('head.crown', 'Crown of Leg Day', GearSlot.head, 8, 'assets/gear/icons/head.crown.png'),
-  Item('weapon.kettlebell', 'Kettlebell of Doom', GearSlot.weapon, 10, 'assets/gear/icons/weapon.kettlebell.png'),
-  Item('top.cape', 'Cape of Unearned Confidence', GearSlot.top, 12, 'assets/gear/icons/top.cape.png'),
-  Item('shoes.boots', 'Boots of Heavy Stomping', GearSlot.shoes, 15, 'assets/gear/icons/shoes.boots.png'),
-  Item('bottom.belt', 'Belt of Brace Yourself', GearSlot.bottom, 18, 'assets/gear/icons/bottom.belt.png'),
-];
-
-Item? itemById(String? id) => items.where((i) => i.id == id).firstOrNull;
 
 /// Kicker line of the class-select step (design: marketing working name).
 const pathsKicker = "THE SWOLEMANCER'S PATHS";

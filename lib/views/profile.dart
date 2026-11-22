@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import '../game/content.dart';
 import '../game/rules.dart';
 import '../pumplex.dart';
-import '../sound.dart';
 import '../store.dart';
 import 'play.dart';
 import 'setup.dart';
@@ -23,13 +22,12 @@ class ProfileView extends StatelessWidget {
     required this.onBack,
     required this.onBody,
     required this.onHistory,
-    required this.onGear,
     required this.onEditStep,
   });
 
   final Rect stage;
   final LogStore store;
-  final VoidCallback onBack, onBody, onHistory, onGear;
+  final VoidCallback onBack, onBody, onHistory;
 
   /// Opens one setup step to change it: 1 class, 2 difficulty, 3 area (D13).
   final ValueChanged<int> onEditStep;
@@ -103,25 +101,11 @@ class ProfileView extends StatelessWidget {
               onTap: () => onEditStep(3),
             ),
             const SizedBox(height: 18),
-            Row(
-              children: [
-                Expanded(
-                  child: BrutalButton(
-                      key: const ValueKey('profile-history'),
-                      color: p.sky,
-                      onTap: onHistory,
-                      child: const Text('PAST SESSIONS')),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: BrutalButton(
-                      key: const ValueKey('profile-gear'),
-                      color: p.lime,
-                      onTap: onGear,
-                      child: const IconText('gear', 'GEAR')),
-                ),
-              ],
-            ),
+            BrutalButton(
+                key: const ValueKey('profile-history'),
+                color: p.sky,
+                onTap: onHistory,
+                child: const Text('PAST SESSIONS')),
           ],
         ),
         // Tap the lifter to change the body sliders (D12).
@@ -187,9 +171,9 @@ class _PathRow extends StatelessWidget {
 
 // -------------------------------------------------------------------- menu
 
-/// Full-screen menu (design: docs/demo/12-menu.html). Sections: you, gains
-/// insurance (backup), look and feel. The design's DANGER ZONE (wipe all
-/// data) is not built: owner decision D30 (docs/decisions.md).
+/// Full-screen menu (design: docs/demo/12-menu.html). Sections: you and
+/// gains insurance (backup). Not built: the design's DANGER ZONE (D30) and
+/// look and feel (chaos, cel shader, sound: D39-D41).
 class MenuView extends StatelessWidget {
   const MenuView({
     super.key,
@@ -200,11 +184,10 @@ class MenuView extends StatelessWidget {
     required this.onEditCharacter,
     required this.onSave,
     required this.onRestore,
-    required this.onCel,
   });
 
   final LogStore store;
-  final VoidCallback onClose, onSave, onRestore, onCel;
+  final VoidCallback onClose, onSave, onRestore;
 
   /// Null when there is no profile yet (first setup).
   final VoidCallback? onProfile, onHistory, onEditCharacter;
@@ -264,33 +247,6 @@ class MenuView extends StatelessWidget {
           sub: 'Replaces everything on this phone with the file.',
           onTap: onRestore,
         ),
-        const SizedBox(height: 10),
-        const _Label('03', 'Look and feel'),
-        _Item(
-          key: const ValueKey('menu-chaos'),
-          title: 'CHAOS MODE',
-          sub: 'The whole app wobbles.',
-          on: store.chaos.value,
-          onTap: () => store.setChaos(!store.chaos.value),
-        ),
-        _Item(
-          key: const ValueKey('menu-cel'),
-          title: 'CEL SHADER',
-          sub: 'Toon bands and ink outlines.',
-          on: store.cel.value,
-          onTap: onCel,
-        ),
-        _Item(
-          key: const ValueKey('menu-sound'),
-          title: 'SOUND',
-          sub: 'Clanks, smashes and the level-up horn.',
-          on: store.sound.value,
-          onTap: () {
-            final on = !store.sound.value;
-            store.setSound(on);
-            if (on) Sfx.play('ui_toggle');
-          },
-        ),
         const SizedBox(height: 18),
         BrutalButton(key: const ValueKey('menu-back'), color: p.lime, onTap: onClose, child: const Text('BACK')),
       ],
@@ -320,13 +276,10 @@ class _Label extends StatelessWidget {
 }
 
 class _Item extends StatelessWidget {
-  const _Item({super.key, required this.title, required this.sub, required this.onTap, this.on});
+  const _Item({super.key, required this.title, required this.sub, required this.onTap});
 
   final String title, sub;
   final VoidCallback onTap;
-
-  /// A toggle shows ON / OFF; null = a plain action.
-  final bool? on;
 
   @override
   Widget build(BuildContext context) {
@@ -335,23 +288,16 @@ class _Item extends StatelessWidget {
       onTap: onTap,
       child: Brutal(
         margin: const EdgeInsets.only(bottom: 10),
-        shadow: on == true ? p.lime : p.violet,
+        shadow: p.violet,
         offset: 4,
         border: 3,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: display(18, p.ink)),
-                    Text(sub, style: mono(11, p.ink)),
-                  ],
-                ),
-              ),
-              if (on != null) Tag(on! ? 'ON' : 'OFF', bg: on! ? p.lime : kNight, fg: on! ? p.on : p.ink, size: 14),
+              Text(title, style: display(18, p.ink)),
+              Text(sub, style: mono(11, p.ink)),
             ],
           ),
         ),

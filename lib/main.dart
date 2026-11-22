@@ -8,7 +8,6 @@ import 'game/content.dart';
 import 'game/model.dart';
 import 'game/rules.dart';
 import 'pumplex.dart';
-import 'sound.dart';
 import 'store.dart';
 import 'views/intro.dart';
 import 'views/play.dart';
@@ -21,11 +20,7 @@ import 'views/workout.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
-  final store = LogStore(prefs);
-  // Sound only in the real app (tests have no audio plugin).
-  Sfx.enabled = store.sound.value;
-  store.sound.addListener(() => Sfx.enabled = store.sound.value);
-  runApp(GymApp(store: store));
+  runApp(GymApp(store: LogStore(prefs)));
 }
 
 class GymApp extends StatelessWidget {
@@ -40,22 +35,13 @@ class GymApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: pumplexTheme(Brightness.light),
       darkTheme: pumplexTheme(Brightness.dark),
-      builder: (context, child) => ValueListenableBuilder<bool>(
-        valueListenable: store.cel,
-        child: ValueListenableBuilder<bool>(
-          valueListenable: store.chaos,
-          child: child,
-          builder: (context, on, child) => ChaosFilter(on: on, child: child!),
-        ),
-        builder: (context, on, child) => CelFilter(on: on, child: child!),
-      ),
       home: GameShell(store: store),
     );
   }
 }
 
 /// Every view of the app. They are scenes of ONE screen (see GameShell).
-enum Scene { migrate, create, classSelect, difficulty, area, summary, hub, workout, history, gear, profile, menu }
+enum Scene { migrate, create, classSelect, difficulty, area, summary, hub, workout, history, profile, menu }
 
 /// Where the character stands in each scene, inside the content area.
 /// The views leave this rect free; the shell draws the one character there,
@@ -71,7 +57,7 @@ Rect stageRect(Scene s, Size a) {
     Scene.hub => hubStage(a),
     Scene.migrate => Rect.fromLTWH(0, 10, w, h * 0.34),
     Scene.workout => workoutStage(a),
-    Scene.history || Scene.gear => Rect.fromLTWH(w * 0.70, 6, w * 0.26, h * 0.17),
+    Scene.history => Rect.fromLTWH(w * 0.70, 6, w * 0.26, h * 0.17),
     Scene.profile => Rect.fromLTWH(w * 0.60, 8, w * 0.36, h * 0.24),
     // The menu covers the view; the character steps down out of the frame.
     Scene.menu => Rect.fromLTWH(w * 0.70, h + 20, w * 0.26, h * 0.17),
@@ -130,26 +116,7 @@ class _GameShellState extends State<GameShell> {
   }
 
   void _onStore() {
-    if (!mounted) return;
-    setState(() {});
-    // New gear: a burst for the first, a message for the rest.
-    final news = _store.takeUnlocks();
-    if (news.isEmpty) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final u = news.first;
-      celebratePr(
-        context,
-        id: 'unlock-${u.name}-${DateTime.now().microsecondsSinceEpoch}',
-        title: u.title,
-        exercise: u.name,
-        big: 'LVL ${levelFor(_store.totalXp).level}',
-        sub: u.sub,
-      );
-      if (news.length > 1) {
-        _snack('ALSO UNLOCKED: ${news.skip(1).map((n) => n.name.toUpperCase()).join(', ')}.');
-      }
-    });
+    if (mounted) setState(() {});
   }
 
   @override
@@ -271,8 +238,6 @@ class _GameShellState extends State<GameShell> {
     final before = levelFor(_store.totalXp).level;
     _store.addSet(i);
     final crit = _store.lastSetCritical(i);
-    Sfx.play(crit ? 'critical' : 'set_${areaById(_store.todaySession?.areaId ?? _store.profile?.areaId).id}');
-    if (_store.todayExercises[i].sets % 5 == 0) Sfx.play('stamp5');
     if (crit) {
       HapticFeedback.heavyImpact();
       _snack('CRITICAL SET!!! ×$critMultiplier XP');
@@ -280,7 +245,6 @@ class _GameShellState extends State<GameShell> {
     final after = levelFor(_store.totalXp).level;
     if (after > before) {
       HapticFeedback.heavyImpact();
-      Sfx.play('levelup');
       _showIntro((
         title: 'LEVEL $after',
         subtitle: levelUpLines[after % levelUpLines.length],
@@ -290,10 +254,7 @@ class _GameShellState extends State<GameShell> {
     setState(() {});
   }
 
-  void _removeSet(int i) {
-    _store.removeSet(i);
-    Sfx.play('set_back');
-  }
+  void _removeSet(int i) => _store.removeSet(i);
 
   // ------------------------------------------------------- freeze-frame card
 
@@ -325,14 +286,6 @@ class _GameShellState extends State<GameShell> {
   void _closeMenu() => _go(_menuFrom, Motion.slideRight);
 
   void _openHistory() => _go(Scene.history, Motion.slideRight);
-
-  void _toggleCel() {
-    final on = !_store.cel.value;
-    _store.setCel(on);
-    if (on && !CelFilter.supported) {
-      _snack('CEL SHADER needs the Impeller renderer; this phone draws without it.');
-    }
-  }
 
   Future<void> _saveBackup() async {
     try {
@@ -408,7 +361,6 @@ class _GameShellState extends State<GameShell> {
       Scene.hub => 'LVL $l · ${_store.gameClass.name.toUpperCase()} · ${areaById(_store.profile?.areaId).name.toUpperCase()}',
       Scene.workout => 'WORKOUT · ${_store.todaySession?.totalSets ?? 0} SETS · LVL $l',
       Scene.history => 'PAST SESSIONS · LVL $l',
-      Scene.gear => 'GEAR · LVL $l',
       Scene.profile => 'YOUR LIFTER · LVL $l ${levelTitle(l).toUpperCase()}',
       Scene.menu => 'MENU',
     };
@@ -422,7 +374,7 @@ class _GameShellState extends State<GameShell> {
         Scene.difficulty => Scene.classSelect,
         Scene.area => Scene.difficulty,
         Scene.summary => Scene.area,
-        Scene.workout || Scene.history || Scene.gear || Scene.profile => Scene.hub,
+        Scene.workout || Scene.history || Scene.profile => Scene.hub,
         Scene.menu => _menuFrom,
         Scene.hub => null,
       };
@@ -442,7 +394,6 @@ class _GameShellState extends State<GameShell> {
             onUpgrade: _upgrade,
             onLater: () => _go(_startScene),
           ),
-        Scene.gear => GearView(stage: stage, store: _store, onBack: _back),
         Scene.create => CreateView(
             stage: stage,
             character: _char,
@@ -493,7 +444,6 @@ class _GameShellState extends State<GameShell> {
             onTrain: () => _go(Scene.workout),
             onHistory: _openHistory,
             onBody: _editCharacter,
-            onGear: () => _go(Scene.gear),
             onProfile: () => _go(Scene.profile),
           ),
         Scene.workout => WorkoutView(
@@ -510,7 +460,6 @@ class _GameShellState extends State<GameShell> {
             onBack: _back,
             onBody: _editCharacter,
             onHistory: _openHistory,
-            onGear: () => _go(Scene.gear),
             onEditStep: _editStep,
           ),
         Scene.menu => MenuView(
@@ -521,7 +470,6 @@ class _GameShellState extends State<GameShell> {
             onEditCharacter: _hasPlay ? _editCharacter : null,
             onSave: _saveBackup,
             onRestore: _restoreBackup,
-            onCel: _toggleCel,
           ),
       };
 
@@ -591,7 +539,6 @@ class _GameShellState extends State<GameShell> {
                               child: CharacterSprite(
                                 character: char,
                                 classId: classId,
-                                gear: _inSetup ? const [] : _store.gear.equipped.values,
                                 pedestal: _scene != Scene.workout && _scene != Scene.hub,
                               ),
                             ),

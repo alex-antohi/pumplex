@@ -46,6 +46,10 @@ Ask the owner before you design against a decision. Add each new decision here, 
 | D34 | No streak. No streak count, no streak XP bonus, no week target. XP that old sessions earned with a streak bonus stays. | 22 Nov 2026 | Overrides D20 and the streak part of D19. |
 | D35 | No achievements. XP that users already got from achievements stays. | 22 Nov 2026 | Overrides the achievements part of D19 and D27. |
 | D36 | The area ids are the design ids: `riptide`, `gainsgard`, `rustbelt`, `arcade`, `frostbite`. The app migrates saved data once (`beach` → `riptide`, `castle` → `gainsgard`, `summit` → `frostbite`). | 22 Nov 2026 | Like D31 for classes. |
+| D38 | No gear: no items, no unlocks, no gear screen, no gear on the character. Levels give only the level and its title. | 22 Nov 2026 | Overrides D21. The class outfits stay (they are not gear). |
+| D39 | No chaos mode. | 22 Nov 2026 | Overrides the chaos part of D24. |
+| D40 | No CEL SHADER mode. | 22 Nov 2026 | Overrides the cel part of D24. The PUMPLEX look stays. |
+| D41 | No sound. The `audioplayers` package is removed. | 22 Nov 2026 | Overrides the owner's earlier OK for sound (D26 exception). |
 | D37 | The app name is PUMPLEX. | 22 Nov 2026 | Marketing drafts that say SWOLEMANCER must change. |
 
 ## 2. Where the current boards conflict

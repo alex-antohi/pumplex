@@ -9,32 +9,26 @@ import 'game/content.dart';
 import 'game/model.dart';
 import 'game/rules.dart';
 
-/// Something new to celebrate (a gear item).
-typedef Unlock = ({String title, String name, String sub});
-
 /// Everything the app remembers, on the phone only (shared_preferences).
 /// The keys and formats are in lib/game/model.dart (docs/data-schema.md).
 class LogStore extends ChangeNotifier {
   LogStore(this._prefs, {DateTime Function()? clock})
-      : _clock = clock ?? DateTime.now,
-        chaos = ValueNotifier(_prefs.getBool('chaos') ?? false),
-        cel = ValueNotifier(_prefs.getBool('cel') ?? false),
-        sound = ValueNotifier(_prefs.getBool('sound') ?? true) {
+      : _clock = clock ?? DateTime.now {
     _load();
     _migrateIds();
     _freezeStreakXp();
-    _prefs.remove(_achievementsKey);
+    removedKeys.forEach(_prefs.remove);
   }
 
   static const _profileKey = 'profile_v1';
   static const _bodyKey = 'body_history_v1';
   static const _sessionsKey = 'sessions_v3';
   static const _xpKey = 'xp_events_v1';
-  static const _gearKey = 'gear_v1';
 
-  /// Achievements (D35 removed them). Deleted on start; the XP they gave
-  /// stays as saved `achievement` XP events.
-  static const _achievementsKey = 'achievements_v1';
+  /// Keys of removed features, deleted on start: achievements (D35; the XP
+  /// they gave stays as saved `achievement` XP events), gear (D38), chaos
+  /// mode (D39), cel shader (D40) and sound (D41).
+  static const removedKeys = ['achievements_v1', 'gear_v1', 'chaos', 'cel', 'sound'];
 
   /// Set once the streak bonus of every session is saved as XP events (D34).
   static const streakFrozenKey = 'streak_xp_frozen_v1';
@@ -57,8 +51,6 @@ class LogStore extends ChangeNotifier {
   final List<BodyChange> _body = [];
   final Map<String, Session> _sessions = {};
   final List<XpEvent> _events = [];
-  Gear _gear = const Gear();
-  final List<Unlock> _unlocks = [];
 
   dynamic _json(String key, Object fallback) {
     final raw = _prefs.getString(key);
@@ -153,7 +145,6 @@ class LogStore extends ChangeNotifier {
       ..addAll([
         for (final e in _json(_xpKey, const []) as List) XpEvent.fromJson(Map<String, dynamic>.from(e as Map)),
       ]);
-    _gear = Gear.fromJson(Map<String, dynamic>.from(_json(_gearKey, const {}) as Map));
   }
 
   String get _now => isoNow(_clock());
@@ -165,33 +156,6 @@ class LogStore extends ChangeNotifier {
 
   void _saveSessions() => _prefs.setString(_sessionsKey, jsonEncode(_sessionsJson(_sessions.values)));
   void _saveEvents() => _prefs.setString(_xpKey, jsonEncode([for (final e in _events) e.toJson()]));
-  void _saveGear() => _prefs.setString(_gearKey, jsonEncode(_gear.toJson()));
-
-  // ------------------------------------------------------------- settings
-
-  /// Chaos mode (hue-cycling), remembered between launches.
-  final ValueNotifier<bool> chaos;
-
-  void setChaos(bool on) {
-    chaos.value = on;
-    _prefs.setBool('chaos', on);
-  }
-
-  /// Cel shader mode (toon bands + ink outlines), remembered between launches.
-  final ValueNotifier<bool> cel;
-
-  void setCel(bool on) {
-    cel.value = on;
-    _prefs.setBool('cel', on);
-  }
-
-  /// Sound effects on or off (the design's sound pack), remembered.
-  final ValueNotifier<bool> sound;
-
-  void setSound(bool on) {
-    sound.value = on;
-    _prefs.setBool('sound', on);
-  }
 
   // ------------------------------------------------------------- old data
 
@@ -264,7 +228,6 @@ class LogStore extends ChangeNotifier {
     for (final k in _prefs.getKeys().toList()) {
       if (_isOldKey(k)) await _prefs.remove(k);
     }
-    _checkUnlocks();
     notifyListeners();
   }
 
@@ -356,7 +319,6 @@ class LogStore extends ChangeNotifier {
         );
     _sessions[_today] = s.copyWith(lastMarkAt: _now, exercises: edit([...s.exercises]));
     _saveSessions();
-    _checkUnlocks();
     notifyListeners();
   }
 
@@ -430,45 +392,11 @@ class LogStore extends ChangeNotifier {
     return e.sets > 0 && e.sets <= e.targetSets * overTargetCap && isCritical(s.date, e.exerciseId, e.sets);
   }
 
-  // ------------------------------------------------------------------ gear
-
-  Gear get gear => _gear;
-
-  /// New unlocks since the last call (the UI shows a burst for each).
-  List<Unlock> takeUnlocks() {
-    final out = [..._unlocks];
-    _unlocks.clear();
-    return out;
-  }
-
-  void _checkUnlocks() {
-    final level = levelFor(totalXp).level;
-    for (final it in items) {
-      if (it.unlockLevel > level || _gear.owned.contains(it.id)) continue;
-      final slot = it.slot.name;
-      _gear = Gear(
-        owned: [..._gear.owned, it.id],
-        equipped: {..._gear.equipped, if (!_gear.equipped.containsKey(slot)) slot: it.id},
-      );
-      _unlocks.add((title: 'NEW\nGEAR!!!', name: it.name, sub: 'UNLOCKED AT LVL ${it.unlockLevel}. EQUIP IT IN GEAR.'));
-    }
-    _saveGear();
-  }
-
-  /// Puts owned item [itemId] in its slot (null clears [slot]).
-  void equip(GearSlot slot, String? itemId) {
-    if (itemId != null && !_gear.owned.contains(itemId)) return;
-    final eq = {..._gear.equipped}..remove(slot.name);
-    if (itemId != null) eq[slot.name] = itemId;
-    _gear = Gear(owned: _gear.owned, equipped: eq);
-    _saveGear();
-    notifyListeners();
-  }
-
   // ----------------------------------------------------------------- backup
 
   /// 4: no achievements, and the old streak XP is in the XP events (D34).
-  static const backupVersion = 4;
+  /// 5: no gear (D38).
+  static const backupVersion = 5;
 
   /// Backup file contents: every key of docs/data-schema.md §4.
   String backupJson() => const JsonEncoder.withIndent(' ').convert({
@@ -478,17 +406,16 @@ class LogStore extends ChangeNotifier {
         _bodyKey: [for (final b in _body) b.toJson()],
         _sessionsKey: _sessionsJson(_sessions.values),
         _xpKey: [for (final e in _events) e.toJson()],
-        _gearKey: _gear.toJson(),
       });
 
-  /// Replaces everything with a backup file. Version 4 is [backupJson].
-  /// Version 3 has achievements (ignored) and no saved streak XP (worked
-  /// out again on import). Version 2 (the old app) goes through the same migration: its workout
+  /// Replaces everything with a backup file. Version 5 is [backupJson].
+  /// Versions 3 and 4 may hold achievements or gear (ignored); version 3
+  /// has no saved streak XP (worked out again on import). Version 2 (the old app) goes through the same migration: its workout
   /// days become legacy sessions with legacy XP; there is no profile, so
   /// the setup runs again.
   Future<void> importBackup(String raw) async {
     final data = jsonDecode(raw);
-    if (data is! Map || data['app'] != 'pumplex' || ![2, 3, 4].contains(data['version'])) {
+    if (data is! Map || data['app'] != 'pumplex' || ![2, 3, 4, 5].contains(data['version'])) {
       throw const FormatException('Not a PUMPLEX backup');
     }
     // Parse everything before touching current data.
@@ -511,25 +438,22 @@ class LogStore extends ChangeNotifier {
       for (final b in data[_bodyKey] as List? ?? const []) {
         BodyChange.fromJson(Map<String, dynamic>.from(b as Map));
       }
-      Gear.fromJson(Map<String, dynamic>.from(data[_gearKey] as Map? ?? const {}));
       out = {
         if (p is Map) _profileKey: jsonEncode(p),
         _bodyKey: jsonEncode(data[_bodyKey] ?? const []),
         _sessionsKey: jsonEncode(data[_sessionsKey] ?? const {}),
         _xpKey: jsonEncode(data[_xpKey] ?? const []),
-        _gearKey: jsonEncode(data[_gearKey] ?? const {}),
       };
     }
-    for (final k in [_profileKey, _bodyKey, _sessionsKey, _xpKey, _gearKey]) {
+    for (final k in [_profileKey, _bodyKey, _sessionsKey, _xpKey]) {
       out.containsKey(k) ? await _prefs.setString(k, out[k]!) : await _prefs.remove(k);
     }
-    await _prefs.setBool(streakFrozenKey, data['version'] == 4);
+    await _prefs.setBool(streakFrozenKey, (data['version'] as int) >= 4);
     // Old-app keys on this phone are left alone: only the migration deletes
     // them, after its own backup file.
     _load();
     _migrateIds();
     _freezeStreakXp();
-    _unlocks.clear();
     notifyListeners();
   }
 }

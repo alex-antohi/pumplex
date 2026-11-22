@@ -3,12 +3,10 @@
 // type, things that spin for no reason.
 
 import 'dart:math';
-import 'dart:ui' as ui show FragmentProgram, FragmentShader, ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'sound.dart';
 
 const kDisplay = 'Anton';
 const kMono = 'Space Mono';
@@ -243,7 +241,6 @@ class _BrutalButtonState extends State<BrutalButton> {
         onTap: enabled
             ? () {
                 HapticFeedback.selectionClick();
-                Sfx.play('ui_button');
                 widget.onTap!();
               }
             : null,
@@ -600,7 +597,7 @@ const tickerItems = [
 /// Burst ids already shown this run, so each one explodes only once.
 final _celebrated = <String>{};
 
-/// Full-screen burst with confetti and a heavy buzz (unlocks, welcome).
+/// Full-screen burst with confetti and a heavy buzz (the welcome).
 /// [exercise] is the tag line, [big] the headline ("LVL 3"), [sub] the
 /// brag line.
 void celebratePr(
@@ -753,145 +750,6 @@ class _Confetti extends CustomPainter {
 
   @override
   bool shouldRepaint(_Confetti old) => old.t != t;
-}
-
-/// Chaos mode: the whole app slowly cycles through every hue.
-class ChaosFilter extends StatefulWidget {
-  const ChaosFilter({super.key, required this.on, required this.child});
-
-  final bool on;
-  final Widget child;
-
-  @override
-  State<ChaosFilter> createState() => _ChaosFilterState();
-}
-
-class _ChaosFilterState extends State<ChaosFilter> with SingleTickerProviderStateMixin {
-  late final _c = AnimationController(vsync: this, duration: const Duration(seconds: 7));
-
-  void _sync() {
-    if (widget.on) {
-      if (!_c.isAnimating) _c.repeat();
-    } else {
-      _c
-        ..stop()
-        ..value = 0;
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _sync();
-  }
-
-  @override
-  void didUpdateWidget(ChaosFilter oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _sync();
-  }
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  static List<double> _hue(double a) {
-    final c = cos(a), s = sin(a);
-    const r = 0.213, g = 0.715, b = 0.072;
-    return [
-      r + c * (1 - r) - s * r, g - c * g - s * g, b - c * b + s * (1 - b), 0, 0,
-      r - c * r + s * 0.143, g + c * (1 - g) + s * 0.140, b - c * b - s * 0.283, 0, 0,
-      r - c * r - s * (1 - r), g - c * g + s * g, b + c * (1 - b) + s * b, 0, 0,
-      0, 0, 0, 1, 0,
-    ];
-  }
-
-  // The tree shape never changes (the filter is the identity when off),
-  // so toggling chaos does not reset the app underneath it.
-  @override
-  Widget build(BuildContext context) => AnimatedBuilder(
-        animation: _c,
-        child: widget.child,
-        builder: (context, child) => ColorFiltered(
-          colorFilter: ColorFilter.matrix(_hue(_c.value * 2 * pi)),
-          child: child,
-        ),
-      );
-}
-
-/// Cel shader mode: flat toon colour bands and ink outlines over the whole
-/// app (`shaders/cel.frag`). Needs Impeller; elsewhere it draws normally.
-class CelFilter extends StatefulWidget {
-  const CelFilter({super.key, required this.on, required this.child});
-
-  final bool on;
-  final Widget child;
-
-  /// Whether this renderer can run a shader as an image filter.
-  static bool get supported => ui.ImageFilter.isShaderFilterSupported;
-
-  /// Light bands per colour, and outline thickness in logical pixels.
-  static const bands = 4.0;
-  static const thickness = 1.0;
-
-  static Future<ui.FragmentProgram>? _program;
-
-  @override
-  State<CelFilter> createState() => _CelFilterState();
-}
-
-class _CelFilterState extends State<CelFilter> {
-  ui.FragmentShader? _shader;
-
-  // Stand-in filter while off, so the tree shape never changes.
-  static final _identity = ui.ImageFilter.matrix(Matrix4.identity().storage);
-
-  void _load() {
-    if (!widget.on || _shader != null || !CelFilter.supported) return;
-    (CelFilter._program ??= ui.FragmentProgram.fromAsset('shaders/cel.frag')).then((program) {
-      if (mounted) setState(() => _shader = program.fragmentShader());
-    }, onError: (Object e) {
-      CelFilter._program = null; // try again next time it is switched on
-      debugPrint('CEL SHADER failed to load: $e');
-    });
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  @override
-  void didUpdateWidget(CelFilter oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _load();
-  }
-
-  @override
-  void dispose() {
-    _shader?.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final shader = _shader;
-    final active = widget.on && shader != null;
-    if (active) {
-      // Uniforms 0-1 (u_size) are filled in by the engine.
-      shader
-        ..setFloat(2, CelFilter.bands)
-        ..setFloat(3, CelFilter.thickness * MediaQuery.devicePixelRatioOf(context));
-    }
-    return ImageFiltered(
-      enabled: active,
-      imageFilter: active ? ui.ImageFilter.shader(shader) : _identity,
-      child: widget.child,
-    );
-  }
 }
 
 /// A design pixel icon (assets/icons, docs/moodboard/icons). The PNGs are

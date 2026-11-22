@@ -1,4 +1,4 @@
-// Play: the hub, past sessions and gear. The workout is in workout.dart.
+// Play: the hub and past sessions. The workout is in workout.dart.
 
 import 'package:flutter/material.dart';
 
@@ -86,13 +86,12 @@ class HubView extends StatelessWidget {
     required this.onTrain,
     required this.onHistory,
     required this.onBody,
-    required this.onGear,
     required this.onProfile,
   });
 
   final Rect stage;
   final LogStore store;
-  final VoidCallback onTrain, onHistory, onGear, onProfile;
+  final VoidCallback onTrain, onHistory, onProfile;
 
   /// Opens the body sliders (tap on the character, D12).
   final VoidCallback onBody;
@@ -126,18 +125,6 @@ class HubView extends StatelessWidget {
             right: box.maxWidth - scene.right + 8,
             bottom: box.maxHeight - scene.bottom + 8,
             child: Tag('${cls.name} · ${d.name}', bg: kNight, fg: color, size: 12, angle: 2),
-          ),
-          // Gear, top right of the scene.
-          Positioned(
-            right: box.maxWidth - scene.right + 8,
-            top: scene.top + 8,
-            child: BrutalButton(
-              key: const ValueKey('hub-gear'),
-              small: true,
-              color: p.lime,
-              onTap: onGear,
-              child: const IconText('gear', 'GEAR'),
-            ),
           ),
           // Tap the character to change the body sliders.
           Positioned.fromRect(
@@ -298,7 +285,7 @@ class _NavButton extends StatelessWidget {
 
 // ----------------------------------------------------------------- history
 
-/// Header of a list page (history, gear): a HUB button, a title and a line,
+/// Header of a list page (past sessions): a HUB button, a title and a line,
 /// to the left of the small character at [stage].
 class _PageHeader extends StatelessWidget {
   const _PageHeader({required this.stage, required this.button, required this.title, required this.line});
@@ -460,98 +447,3 @@ class _LegacyTile extends StatelessWidget {
   }
 }
 
-// -------------------------------------------------------------------- gear
-
-/// One item per slot. The level unlocks items; the body never changes.
-class GearView extends StatelessWidget {
-  const GearView({super.key, required this.stage, required this.store, required this.onBack});
-
-  final Rect stage;
-  final LogStore store;
-  final VoidCallback onBack;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = Pal.of(context);
-    final level = levelFor(store.totalXp).level;
-    final gear = store.gear;
-    return Column(
-      children: [
-        _PageHeader(
-          stage: stage,
-          button: BrutalButton(key: const ValueKey('gear-hub'), small: true, color: p.sky, onTap: onBack, child: const IconText('back', 'HUB')),
-          title: 'GEAR',
-          line: 'LEVELS UNLOCK GEAR. ONE ITEM PER SLOT.',
-        ),
-        Expanded(
-          child: ListView(
-            padding: _pageListPadding(context),
-            children: [
-              for (final slot in GearSlot.values) ...[
-                Shout(slot.name, color: p.violet, size: 14),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    for (final it in items.where((i) => i.slot == slot))
-                      _ItemChip(
-                        item: it,
-                        owned: gear.owned.contains(it.id),
-                        equipped: gear.equipped[slot.name] == it.id,
-                        onTap: () => store.equip(slot, gear.equipped[slot.name] == it.id ? null : it.id),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-              ],
-              Terminal([
-                'YOU ARE LVL $level.',
-                'TAP AN ITEM YOU OWN TO PUT IT ON OR TAKE IT OFF.',
-              ]),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ItemChip extends StatelessWidget {
-  const _ItemChip({required this.item, required this.owned, required this.equipped, required this.onTap});
-
-  final Item item;
-  final bool owned, equipped;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = Pal.of(context);
-    return Opacity(
-      opacity: owned ? 1 : 0.45,
-      child: BrutalButton(
-        key: ValueKey('item-${item.id}'),
-        small: true,
-        color: equipped ? p.lime : p.panel,
-        onTap: owned ? onTap : null,
-        child: Builder(builder: (context) {
-          final color = DefaultTextStyle.of(context).style.color;
-          return Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              owned
-                  ? Image.asset(item.icon, width: 18, height: 18, color: color, filterQuality: FilterQuality.none)
-                  : PxIcon('lock', size: 18, color: color),
-              const SizedBox(width: 6),
-              Flexible(
-                child: Text(owned
-                    ? '${item.name.toUpperCase()}${equipped ? ' · ON' : ''}'
-                    : 'LVL ${item.unlockLevel} · ${item.name.toUpperCase()}'),
-              ),
-            ],
-          );
-        }),
-      ),
-    );
-  }
-}

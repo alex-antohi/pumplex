@@ -242,8 +242,6 @@ void main() {
     expect(gameClasses.every((c) => c.exercises.length >= 8), isTrue); // enough for Nightmare Mode
     final ids = [for (final c in gameClasses) for (final e in c.exercises) e.id];
     expect(ids.toSet().length, ids.length);
-    expect(items.map((i) => i.id).toSet().length, items.length);
-    expect(GearSlot.values.every((s) => items.any((i) => i.slot == s)), isTrue);
   });
 
   test('design data: 6 difficulty modes, 5 areas, one default area per class', () {
@@ -275,9 +273,8 @@ void main() {
   testWidgets('the workout: CRUSHED! at the target, the area stamp on every 5th set', (t) async {
     _phone(t);
     final (store, _) = await _store(setUp: true); // Gainsgard Keep: SLASHED!
-    store.addSet(0); // level-ups and gear happen here, not on screen
+    store.addSet(0); // level-ups happen here, not on screen
     store.addSet(0);
-    store.takeUnlocks();
     await t.pumpWidget(GymApp(store: store));
     await _frames(t);
     await t.tap(find.byKey(const ValueKey('hub-workout')));
@@ -307,7 +304,7 @@ void main() {
     expect(spriteCell(const Character(fat: 50, muscle: 75)), (2, 3));
     expect(allSpriteAssets.first, bodyAtlas);
     expect(allSpriteAssets, contains('assets/outfits/paladin.png'));
-    expect(allSpriteAssets, contains('assets/gear/head/head.crown.png'));
+    expect(allSpriteAssets.where((a) => a.contains('gear')), isEmpty); // no gear (D38)
   });
 
   // --------------------------------------------------------- session rule
@@ -426,22 +423,22 @@ void main() {
     }
   });
 
-  test('levels unlock and equip gear; nothing else unlocks (D35)', () async {
-    final (store, prefs) = await _store(setUp: true);
-    store.addSet(0);
-    final first = store.takeUnlocks(); // gear only: no achievements
-    for (var i = 1; levelFor(store.totalXp).level < 3; i = i % 3 + 1) {
-      store.addSet(i); // spread over cards: sets beyond 2× target give no XP
+  test('removed features (D35, D38-D41): their saved keys are deleted on start', () async {
+    SharedPreferences.setMockInitialValues({
+      'profile_v1': jsonEncode(_profile.toJson()),
+      'gear_v1': '{"owned":["head.crown"],"equipped":{"head":"head.crown"}}',
+      'achievements_v1': '{}',
+      'chaos': true,
+      'cel': true,
+      'sound': true,
+    });
+    final prefs = await SharedPreferences.getInstance();
+    final store = LogStore(prefs, clock: () => _now);
+    expect(store.profile, isNotNull);
+    for (final k in LogStore.removedKeys) {
+      expect(prefs.containsKey(k), isFalse, reason: k);
     }
-    expect([...first, ...store.takeUnlocks()].every((u) => u.title.contains('GEAR')), isTrue);
-    expect(store.gear.owned, containsAll(['head.sweatband', 'top.tank']));
-    expect(store.gear.equipped['head'], 'head.sweatband'); // empty slot: auto-equipped
-    store.equip(GearSlot.head, null);
-    expect(store.gear.equipped.containsKey('head'), isFalse);
-    store.equip(GearSlot.weapon, 'weapon.kettlebell'); // not owned: ignored
-    expect(store.gear.equipped.containsKey('weapon'), isFalse);
-    expect(LogStore(prefs, clock: () => _now).gear.owned, store.gear.owned);
-    expect(prefs.containsKey('achievements_v1'), isFalse);
+    expect(jsonDecode(store.backupJson()), isNot(contains('gear_v1')));
   });
 
   // ------------------------------------------------------------- migration
@@ -484,8 +481,8 @@ void main() {
     store.addSet(1);
     final backup = store.backupJson();
     final data = jsonDecode(backup) as Map;
-    expect(data['version'], 4);
-    expect(data.keys, containsAll(['profile_v1', 'body_history_v1', 'sessions_v3', 'xp_events_v1', 'gear_v1']));
+    expect(data['version'], 5);
+    expect(data.keys, containsAll(['profile_v1', 'body_history_v1', 'sessions_v3', 'xp_events_v1']));
 
     final (other, otherPrefs) = await _store(old: true); // un-migrated old data on this phone
     await other.importBackup(backup);
@@ -721,7 +718,7 @@ void main() {
     expect(find.text('NEXT WORKOUT'), findsOneWidget);
   });
 
-  testWidgets('a level-up shows the freeze-frame card; gear unlocks and can be equipped', (t) async {
+  testWidgets('a level-up shows the freeze-frame card', (t) async {
     final (store, _) = await _openApp(t);
     await t.tap(find.byKey(const ValueKey('hub-workout')));
     await _frames(t);
@@ -733,19 +730,9 @@ void main() {
     expect(find.text('LEVEL $level'), findsOneWidget);
     await _frames(t, 70);
     expect(find.byKey(const ValueKey('intro-card')), findsNothing);
-    expect(store.gear.owned, contains('head.sweatband'));
-
     await t.tap(find.byKey(const ValueKey('workout-hub')));
     await _frames(t);
-    await t.tap(find.byKey(const ValueKey('hub-gear')));
-    await _frames(t);
-    expect(find.text('GEAR · LVL ${levelFor(store.totalXp).level}'), findsOneWidget);
-    await t.tap(find.byKey(const ValueKey('item-head.sweatband')));
-    await _frames(t, 4);
-    expect(store.gear.equipped['head'], isNull);
-    await t.tap(find.byKey(const ValueKey('item-head.sweatband')));
-    await _frames(t, 4);
-    expect(store.gear.equipped['head'], 'head.sweatband');
+    expect(find.byKey(const ValueKey('hub-gear')), findsNothing); // no gear (D38)
   });
 
   testWidgets('android back goes one step back, not out of the app', (t) async {
@@ -759,34 +746,15 @@ void main() {
     expect(find.text('TRAIN'), findsOneWidget);
   });
 
-  testWidgets('CEL SHADER toggles from the menu, is remembered, keeps the scene', (t) async {
-    final (store, prefs) = await _openApp(t);
-
-    Future<void> menu(String key, {bool close = true}) async {
-      await t.tap(find.byKey(const ValueKey('menu-open')));
-      await _frames(t, 10); // let the menu slide in
-      // Scroll the item clear of a snack bar at the bottom.
-      await t.ensureVisible(find.byKey(ValueKey(key)));
-      await t.drag(find.byType(ListView).last, const Offset(0, -200));
-      await _frames(t, 4);
-      await t.tap(find.byKey(ValueKey(key)));
-      await _frames(t, 10);
-      if (close) {
-        await t.tap(find.byKey(const ValueKey('menu-open'))); // the top-bar ✕
-        await _frames(t, 10);
-      }
+  testWidgets('the menu has no look-and-feel toggles; EDIT CHARACTER keeps the body', (t) async {
+    await _openApp(t);
+    await t.tap(find.byKey(const ValueKey('menu-open')));
+    await _frames(t, 10);
+    for (final k in ['menu-chaos', 'menu-cel', 'menu-sound']) {
+      expect(find.byKey(ValueKey(k)), findsNothing, reason: k);
     }
-
-    await menu('menu-cel');
-    expect(store.cel.value, isTrue);
-    expect(prefs.getBool('cel'), isTrue);
-    expect(find.byType(CelFilter), findsOneWidget);
-    expect(find.text('NEXT WORKOUT'), findsOneWidget);
-    await menu('menu-cel');
-    expect(store.cel.value, isFalse);
-    await menu('menu-chaos');
-    expect(store.chaos.value, isTrue);
-    await menu('menu-edit', close: false);
+    await t.tap(find.byKey(const ValueKey('menu-edit')));
+    await _frames(t);
     expect(find.text('CHARACTER · STEP 1 OF 5'), findsOneWidget);
     expect(_spriteAsset(t), spriteFrame(_profile.character));
     await t.pump(const Duration(seconds: 5));
@@ -797,7 +765,6 @@ void main() {
       _phone(t);
       final (store, _) = await _store(setUp: true);
       store.addSet(0);
-      store.takeUnlocks();
       await t.pumpWidget(MaterialApp(theme: pumplexTheme(b), home: GameShell(store: store)));
       await _frames(t);
       Future<void> tapAndSettle(Finder f) async {
@@ -810,8 +777,6 @@ void main() {
       await tapAndSettle(find.byKey(const ValueKey('workout-hub')));
       await tapAndSettle(find.byKey(const ValueKey('hub-past')));
       await tapAndSettle(find.byKey(const ValueKey('history-hub')));
-      await tapAndSettle(find.byKey(const ValueKey('hub-gear')));
-      await tapAndSettle(find.byKey(const ValueKey('gear-hub')));
       // Profile (design screen 11): change one setup step, then back.
       await tapAndSettle(find.byKey(const ValueKey('hub-profile')));
       expect(find.text('THE PATH'), findsOneWidget);

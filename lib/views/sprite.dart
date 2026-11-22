@@ -34,24 +34,10 @@ String spriteFrame(Character c) =>
 /// Class outfit overlay (docs/moodboard/outfits): same cells as the body.
 String outfitAtlas(String classId) => 'assets/outfits/$classId.png';
 
-/// Gear overlay for an item id such as `head.crown` (docs/moodboard/gear).
-String gearAtlas(String itemId) =>
-    'assets/gear/${itemId.split('.').first}/$itemId.png';
-
-/// Gear layer order, bottom to top (docs/moodboard/gear/README.md).
-const gearLayerOrder = [
-  GearSlot.bottom,
-  GearSlot.top,
-  GearSlot.shoes,
-  GearSlot.head,
-  GearSlot.weapon,
-];
-
 /// Every image the character needs, to load before the first frame.
 List<String> get allSpriteAssets => [
   bodyAtlas,
   for (final c in gameClasses) outfitAtlas(c.id),
-  for (final i in items) gearAtlas(i.id),
 ];
 
 /// One atlas cell drawn at [width] × [height] (nearest-neighbour).
@@ -67,7 +53,7 @@ class AtlasSprite extends StatelessWidget {
 
   final String frame;
 
-  /// The atlas image: the body, a class outfit or a gear item (same layout).
+  /// The atlas image: the body or a class outfit (same layout).
   final String asset;
   final (int, int) cell;
   final double width, height;
@@ -122,15 +108,11 @@ class CharacterSprite extends StatefulWidget {
     super.key,
     required this.character,
     required this.classId,
-    this.gear = const [],
     this.pedestal = true,
   });
 
   final Character character;
   final String classId;
-
-  /// Equipped item ids, drawn over the outfit (D21: never changes the body).
-  final Iterable<String> gear;
 
   /// False in an area scene: the scene has its own ground shadow.
   final bool pedestal;
@@ -166,13 +148,7 @@ class _CharacterSpriteState extends State<CharacterSprite>
     final p = Pal.of(context);
     final cls = classById(widget.classId);
     final color = classColor(p, cls.id);
-    final equipped = {for (final id in widget.gear) itemById(id)?.slot: id};
-    final layers = [
-      bodyAtlas,
-      outfitAtlas(cls.id),
-      for (final slot in gearLayerOrder)
-        if (equipped[slot] != null) gearAtlas(equipped[slot]!),
-    ];
+    final layers = [bodyAtlas, outfitAtlas(cls.id)];
     return LayoutBuilder(
       builder: (context, box) {
         final pedestal = widget.pedestal ? max(10.0, box.maxHeight * 0.1) : 0.0;
