@@ -195,18 +195,13 @@ class Difficulty {
 }
 
 const difficulties = <Difficulty>[
-  // Names from the design demo (docs/demo/shared/demo.js, owner choice 22 Nov 2026).
-  // The ids stay the same, so saved profiles keep working.
-  Difficulty('sofa', 'Couch Spawn', 'Never lifted, or not for years. Freshly respawned from the sofa.',
-      'THE SOFA WILL REMEMBER YOU'),
-  Difficulty('warmup', 'Dumbbell Squire', 'A few weeks to a few months in. Knows where the mats live.',
-      'SQUIRE TODAY, LEGEND LATER'),
-  Difficulty('sweat', 'Rep Ranger', 'Trains most weeks, for about a year. Has opinions about grip.', 'RANGES REPS, NOT CATTLE'),
-  Difficulty('pain', 'Gain Warlock', 'About two years in. Summons the pump on demand.', 'CASTS PUMP ON SELF'),
-  Difficulty('brutal', 'Barbell Warlord', 'Years of serious lifting. The squat rack fears them.',
-      'CONQUERS RACKS, RETURNS PLATES'),
-  Difficulty('nightmare', 'Ascended Swolemancer', 'Many years, competition level. Gyms whisper their name.',
-      'HAS BEEN WARNED BY GRAVITY'),
+  Difficulty('sofa', 'Sofa Mode', 'Never lifted, or not for years. The gentlest workouts.', 'THE SOFA WILL REMEMBER YOU'),
+  Difficulty('warmup', 'Warm-up Mode', 'A few weeks to a few months in. Easy, steady workouts.', 'EVERY LEGEND STARTS HERE'),
+  Difficulty('sweat', 'Sweat Mode', 'Training most weeks, for about a year. Proper sweaty workouts.', 'TOWEL STRONGLY RECOMMENDED'),
+  Difficulty('pain', 'Pain Mode', 'About two years in. Hard workouts, real effort.', 'OUCH, BUT MAKE IT GAINS'),
+  Difficulty('brutal', 'Brutal Mode', 'Years of serious lifting. Very hard workouts.', 'THE RACK FEARS YOU NOW'),
+  Difficulty('nightmare', 'Nightmare Mode', 'Many years, competition level. The hardest workouts there are.',
+      'GRAVITY FILED A COMPLAINT'),
 ];
 
 int difficultyIndex(String? id) {

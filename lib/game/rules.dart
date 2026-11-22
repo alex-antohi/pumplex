@@ -21,12 +21,12 @@ typedef DifficultyRules = ({
 /// steps from 1.0 to 2.0 (rules.md §1); 3 exercises at the easiest, 8 at
 /// the hardest (data-schema.md). Targets and streak N are placeholders.
 const difficultyRules = <DifficultyRules>[
-  (exercisesPerWorkout: 3, targetSets: 2, xpMultiplier: 1.0, streakN: 2), // Couch Spawn
-  (exercisesPerWorkout: 3, targetSets: 3, xpMultiplier: 1.2, streakN: 2), // Dumbbell Squire
-  (exercisesPerWorkout: 4, targetSets: 3, xpMultiplier: 1.4, streakN: 2), // Rep Ranger
-  (exercisesPerWorkout: 5, targetSets: 4, xpMultiplier: 1.6, streakN: 3), // Gain Warlock
-  (exercisesPerWorkout: 6, targetSets: 4, xpMultiplier: 1.8, streakN: 3), // Barbell Warlord
-  (exercisesPerWorkout: 8, targetSets: 5, xpMultiplier: 2.0, streakN: 4), // Ascended Swolemancer
+  (exercisesPerWorkout: 3, targetSets: 2, xpMultiplier: 1.0, streakN: 2), // Sofa
+  (exercisesPerWorkout: 3, targetSets: 3, xpMultiplier: 1.2, streakN: 2), // Warm-up
+  (exercisesPerWorkout: 4, targetSets: 3, xpMultiplier: 1.4, streakN: 2), // Sweat
+  (exercisesPerWorkout: 5, targetSets: 4, xpMultiplier: 1.6, streakN: 3), // Pain
+  (exercisesPerWorkout: 6, targetSets: 4, xpMultiplier: 1.8, streakN: 3), // Brutal
+  (exercisesPerWorkout: 8, targetSets: 5, xpMultiplier: 2.0, streakN: 4), // Nightmare
 ];
 
 DifficultyRules rulesFor(int difficulty) =>

@@ -143,7 +143,7 @@ void main() {
 
   test('design data: 6 difficulty modes, 5 areas, one default area per class', () {
     expect(difficulties.map((d) => d.id), ['sofa', 'warmup', 'sweat', 'pain', 'brutal', 'nightmare']);
-    expect(difficulties.map((d) => d.name).last, 'Ascended Swolemancer'); // D31
+    expect(difficulties.every((d) => d.name.endsWith('Mode')), isTrue);
     expect([for (final r in difficultyRules) r.xpMultiplier], [1.0, 1.2, 1.4, 1.6, 1.8, 2.0]);
     expect(areas.length, 5);
     expect(areas.map((a) => a.marks).toSet(), MarkStyle.values.toSet()); // every mark style used
@@ -582,7 +582,7 @@ void main() {
     expect(find.text('HOW HARD DO YOU GO?'), findsWidgets);
     await t.tap(find.byKey(const ValueKey('difficulty-sweat')));
     await t.pump(const Duration(milliseconds: 100));
-    expect(find.text('RANGES REPS, NOT CATTLE'), findsOneWidget); // title card
+    expect(find.text('TOWEL STRONGLY RECOMMENDED'), findsOneWidget); // title card
     expect(find.text('DIFFICULTY 3 OF 6'), findsOneWidget);
     await t.tap(find.text('NEXT: STARTING AREA'));
     await _frames(t);
@@ -590,7 +590,7 @@ void main() {
     await t.tap(find.byKey(const ValueKey('area-castle')));
     await t.tap(find.text('NEXT: READY?'));
     await _frames(t);
-    expect(find.text('REP RANGER'), findsOneWidget);
+    expect(find.text('SWEAT MODE'), findsOneWidget);
     await t.tap(find.text("LET'S GO!!!"));
     await _frames(t, 70); // welcome burst
 
