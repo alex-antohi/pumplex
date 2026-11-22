@@ -160,7 +160,7 @@ There is no hub screen (D49), no bottom bar and no menu (D50). The app opens on 
   - Beside it: the **last-session tile** (date, sets, XP). Under them: the **lifter editor**, starting on BODY.
   - **The lifter editor** is the setup screen of one property, without BACK / NEXT (D51): BODY (the character
     screen), CLASS (the class card with the difficulty slider) or AREA (the area card). Swipe it up for the next
-    property, down for the one before, round and round; small bars at its right edge show which. Every change
+    property, down for the one before, round and round (a vertical carousel: it slides in from the swipe side); small bars at its right edge show which. Every change
     saves at once; a slider saves when it is let go, so each body change is one entry in the history.
   - **Tap the session tile:** the past-sessions card takes the space (one training day at a time, swipe both
     ways, round and round, "n / m"), and the lifter becomes a tile (class, difficulty, area). Tap the lifter

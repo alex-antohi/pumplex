@@ -824,6 +824,13 @@ void main() {
       await _frames(t, 20);
     }
     expect(find.text('BUILD YOUR LIFTER'), findsOneWidget);
+    // Circular both ways: down from BODY is AREA, up from AREA is BODY.
+    await t.fling(editor, const Offset(0, 300), 1000);
+    await _frames(t, 20);
+    expect(find.byKey(const ValueKey('area-card')), findsOneWidget);
+    await t.fling(editor, const Offset(0, -300), 1000);
+    await _frames(t, 20);
+    expect(find.text('BUILD YOUR LIFTER'), findsOneWidget);
     final bodies = store.bodyHistory.length;
     await t.drag(find.byKey(const ValueKey('slider-WEIGHT')), const Offset(400, 0));
     await _frames(t, 4);

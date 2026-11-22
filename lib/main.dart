@@ -192,6 +192,9 @@ class _GameShellState extends State<GameShell> {
         _head = false;
       });
 
+  /// 1: the next property comes in from below (swipe up), -1: from above.
+  int _propDir = 1;
+
   /// Where and when a finger went down on the lifter editor.
   Offset? _swipeFrom;
   Duration _swipeAt = Duration.zero;
@@ -209,7 +212,8 @@ class _GameShellState extends State<GameShell> {
     setState(() {
       _focus = _Focus.lifter;
       _head = false;
-      _prop = (_prop + (d.dy < 0 ? 1 : -1)) % 3;
+      _propDir = d.dy < 0 ? 1 : -1;
+      _prop = (_prop + _propDir) % 3; // round and round: AREA -> BODY, BODY -> AREA
     });
   }
 
@@ -345,7 +349,29 @@ class _GameShellState extends State<GameShell> {
             _swipeAt = e.timeStamp;
           },
           onPointerUp: _swipeEnd,
-          child: LayoutBuilder(builder: (context, box) => _editor(box.biggest, inset)),
+          // A vertical carousel: the next property slides in from the swipe side.
+          child: ClipRect(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 280),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              layoutBuilder: (current, previous) => Stack(children: [...previous, ?current]),
+              transitionBuilder: (child, anim) {
+                final incoming = child.key == ValueKey('prop-$_prop');
+                return SlideTransition(
+                  position: Tween(
+                    begin: Offset(0, incoming ? _propDir.toDouble() : -_propDir.toDouble()),
+                    end: Offset.zero,
+                  ).animate(anim),
+                  child: child,
+                );
+              },
+              child: KeyedSubtree(
+                key: ValueKey('prop-$_prop'),
+                child: LayoutBuilder(builder: (context, box) => _editor(box.biggest, inset)),
+              ),
+            ),
+          ),
         );
     }
   }
