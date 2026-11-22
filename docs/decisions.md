@@ -43,50 +43,23 @@ Ask the owner before you design against a decision. Add each new decision here, 
 
 ## 2. Where the current boards conflict
 
-| Board / file | What it shows | Decision | What design must change |
-|---|---|---|---|
-| `docs/moodboard/README.md`, "Class select" | "No height slider. Owner decision, 21 November 2026" | D10, D11 | Remove the line. The creator keeps a height slider. |
-| `canvas/Creator.dc.html` | Sex toggle, FAT and MUSCLE sliders only. "STEP 1 OF 3". | D10, D11 | Add a HEIGHT slider (the app stretches the sprite vertically). Change the kicker to "STEP 1 OF 5". |
-| `canvas/Workout.dc.html`, README "Workout screen" | Top bar `SESSION 14 · SCRAPPER` and a running `mm:ss` clock. | D7 | Remove the session counter and the clock. Keep the class and area name. |
-| Same | I WORKED button, "disabled until at least one set is logged". | D6, D7 | Remove the button. The day closes by itself. ◀ HUB goes back to the hub. |
-| Same | Reward overlay on I WORKED: WORKOUT CRUSHED, `+[XP] XP`, TIME, BACK TO HUB. | D7, D19 | Remove the overlay. Give the reward per set: an XP pop on each set and CRITICAL SET. Show the freeze-frame card on a level-up. |
-| Same | "Tap a card to switch" the active exercise. 3 fixed exercises. | D15, D16 | Add swipe to switch from the pool, + ADD EXERCISE, ✕ remove and ↺ back to the first exercise. Show 3 to 8 cards. |
-| Same, and `canvas/Difficulty.dc.html` | "XP rules are still open (brief 4.8)". "The real multipliers come with the XP rules." | D19 | The XP rules exist now in `docs/rules.md`. The multiplier goes from 1.0 to 2.0 in even steps. |
-| `readability.html`, `canvas/Readability.dc.html` | "SESSION 9 · DAY 2 OF 7 · 6 EXERCISES", "Heavy Lower" | D5, D7 | Remove the 7-day plan, the session counter and the fixed named workout. Use the hub and workout views. |
-| `animation.html`, `canvas/Animation.dc.html` | `pr_flex` "for a new PR". Front squat as the "Heavy Lower main lift". | D2, D5 | There are no PRs. Use the flex for a level-up or a critical set. Remove "Heavy Lower". |
-| `canvas/ClassSelect.dc.html`, README "Preview bodies" | Each class shows its own preview body. | D25 | Show the user's body from step 1. Class colour and (later) the class outfit show the class. |
-| README intro, `canvas/Main.dc.html`, `game_look.html` | "Character classes are not decided yet." "Classes TBD". | D8, D9 | Classes are decided: one per equipment type. Only the final names are open. |
-| All setup boards | Each step is a separate phone frame. There is no transition. | D23 | Specify the transition for each change of view. The character stays on screen between views. |
+Checked on 22 Nov 2026 at commit `b954de3` (design demo and moodboard: "follow owner decisions D6-D30").
 
-### Design demo (`docs/demo/`, from branch `design/demo-flow`, checked 22 Nov 2026 at commit `403a9f0`)
+All earlier conflicts are fixed. The boards and the demo now have the HEIGHT slider, the user's body on class select,
+no preloader, no START TRAINING, no clock, no `SESSION n`, no I WORKED, no reward screen, no DANGER ZONE, rows by date,
+6 difficulty levels, XP from `docs/rules.md`, 3 to 8 exercises with swap, add and remove, and a D23 transitions table
+(`docs/moodboard/README.md` "Transitions between views").
 
-The first build (branch `claude/game-flow-2dbf96`) follows the decisions, not the demo, in these places.
+Still open (no decision is broken, but the app and the design differ):
 
-| Demo screen / file | What it shows | Decision | What the build does | What design must change |
+| Board / file | What it shows | Decision | What the app does | Next step |
 |---|---|---|---|---|
-| `01-preloader.html` | A loading screen with a fake progress bar and "Tap to skip" before every launch. | D29 | No preloader. The app opens on the hub or the creator. | Remove the preloader screen. |
-| `02-character.html` | Sex toggle, FAT and MUSCLE sliders only. | D10, D11 | Keeps the HEIGHT slider. | Add a HEIGHT slider. |
-| `03-class.html`, `shared/demo.js` `CLASSES[].body` | Each class shows its own preview body. | D25 | Shows the body from step 1. | Use the user's body. |
-| `07-hub.html` | A START TRAINING button. | D7 | The workout card (TRAIN ▶) opens the workout. | Remove START TRAINING. |
-| `08-workout.html` | `SESSION n` kicker, a running `mm:ss` clock and an I WORKED button. | D6, D7 | No counter, no clock, no I WORKED. | Remove the counter, the clock and the button. |
-| `09-reward.html` | A reward screen after I WORKED: LOOT DROP, where the XP came from, gear drops, TIME UNDER IRON, "n SESSIONS SURVIVED". | D7, D19 | No reward screen. XP on each set, CRITICAL SET, the freeze-frame card on a level-up. | Turn the loot look into the per-set and level-up rewards. Gear drops can show on the level-up card. |
-| `10-history.html` | Rows named `SESSION n`, total time "OF PURE EFFORT", START TRAINING in the empty state. | D7 | Rows by date. No session numbers. | Use dates. Remove the time and START TRAINING. |
-| `12-menu.html` DANGER ZONE | RESTART SETUP: a new lifter and path. Since `403a9f0` it keeps the sessions, XP and gear. | D30, D13 | Not built. EDIT CHARACTER changes the setup and keeps the XP. | Remove the DANGER ZONE and RESTART SETUP. The profile's change path / difficulty / world / body (`?edit=1`) is enough. |
-| `12-menu.html` SOUND | A sound toggle. | None (no sound files yet) | A disabled SOUND row with a SOON tag (placeholder). | Deliver the sound pack. |
-| `BRIEF.md` "No emojis" | Pixel SVG icons only. | None (design rule) | The app still uses emoji as placeholders (areas, gear, milestones, buttons). | Deliver the pixel icon set. The app swaps them in. |
+| `docs/demo/shared/demo.js` difficulty names | Couch Spawn … Ascended Swolemancer. | D28 (names are proposals) | Sofa Mode … Nightmare Mode. | **Ask the owner** which names to use. |
+| `12-menu.html` SOUND | A sound toggle. | None (no sound files yet) | A disabled SOUND row with a SOON tag (placeholder). | Design delivers the sound pack. |
+| `docs/demo/BRIEF.md` "No emojis" | Pixel SVG icons only. | None (design rule) | Emoji placeholders (areas, gear, milestones, buttons). | Design delivers the pixel icon set. The app swaps them in. |
+| `docs/demo/` screens | The new demo layout (character, workout, profile and others). | None | The app still has the first-build layout. | Port the demo layout into the app. |
 
-Fixed in `403a9f0` (no longer a conflict):
-
-- `04-difficulty.html`: 6 levels (Couch Spawn … Ascended Swolemancer), multipliers 1.0 to 2.0 in even steps (D28, D19). The names stay proposals.
-- `shared/demo.js` XP: follows `docs/rules.md` (D19).
-- `08-workout.html`: 3 to 8 exercises, swipe or SWAP to switch, back to the first exercise, skip, remove and add (D15, D16). The exercise pools and set targets per rung are still placeholders (D27).
-
-Aligned and built from the demo: the Profile screen (`11-profile.html`: level title, the path, milestones, PAST SESSIONS),
-the full-screen menu (`12-menu.html`: YOU, GAINS INSURANCE, LOOK AND FEEL) and the level titles (Fresh Spawn … Mythic Meathead, design proposals).
-
-Checked, no conflict: no board shows rest days or a weekly plan, except the Readability board above.
-Note: the Difficulty board has 6 modes, and the app uses the same 6 modes (D28).
-Note: the app now has the starting areas, the difficulty modes and the workout layout from the design boards. The owner's rules apply: no I WORKED button, no clock, no "SESSION n", and the height slider stays.
+Built from the demo: the Profile screen, the full-screen menu and the level titles (Fresh Spawn … Mythic Meathead, design proposals).
 Note: the Workout board allows extra sets up to 9. That is fine, but sets beyond 2× the target give 0 XP (D19).
 
 ## 3. What design owns
