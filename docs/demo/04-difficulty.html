@@ -9,78 +9,43 @@
 <style>
 /* ---------- 04 difficulty: screen-only styles (.dif-…) ---------- */
 .dif-screen { display: flex; flex-direction: column; gap: var(--s3); padding-top: var(--s3); }
-.dif-head .title { font-size: 36px; }
 
-/* selected-rung card: emblem + name + one-liner + XP badge */
+/* the rung card: everything about one rung on one card */
 .dif-card {
   --t: var(--line);
-  position: relative;
-  display: flex; gap: var(--s3); align-items: center;
-  min-height: 132px;
-  padding: var(--s3);
-  box-shadow: 6px 6px 0 var(--t);
+  position: relative; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center; gap: var(--s2);
+  min-height: 430px; padding: var(--s5) var(--s5) var(--s4);
+  text-align: center;
+  background:
+    radial-gradient(color-mix(in srgb, var(--t) 34%, transparent) 2px, transparent 2.5px) 0 0 / 20px 20px,
+    var(--raised);
+  border: var(--border-thick);
+  box-shadow: 8px 8px 0 var(--t);
+  margin-right: 8px;
 }
-.dif-emblem { flex: none; width: 72px; height: 88px; }
-.dif-emblem svg { display: block; width: 72px; height: 88px; shape-rendering: crispEdges; }
-.dif-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--s1); }
-.dif-rank { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+/* stripes that thicken with the rung: the card itself gets heavier */
+.dif-card::before {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: var(--heat, 20%);
+  background: repeating-linear-gradient(-45deg, color-mix(in srgb, var(--t) 30%, transparent) 0 10px, transparent 10px 20px);
+  border-top: 3px solid var(--ink);
+  pointer-events: none;
+}
+.dif-card > * { position: relative; }
+.dif-emblem { width: var(--em, 96px); height: calc(var(--em, 96px) * 22 / 18); flex: none; margin-top: var(--s2); }
+.dif-emblem svg { display: block; width: 100%; height: 100%; shape-rendering: crispEdges; filter: drop-shadow(4px 4px 0 var(--ink)); }
+.dif-rank { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-top: var(--s2); }
 .dif-name {
-  font-family: var(--display); font-size: 28px; line-height: 1; letter-spacing: 1px; text-transform: uppercase;
-  color: var(--t); text-shadow: 2px 2px 0 var(--ink);
+  font-family: var(--display); font-size: 36px; line-height: 1; letter-spacing: 1px; text-transform: uppercase;
+  color: var(--t); text-shadow: 3px 3px 0 var(--ink);
+  text-wrap: balance;
 }
-.dif-line { margin: 0; font-size: 13px; line-height: 1.35; color: var(--text); font-weight: 700; }
-.dif-badge {
-  position: absolute; right: -6px; top: -14px;
-  font-family: var(--display); font-size: 22px; line-height: 1; letter-spacing: 1px;
-  color: var(--ink); background: var(--t);
-  border: 3px solid var(--ink); box-shadow: 3px 3px 0 var(--ink);
-  padding: 4px 10px 3px;
-  transform: rotate(4deg);
-}
-.dif-badge[hidden] { display: none; }
-.dif-card.is-empty .dif-name { color: var(--muted); font-size: 24px; }
-.dif-card.is-empty .dif-line { color: var(--muted); font-weight: 400; }
-.dif-card.hit .dif-emblem { animation: dif-pop .24s steps(3, end) both; }
-.dif-card.hit .dif-badge { animation: dif-stamp .3s steps(4, end) both; }
-@keyframes dif-pop { 0% { transform: translateY(8px) scale(.7); } 100% { transform: none; } }
-@keyframes dif-stamp { 0% { transform: rotate(14deg) scale(1.9); opacity: 0; } 100% { transform: rotate(4deg) scale(1); opacity: 1; } }
+.dif-line { margin: 0; max-width: 270px; font-size: 14px; line-height: 1.4; color: var(--text); font-weight: 700; }
+.dif-gems { margin-top: var(--s2); padding: 6px 10px; background: var(--ink); border: 3px solid var(--t); }
+.dif-xp { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--t); }
 
-/* the ladder: two rails behind the rungs, bottom rung = beginner */
-.dif-ladder { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 0 16px; margin-top: var(--s2); }
-.dif-ladder::before, .dif-ladder::after {
-  content: ""; position: absolute; top: -10px; bottom: -6px; width: 12px;
-  background: repeating-linear-gradient(180deg, var(--line) 0 10px, var(--violet-lo) 10px 12px);
-  border-left: 2px solid var(--ink); border-right: 2px solid var(--ink);
-}
-.dif-ladder::before { left: 4px; }
-.dif-ladder::after { right: 4px; }
-.dif-ladder .pick {
-  position: relative; z-index: 1;
-  min-height: 44px; padding: 0 var(--s3) 0 var(--s2);
-  justify-content: flex-start;
-  border-left: 8px solid var(--pick-c);
-}
-.dif-ladder .pick b { flex: 1; font-size: 19px; }
-.dif-ladder .pick:focus-visible { outline: 3px dashed var(--text); outline-offset: 3px; z-index: 2; }
-.dif-ladder .pick:active { transform: translate(3px, 3px); box-shadow: none; }
-.dif-ladder .pick[aria-checked="true"] { box-shadow: 4px 4px 0 var(--pink); border-left-color: var(--ink); }
-.dif-ladder .pick[aria-checked="true"]::after {
-  content: "YOU"; position: absolute; left: -10px; top: 50%; margin-top: -10px; z-index: 2;
-  font-size: 10px; font-weight: 700; letter-spacing: 1px; line-height: 14px;
-  background: var(--pink); color: var(--ink); border: 2px solid var(--ink); padding: 1px 3px;
-}
-.dif-ladder .pick[aria-checked="true"] b { padding-left: 22px; }
-
-/* the difficulty meter on each rung: 8 rising bars, no numbers */
-.dif-meter { flex: none; display: flex; align-items: flex-end; gap: 2px; height: 22px; }
-.dif-meter i { width: 5px; background: var(--raised); border: 1px solid var(--ink); }
-.dif-meter i.on { background: var(--pick-c); }
-.pick[aria-checked="true"] .dif-meter i { background: rgba(11, 4, 20, .18); }
-.pick[aria-checked="true"] .dif-meter i.on { background: var(--ink); }
-
-.dif-ends { display: flex; justify-content: space-between; padding: 0 var(--s2); font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
 .dif-hint {
-  margin: var(--s1) 0 0; display: flex; gap: var(--s2); align-items: flex-start;
+  margin: 0; display: flex; gap: var(--s2); align-items: flex-start;
   font-size: 12px; line-height: 1.4; color: var(--muted);
 }
 .dif-hint .nametag { flex: none; font-size: 10px; padding: 0 6px; }
@@ -89,36 +54,23 @@
 </head>
 <body class="px">
 <main class="phone" data-screen="difficulty">
-  <header class="topbar">
+  <header class="topbar setup-top">
     <button class="icon-btn" type="button" id="dif-back" aria-label="Back to class"></button>
-    <div class="steps" role="img" aria-label="Setup step 3 of 5"><i class="on"></i><i class="on"></i><i class="now"></i><i></i><i></i></div>
+    <div class="setup-t">
+      <div class="setup-k"><p class="kicker" id="dif-kicker">STEP 3 OF 5</p><div class="steps" role="img" aria-label="Setup step 3 of 5"><i class="on"></i><i class="on"></i><i class="now"></i><i></i><i></i></div></div>
+      <h1 class="title">How hard do you go?</h1>
+    </div>
   </header>
 
   <section class="screen dif-screen">
-    <div class="dif-head">
-      <p class="kicker">STEP 3 OF 5 · PICK YOUR RUNG</p>
-      <h1 class="title">How hard do you go?</h1>
-    </div>
-
-    <div class="dif-card stage is-empty" id="dif-card" aria-live="polite">
-      <div class="dif-emblem" id="dif-emblem"></div>
-      <div class="dif-info">
-        <span class="dif-rank" id="dif-rank">RUNG UNKNOWN</span>
-        <span class="dif-name" id="dif-name">No rung yet</span>
-        <p class="dif-line" id="dif-line">Climb as high as your lifting history goes. Higher rungs pay more XP.</p>
-      </div>
-      <span class="dif-badge" id="dif-badge" hidden></span>
-    </div>
-
-    <div>
-      <div class="dif-ladder" role="radiogroup" aria-label="Difficulty" id="dif-ladder"></div>
-      <p class="dif-hint"><span class="nametag" style="--tag-c: var(--sky)">TIP</span>
-        <span><b>Not sure? Pick lower.</b> Crushing it beats getting crushed. You can switch rungs any time in your profile.</span></p>
-    </div>
+    <div id="dif-pick" role="group" aria-roledescription="carousel" aria-label="Difficulty"></div>
+    <p class="swp-hint">Swipe to climb. Higher rungs earn more XP.</p>
+    <p class="dif-hint"><span class="nametag" style="--tag-c: var(--sky)">TIP</span>
+      <span><b>Not sure? Pick lower.</b> Crushing it beats getting crushed. You can switch rungs any time in your profile.</span></p>
   </section>
 
   <footer class="foot">
-    <button class="btn cta" type="button" id="dif-next" disabled>NEXT: STARTING AREA</button>
+    <button class="btn cta" type="button" id="dif-next">NEXT: STARTING AREA</button>
   </footer>
 </main>
 
@@ -128,8 +80,8 @@
   if (!PX.require(["cls"], "class")) return;
 
   var $ = function (id) { return document.getElementById(id); };
-  var card = $("dif-card"), ladder = $("dif-ladder"), next = $("dif-next");
-  var L = PX.DIFFICULTIES, N = L.length, picked = null, buttons = [];
+  var next = $("dif-next");
+  var L = PX.DIFFICULTIES, N = L.length;
 
   $("dif-back").innerHTML = PX.icon("back");
   $("dif-back").onclick = function () { PX.go("class"); };
@@ -171,75 +123,48 @@
   }
   function wrap(inner) { return '<svg viewBox="0 0 18 22" aria-hidden="true">' + inner + "</svg>"; }
 
-  function fmtMult(m) { return "XP x" + (Math.round(m * 100) / 100).toString(); }
+  var edit = PX.editMode();
 
-  /* ---------- ladder: top rung first in the DOM, so the list reads as a climb ---------- */
-  for (var k = N - 1; k >= 0; k--) {
-    (function (d, tier) {
-      var b = document.createElement("button");
-      b.type = "button"; b.className = "pick"; b.dataset.id = d.id;
-      b.setAttribute("role", "radio"); b.setAttribute("aria-checked", "false"); b.tabIndex = -1;
-      b.setAttribute("aria-label", d.name + ", rank " + tier + " of " + N + ". " + d.line);
-      b.style.setProperty("--pick-c", PX.c(d.color));
-      var bars = "";
-      for (var j = 1; j <= N; j++) bars += '<i class="' + (j <= tier ? "on" : "") + '" style="height:' + (6 + j * 2) + 'px"></i>';
-      b.innerHTML = "<b></b><span class=\"dif-meter\" aria-hidden=\"true\">" + bars + "</span>";
-      b.firstChild.textContent = d.name;
-      b.onclick = function () { pick(d.id, true); };
-      ladder.appendChild(b); buttons.push(b);
-    })(L[k], k + 1);
-  }
-
-  /* arrow keys climb the ladder like a native radio group (up = harder) */
-  ladder.addEventListener("keydown", function (e) {
-    var i = picked ? indexOf(picked) : -1, d = 0;
-    if (e.key === "ArrowUp" || e.key === "ArrowRight") d = 1;
-    else if (e.key === "ArrowDown" || e.key === "ArrowLeft") d = -1;
-    else return;
-    e.preventDefault();
-    var j = i < 0 ? 0 : Math.max(0, Math.min(N - 1, i + d));
-    pick(L[j].id, true);
-    btnFor(L[j].id).focus();
-  });
+  var saved = PX.get().difficulty, start = Math.max(0, indexOf(saved));
   function indexOf(id) { for (var i = 0; i < N; i++) if (L[i].id === id) return i; return -1; }
-  function btnFor(id) { for (var i = 0; i < buttons.length; i++) if (buttons[i].dataset.id === id) return buttons[i]; return null; }
 
-  function render() {
-    var i = picked ? indexOf(picked) : -1, d = i >= 0 ? L[i] : null;
-    buttons.forEach(function (b) {
-      var on = !!d && b.dataset.id === d.id;
-      b.setAttribute("aria-checked", on ? "true" : "false");
-      b.tabIndex = on || (!d && b.dataset.id === L[0].id) ? 0 : -1;
-    });
-    card.classList.toggle("is-empty", !d);
-    $("dif-emblem").innerHTML = emblem(d ? i + 1 : 0, d ? d.color : null);
-    if (d) {
-      card.style.setProperty("--t", PX.c(d.color));
-      $("dif-rank").textContent = i === N - 1 ? "TOP RUNG" : i === 0 ? "BOTTOM RUNG" : "RUNG " + (i + 1) + " OF " + N;
-      $("dif-name").textContent = d.name;
-      $("dif-line").textContent = d.line;
-      $("dif-badge").textContent = fmtMult(d.mult);
-      $("dif-badge").hidden = false;
-    } else {
-      card.style.removeProperty("--t");
-      $("dif-badge").hidden = true;
-    }
-    next.disabled = !d;
+  function renderCard(el, i) {
+    var d = L[i], col = PX.c(d.color);
+    el.className = "swp-card dif-card";
+    el.style.setProperty("--t", col);
+    el.style.setProperty("--heat", (12 + i * 9) + "%");
+    el.style.setProperty("--em", (84 + i * 6) + "px");
+    el.setAttribute("role", "tabpanel");
+    el.setAttribute("aria-label", d.name + ", rung " + (i + 1) + " of " + N + ". " + d.line);
+    el.innerHTML = '<div class="dif-emblem">' + emblem(i + 1, d.color) + '</div>' +
+      '<span class="dif-rank">RUNG ' + (i + 1) + " OF " + N + "</span>" +
+      '<span class="dif-name"></span><p class="dif-line"></p>' +
+      '<span class="dif-gems">' + PX.gems(d, 20) + "</span>" +
+      '<span class="dif-xp">' + ["BASE XP", "A BIT MORE XP", "MORE XP", "LOTS MORE XP", "HEAPS MORE XP", "DOUBLE XP"][i] + "</span>";
+    el.querySelector(".dif-name").textContent = d.name;
+    el.querySelector(".dif-line").textContent = d.line;
   }
 
-  function pick(id, feedback) {
-    if (indexOf(id) < 0) return;
-    picked = id;
-    PX.save({ difficulty: id });
-    render();
-    if (feedback) { card.classList.remove("hit"); void card.offsetWidth; card.classList.add("hit"); }
+  var picker = PX.picker({
+    root: $("dif-pick"), count: N, index: start,
+    color: function (i) { return PX.c(L[i].color); },
+    label: function (i) { return L[i].name; },
+    render: renderCard,
+    onChange: function (i) { PX.save({ difficulty: L[i].id }); }
+  });
+  PX.save({ difficulty: L[start].id });
+
+  next.onclick = function () {
+    if (edit) { PX.toast("RUNG CHANGED. NEW WORKOUTS FROM THE NEXT SESSION.", { ms: 1400 }); setTimeout(function () { PX.go("profile"); }, 900); }
+    else PX.go("area");
+  };
+  if (edit) {
+    $("dif-kicker").textContent = "PROFILE · CHANGE DIFFICULTY"; $("dif-kicker").classList.add("edit-kicker");
+    document.querySelector(".steps").hidden = true;
+    next.textContent = "SAVE RUNG";
+    $("dif-back").setAttribute("aria-label", "Back to the profile");
+    $("dif-back").onclick = function () { PX.go("profile"); };
   }
-
-  next.onclick = function () { if (picked) PX.go("area"); };
-
-  var saved = PX.get().difficulty;
-  if (saved && indexOf(saved) >= 0) picked = saved;
-  render();
 })();
 </script>
 </body>

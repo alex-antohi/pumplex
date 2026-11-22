@@ -275,6 +275,7 @@
   $("icoDiff").innerHTML = ICO.diff; $("icoDiff").style.setProperty("--ic", PX.c(df.color));
   $("diffName").textContent = df.name;
   $("diffLine").textContent = df.line;
+  $("diffName").insertAdjacentHTML("afterend", " " + PX.gems(df, 12));
   var idx = PX.DIFFICULTIES.indexOf(df), rungs = $("rungs");
   rungs.style.setProperty("--dc", PX.c(df.color));
   PX.DIFFICULTIES.forEach(function (d, j) {
@@ -293,10 +294,11 @@
 
   /* first workout preview: names + empty target slots (no numbers) */
   var q = $("quest");
-  PX.workout().forEach(function (ex) {
+  /* the app picks it: N exercises from the class pool, target sets from the difficulty (data-schema) */
+  PX.planWorkout().forEach(function (ex) {
     var li = document.createElement("li"), b = document.createElement("b"), sl = document.createElement("span");
-    b.textContent = ex.name; sl.className = "sum-slots"; sl.setAttribute("aria-label", ex.target + " working sets");
-    for (var k = 0; k < ex.target; k++) sl.appendChild(document.createElement("i"));
+    b.textContent = PX.exercise(ex.exerciseId).name; sl.className = "sum-slots"; sl.setAttribute("aria-label", ex.targetSets + " working sets");
+    for (var k = 0; k < ex.targetSets; k++) sl.appendChild(document.createElement("i"));
     li.appendChild(b); li.appendChild(sl); q.appendChild(li);
   });
 

@@ -138,6 +138,31 @@
   .pro-actions .btn { font-size: 16px; padding: 0 var(--s2); gap: 6px; white-space: nowrap; }
   .pro-actions .btn svg { width: 18px; height: 18px; flex: none; }
   .pro-history { grid-column: 1 / -1; }
+  .pro-bonus .gems i { color: rgba(11, 4, 20, .25); }
+  .pro-bonus .gems i.on { color: var(--ink); }
+  .pro-bonus .gems svg { filter: none; }
+  .pro-climb { margin: 0; padding: var(--s3); display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); background: var(--ink); border: 3px solid var(--lime); font-size: 12px; color: var(--muted); }
+  .pro-climb b { color: var(--lime); }
+  .pro-climb[hidden] { display: none; }
+  .pro-climb .btn { min-height: 44px; font-size: 15px; }
+  .pro-stats { display: flex; flex-direction: column; gap: var(--s2); padding: var(--s3); }
+  .pro-stat { display: grid; grid-template-columns: 92px 1fr 36px; align-items: center; gap: var(--s2); font-size: 11px; font-weight: 700; letter-spacing: 1px; }
+  .pro-stat i { height: 12px; background: var(--ink); border: 2px solid var(--ink); position: relative; }
+  .pro-stat i::after { content: ""; position: absolute; inset: 0 auto 0 0; width: var(--w); background: var(--st-c); }
+  .pro-stat b { text-align: right; color: var(--st-c); }
+  .pro-stat-note { margin: 0; font-size: 11px; color: var(--muted); }
+  .pro-mast { list-style: none; margin: 0; padding: var(--s3); display: flex; flex-direction: column; gap: 6px; }
+  .pro-mast li { display: grid; grid-template-columns: 1fr auto; gap: 0 var(--s2); align-items: center; }
+  .pro-mast b { font-family: var(--display); font-weight: 400; font-size: 17px; letter-spacing: 1px; text-transform: uppercase; }
+  .pro-mast small { grid-column: 1 / -1; font-size: 10px; font-weight: 700; letter-spacing: 1px; color: var(--muted); }
+  .pro-gear { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); }
+  .pro-slot { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 64px; padding: var(--s2); text-align: left; background: var(--surface); color: var(--text); border: 3px solid var(--ink); box-shadow: 4px 4px 0 var(--rar); cursor: pointer; }
+  .pro-slot:last-child { grid-column: 1 / -1; }
+  .pro-slot small, .pro-slot em { font-size: 10px; font-weight: 700; letter-spacing: 1px; font-style: normal; color: var(--muted); }
+  .pro-slot em { color: var(--rar); }
+  .pro-slot b { font-family: var(--display); font-weight: 400; font-size: 16px; letter-spacing: 1px; text-transform: uppercase; }
+  .pro-slot.empty { opacity: .5; cursor: default; }
+  .pro-slot:focus-visible { outline: 3px dashed var(--text); outline-offset: 3px; }
 
   /* empty: no sessions yet */
   .pro-empty {
@@ -207,6 +232,24 @@
       </div>
     </section>
 
+    <!-- climb suggestion (rules.md §4.3): the user decides, never automatic -->
+    <p class="pro-climb" id="climb" hidden></p>
+    <!-- stats (rules.md §4.4) -->
+    <section aria-labelledby="h-stats">
+      <h2 class="pro-sec-h" id="h-stats"><span>Stats</span></h2>
+      <div class="panel pro-stats" id="stats"></div>
+    </section>
+    <!-- mastery (rules.md §4.1) -->
+    <section aria-labelledby="h-mast">
+      <h2 class="pro-sec-h" id="h-mast"><span>Mastery</span></h2>
+      <ul class="panel pro-mast" id="mastery"></ul>
+    </section>
+    <!-- gear (rules.md §6) -->
+    <section aria-labelledby="h-gear">
+      <h2 class="pro-sec-h" id="h-gear"><span>Gear</span></h2>
+      <div class="pro-gear" id="gear"></div>
+      <p class="pro-badges-note" id="gearNote"></p>
+    </section>
     <!-- milestones -->
     <section aria-labelledby="h-badges">
       <h2 class="pro-sec-h" id="h-badges"><span>Milestones</span></h2>
@@ -219,6 +262,8 @@
     <section class="pro-actions" aria-label="Change your build">
       <button class="btn" type="button" id="toDiff"></button>
       <button class="btn" type="button" id="toChar"></button>
+      <button class="btn" type="button" id="toPath"></button>
+      <button class="btn" type="button" id="toWorld"></button>
       <button class="btn ghost pro-history" type="button" id="toHist"></button>
     </section>
   </section>
@@ -234,8 +279,9 @@
   if (!PX.require(["cls", "difficulty", "area"], "character")) return;
 
   var s = PX.get(), k = PX.cls(), d = PX.difficulty(), a = PX.area();
-  var lv = PX.levelInfo(s.xp || 0);
-  var sessions = s.sessions || [];
+  var G = PX.game();
+  var lv = G.level;
+  var sessions = (s.sessions || []).filter(function (x) { return !x.legacy; });
   var $ = function (id) { return document.getElementById(id); };
   var phone = document.querySelector(".phone");
 
@@ -266,9 +312,14 @@
   $("back").onclick = function () { PX.go("hub"); };
   $("cta").onclick = function () { PX.go("hub"); };
   $("toDiff").innerHTML = ICO.gem + "<span>Change difficulty</span>";
-  $("toDiff").onclick = function () { PX.go("difficulty"); };
+  /* data-schema: class, difficulty, area and body can all change later; each opens one setup screen in edit mode */
+  $("toDiff").onclick = function () { PX.go("difficulty", { query: "edit=1" }); };
   $("toChar").innerHTML = ICO.body + "<span>Rebuild body</span>";
-  $("toChar").onclick = function () { PX.go("character"); };
+  $("toChar").onclick = function () { PX.go("character", { query: "edit=1" }); };
+  $("toPath").innerHTML = PX.icon("swap") + "<span>Change path</span>";
+  $("toPath").onclick = function () { PX.go("class", { query: "edit=1" }); };
+  $("toWorld").innerHTML = ICO.crown + "<span>Change world</span>";
+  $("toWorld").onclick = function () { PX.go("area", { query: "edit=1" }); };
   $("toHist").innerHTML = PX.icon("history") + "<span>Past sessions</span>";
   $("toHist").onclick = function () { PX.go("history"); };
 
@@ -300,7 +351,7 @@
   $("xpLeft").textContent = lv.toNext + " XP to level " + (lv.level + 1);
   $("xpInto").textContent = lv.pct + "% there";
 
-  var sets = sessions.reduce(function (n, x) { return n + PX.totalSets(x.sets); }, 0);
+  var sets = sessions.reduce(function (n, x) { return n + PX.sessionSets(x); }, 0);
   var quip = $("quip");
   if (!sessions.length) {
     quip.innerHTML = "<b>Fresh off the spawn point.</b> Zero sessions, infinite potential.";
@@ -308,7 +359,7 @@
     var next = PX.LEVEL_TITLES[Math.min(lv.level, PX.LEVEL_TITLES.length - 1)];
     quip.innerHTML = "<b></b> Next rank: <b></b>.";
     quip.children[0].textContent = sessions.length + (sessions.length === 1 ? " session" : " sessions") + ", " + sets + " sets smashed.";
-    quip.children[1].textContent = next.toUpperCase();
+    quip.children[1].textContent = next === lv.title ? "LEVEL " + (lv.level + 1) : next.toUpperCase();
   }
 
   /* ---------- path ---------- */
@@ -327,8 +378,7 @@
   PX.DIFFICULTIES.forEach(function (x, i) {
     var r = document.createElement("i"); if (i < di) r.className = "on"; if (i === di) r.className = "now"; $("rungs").appendChild(r);
   });
-  var pct = Math.round((d.mult - 1) * 100);
-  $("bonus").textContent = pct > 0 ? "+" + pct + "% XP" : "BASE XP";
+  $("bonus").innerHTML = PX.gems(d, 12); /* the picture of the multiplier, no number */
 
   /* ---------- world ---------- */
   $("worldCard").style.setProperty("--card-c", PX.c(a.color));
@@ -338,13 +388,13 @@
   $("markText").textContent = a.record;
 
   /* ---------- milestones (rarity ladder: muted, lime, sky, violet, orange, pink) ---------- */
-  var maxOne = 0;
-  sessions.forEach(function (x) { for (var n in x.sets) maxOne = Math.max(maxOne, x.sets[n] || 0); });
+  /* Overkill: more sets than the target on any exercise (targets differ per difficulty) */
+  var beatTarget = sessions.some(function (x) { return PX.live(x.exercises).some(function (e) { return e.sets > e.targetSets; }); });
   var MEDALS = [
     { name: "First blood", ico: "drop",  rar: "muted",  done: sessions.length >= 1, ok: "Session one. Done.",  todo: "Finish 1 session" },
     { name: "On a roll",   ico: "fire",  rar: "lime",   done: sessions.length >= 5, ok: "5 sessions deep.",    todo: function () { return (5 - sessions.length) + " more sessions"; } },
     { name: "50 sets club", ico: "bell", rar: "sky",    done: sets >= 50,           ok: "Half a hundred.",     todo: function () { return (50 - sets) + " sets to go"; } },
-    { name: "Overkill",    ico: "bolt",  rar: "violet", done: maxOne >= 4,          ok: "Beat a set target.",  todo: "Go past a target" },
+    { name: "Overkill",    ico: "bolt",  rar: "violet", done: beatTarget,          ok: "Beat a set target.",  todo: "Go past a target" },
     { name: "Double digits", ico: "crown", rar: "orange", done: sessions.length >= 10, ok: "10 sessions. Legend.", todo: function () { return (10 - sessions.length) + " more sessions"; } },
     { name: "Centurion",   ico: "skull", rar: "pink",   done: sets >= 100,          ok: "100 sets. Respect.",  todo: function () { return (100 - sets) + " sets to go"; } }
   ];
@@ -367,6 +417,53 @@
   note.innerHTML = "<b></b>";
   note.firstChild.textContent = got === MEDALS.length ? "Every medal. Go touch grass." : got + " of " + MEDALS.length + " medals";
   if (got && got < MEDALS.length) note.appendChild(document.createTextNode(". The rest are hiding in the hub."));
+  /* ---------- climb suggestion ---------- */
+  if (G.climb) {
+    var cl = $("climb"); cl.hidden = false;
+    cl.innerHTML = "<b>READY TO CLIMB?</b> " + G.streak.weeks + " weeks on streak and most of your workout has 3 stars. " +
+      '<button class="btn" type="button" id="climbGo"></button>';
+    $("climbGo").textContent = "Try " + G.climb.name;
+    $("climbGo").onclick = function () { PX.go("difficulty", { query: "edit=1" }); };
+  }
+  /* ---------- stats: working sets per exercise type, no weights ---------- */
+  var SC = { STRENGTH: "orange", ENDURANCE: "sky", AGILITY: "lime" }, maxS = Math.max(1, G.stats.STRENGTH, G.stats.ENDURANCE, G.stats.AGILITY);
+  $("stats").innerHTML = Object.keys(SC).map(function (k) {
+    var v = G.stats[k];
+    return '<div class="pro-stat" style="--st-c:' + PX.c(SC[k]) + '"><span>' + k + '</span><i style="--w:' + Math.round(100 * v / maxS) + '%"></i><b>' + v + "</b></div>";
+  }).join("") + '<p class="pro-stat-note">1 working set = 1 point. Weights and machines build STRENGTH, cardio ENDURANCE, bodyweight AGILITY.</p>';
+  /* ---------- mastery: stars per exercise of the current workout ---------- */
+  $("mastery").innerHTML = PX.planWorkout().map(function (p) {
+    var m = G.mastery[p.exerciseId] || { stars: 0, checks: 0 };
+    var left = m.stars >= 5 ? "MAXED" : (3 - m.checks % 3) + " MORE TO THE NEXT STAR";
+    return "<li><b>" + PX.exercise(p.exerciseId).name + "</b>" + PX.stars(m.stars, 12) + "<small>" + (m.suggestSwap ? "STUCK 3 WEEKS · TRY A SWAP" : left) + "</small></li>";
+  }).join("");
+  /* ---------- gear: unlocked by levels and the bounty board, one item per slot ---------- */
+  var eq = Object.assign({}, s.equipped || {});
+  function paintGear() {
+    $("gear").innerHTML = PX.SLOTS.map(function (slot) {
+      var mine = G.owned.filter(function (o) { return o.item.slot === slot; }).map(function (o) { return o.item; });
+      var uniq = []; mine.forEach(function (it) { if (uniq.indexOf(it) < 0) uniq.push(it); });
+      var on = PX.ITEMS[eq[slot]] || null;
+      var r = on ? PX.RARITIES[on.rarity] : null;
+      return '<button type="button" class="pro-slot' + (uniq.length ? "" : " empty") + '" data-slot="' + slot + '"' + (uniq.length ? "" : " disabled") +
+        ' style="--rar:' + (r ? PX.c(r.color) : "var(--line)") + '"><small>' + slot.toUpperCase() + "</small><b>" + (on ? on.name : uniq.length ? "TAP TO EQUIP" : "LOCKED") + "</b>" +
+        "<em>" + (on ? r.name.toUpperCase() : uniq.length ? uniq.length + " IN THE BAG" : "LEVEL UP TO LOOT") + "</em></button>";
+    }).join("");
+    $("gear").querySelectorAll(".pro-slot:not(.empty)").forEach(function (b) {
+      b.onclick = function () {
+        var slot = b.dataset.slot;
+        var mine = []; G.owned.forEach(function (o) { if (o.item.slot === slot && mine.indexOf(o.item) < 0) mine.push(o.item); });
+        var at = mine.indexOf(PX.ITEMS[eq[slot]]);
+        var nx = at + 1 >= mine.length ? null : mine[at + 1]; /* cycle through owned items, then none */
+        if (nx) eq[slot] = nx.id; else delete eq[slot];
+        PX.save({ equipped: eq });
+        paintGear();
+        PX.toast(nx ? "EQUIPPED: " + nx.name.toUpperCase() : slot.toUpperCase() + " SLOT EMPTY", { ms: 1400 });
+      };
+    });
+  }
+  paintGear();
+  $("gearNote").textContent = G.owned.length + " item" + (G.owned.length === 1 ? "" : "s") + " looted · gear is cosmetic for now · bounty board " + G.boardChecks + " of 3";
 })();
 </script>
 </body>

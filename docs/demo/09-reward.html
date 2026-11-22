@@ -71,6 +71,15 @@
   padding: 6px 8px 4px; transform: rotate(4deg);
 }
 .rw-bonus b { display: block; font-size: 26px; font-weight: 400; }
+.rw-bonus .gems { display: flex; justify-content: center; margin-top: 4px; }
+.rw-bonus .gems i { color: rgba(11, 4, 20, .25); }
+.rw-bonus .gems i.on { color: var(--ink); }
+.rw-bonus .gems svg { filter: none; }
+.rw-whys { display: flex; flex-wrap: wrap; gap: 6px; margin: var(--s2) 0; }
+.rw-why { padding: 2px 6px; font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--muted); background: var(--ink); border: 2px solid var(--line); }
+.rw-why b { color: var(--lime); }
+.rw-item.rw-gear { border-color: var(--tier-c); box-shadow: 4px 4px 0 var(--tier-c); }
+.rw-item.rw-gear .rw-item-name b { color: var(--tier-c); }
 .rw-bonus.in { animation: rw-stamp .28s steps(4, end) both; }
 @keyframes rw-stamp { 0% { transform: rotate(4deg) scale(1.9); opacity: 0; } 100% { transform: rotate(4deg) scale(1); opacity: 1; } }
 
@@ -176,23 +185,24 @@
   var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
   var st = PX.get();
 
+  var G = PX.game();
   /* ---------- test hooks: ?test=levelup | ?test=plain fabricate a reward from the latest session (memory only) ---------- */
   var tm = /[?&]test=(levelup|plain)\b/.exec(location.search);
-  if (tm && st.sessions.length) {
-    var last = st.sessions[st.sessions.length - 1];
-    var before = st.xp - last.xp;
-    var lvB = PX.levelInfo(before).level, lvA = PX.levelInfo(st.xp).level;
-    if (tm[1] === "levelup" && lvA === lvB) { st.xp = PX.xpToReach(lvA + 1) + Math.round(last.xp / 3); }
-    if (tm[1] === "plain" && lvA !== lvB) { st.xp = PX.xpToReach(lvA) + last.xp + 40; }
-    st.lastReward = { sessionId: last.id, xp: last.xp,
-      levelBefore: PX.levelInfo(st.xp - last.xp).level, levelAfter: PX.levelInfo(st.xp).level };
+  var real = st.sessions.filter(function (x) { return !x.legacy; });
+  if (tm && real.length) {
+    var last = real[real.length - 1], lx = G.byDate[last.date].total;
+    var lvNow = G.level.level, lvPrev = PX.levelInfo(G.total - lx).level;
+    var lvB = tm[1] === "levelup" ? Math.min(lvNow - 1, lvPrev) : lvNow;
+    var drops = G.owned.filter(function (o) { return o.level > lvB; }).map(function (o) { return o.item.id; });
+    st.lastReward = { date: last.date, round: 1, xp: lx, xpBefore: Math.min(G.total - lx, PX.xpToReach(lvB + 1) - 1),
+      levelBefore: lvB, levelAfter: lvNow, parts: G.byDate[last.date], bountiesDone: 0, drops: tm[1] === "levelup" ? drops : [] };
+    if (tm[1] === "plain") st.lastReward.xpBefore = G.total - Math.min(lx, G.level.into);
   }
-
   var screen = $("#rwScreen"), foot = $("#rwFoot");
   var R = st.lastReward;
 
   /* ---------- empty / error state ---------- */
-  if (!R || !(R.xp >= 0)) {
+  if (!R || !(R.xp >= 0) || !R.date) {
     $("#rwKicker").textContent = "LOOT DROP · EMPTY";
     screen.classList.add("rw-empty");
     screen.innerHTML =
@@ -205,18 +215,20 @@
   }
 
   /* ---------- data ---------- */
-  var sIdx = -1;
-  st.sessions.forEach(function (s, i) { if (s.id === R.sessionId) sIdx = i; });
-  var sess = sIdx >= 0 ? st.sessions[sIdx] : null;
-  var klass = PX.cls(sess && sess.cls) || PX.cls() || PX.CLASSES.scrapper;
-  var ar = PX.area(sess && sess.area) || PX.area() || PX.AREAS.rustbelt;
-  var diff = PX.difficulty() || PX.DIFFICULTIES[0];
-  var after = PX.levelInfo(st.xp), beforeXp = Math.max(0, st.xp - R.xp), before = PX.levelInfo(beforeXp);
+  var sess = PX.sessionByDate(R.date);
+  var reals = st.sessions.filter(function (x) { return !x.legacy; });
+  var sIdx = sess ? reals.indexOf(sess) : -1;
+  var klass = PX.cls(sess && sess.classId) || PX.cls() || PX.CLASSES.scrapper;
+  var ar = PX.area(sess && sess.areaId) || PX.area() || PX.AREAS.rustbelt;
+  /* the difficulty this session used (data-schema: each session saves it) */
+  var diff = PX.difficulty(sess && sess.difficultyId) || PX.difficulty() || PX.DIFFICULTIES[0];
+  var P = R.parts || {};
+  var after = PX.levelInfo(G.total), before = PX.levelInfo(Math.max(0, R.xpBefore));
   var levelUp = R.levelAfter > R.levelBefore;
   var newInfo = PX.levelInfo(PX.xpToReach(R.levelAfter));
-  var LADDER = ["muted", "lime", "sky", "violet", "orange"];
-  var TIERS = ["COMMON", "UNCOMMON", "RARE", "EPIC", "LEGENDARY"];
+  var LADDER = ["muted", "lime", "sky", "violet", "orange", "pink"];
   var rung = function (i) { return Math.min(Math.max(i, 0), LADDER.length - 1); };
+  var DROPS = (R.drops || []).map(function (id) { return PX.ITEMS[id]; }).filter(Boolean);
 
   /* the animated body closest to the player's character (6 bodies: fat = muscle = 0 / 50 / 100) */
   var ch = st.character || { sex: "male", fat: 50, muscle: 50 };
@@ -252,10 +264,11 @@
     "LOOT SECURED. SWEAT NOT REFUNDABLE."
   ];
   var quip = QUIPS[(sIdx >= 0 ? sIdx : 0) % QUIPS.length];
+  if (R.round > 1) quip = "ROUND TWO. SAME DAY, SAME SESSION, MORE SWEAT.";
   if (levelUp) quip = "NEW LEVEL. SAME SWEATY YOU.";
 
   /* ---------- top bar ---------- */
-  $("#rwKicker").innerHTML = "LOOT DROP · <b>SESSION " + (sIdx >= 0 ? sIdx + 1 : "?") + "</b>";
+  $("#rwKicker").innerHTML = "WORKOUT DONE · <b>SESSION " + (sIdx >= 0 ? sIdx + 1 : "?") + (R.round > 1 ? " · ROUND 2" : "") + "</b>";
   var tag = $("#rwTag"); tag.hidden = false; tag.textContent = klass.name; tag.style.setProperty("--tag-c", PX.c(klass.color));
 
   var phone = $(".phone");
@@ -267,27 +280,36 @@
   phone.style.setProperty("--rw-lc", PX.c(LADDER[rung(R.levelAfter - 1)] === "muted" ? "violet" : LADDER[rung(R.levelAfter - 1)]));
 
   /* ---------- build the page (every beat starts hidden) ---------- */
-  var clock = sess ? PX.fmtClock(sess.end - sess.start) : "--:--";
-  var totalSets = sess ? PX.totalSets(sess.sets) : 0;
-  var plan = sess ? PX.workout(sess.cls) : [];
-  var names = sess ? Object.keys(sess.sets) : [];
-  plan.forEach(function (p) { if (names.indexOf(p.name) < 0) names.push(p.name); });
-
-  var lootHtml = names.map(function (name) {
-    var n = sess.sets[name] || 0, target = 0;
-    plan.forEach(function (p) { if (p.name === name) target = p.target; });
-    if (!n) return '<li class="rw-item skip rw-hide"><div class="rw-item-name"><b>' + esc(name) + '</b><small>SKIPPED · IT WILL REMEMBER</small></div></li>';
+  var clock = sess ? PX.fmtMinutes(sess.minutes || 0) : "--";
+  var totalSets = sess ? PX.sessionSets(sess) : 0;
+  /* the sets per exercise, drawn as marks (no rarity here: rarity is for gear, rules.md §6) */
+  var lootHtml = (sess ? PX.live(sess.exercises) : []).map(function (e) {
+    var name = PX.exercise(e.exerciseId).name, n = e.sets || 0, target = e.targetSets;
+    if (!n) return '<li class="rw-item skip rw-hide"><div class="rw-item-name"><b>' + esc(name) + '</b><small>SKIPPED · NO PENALTY, EVER</small></div></li>';
     var slots = Math.max(n, target), marks = "", group = "";
     for (var j = 0; j < slots; j++) {
       group += '<i class="' + (j < n ? "" : "off") + '" style="--x-c:' + (j < n ? PX.c(LADDER[rung(j)]) : "var(--muted)") + '">' + X + "</i>";
       if ((j + 1) % 5 === 0 || j === slots - 1) { marks += "<span>" + group + "</span>"; group = ""; }
     }
-    var t = rung(n - 1);
-    return '<li class="rw-item rw-hide" style="--tier-c:' + PX.c(LADDER[t]) + '" aria-label="' + esc(name) + ", " + n + " working sets, " + TIERS[t].toLowerCase() + '">' +
-      '<div class="rw-item-name"><b>' + esc(name) + " · " + n + " SET" + (n === 1 ? "" : "S") + "</b><small>" + TIERS[t] + (n > target && target ? " · OVERKILL" : "") + "</small></div>" +
+    var tag = n > 2 * target ? "TARGET x2 · EXTRA SETS GIVE NO XP" : n > target ? "BONUS SETS · x1.5 XP" : n === target ? "TARGET CRUSHED" : n + " OF " + target;
+    return '<li class="rw-item rw-hide" style="--tier-c:' + PX.c(n >= target ? "lime" : "sky") + '" aria-label="' + esc(name) + ", " + n + " of " + target + ' working sets">' +
+      '<div class="rw-item-name"><b>' + esc(name) + " · " + n + " SET" + (n === 1 ? "" : "S") + "</b><small>" + tag + "</small></div>" +
       '<div class="rw-marks" aria-hidden="true">' + marks + "</div></li>";
   }).join("");
-  if (!sess) lootHtml = '<li class="rw-item skip rw-hide"><div class="rw-item-name"><b>LOOT LOG LOST</b><small>THE XP STILL COUNTS. THE RECEIPT RAN OFF.</small></div></li>';
+  if (!sess) lootHtml = '<li class="rw-item skip rw-hide"><div class="rw-item-name"><b>SET LOG LOST</b><small>THE XP STILL COUNTS. THE RECEIPT RAN OFF.</small></div></li>';
+  /* where the XP came from (rules.md §1), as short lines */
+  var why = [];
+  if (P.day && R.round < 2) why.push("FIRST SETS OF THE DAY <b>+" + P.day + "</b>");
+  if (P.crits) why.push("CRITICAL SET" + (P.crits > 1 ? "S" : "") + "! <b>x" + P.crits + "</b>");
+  if (P.over) why.push("BONUS SETS OVER TARGET <b>" + P.over + "</b>");
+  if (P.streakPct) why.push("STREAK BONUS <b>" + G.streak.weeks + " WEEK" + (G.streak.weeks === 1 ? "" : "S") + "</b>");
+  if (R.bountiesDone) why.push("BOUNTY DONE <b>" + R.bountiesDone + "</b>");
+  if (R.round > 1) why.push("TODAY'S SESSION, TOPPED UP");
+  var whyHtml = why.map(function (w) { return '<span class="rw-why">' + w + "</span>"; }).join("");
+  var gearHtml = DROPS.map(function (it) {
+    var r = PX.RARITIES[it.rarity];
+    return '<li class="rw-item rw-gear rw-hide" style="--tier-c:' + PX.c(r.color) + '"><div class="rw-item-name"><b>' + esc(it.name) + "</b><small>" + r.name.toUpperCase() + " · " + it.slot.toUpperCase() + " · NEW GEAR</small></div></li>";
+  }).join("");
 
   screen.innerHTML =
     '<div class="rw-hero frozen" id="rwHero">' +
@@ -299,19 +321,20 @@
     "</div>" +
     '<div class="rw-xp rw-hide" id="rwXp">' +
       '<div class="rw-xp-row"><div class="rw-xp-num" id="rwNum" aria-label="' + R.xp + ' XP earned">+0<small>XP</small></div>' +
-      '<div class="rw-bonus rw-hide" id="rwBonus">' + esc(diff.name) + " BONUS<b>x" + diff.mult + "</b></div></div>" +
+      '<div class="rw-bonus rw-hide" id="rwBonus">' + esc(diff.name) + " BONUS" + PX.gems(diff, 12) + "</div></div>" +
+      (whyHtml ? '<div class="rw-whys">' + whyHtml + "</div>" : "") +
       '<div class="rw-lv"><span class="display" id="rwLvName">LV ' + before.level + "<em>" + esc(before.title) + "</em></span>" +
       '<span class="kicker" id="rwLvNext">NEXT: LV ' + (before.level + 1) + "</span></div>" +
       '<div class="xpbar rw-bar" id="rwBar" style="--pct:' + before.pct + '%" role="progressbar" aria-label="Level progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + before.pct + '"><i></i></div>' +
       '<p class="rw-bar-note rw-hide" id="rwNote"></p>' +
     "</div>" +
     '<div class="rw-loot">' +
-      '<p class="kicker rw-loot-head rw-hide" id="rwLootHead">LOOT · ' + totalSets + " WORKING SET" + (totalSets === 1 ? "" : "S") + "</p>" +
-      '<ul class="rw-loot" style="list-style:none;margin:0;padding:0" id="rwList">' + lootHtml + "</ul>" +
+      '<p class="kicker rw-loot-head rw-hide" id="rwLootHead">' + totalSets + " WORKING SET" + (totalSets === 1 ? "" : "S") + (DROPS.length ? " · LOOT DROP" : "") + "</p>" +
+      '<ul class="rw-loot" style="list-style:none;margin:0;padding:0" id="rwList">' + gearHtml + lootHtml + "</ul>" +
     "</div>" +
     '<div class="rw-stats rw-hide" id="rwStats">' +
       '<span class="rw-stat">' + CLOCK + "TIME UNDER IRON <b>" + clock + "</b></span>" +
-      '<span class="rw-stat">' + FLAME + "<b>" + st.sessions.length + "</b> SESSIONS SURVIVED</span>" +
+      '<span class="rw-stat">' + FLAME + "<b>" + reals.length + "</b> SESSIONS SURVIVED</span>" +
     "</div>" +
     '<p class="rw-quip rw-hide" id="rwQuip">' + quip + "</p>";
 
@@ -340,7 +363,8 @@
     $("#rwLvNext").textContent = "NEXT: LV " + (info.level + 1);
   }
   function finalNote() {
-    note.innerHTML = "<b>" + after.toNext + " XP</b> TO " + esc(PX.levelInfo(PX.xpToReach(after.level + 1)).title);
+    var nt = PX.levelInfo(PX.xpToReach(after.level + 1)).title;
+    note.innerHTML = "<b>" + after.toNext + " XP</b> TO " + (nt === after.title ? "LEVEL " + (after.level + 1) : esc(nt));
   }
 
   var beats = [
@@ -425,6 +449,7 @@
       '<div class="rw-lvl-stage"><div class="starburst" aria-hidden="true"></div><div class="rw-lifter" role="img" aria-label="Your lifter flexing"></div></div>' +
       '<div class="slam-tag" style="--slam-c:var(--rw-lc)">LEVEL ' + R.levelAfter + "</div>" +
       '<div class="slam-sub" style="--slam-c:var(--rw-lc)">NEW TITLE: ' + esc(newInfo.title) + "</div>" +
+      (DROPS.length ? '<div class="slam-sub" style="--slam-c:' + PX.c(PX.RARITIES[DROPS[0].rarity].color) + '">LOOT: ' + esc(DROPS[0].name) + "</div>" : "") +
       '<div class="rw-lvl-hint">TAP TO CLAIM</div>';
     phone.appendChild(card);
     var lf = $(".rw-lifter", card);

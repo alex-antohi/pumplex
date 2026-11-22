@@ -73,6 +73,28 @@
 .hub-rule { display: flex; align-items: center; gap: var(--s2); margin: 0; padding: var(--s2) var(--s4); background: var(--ink); color: var(--hub-acc); font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
 .hub-rule i { flex: none; width: 14px; height: 14px; background: var(--hub-acc); border: 2px solid var(--ink); box-shadow: 2px 2px 0 var(--hub-acc-lo); }
 
+.hub-ex.many li { font-size: 19px; }
+/* this week: streak days, embers, bounties */
+.hub-week { --shadow-c: var(--orange); padding: 0; }
+.hub-week .hub-qhead .kicker { color: var(--orange); }
+.hub-embers { display: flex; gap: 2px; }
+.hub-embers i { display: block; width: 18px; height: 18px; color: var(--raised); }
+.hub-embers i.on { color: var(--orange); }
+.hub-embers svg { display: block; width: 100%; height: 100%; }
+.hub-days { display: flex; align-items: center; gap: var(--s2); padding: var(--s2) var(--s4); font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--muted); }
+.hub-days b { color: var(--text); }
+.hub-days em { font-style: normal; color: var(--orange); }
+.hub-dots { display: flex; gap: 3px; flex: none; }
+.hub-dots i { width: 12px; height: 12px; background: var(--raised); border: 2px solid var(--ink); }
+.hub-dots i.on { background: var(--orange); }
+.hub-bounties { list-style: none; margin: 0; padding: 0 var(--s4) var(--s3); display: flex; flex-direction: column; gap: 4px; }
+.hub-bounties li { display: flex; align-items: center; gap: var(--s2); font-size: 11px; font-weight: 700; letter-spacing: .5px; color: var(--text); }
+.hub-bounties li > span:nth-child(2) { flex: 1; }
+.hub-bounties b { color: var(--lime); }
+.hub-bounties li.done { color: var(--muted); text-decoration: line-through 2px var(--line); }
+.hub-bcheck { flex: none; width: 16px; height: 16px; border: 2px solid var(--orange); color: var(--lime); }
+.hub-bcheck svg { display: block; width: 100%; height: 100%; }
+.hub-run.still { animation: none !important; }
 /* last session line */
 .hub-last { display: flex; align-items: center; gap: var(--s2); margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
 .hub-last svg { width: 16px; height: 16px; flex: none; color: var(--orange); }
@@ -164,6 +186,11 @@
         <div class="hub-qhead"><p class="kicker" id="questKicker">NEXT WORKOUT</p><span class="hub-run" id="runTag" hidden>IN PROGRESS</span></div>
         <ul class="hub-ex" id="exList"></ul>
         <p class="hub-rule" id="rule"><i aria-hidden="true"></i><span></span></p>
+      </section>
+      <section class="panel hub-week" aria-labelledby="weekKicker">
+        <div class="hub-qhead"><p class="kicker" id="weekKicker">THIS WEEK</p><span class="hub-embers" id="embers"></span></div>
+        <div class="hub-days" id="days"></div>
+        <ul class="hub-bounties" id="bounties"></ul>
       </section>
       <p class="hub-last" id="last"></p>
     </div>
@@ -283,7 +310,8 @@
   $("lifter").setAttribute("aria-label", "Your lifter, a " + cls.name + ". Tap to flex.");
 
   /* ---------- level and XP ---------- */
-  var L = PX.levelInfo(s.xp || 0);
+  var G = PX.game();
+  var L = G.level;
   $("lvNum").textContent = L.level;
   $("lvTitle").textContent = L.title;
   $("lvMsg").innerHTML = "<em>" + L.toNext + " XP</em> TO LEVEL " + (L.level + 1);
@@ -293,15 +321,17 @@
   bar.setAttribute("aria-valuetext", L.toNext + " XP to level " + (L.level + 1));
 
   /* ---------- next workout: names only ---------- */
-  var cur = s.current;
-  var list = PX.workout();
+  var cur = s.current && s.current.date === PX.today() ? s.current : null;
+  var todays = PX.sessionByDate(PX.today());
+  /* the app picks it (brief rule 4): today's session if there is one, else a fresh plan */
+  var list = PX.live(cur ? cur.exercises : todays ? todays.exercises : PX.planWorkout());
   $("exList").innerHTML = "";
   list.forEach(function (ex) {
     var li = document.createElement("li");
-    li.textContent = ex.name;
-    var got = cur && cur.sets ? cur.sets[ex.name] || 0 : 0;
-    if (cur && got) {
-      if (got >= ex.target) li.className = "hub-done";
+    li.textContent = PX.exercise(ex.exerciseId).name;
+    var got = ex.sets || 0;
+    if (got) {
+      if (got >= ex.targetSets) li.className = "hub-done";
       var g = document.createElement("span");
       g.className = "hub-got"; g.textContent = got + (got === 1 ? " SET" : " SETS");
       li.appendChild(g);
@@ -312,19 +342,40 @@
   if (cur) {
     $("questKicker").textContent = "CURRENT WORKOUT";
     $("runTag").hidden = false;
+  } else if (todays) {
+    $("questKicker").textContent = "TODAY'S SESSION";
+    $("runTag").textContent = "DONE"; $("runTag").hidden = false; $("runTag").classList.add("still");
   }
+  if (list.length > 4) $("exList").classList.add("many");
+  /* ---------- this week: streak, embers, bounties (rules.md §3, §5) ---------- */
+  var S = G.streak;
+  var days = $("days"), dh = "";
+  for (var d = 0; d < Math.max(S.N, S.thisWeek); d++) dh += '<i class="' + (d < S.thisWeek ? "on" : "") + '"></i>';
+  days.innerHTML = '<span class="hub-dots">' + dh + "</span><span><b>" + S.thisWeek + " OF " + S.N + "</b> TRAINING DAYS" +
+    (S.thisWeek >= S.N ? " · STREAK SAFE" : "") + (S.weeks ? " · <em>" + S.weeks + "-WEEK STREAK</em>" : "") + "</span>";
+  days.setAttribute("aria-label", S.thisWeek + " of " + S.N + " training days this week. Streak " + S.weeks + " weeks. Missing days inside a week never break it.");
+  var em = "";
+  for (var e = 0; e < PX.RULES.emberMax; e++) em += '<i class="' + (e < S.embers ? "on" : "") + '">' + PX.icon("ember") + "</i>";
+  $("embers").innerHTML = em;
+  $("embers").setAttribute("role", "img");
+  $("embers").setAttribute("aria-label", S.embers + " of 3 embers. An ember keeps the streak alive when a week falls short.");
+  $("embers").title = "Embers: a week that falls short uses one, and the streak lives on";
+  $("bounties").innerHTML = G.bounties.map(function (b) {
+    return '<li class="' + (b.done ? "done" : "") + '"><span class="hub-bcheck" aria-hidden="true">' + (b.done ? PX.icon("check") : "") + "</span>" +
+      "<span>" + b.text.toUpperCase() + (b.need > 1 && !b.done ? " · " + b.got + "/" + b.need : "") + "</span><b>+" + b.xp + "</b></li>";
+  }).join("");
 
   /* ---------- last session / empty state ---------- */
-  var sessions = s.sessions || [];
+  var sessions = (s.sessions || []).filter(function (x) { return !x.legacy; });
   var last = $("last");
   if (!sessions.length) {
     last.innerHTML = PX.icon("bolt") + "<span><b>YOUR FIRST QUEST AWAITS.</b> NO PRESSURE. (SOME PRESSURE.)</span>";
   } else {
     var ls = sessions[sessions.length - 1];
-    var days = Math.floor((startOfDay(Date.now()) - startOfDay(ls.end || ls.start)) / 864e5);
-    var when = days <= 0 ? "TODAY" : days === 1 ? "YESTERDAY" : days + " DAYS AGO";
-    var n = PX.totalSets(ls.sets || {});
-    var tail = days > 10 ? " · THE BARBELL MISSES YOU" : "";
+    var ago = Math.floor((startOfDay(Date.now()) - startOfDay(ls.start)) / 864e5);
+    var when = ago <= 0 ? "TODAY" : ago === 1 ? "YESTERDAY" : ago + " DAYS AGO";
+    var n = PX.sessionSets(ls);
+    var tail = ago > 10 ? " · WELCOME BACK, NO HARD FEELINGS" : ""; /* rest never punishes (rules.md) */
     last.innerHTML = PX.icon("flame") + "<span>LAST SESSION: <b>" + when + "</b> · " + n + (n === 1 ? " SET" : " SETS") + tail + "</span>";
   }
   function startOfDay(t) { var d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); }
@@ -339,12 +390,9 @@
     paint(); tick = setInterval(paint, 1000);
     cta.setAttribute("aria-label", "Continue training");
   } else {
-    cta.innerHTML = PX.icon("play") + "<span>START TRAINING</span>";
+    cta.innerHTML = PX.icon("play") + "<span>" + (todays ? "TRAIN MORE TODAY" : "START TRAINING") + "</span>";
   }
-  cta.onclick = function () {
-    if (!PX.get().current) PX.save({ current: { start: Date.now(), active: 0, sets: {} } });
-    PX.go("workout");
-  };
+  cta.onclick = function () { PX.startWorkout(); PX.go("workout"); };
 
   /* ---------- navigation ---------- */
   $("menuBtn").innerHTML = PX.icon("menu");
