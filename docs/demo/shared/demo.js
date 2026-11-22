@@ -67,24 +67,24 @@
   };
   var CLASS_ORDER = ["scrapper", "bruiser", "paladin", "cablemancer"];
 
-  /* ---------- difficulty: the six rungs of moodboard "Difficulty" ----------
+  /* ---------- difficulty: the six modes of moodboard "Difficulty" (D28, the app's ids and names) ----------
      mult: rules.md §1, 1.0 at the lowest rung rising in even steps to 2.0.
      gems: the picture of the multiplier (no numbers on screen).
      exercises: data-schema, 3 at the easiest, 8 at the hardest.
      targetSets, streakN: PLACEHOLDER (data-schema: from the difficulty, values TBD). */
   var DIFFICULTIES = [
-    { id: "spawn",    name: "Couch Spawn",          color: "muted",  gems: 1, mult: 1.0, exercises: 3, targetSets: 2, streakN: 2,
-      line: "Never lifted, or not for years. Freshly respawned from the sofa.", joke: "THE SOFA WILL REMEMBER YOU" },
-    { id: "squire",   name: "Dumbbell Squire",      color: "lime",   gems: 2, mult: 1.2, exercises: 4, targetSets: 3, streakN: 2,
-      line: "A few weeks to a few months in. Knows where the mats live.", joke: "SQUIRE TODAY, LEGEND LATER" },
-    { id: "ranger",   name: "Rep Ranger",           color: "sky",    gems: 3, mult: 1.4, exercises: 5, targetSets: 3, streakN: 3,
-      line: "Trains most weeks, for about a year. Has opinions about grip.", joke: "RANGES REPS, NOT CATTLE" },
-    { id: "warlock",  name: "Gain Warlock",         color: "violet", gems: 4, mult: 1.6, exercises: 6, targetSets: 4, streakN: 3,
-      line: "About two years in. Summons the pump on demand.", joke: "CASTS PUMP ON SELF" },
-    { id: "warlord",  name: "Barbell Warlord",      color: "orange", gems: 5, mult: 1.8, exercises: 7, targetSets: 4, streakN: 4,
-      line: "Years of serious lifting. The squat rack fears them.", joke: "CONQUERS RACKS, RETURNS PLATES" },
-    { id: "ascended", name: "Ascended Swolemancer", color: "pink",   gems: 6, mult: 2.0, exercises: 8, targetSets: 5, streakN: 4,
-      line: "Many years, competition level. Gyms whisper their name.", joke: "HAS BEEN WARNED BY GRAVITY" }
+    { id: "sofa",    name: "Sofa Mode",          color: "muted",  gems: 1, mult: 1.0, exercises: 3, targetSets: 2, streakN: 2,
+      line: "Never lifted, or not for years. The gentlest workouts.", joke: "THE SOFA WILL REMEMBER YOU" },
+    { id: "warmup",   name: "Warm-up Mode",      color: "lime",   gems: 2, mult: 1.2, exercises: 4, targetSets: 3, streakN: 2,
+      line: "A few weeks to a few months in. Easy, steady workouts.", joke: "EVERY LEGEND STARTS HERE" },
+    { id: "sweat",   name: "Sweat Mode",           color: "sky",    gems: 3, mult: 1.4, exercises: 5, targetSets: 3, streakN: 3,
+      line: "Training most weeks, for about a year. Proper sweaty workouts.", joke: "TOWEL STRONGLY RECOMMENDED" },
+    { id: "pain",  name: "Pain Mode",         color: "violet", gems: 4, mult: 1.6, exercises: 6, targetSets: 4, streakN: 3,
+      line: "About two years in. Hard workouts, real effort.", joke: "OUCH, BUT MAKE IT GAINS" },
+    { id: "brutal",  name: "Brutal Mode",      color: "orange", gems: 5, mult: 1.8, exercises: 7, targetSets: 4, streakN: 4,
+      line: "Years of serious lifting. Very hard workouts.", joke: "THE RACK FEARS YOU NOW" },
+    { id: "nightmare", name: "Nightmare Mode", color: "pink",   gems: 6, mult: 2.0, exercises: 8, targetSets: 5, streakN: 4,
+      line: "Many years, competition level. The hardest workouts there are.", joke: "GRAVITY FILED A COMPLAINT" }
   ];
 
   /* ---------- starting areas (moodboard "Starting areas") ---------- */
@@ -136,7 +136,7 @@
   ];
   var SLOTS = ["head", "top", "bottom", "shoes", "weapon"];
   var ITEM_NAMES = {
-    head:   ["Sweaty Headband", "Bandana of Grit", "Chalk Crown", "Halo of Pump", "Helm of the Final PR"],
+    head:   ["Sweaty Headband", "Bandana of Grit", "Chalk Crown", "Halo of Pump", "Helm of the Final Rep"],
     top:    ["Stretched Tank", "Neon Stringer", "Hoodie of Holding", "Plate Mail Tee", "Mantle of Swole"],
     bottom: ["Sweatpants", "Squat-Proof Shorts", "Cargo of Gains", "Leggings of Thunder", "Greaves of Gravity"],
     shoes:  ["Flat Sneakers", "Lifting Flats", "Boots of the Stairs", "Treads of Torque", "Sandals of the Titan"],
@@ -442,7 +442,7 @@
     s.setupDone = true;
     s.character = { sex: "female", height: 50, fat: 25, muscle: 50 };
     s.bodyHistory = [{ at: Date.now() - 40 * 864e5, sex: "female", height: 50, fat: 25, muscle: 50 }];
-    s.cls = "scrapper"; s.difficulty = "ranger"; s.area = "rustbelt";
+    s.cls = "scrapper"; s.difficulty = "sweat"; s.area = "rustbelt";
     s.seenSetTip = true;
     var monday = weekKey(today()), todayIdx = (dateOf(today()).getDay() + 6) % 7;
     /* [weeks back, weekday, minutes from first to last mark, sets per exercise] - week 2 misses the streak target, an ember covers it */

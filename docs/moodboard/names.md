@@ -13,20 +13,20 @@ Rule: where demo and app differ, the demo wins (BRIEF.md), unless `decisions.md`
 | Free weights | paladin: Plate Paladin | warrior: Plate Paladin | Plate Paladin | Names match. |
 | Machines | cablemancer: Cablemancer | mage: Cablemancer | Cablemancer | Names match. |
 
-Note: the ids differ (demo `scrapper, bruiser, paladin, cablemancer`; app `speedy, rogue, warrior, mage`). D9 says ids never change, and HANDOFF says to use the demo ids in file names. The owner must pick one set, then both sides use it. Saved app data uses the app ids.
+**Decided (D31, 22 Nov 2026):** the ids are the design ids `scrapper, bruiser, paladin, cablemancer`. The app renames `speedy, rogue, warrior, mage` and migrates saved data once.
 
 ## Difficulty levels (D14, D28)
 
 | # | Demo (id: name) | App (id: name) | Proposed final | Reason |
 |---|---|---|---|---|
-| 1 | spawn: Couch Spawn | sofa: Sofa Mode | Couch Spawn | Fantasy tone (D14); "Mode" repeats on every level. |
-| 2 | squire: Dumbbell Squire | warmup: Warm-up Mode | Dumbbell Squire | RPG ranks read as a ladder. |
-| 3 | ranger: Rep Ranger | sweat: Sweat Mode | Rep Ranger | Same. |
-| 4 | warlock: Gain Warlock | pain: Pain Mode | Gain Warlock | Same. |
-| 5 | warlord: Barbell Warlord | brutal: Brutal Mode | Barbell Warlord | Same. |
-| 6 | ascended: Ascended Swolemancer | nightmare: Nightmare Mode | Ascended Swolemancer | Top rank; matches the "Swolemancer" brand line. |
+| 1 | sofa: Sofa Mode | sofa: Sofa Mode | Sofa Mode | Decided (D28). |
+| 2 | warmup: Warm-up Mode | warmup: Warm-up Mode | Warm-up Mode | Decided (D28). |
+| 3 | sweat: Sweat Mode | sweat: Sweat Mode | Sweat Mode | Decided (D28). |
+| 4 | pain: Pain Mode | pain: Pain Mode | Pain Mode | Decided (D28). |
+| 5 | brutal: Brutal Mode | brutal: Brutal Mode | Brutal Mode | Decided (D28). |
+| 6 | nightmare: Nightmare Mode | nightmare: Nightmare Mode | Nightmare Mode | Decided (D28). |
 
-The app's ids also differ. The app comment says "6 modes, `<WORD> MODE`"; the demo moved on (commit `403a9f0`).
+**Decided (D28, confirmed again 22 Nov 2026):** the MODE names and ids. The demo's Couch Spawn … Ascended Swolemancer are dropped: they sound like classes, which the owner's naming rule forbids. The demo now matches the app.
 
 ## Areas
 
@@ -44,7 +44,7 @@ The demo has 5 slots x 5 rarities = 25 items (one drop per level-up). The app ha
 
 | Slot | Demo (common to legendary) | App (unlock level) | Proposed final | Reason |
 |---|---|---|---|---|
-| Head | Sweaty Headband, Bandana of Grit, Chalk Crown, Halo of Pump, Helm of the Final PR | Sweatband of Mild Effort (2), Crown of Leg Day (8) | Demo list, with "Helm of the Final Rep" | D2: there are no PRs. |
+| Head | Sweaty Headband, Bandana of Grit, Chalk Crown, Halo of Pump, Helm of the Final Rep | Sweatband of Mild Effort (2), Crown of Leg Day (8) | Demo list | "Helm of the Final PR" was removed on 22 Nov 2026 (D2: there are no PRs). |
 | Top | Stretched Tank, Neon Stringer, Hoodie of Holding, Plate Mail Tee, Mantle of Swole | Tank Top of Vanity (3), Cape of Unearned Confidence (12) | Demo list | Five-rarity ladder. |
 | Bottom | Sweatpants, Squat-Proof Shorts, Cargo of Gains, Leggings of Thunder, Greaves of Gravity | Shorts, Too Short (5), Belt of Brace Yourself (18) | Demo list | Same. |
 | Shoes | Flat Sneakers, Lifting Flats, Boots of the Stairs, Treads of Torque, Sandals of the Titan | Squeaky Sneakers (4), Boots of Heavy Stomping (15) | Demo list | Same. |
@@ -79,4 +79,4 @@ Demo copy "Finish 1 session" and "N more sessions": change to training days (D6,
 | 6 | Gain Lord | Gain Lord | Gain Lord | Match. |
 | 7+ | Mythic Meathead | Mythic Meathead | Mythic Meathead | Match. The last title stays. |
 
-Check with the owner: "Fresh Spawn" (level 1) and "Couch Spawn" (difficulty 1) share the word "Spawn".
+Resolved: "Couch Spawn" is gone (D28), so "Fresh Spawn" (level 1) no longer clashes.
