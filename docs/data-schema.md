@@ -16,8 +16,8 @@ All data stays on the phone (`shared_preferences`, JSON values). One user, one c
 | Workouts | A set number of exercises taken from the class pool: 3, 3, 4, 5, 6, 8 from Sofa to Nightmare (D33). No swap, back to first, skip, remove or add (D32, 22 Nov 2026). Pools are TBD. |
 | Set target | Each exercise has a target number of working sets, from the difficulty. More sets than the target give bonus XP. |
 | XP sources | Working sets, training on a day. Old saved XP (legacy, streak, achievement) stays. |
-| Level | The level unlocks gear. The body stays as the sliders set it. |
-| Gear | Unlock items; equip one item per slot. Gear is the only unlock. |
+| Level | The level gives a level title. The body stays as the sliders set it. |
+| Gear | **Removed** (D38, 22 Nov 2026). The class outfit stays. |
 | Streak | **Removed** (D34, 22 Nov 2026). The streak XP that old sessions earned is saved once as XP events (§5.4). |
 | Achievements | **Removed** (D35, 22 Nov 2026). Saved `achievement` XP events stay. |
 | Old data | Delete the old kg/reps sets and swaps. Keep the old sessions, and turn them into XP. |
@@ -105,9 +105,8 @@ The workout has no tools since D32. The fields `added`, `removed` and a switched
 |---|---|---|
 | Class | `id`, `name`, `equipment` (none / home / free weights / machines), `exercisePool` | One class per equipment type. Ids (D31): `scrapper`, `bruiser`, `paladin`, `cablemancer`. Names are working names (D9). |
 | Difficulty | `id`, `name`, `order`, `exercisesPerWorkout` (3, 3, 4, 5, 6, 8; D33), `targetSets`, `xpMultiplier` | 6 levels (D28). Ids: `sofa`, `warmup`, `sweat`, `pain`, `brutal`, `nightmare`. Names are design proposals. No `streakN` (D34). |
-| Area | `id`, `name`, `palette`, `markStyle` (shells, wall marks…) | From the mood board. Ids (D36): `riptide`, `gainsgard`, `rustbelt`, `arcade`, `frostbite`. The id is also the design folder name (art and sound). |
+| Area | `id`, `name`, `palette`, `markStyle` (shells, wall marks…) | From the mood board. Ids (D36): `riptide`, `gainsgard`, `rustbelt`, `arcade`, `frostbite`. The id is also the design folder name for the art. |
 | Exercise | `id`, `name`, `classId`, `kind` | Id = `<class id>.<name>`, for example `paladin.squat`. Pools TBD. |
-| Item | `id`, `name`, `slot` (top, bottom, shoes, head, weapon), `unlockLevel`, `sprite` | Id = `<slot>.<name>`, for example `head.crown`. Sprites in `assets/gear/`. |
 
 Rule: never reuse or rename an `id`. Saved data points to it.
 The two exceptions are the class id change in D31 and the area id change in D36 (owner decisions).
@@ -121,8 +120,7 @@ The app migrates each one once (§5.2, §5.3).
 | `body_history_v1` | List of BODY_CHANGE. |
 | `sessions_v3` | Map date → SESSION with its SESSION_EXERCISE list. |
 | `xp_events_v1` | List of the saved XP_EVENTs: `legacy`, and the old `streak` and `achievement` XP. |
-| `gear_v1` | Owned item ids, and slot → equipped item id. |
-| `chaos`, `cel`, `sound` | Menu settings (true / false). `sound` is on by default. |
+| `gear_v1`, `chaos`, `cel`, `sound` | **Removed** (D38–D41). The app deletes these keys on every start. |
 | `class_ids_v0_backup` | Written once by the class id migration (§5.2): the old `profile_v1` and `sessions_v3` text. |
 | `area_ids_v0_backup` | Written once by the area id migration (§5.3): the old `profile_v1` and `sessions_v3` text. |
 | `streak_xp_frozen_v1` | `true` once the old streak XP is saved as XP events (§5.4). |
@@ -193,7 +191,7 @@ The first app build used the area ids `beach`, `castle` and `summit`. D36 replac
 3. Then it saves `profile_v1` and `sessions_v3` again with the new ids. This runs one time.
 4. The class id migration (§5.2) runs in the same step. Each one writes its own backup key.
 5. A restored backup file goes through the same steps.
-6. The area id is now also the art id (folder in `assets/areas/`, sound name). There is no separate art id.
+6. The area id is now also the art id (folder in `assets/areas/`). There is no separate art id.
 
 ### 5.4 Streak XP and achievements (D34, D35, 22 Nov 2026)
 
@@ -210,13 +208,14 @@ D34 removes the streak and D35 removes the achievements. No one loses XP. On sta
 
 ### 5.5 Backup files
 
-The backup file (version 4) holds the keys `profile_v1`, `body_history_v1`, `sessions_v3`, `xp_events_v1` and `gear_v1`.
-The menu settings and the one-time flag and backup keys are not in it.
+The backup file (version 5) holds the keys `profile_v1`, `body_history_v1`, `sessions_v3` and `xp_events_v1`.
+The one-time flag and backup keys are not in it.
 
 | Version | What the app does on import |
 |---|---|
-| 4 | Restores the keys. The old streak XP is already in `xp_events_v1`, so the app does not work it out again. |
-| 3 | Restores the keys and ignores `achievements_v1` (its XP events stay). The file has no saved streak XP, so the app works it out again (§5.4). |
+| 5 | Restores the keys. |
+| 4 | Restores the keys and ignores `gear_v1` (D38). The old streak XP is already in `xp_events_v1`, so the app does not work it out again. |
+| 3 | Restores the keys and ignores `achievements_v1` (its XP events stay) and `gear_v1`. The file has no saved streak XP, so the app works it out again (§5.4). |
 | 2 (old app) | Runs the §5.1 migration: old workout days become legacy sessions with legacy XP. There is no profile, so the setup runs again. Legacy sessions get no streak XP. |
 
 After each import, the class and area id migrations (§5.2, §5.3) run too.

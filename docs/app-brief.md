@@ -121,14 +121,16 @@ The class names come from the design team (D9). The final names are still open (
 | Alex / Anca flavors | Removed. One app id: `com.alex.gym_app`. |
 | Old sessions (`sessions_v2`), backup | One-time upgrade: backup file first, then legacy sessions with XP. |
 | 7-day pattern, START TRAINING, I WORKED / I RESTED, preloader | Removed (21 Nov). Free-form sessions, hub, set counting, XP and character creation built. |
-| CEL SHADER mode | Kept (`shaders/cel.frag`). |
+| CEL SHADER mode, chaos mode | Removed (22 Nov, D39, D40). |
 | Old logged sets and swaps | Deleted by the one-time upgrade, after its backup file (owner's decision, [data-schema.md](data-schema.md) §5). |
 | Class ids | The design ids since 22 Nov (D31). Saved data migrates once. |
 | Area ids | The design ids since 22 Nov (D36): `riptide`, `gainsgard`, `rustbelt`, `arcade`, `frostbite`. Saved data migrates once. |
 | Workout tools (swap, back to first, skip, remove, add) | Removed (22 Nov, D32). The workout is the list the app picks for the day. |
 | Streak, week target | Removed (22 Nov, D34). The old streak XP stays as saved XP events. |
-| Achievements, milestones | Removed (22 Nov, D35). The old achievement XP stays. Only gear unlocks remain. |
-| Design art | In the app since 22 Nov: fonts, pixel icons, class outfits, gear sprites, area scenes and the sound pack. |
+| Achievements, milestones | Removed (22 Nov, D35). The old achievement XP stays. |
+| Gear (items, unlocks, gear screen) | Removed (22 Nov, D38). The class outfits stay. |
+| Sound | Removed (22 Nov, D41), with the `audioplayers` package. |
+| Design art | In the app since 22 Nov: fonts, pixel icons, class outfits and area scenes. |
 | Layout | The app's screens are the layout. The HTML design demo is removed (D42). |
 | Release signing | From `android/key.properties` (see the [README](../README.md)). |
 

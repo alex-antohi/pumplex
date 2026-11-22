@@ -3,6 +3,10 @@
 Date: 21 November 2026. Status: draft v1. Owner: art director.
 Read with [../app-brief.md](../app-brief.md), [../app-flow.md](../app-flow.md) and [../moodboard/README.md](../moodboard/README.md).
 
+> **Out of date (22 Nov 2026):** D38–D41 removed gear items, chaos mode, the CEL SHADER mode and sound.
+> Do not use copy or pictures here that show them. [05-design-handoff.md](05-design-handoff.md) and
+> [../decisions.md](../decisions.md) win.
+
 Working name: **PUMPLEX™** (placeholder). Tagline: **"Train, not track."**
 Nothing in this plan is posted. No accounts were made.
 

@@ -7,7 +7,8 @@ The numbers per difficulty mode are in [app-flow.md](app-flow.md) §3.
 
 In the app now: §1 (except bounties), §2 (except loot drops and new game+).
 Removed on 22 Nov 2026: the streak and embers of §3 (D34) and achievements (D35).
-Not built yet: §4, §5 and gear rarity in §6.
+Removed on 22 Nov 2026: gear and loot, §6 (D38).
+Not built yet: §4 and §5.
 
 Sources of the ideas: Habitica (source code), D&D 5e, the Dark Souls and
 Bloodborne board games, Gloomhaven. Rule from the brief: **rest never punishes
@@ -62,9 +63,9 @@ Pace (a typical session is about 15 sets, or about 200 XP):
 - About 1 level per session around level 10.
 - About 1 level per week (3 to 4 sessions) around level 40.
 
-**Level-up:** a big animation, and a loot drop (gear with a rarity colour). The body does not change; the sliders stay as the user set them.
+**Level-up:** a big animation (the freeze-frame card with the level title). No loot drop: gear is removed (D38). The body does not change; the sliders stay as the user set them.
 
-**Level 50: new game+** (Habitica rebirth, Gloomhaven retirement). Optional. The level goes back to 1. The character keeps a cosmetic badge and its gear, and gets + 10% XP for each completed run (max + 30%).
+**Level 50: new game+** (Habitica rebirth, Gloomhaven retirement). Optional. The level goes back to 1. The character keeps a cosmetic badge and gets + 10% XP for each completed run (max + 30%).
 
 ## 3. Streak (removed)
 
@@ -113,10 +114,12 @@ Working sets feed one stat, by the exercise type:
   - "12 sets of push-ups this week."
   - "Train on 3 days."
   - "Try an exercise you have not done yet."
-- A bounty gives XP (section 1) and 1 checkmark on a "bounty board". 3 checkmarks = 1 item drop.
+- A bounty gives XP (section 1) and 1 checkmark on a "bounty board". 3 checkmarks = a reward, TBD (it was an item drop; gear is removed, D38).
 - Unfinished bounties expire. Nothing is lost.
 
-## 6. Gear and loot
+## 6. Gear and loot (removed)
+
+Removed on 22 Nov 2026 (D38): no items, no unlocks, no loot. Kept here as a record.
 
 - Slots: top, bottom, shoes, head, weapon (from the data schema).
 - Rarity colours: common, uncommon, rare, epic, legendary.

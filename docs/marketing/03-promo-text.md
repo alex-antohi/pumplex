@@ -3,6 +3,10 @@
 Date: 21 November 2026. Status: draft for team review. Nothing is posted.
 Sources: `docs/app-brief.md`, `docs/app-flow.md`, `README.md`, and the web research in section 1.
 
+> **Out of date (22 Nov 2026):** D38–D41 removed gear items, chaos mode, the CEL SHADER mode and sound.
+> Do not use copy or pictures here that show them. [05-design-handoff.md](05-design-handoff.md) and
+> [../decisions.md](../decisions.md) win.
+
 The name PUMPLEX™ may change. The copy writes it as `PUMPLEX™` every time. Use find-and-replace to change it.
 
 ## 0. Read this first: honesty rules
@@ -15,7 +19,7 @@ The app is in beta. Some systems exist now. Some do not exist yet.
 | Past sessions with time trained | Classes picked by equipment |
 | Backup and restore to a file | Fantasy-named difficulty levels |
 | Fully offline, no account, data on the phone | Starting areas (beach shells, castle wall marks) |
-| CEL SHADER mode, chaos mode | XP, levels, reward screen |
+| (CEL SHADER and chaos mode: removed, D39, D40) | XP, levels, reward screen |
 | Android only | Final class names, area names, level names, the workout list |
 
 Follow these rules:

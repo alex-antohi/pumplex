@@ -1,5 +1,7 @@
 # Gear sprites
 
+Not in the app: gear is removed (D38, 22 Nov 2026). These sprites are a design record.
+
 One **260x640** transparent overlay atlas per item, in `<slot>/<item-id>.png`, e.g. `top/top.cape.png`.
 Same layout as `../creator/body_atlas.png`: 52x64 cells, column = fat/25, row = (female ? 5 : 0) + muscle/25.
 The 10 items are the `Item(...)` lines in `lib/game/content.dart`. Item ids are the full ids (`head.crown`).

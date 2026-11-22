@@ -13,7 +13,7 @@ The app has 3 parts:
 1. **One-time upgrade** (only on a phone with old-app data): save a backup file, then turn the old
    sessions into XP and delete the old kg / reps data.
 2. **Initial setup** (first launch): character, class, difficulty, starting area.
-3. **Play** (any time): open the workout, count the working sets, get XP, unlock gear.
+3. **Play** (any time): open the workout, count the working sets, get XP and levels.
 
 There is no calendar plan, no START TRAINING clock and no I WORKED button.
 The user opens the app when they want, like a video game.
@@ -38,14 +38,13 @@ flowchart TD
     setupDone -- yes --> hub[Hub: area scene with the lifter, level, XP bar, next workout, last time]
 
     hub -- tap the workout card --> work[Workout: tap a card = active, tap the object = +1 set, hold = -1]
-    work -- each set --> xp[XP, critical sets, level-up intro card, gear bursts]
+    work -- each set --> xp[XP, critical sets, level-up intro card]
     work -- HUB --> hub
 
     hub -. HISTORY .-> history[Past sessions]
     hub -. PROFILE or the level bar .-> profile[Profile: level title, the path]
-    hub -. GEAR .-> gear[Gear: one item per slot]
     hub -. tap the lifter .-> char
-    hub -. menu .-> menu[Profile, past sessions, edit character, backup, chaos, cel shader, sound]
+    hub -. menu .-> menu[Profile, past sessions, edit character, backup]
 ```
 
 ## 2. Screens (scenes)
@@ -57,14 +56,14 @@ flowchart TD
 | 2 | Class select | exists | CHOOSE YOUR PATH: preview card (lifter, loadout, 3 tags), description, 4 class buttons, NEXT: DIFFICULTY. Freeze-frame intro card on each pick. |
 | 3 | Difficulty | exists | 6 modes from the design board, Sofa to Nightmare Mode. A ladder with XP gems, no numbers. Freeze-frame title card on each pick. |
 | 4 | Starting area | exists | 5 areas from the design board. Each card shows the area's scene art. The class picks the default area. |
-| 5 | Summary | exists | Class, gear (equipment), difficulty, area. Tap a row to change it. LET'S GO (or SAVE when editing). |
-| 6 | Hub | exists | the area scene with the lifter in it (class outfit and equipped gear), level and XP bar, next workout card, last time, GEAR. Bottom bar: HISTORY, HUB, PROFILE. No streak card (D34). |
+| 5 | Summary | exists | Class, equipment, difficulty, area. Tap a row to change it. LET'S GO (or SAVE when editing). |
+| 6 | Hub | exists | the area scene with the lifter in it (class outfit), level and XP bar, next workout card, last time. Bottom bar: HISTORY, HUB, PROFILE. No streak card (D34). |
 | 7 | Workout | exists | exercise strip with the day's list and the area scene. No tools (D32). Tap a card to make it active. Tap the object = +1 set, hold = −1. Area marks stay in the world. |
-| 8 | Reward | exists | XP on the active exercise line. CRITICAL SET message. Freeze-frame intro card for level-ups; bursts for new gear. No achievement burst (D35). Not a separate screen. |
+| 8 | Reward | exists | XP on the active exercise line. CRITICAL SET message. Freeze-frame intro card for level-ups. No achievement burst (D35). Not a separate screen. |
 | 9 | Past sessions | exists | Training days (sets per exercise against the target, time, class, area, XP) and old saves. |
-| 10 | Gear | exists | Items per slot (head, top, bottom, shoes, weapon), with the gear icons. Locked items show their level. |
-| 11 | Menu | exists | Full screen: YOU (profile, past sessions, edit character), GAINS INSURANCE (save / restore backup), LOOK AND FEEL (chaos mode, cel shader, sound). Opens from ⋮ on every view. |
-| 12 | Profile | exists | level and level title, XP bar, the path (class, difficulty, world; tap one to change it), PAST SESSIONS, GEAR. No milestones (D35). Opens from PROFILE or the level bar on the hub. Tap the lifter to change the body. |
+| 10 | Gear | removed | No gear (D38). |
+| 11 | Menu | exists | Full screen: YOU (profile, past sessions, edit character), GAINS INSURANCE (save / restore backup). No chaos mode, cel shader or sound (D39–D41). Opens from ⋮ on every view. |
+| 12 | Profile | exists | level and level title, XP bar, the path (class, difficulty, world; tap one to change it), PAST SESSIONS. No milestones (D35). Opens from PROFILE or the level bar on the hub. Tap the lifter to change the body. |
 
 Removed: the preloader, START TRAINING and its clock, I WORKED / I RESTED and UNDO,
 the 7-day pattern, rest days, rest-day stats and the preview pages.
@@ -82,7 +81,7 @@ the whole setup from the menu (EDIT CHARACTER).
      `docs/moodboard/creator/body_atlas.png`). Fat and muscle each have stops at 0/25/50/75/100,
      per sex. The app shows the nearest cell for in-between values.
    - The HEIGHT slider stretches the sprite vertically (owner decision D11).
-     Nearest-neighbour scaling only. Gear never changes the body.
+     Nearest-neighbour scaling only.
 2. **Class select** (design: `docs/moodboard/README.md` "Class select").
    - Kicker `STEP 2 OF 5 · THE SWOLEMANCER'S PATHS`, title CHOOSE YOUR PATH, subline "What do you train with?".
    - Preview card: the user's lifter (from step 1), the class name in its colour, the loadout and
@@ -134,7 +133,7 @@ the whole setup from the menu (EDIT CHARACTER).
      | Frostbite Summit | `frostbite` | ice block | flags up a slope | SUMMIT! | Cablemancer |
 
    - The ids are the design ids (D36). The id is also the design's folder name in
-     `assets/areas/` and the sound name. Old saved ids (`beach`, `castle`, `summit`) migrate once
+     `assets/areas/`. Old saved ids (`beach`, `castle`, `summit`) migrate once
      ([data-schema.md](data-schema.md) §5.3).
    - The class picks the default area until the user picks one. The user can choose any area.
    - Each area card shows a small copy of the area's scene art.
@@ -150,8 +149,8 @@ the whole setup from the menu (EDIT CHARACTER).
 
 The app is the reference for this screen (D42).
 
-- **Scene** (top): the area's scene with the lifter in it. The lifter wears the class outfit and
-  the equipped gear. Tags show the area name and "class · difficulty". GEAR (top right) opens the gear.
+- **Scene** (top): the area's scene with the lifter in it. The lifter wears the class outfit.
+  Tags show the area name and "class · difficulty".
 - Tap the lifter to change the body sliders at any time. Each saved change is kept
   in a history (for charts later). In this edit, NEXT goes straight to the summary; tap a summary row
   to change the class, difficulty or area too.
@@ -188,15 +187,14 @@ owner's rules ([decisions.md](decisions.md)).
 - **Over the sky:** the area's tap hint, and one line with the exercise, "SET n OF t" (or
   sets / target at the target) and the XP so far.
 - **Tip:** on the first workout, until the first set, a tag says "Only working sets count".
-- **Sound** (if SOUND is on in the menu): a set sound per area, a critical sound, a stamp on every
-  5th set, a level-up horn, and a sound when a set is taken back.
+- No sound (D41).
 - Reduced motion: no scene animation.
 - ◀ HUB (or Android back) goes back to the hub.
 - Not used from the design board: the I WORKED button, the running clock and "SESSION n"
   (owner decisions D6 and D7 in [decisions.md](decisions.md)). There is one session per calendar day (§4.4).
 - Not used from the design board: the swipe and the tool row (D32 replaces D16).
 
-### 4.3 XP, level, gear
+### 4.3 XP and level
 
 The numbers come from [rules.md](rules.md) (draft v1). They are all in `lib/game/rules.dart`.
 
@@ -214,11 +212,9 @@ The numbers come from [rules.md](rules.md) (draft v1). They are all in `lib/game
 - Level curve (Habitica): 25 × L for levels 1–4, 150 at level 5, then
   round((0.25 L² + 10 L + 139.75) / 10) × 10. Level 30 needs 660 (D19: the formula wins).
 - A level-up shows the freeze-frame intro card ("LEVEL n" and a joke line).
-- Each level can unlock gear items. A new item goes into its slot if the slot is empty. The user
-  can equip one item per slot.
-- Gear is the only unlock (by level). There are no achievements (D35).
+- A level gives only the level and its title. There is no gear (D38) and there are no achievements (D35).
 - Not built yet (later in rules.md): mastery stars, the difficulty climb, character stats,
-  bounties, gear drops with rarity, new game+. Embers are part of the streak, so they are gone (D34).
+  bounties, new game+. Embers are part of the streak, so they are gone (D34).
   The swap suggestion is on hold: the workout has no swap (D32).
 - Each session stores the class, difficulty, area and exercise list it used, so its XP stays the
   same when the profile changes later (for example, after joining a gym).
@@ -268,8 +264,7 @@ The saved data follows [data-schema.md](data-schema.md). The code is in `lib/gam
 | `body_history_v1` | Every saved slider change, with its time. |
 | `sessions_v3` | Map date → session: class, difficulty, area, first and last mark, legacy, exercise list. |
 | `xp_events_v1` | Saved XP events (legacy, and the old streak and achievement XP). |
-| `gear_v1` | Owned item ids and slot → equipped item id. |
-| `chaos`, `cel`, `sound` | Menu settings (true / false). SOUND is on by default. |
+| `gear_v1`, `chaos`, `cel`, `sound` | Removed (D38–D41). Deleted on start. |
 | `class_ids_v0_backup` | The profile and sessions text from before the class id migration (D31). |
 | `area_ids_v0_backup` | The profile and sessions text from before the area id migration (D36). |
 | `streak_xp_frozen_v1` | True once the old streak XP is saved as XP events (D34). |

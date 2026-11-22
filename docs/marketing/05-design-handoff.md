@@ -14,6 +14,7 @@ platform specs (§1) and the consistency guide (§4).
 |---|---|
 | **The name is PUMPLEX** (D37, owner, 22 Nov 2026). An earlier draft of this file said SWOLEMANCER. That name is dropped. | Use PUMPLEX in the logo, the icon and every headline. Do not use SWOLEMANCER as the app name. |
 | No streak (D34) and no achievements or milestones (D35). | Do not show a streak, a week target, embers, medals or milestones. |
+| No gear items (D38), chaos mode (D39), cel shader (D40) or sound (D41). | Do not show gear items, a gear screen, loot, chaos mode, the CEL SHADER mode or sound. "Your gear = your class" is fine: there, gear means your gym equipment. |
 | The workout has no tools (D32): no swap, skip, remove or add. | Do not show a swipe, a tool row or an ADD card. |
 | No START TRAINING, no I WORKED, no clock, no reward screen (D7). | Do not show these buttons or screens. The reward is the **XP pop**, **CRITICAL SET** and the **level-up freeze-frame card**. |
 | No preloader (D29). | Story S2 does not use the preloader. See the new S2 below. |
@@ -79,8 +80,8 @@ Use the moodboard sprites and the boards.
 | RC1 | IG Reels cover | 1080 × 1920 | I BLEW UP BARRELS, NOT COUNTED REPS. | Still from the Rustbelt workout: the barrel blast. Title in the centre 1080 × 1440. | `scrapper_rustbelt.html` |
 | RC2 | IG Reels cover | 1080 × 1920 | MAX FAT. MAX MUSCLE. GO. | `male/fat100_muscle100` vs `male/fat0_muscle0` at 12×, PINK "VS". | `body_sliders/male/` |
 | R1 | r/IndieDev | 1200 × 1200 | (labels only) `fat →` `muscle ↑` | SL-M and SL-F side by side at 4×, like a sprite sheet. No logo. | `body_sliders/` |
-| R2 | r/indiegaming | 1080 × 1350 | (labels only) OFF / ON | The app with CEL SHADER off (top) and on (bottom). | Screenshots of the real app, menu → cel shader |
-| R3 | r/gamification | 1200 × 1200 | (step labels only) | Loop diagram: OPEN APP → TAP THE MARK = 1 SET → XP POP → LEVEL-UP CARD → NEW GEAR. No streak (D34). Flat SURF boxes, INK borders, one neon per step. **No START TRAINING, no I WORKED.** | `../rules.md` |
+| R2 | r/indiegaming | (dropped) | | Was CEL SHADER off / on. The cel shader is removed (D40). | |
+| R3 | r/gamification | 1200 × 1200 | (step labels only) | Loop diagram: OPEN APP → TAP THE MARK = 1 SET → XP POP → LEVEL-UP CARD. No streak (D34), no gear (D38). Flat SURF boxes, INK borders, one neon per step. **No START TRAINING, no I WORKED.** | `../rules.md` |
 
 ### Batch 3: after the app has the new screens
 
@@ -129,6 +130,7 @@ Headline in Anton 104 px, TEXT, max 2 lines, with a hard shadow in the accent co
 - [ ] Only colours from `palette.json`. No gradients, glow or blur.
 - [ ] No START TRAINING, I WORKED, clock, reward screen or preloader.
 - [ ] No streak, week target, embers, milestones, medals, workout tool row or ADD card (D32, D34, D35).
+- [ ] No gear items, loot, chaos mode, CEL SHADER mode or sound (D38–D41).
 - [ ] Headline text is readable at phone size (min 32 px on a 1080 px canvas).
 - [ ] No banned Play words. No system emoji.
 - [ ] "PUMPLEX" is spelled right, with no ™ (until the owner says so, §2).
