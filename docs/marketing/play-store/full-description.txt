@@ -1,0 +1,42 @@
+Train, not track.
+
+Most gym apps want every rep and every kilo in a big table. PUMPLEX wants one thing: how many working sets you did. You train. The game keeps score.
+
+PUMPLEX is a single-player gym RPG for Android. It works fully offline. There is no account, no sign-up and no ads. All your data stays on your phone.
+
+BUILD YOUR LIFTER
+Make a pixel-art lifter with sliders for height, weight and muscle. Pick the skin, the hair and the beard. Your lifter changes shape as you move the sliders.
+
+PICK A CLASS BY YOUR GEAR
+Your class comes from the equipment you have:
+- Scrapper: no equipment. Bodyweight, cardio and sprints.
+- Bargain Bruiser: a basic home gym.
+- Plate Paladin: a barbell, a rack and a wall of plates.
+- Cablemancer: a gym full of machines and cables.
+The class picks the exercises. You do the work.
+
+CHOOSE YOUR DIFFICULTY
+Six modes, from Sofa Mode to Nightmare Mode. Harder modes give more XP.
+
+CHOOSE YOUR WORLD
+Train in Riptide Shore, Gainsgard Keep, Rustbelt Flats, Arcade Underpass or Frostbite Summit. Each world has its own way to mark a set. In the keep, you scratch the wall. On the shore, shells drop into your pouch.
+
+COUNT SETS THE FUN WAY
+Swipe through hundreds of exercises for your class. Filter them by body part and equipment, and star your favorites. Tap the scene once for each working set. Count only working sets, not warm-ups.
+
+LEVEL UP
+Every working set gives XP. Gain levels and new titles. Past sessions show what you did on each training day.
+
+PLAY WHEN YOU WANT
+No calendar. No weekly plan. No guilt streaks. Open the app, train, level up.
+
+YOUR DATA, YOUR PHONE
+- Fully offline. The app does not use the internet.
+- No account, no sign-up, no ads.
+
+BETA
+PUMPLEX is in beta. Names, worlds and features can still change. Send us your feedback from the Play Store page.
+
+Good for home workouts, bodyweight training, strength training, gym beginners and anyone who hates workout logs.
+
+Train, not track.
