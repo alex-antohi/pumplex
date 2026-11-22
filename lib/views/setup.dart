@@ -235,11 +235,26 @@ class _LookButton extends StatelessWidget {
 /// Room under the class card: the dots row and the BACK / NEXT row.
 const _classDotsHeight = 30.0, _classNavHeight = 92.0;
 
+/// Top of the class card: right under the title block.
+const _classCardTop = 100.0;
+
+/// Room the class texts keep under the lifter (name to description).
+const _classTextMin = 200.0;
+
 /// The class card and, inside it, where the shell draws the lifter, in a
 /// view of [area] with [bottomInset] (the phone's navigation bar).
+/// The lifter gets the biggest whole-number scale that leaves
+/// [_classTextMin] for the texts, and the stage is cut to that size, so
+/// there is no empty band above the head.
 ({Rect card, Rect stage}) classLayout(Size area, double bottomInset) {
-  final card = Rect.fromLTRB(16, 122, area.width - 22, area.height - bottomInset - _classNavHeight - _classDotsHeight);
-  final stage = Rect.fromLTWH(card.left + 12, card.top + 12, card.width - 24, card.height * 0.38);
+  final card = Rect.fromLTRB(16, _classCardTop, area.width - 22, area.height - bottomInset - _classNavHeight - _classDotsHeight);
+  // CharacterSprite: pedestal = 10% of the box, the sprite gets the rest
+  // minus half of it, at most spriteHeight × maxHeightScale × scale.
+  const perScale = spriteHeight * maxHeightScale / 0.945;
+  final avail = card.height - 16 - _classTextMin;
+  final byWidth = (card.width - 24) / spriteWidth;
+  final scale = max(2, min(byWidth, avail / perScale).floor());
+  final stage = Rect.fromLTWH(card.left + 12, card.top + 8, card.width - 24, min(avail, perScale * scale + 2));
   return (card: card, stage: stage);
 }
 
