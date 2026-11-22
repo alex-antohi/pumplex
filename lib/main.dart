@@ -162,9 +162,13 @@ class _GameShellState extends State<GameShell> {
     if (mounted) _go(_startScene);
   }
 
+  /// The creator's head looks are open (the camera is on the head).
+  bool _head = false;
+
   void _go(Scene to, [Motion motion = Motion.zoomIn]) {
     if (to == _scene) return;
     setState(() {
+      _head = false;
       _scene = to;
       _motion = motion;
       _intro = null;
@@ -380,6 +384,7 @@ class _GameShellState extends State<GameShell> {
       };
 
   void _back() {
+    if (_head) return setState(() => _head = false);
     final to = _backTo;
     if (to == null) return;
     if (_scene == Scene.menu) return _closeMenu();
@@ -399,6 +404,8 @@ class _GameShellState extends State<GameShell> {
             character: _char,
             onCharacter: (c) => setState(() => _char = c),
             onNext: () => _go(_editing ? Scene.summary : Scene.classSelect),
+            headOpen: _head,
+            onHead: (open) => setState(() => _head = open),
           ),
         Scene.classSelect => ClassView(
             stage: stage,
@@ -494,7 +501,7 @@ class _GameShellState extends State<GameShell> {
     final char = _inSetup || profile == null ? _char : profile.character;
     final classId = _inSetup || profile == null ? _classId : profile.classId;
     return PopScope(
-      canPop: _backTo == null,
+      canPop: _backTo == null && !_head,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) _back();
       },
@@ -511,8 +518,11 @@ class _GameShellState extends State<GameShell> {
                 ),
                 _TopBar(
                   info: _info,
-                  // Opens the full-screen menu (design screen 12).
-                  menu: IconButton(
+                  // Opens the full-screen menu (design screen 12). Not on the
+                  // first setup: there is nothing to open yet.
+                  menu: _store.profile == null && _inSetup
+                      ? null
+                      : IconButton(
                     key: const ValueKey('menu-open'),
                     tooltip: 'Menu',
                     icon: Icon(_scene == Scene.menu ? Icons.close : Icons.more_vert, color: p.ink, size: 28),
@@ -552,6 +562,7 @@ class _GameShellState extends State<GameShell> {
                                 character: char,
                                 classId: classId,
                                 pedestal: _scene != Scene.workout && _scene != Scene.hub,
+                                zoomHead: _scene == Scene.create && _head,
                               ),
                             ),
                           ),
@@ -595,7 +606,9 @@ class _TopBar extends StatelessWidget {
   const _TopBar({required this.info, required this.menu});
 
   final String info;
-  final Widget menu;
+
+  /// The ⋮ button, or null (the space stays, so the bar keeps its height).
+  final Widget? menu;
 
   @override
   Widget build(BuildContext context) {
@@ -636,7 +649,7 @@ class _TopBar extends StatelessWidget {
               ],
             ),
           ),
-          menu,
+          menu ?? const SizedBox(width: 48, height: 48),
         ],
       ),
     );

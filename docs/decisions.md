@@ -54,6 +54,7 @@ Ask the owner before you design against a decision. Add each new decision here, 
 | D42 | The HTML design demo (`docs/demo/`) is removed. Both owners agreed. The app and this file are the source of truth for screens, names and numbers. New design proposals go in `docs/moodboard/`. | 22 Nov 2026 | Closes every demo row in §2. Older notes that say "design demo 07" only name the screen a design came from. |
 | D43 | No scrolling announcements banner at the top of the app. | 22 Nov 2026 | The status bar keeps its dark strip. |
 | D44 | The bottom bar (HISTORY, HUB, PROFILE) shows on the hub, the workout, past sessions and the profile. Those screens have no ◀ HUB button. The workout lights HUB. | 22 Nov 2026 | Not on the setup steps, the edit-character steps or the menu. Android back still goes back. |
+| D45 | The character creator: no ⋮ menu button during the first setup; no random button; HEIGHT grows the lifter evenly (not stretched) and shows 1.50 M to 2.00 M; the FAT slider is WEIGHT, 50 KG to 200 KG; HEIGHT and WEIGHT show the live value; MUSCLE has no end labels. Tap the head: the camera zooms in and a panel picks skin, hair and facial hair (2 options each to start, facial hair for both bodies). | 22 Nov 2026 | Refines D10 and D11. The user still never types a weight or a height: they are slider values, saved as 0–100. |
 
 ## 2. Where the current boards conflict
 

@@ -1,6 +1,7 @@
 // The 2D character: the mood board's body atlas (docs/moodboard/creator,
 // 5 fat × 5 muscle steps per sex), nearest cell for the slider values,
-// stretched vertically for height. Pixel art only scales with
+// scaled evenly for height. Skin, hair and facial hair come from
+// tools/moodboard/looks.mjs (docs/moodboard/looks). Pixel art only scales with
 // nearest-neighbour sampling (FilterQuality.none).
 
 import 'dart:math';
@@ -34,9 +35,25 @@ String spriteFrame(Character c) =>
 /// Class outfit overlay (docs/moodboard/outfits): same cells as the body.
 String outfitAtlas(String classId) => 'assets/outfits/$classId.png';
 
+/// The body atlas in [skin] and [hair] (the drawn atlas is light + brown).
+String bodyAtlasFor(String skin, String hair) =>
+    skin == defaultSkin && hair == defaultHair ? bodyAtlas : 'assets/body/looks/body_${skin}_$hair.png';
+
+/// Beard overlay in the hair colour: same cells as the body.
+String beardAtlas(String hair) => 'assets/body/looks/beard_$hair.png';
+
+/// The atlas layers of [c], bottom to top: body, facial hair, outfit.
+List<String> spriteLayers(Character c, String classId) => [
+  bodyAtlasFor(c.skin, c.hair),
+  if (c.facialHair == 'beard') beardAtlas(c.hair),
+  outfitAtlas(classId),
+];
+
 /// Every image the character needs, to load before the first frame.
 List<String> get allSpriteAssets => [
-  bodyAtlas,
+  for (final s in skinIds)
+    for (final h in hairIds) bodyAtlasFor(s, h),
+  for (final h in hairIds) beardAtlas(h),
   for (final c in gameClasses) outfitAtlas(c.id),
 ];
 
@@ -89,9 +106,28 @@ class AtlasSprite extends StatelessWidget {
   }
 }
 
-/// Vertical stretch of the sprite for the height slider (0..100).
+/// Size factor of the sprite for the height slider (0..100). The sprite
+/// grows evenly (width and height), it is not stretched.
 double heightScale(int height) =>
     minHeightScale + (maxHeightScale - minHeightScale) * height / 100;
+
+/// Where [CharacterSprite] draws in a box of [size]: the whole-number pixel
+/// scale, the pedestal height and the sprite rect for [height].
+({double scale, double pedestal, Rect sprite}) spriteGeometry(Size size, int height, {bool pedestal = true}) {
+  final ped = pedestal ? max(10.0, size.height * 0.1) : 0.0;
+  final room = size.height - ped * 0.55;
+  // Whole-number scale so every sprite pixel stays square.
+  final s = max(1, min(size.width / spriteWidth, room / (spriteHeight * maxHeightScale)).floor()).toDouble();
+  final h = heightScale(height);
+  final w = spriteWidth * s * h, hh = spriteHeight * s * h;
+  return (scale: s, pedestal: ped, sprite: Rect.fromLTWH((size.width - w) / 2, size.height - ped * 0.45 - hh, w, hh));
+}
+
+/// The head inside a sprite rect: cell rows 0-17, columns 16-35.
+Rect headRect(Rect sprite) {
+  final px = sprite.width / spriteWidth;
+  return Rect.fromLTWH(sprite.left + 16 * px, sprite.top, 20 * px, 18 * px);
+}
 
 /// Accent colour of a class (pedestal and highlights).
 Color classColor(Pal p, String id) => switch (id) {
@@ -109,6 +145,7 @@ class CharacterSprite extends StatefulWidget {
     required this.character,
     required this.classId,
     this.pedestal = true,
+    this.zoomHead = false,
   });
 
   final Character character;
@@ -116,6 +153,9 @@ class CharacterSprite extends StatefulWidget {
 
   /// False in an area scene: the scene has its own ground shadow.
   final bool pedestal;
+
+  /// The camera zooms onto the head (the creator's head looks).
+  final bool zoomHead;
 
   @override
   State<CharacterSprite> createState() => _CharacterSpriteState();
@@ -148,21 +188,35 @@ class _CharacterSpriteState extends State<CharacterSprite>
     final p = Pal.of(context);
     final cls = classById(widget.classId);
     final color = classColor(p, cls.id);
-    final layers = [bodyAtlas, outfitAtlas(cls.id)];
+    final layers = spriteLayers(widget.character, cls.id);
     return LayoutBuilder(
       builder: (context, box) {
-        final pedestal = widget.pedestal ? max(10.0, box.maxHeight * 0.1) : 0.0;
-        final room = box.maxHeight - pedestal * 0.55;
-        // Whole-number scale so every sprite pixel stays square.
-        final s = max(
-          1,
-          min(
-            box.maxWidth / spriteWidth,
-            room / (spriteHeight * maxHeightScale),
-          ).floor(),
-        ).toDouble();
+        final g = spriteGeometry(box.biggest, widget.character.height, pedestal: widget.pedestal);
+        final pedestal = g.pedestal, s = g.scale;
         final w = spriteWidth * s;
-        return Stack(
+        // Head zoom: the head grows to most of the box height and moves to
+        // its middle. Pixels stay square (FilterQuality.none).
+        final head = headRect(g.sprite);
+        final zoom = box.maxHeight * 0.8 / head.height;
+        final to = Offset(box.maxWidth / 2, box.maxHeight / 2);
+        return TweenAnimationBuilder<double>(
+          tween: Tween(end: widget.zoomHead ? 1 : 0),
+          duration: const Duration(milliseconds: 420),
+          curve: Curves.easeInOutCubic,
+          builder: (context, t, child) {
+            if (t == 0) return child!;
+            final at = Offset.lerp(head.center, to, t)!;
+            final k = 1 + (zoom - 1) * t;
+            return ClipRect(
+              child: Transform(
+                transform: Matrix4.translationValues(at.dx, at.dy, 0)
+                    .multiplied(Matrix4.diagonal3Values(k, k, 1))
+                    .multiplied(Matrix4.translationValues(-head.center.dx, -head.center.dy, 0)),
+                child: child,
+              ),
+            );
+          },
+          child: Stack(
           clipBehavior: Clip.none,
           alignment: Alignment.bottomCenter,
           children: [
@@ -206,7 +260,7 @@ class _CharacterSpriteState extends State<CharacterSprite>
                           asset: asset,
                           frame: spriteFrame(widget.character),
                           cell: spriteCell(widget.character),
-                          width: w,
+                          width: w * h,
                           height: spriteHeight * s * h,
                         ),
                     ],
@@ -215,6 +269,7 @@ class _CharacterSpriteState extends State<CharacterSprite>
               ),
             ),
           ],
+          ),
         );
       },
     );

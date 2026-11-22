@@ -52,7 +52,7 @@ flowchart TD
 | # | Scene | Status | Purpose |
 |---|---|---|---|
 | 0 | Upgrade | exists | Only with old-app data. SAVE BACKUP & UPGRADE, or NOT NOW. |
-| 1 | Character | exists | WoW-style: the character large in the centre on a pedestal. Sex toggle, 🎲 random, sliders for height, muscle and fat %. Changes live. The sprite comes from the 5×5 body atlas. |
+| 1 | Character | exists | WoW-style: the character large in the centre on a pedestal. Sex toggle; sliders HEIGHT (1.50–2.00 m), WEIGHT (50–200 kg) and MUSCLE. Tap the head for skin, hair and facial hair (D45). Changes live. No ⋮ menu button on the first setup. The sprite comes from the 5×5 body atlas. |
 | 2 | Class select | exists | CHOOSE YOUR PATH: preview card (lifter, loadout, 3 tags), description, 4 class buttons, NEXT: DIFFICULTY. Freeze-frame intro card on each pick. |
 | 3 | Difficulty | exists | 6 modes from the design board, Sofa to Nightmare Mode. A ladder with XP gems, no numbers. Freeze-frame title card on each pick. |
 | 4 | Starting area | exists | 5 areas from the design board. Each card shows the area's scene art. The class picks the default area. |
@@ -76,12 +76,20 @@ Show it on the first launch. The body sliders open again from the hub (tap the c
 the whole setup from the menu (EDIT CHARACTER).
 
 1. **Character.**
-   - Pick male or female. Sliders: height, muscle size, fat %. The user never types a weight or a height.
+   - Pick male or female. Sliders (D45):
+     - HEIGHT, shown as 1.50 M to 2.00 M, with the live value next to the label.
+     - WEIGHT, shown as 50 KG to 200 KG, with the live value. It picks the fat column of the atlas.
+     - MUSCLE, with no end labels.
+     The user never types a weight or a height. The values are saved as 0–100 (`height`, `fat`, `muscle`).
+   - No random button. No ⋮ menu button on the first setup (it shows again when editing later).
+   - **Tap the head:** the camera zooms onto the head and the panel shows SKIN (light, deep),
+     HAIR (brown, blonde) and FACIAL HAIR (none, beard; both bodies). DONE (or a tap on the head,
+     or Android back) zooms out. The looks come from `tools/moodboard/looks.mjs`
+     (`assets/body/looks/`): skin and hair are recolours of the body atlas, the beard is an overlay.
    - Sprites: the design team's 5×5 body atlas (`assets/body/body_atlas.png`, a copy of
      `docs/moodboard/creator/body_atlas.png`). Fat and muscle each have stops at 0/25/50/75/100,
      per sex. The app shows the nearest cell for in-between values.
-   - The HEIGHT slider stretches the sprite vertically (owner decision D11).
-     Nearest-neighbour scaling only.
+   - The HEIGHT slider scales the sprite evenly, 0.86× to 1.14× (D11, D45). Nearest-neighbour scaling only.
 2. **Class select** (design: `docs/moodboard/README.md` "Class select").
    - Kicker `STEP 2 OF 5 · THE SWOLEMANCER'S PATHS`, title CHOOSE YOUR PATH, subline "What do you train with?".
    - Preview card: the user's lifter (from step 1), the class name in its colour, the loadout and

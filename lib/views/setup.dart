@@ -52,7 +52,8 @@ class _Nav extends StatelessWidget {
 // ------------------------------------------------------ character creation
 
 /// WoW-style character screen (setup step 1): the character large in the
-/// centre, the options around it, everything changes live.
+/// centre, the options around it, everything changes live. Tap the head:
+/// the camera zooms in and the panel shows skin, hair and facial hair.
 class CreateView extends StatelessWidget {
   const CreateView({
     super.key,
@@ -60,6 +61,8 @@ class CreateView extends StatelessWidget {
     required this.character,
     required this.onCharacter,
     required this.onNext,
+    required this.headOpen,
+    required this.onHead,
   });
 
   final Rect stage;
@@ -67,15 +70,9 @@ class CreateView extends StatelessWidget {
   final ValueChanged<Character> onCharacter;
   final VoidCallback onNext;
 
-  void _random() {
-    final r = Random();
-    onCharacter(Character(
-      sex: r.nextBool() ? 'male' : 'female',
-      height: r.nextInt(101),
-      muscle: r.nextInt(101),
-      fat: r.nextInt(101),
-    ));
-  }
+  /// The head looks panel is open (the shell zooms the character in).
+  final bool headOpen;
+  final ValueChanged<bool> onHead;
 
   @override
   Widget build(BuildContext context) {
@@ -94,21 +91,27 @@ class CreateView extends StatelessWidget {
       );
     }
 
+    final head = headRect(spriteGeometry(stage.size, character.height).sprite).shift(stage.topLeft);
     return Column(
       children: [
         SizedBox(
           height: stage.bottom,
           child: Stack(
             children: [
-              Positioned(
-                left: 14,
-                top: stage.top + 6,
-                child: Column(children: [sexButton('male', 'male'), sexButton('female', 'female')]),
-              ),
-              Positioned(
-                right: 18,
-                top: stage.top + 6,
-                child: BrutalButton(small: true, color: p.orange, onTap: _random, child: PxIcon('dice', size: 24, color: p.on)),
+              if (!headOpen)
+                Positioned(
+                  left: 14,
+                  top: stage.top + 6,
+                  child: Column(children: [sexButton('male', 'male'), sexButton('female', 'female')]),
+                ),
+              // Tap the head to open (or close) the head looks.
+              Positioned.fromRect(
+                rect: headOpen ? stage : head.inflate(8),
+                child: GestureDetector(
+                  key: const ValueKey('creator-head'),
+                  behavior: HitTestBehavior.translucent,
+                  onTap: () => onHead(!headOpen),
+                ),
               ),
             ],
           ),
@@ -116,35 +119,105 @@ class CreateView extends StatelessWidget {
         Expanded(
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 12, 22, 8),
+            children: headOpen ? _headPanel(p) : _bodyPanel(p),
+          ),
+        ),
+        _Nav(next: headOpen ? 'DONE' : 'NEXT', onNext: headOpen ? () => onHead(false) : onNext),
+      ],
+    );
+  }
+
+  List<Widget> _bodyPanel(Pal p) => [
+        Shout('Build your lifter', size: 14, color: p.pink),
+        const SizedBox(height: 4),
+        Text('TAP THE HEAD FOR SKIN AND HAIR.', style: mono(11, p.ink)),
+        const SizedBox(height: 10),
+        _BodySlider(
+          label: 'HEIGHT',
+          ends: '${heightMetres(0).toStringAsFixed(2)} M · ${heightMetres(100).toStringAsFixed(2)} M',
+          shown: '${heightMetres(character.height).toStringAsFixed(2)} M',
+          value: character.height,
+          onChanged: (v) => onCharacter(character.copyWith(height: v)),
+        ),
+        _BodySlider(
+          label: 'WEIGHT',
+          ends: '$minWeightKg KG · $maxWeightKg KG',
+          shown: '${weightKg(character.fat)} KG',
+          value: character.fat,
+          onChanged: (v) => onCharacter(character.copyWith(fat: v)),
+        ),
+        _BodySlider(
+          label: 'MUSCLE',
+          value: character.muscle,
+          onChanged: (v) => onCharacter(character.copyWith(muscle: v)),
+        ),
+      ];
+
+  List<Widget> _headPanel(Pal p) {
+    Widget row(String title, String kind, List<Look> looks, String current, Character Function(String) pick) => Padding(
+          padding: const EdgeInsets.only(bottom: 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Shout('Build your lifter', size: 14, color: p.pink),
-              const SizedBox(height: 10),
-              _BodySlider(
-                label: 'HEIGHT',
-                low: 'SHORT',
-                high: 'TALL',
-                value: character.height,
-                onChanged: (v) => onCharacter(character.copyWith(height: v)),
-              ),
-              _BodySlider(
-                label: 'MUSCLE',
-                low: 'NOODLE',
-                high: 'BOULDER',
-                value: character.muscle,
-                onChanged: (v) => onCharacter(character.copyWith(muscle: v)),
-              ),
-              _BodySlider(
-                label: 'FAT %',
-                low: 'SHREDDED',
-                high: 'COZY',
-                value: character.fat,
-                onChanged: (v) => onCharacter(character.copyWith(fat: v)),
+              Shout(title, size: 14),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  for (final l in looks) ...[
+                    _LookButton(
+                      key: ValueKey('look-$kind-${l.id}'),
+                      look: l,
+                      on: l.id == current,
+                      onTap: () => onCharacter(pick(l.id)),
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+                ],
               ),
             ],
           ),
-        ),
-        _Nav(next: 'NEXT', onNext: onNext),
-      ],
+        );
+    return [
+      Shout('Your head', size: 14, color: p.pink),
+      const SizedBox(height: 10),
+      row('SKIN', 'skin', skinLooks, character.skin, (id) => character.copyWith(skin: id)),
+      row('HAIR', 'hair', hairLooks, character.hair, (id) => character.copyWith(hair: id)),
+      row('FACIAL HAIR', 'facial', facialHairLooks, character.facialHair, (id) => character.copyWith(facialHair: id)),
+    ];
+  }
+}
+
+/// One head look: a swatch and its name. Pink when picked.
+class _LookButton extends StatelessWidget {
+  const _LookButton({super.key, required this.look, required this.on, required this.onTap});
+
+  final Look look;
+  final bool on;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Pal.of(context);
+    final fg = on ? p.on : p.ink;
+    return BrutalButton(
+      small: true,
+      color: on ? p.pink : p.panel,
+      onTap: onTap,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 18,
+            height: 18,
+            decoration: BoxDecoration(
+              color: look.swatch == 0 ? null : Color(look.swatch),
+              border: Border.all(color: fg, width: 2),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(look.name, style: mono(13, fg)),
+        ],
+      ),
     );
   }
 }
@@ -310,16 +383,19 @@ class _PathButton extends StatelessWidget {
   }
 }
 
+/// A body slider (0..100). [ends] (lowest · highest) shows above the slider
+/// on the right; [shown] is the live value next to the label.
 class _BodySlider extends StatelessWidget {
   const _BodySlider({
     required this.label,
-    required this.low,
-    required this.high,
+    this.ends,
+    this.shown,
     required this.value,
     required this.onChanged,
   });
 
-  final String label, low, high;
+  final String label;
+  final String? ends, shown;
   final int value;
   final ValueChanged<int> onChanged;
 
@@ -332,8 +408,20 @@ class _BodySlider extends StatelessWidget {
         Row(
           children: [
             Shout(label, size: 14),
-            const Spacer(),
-            Text('$low · $high', style: mono(11, p.ink)),
+            if (shown != null) ...[
+              const SizedBox(width: 10),
+              Text(shown!, key: ValueKey('value-$label'), style: display(16, p.lime)),
+            ],
+            const SizedBox(width: 10),
+            Expanded(
+              child: ends == null
+                  ? const SizedBox()
+                  : FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerRight,
+                      child: Text(ends!, style: mono(11, p.ink)),
+                    ),
+            ),
           ],
         ),
         SliderTheme(

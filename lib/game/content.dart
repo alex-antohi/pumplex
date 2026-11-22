@@ -342,6 +342,18 @@ Area defaultAreaFor(String classId) =>
     areas.firstWhere((a) => a.defaultFor == classId, orElse: () => areas.first);
 
 /// Kicker line of the class-select step (design: marketing working name).
+/// A head look in the creator: id (rules.dart), name and swatch colour.
+class Look {
+  const Look(this.id, this.name, this.swatch);
+
+  final String id, name;
+  final int swatch;
+}
+
+const skinLooks = [Look('light', 'LIGHT', 0xFFD39A6A), Look('deep', 'DEEP', 0xFF8A5534)];
+const hairLooks = [Look('brown', 'BROWN', 0xFF5A3424), Look('blonde', 'BLONDE', 0xFFD9A93E)];
+const facialHairLooks = [Look('none', 'NONE', 0x00000000), Look('beard', 'BEARD', 0xFF5A3424)];
+
 const pathsKicker = "THE SWOLEMANCER'S PATHS";
 
 /// Joke lines for the level-up intro card (one per level, in turn).

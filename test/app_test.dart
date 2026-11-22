@@ -307,6 +307,19 @@ void main() {
     expect(allSpriteAssets.where((a) => a.contains('gear')), isEmpty); // no gear (D38)
   });
 
+  test('head looks: saved, old data gets the defaults, layers pick the atlases', () {
+    const c = Character(skin: 'deep', hair: 'blonde', facialHair: 'beard');
+    expect(Character.fromJson(c.toJson()), c);
+    final old = Character.fromJson({'sex': 'male', 'height': 10, 'muscle': 20, 'fat': 30});
+    expect((old.skin, old.hair, old.facialHair), ('light', 'brown', 'none'));
+    expect(Character.fromJson({'skin': 'green', 'hair': 7}).skin, 'light'); // unknown ids fall back
+    expect(spriteLayers(const Character(), 'paladin'), [bodyAtlas, 'assets/outfits/paladin.png']);
+    expect(spriteLayers(c, 'paladin'),
+        ['assets/body/looks/body_deep_blonde.png', 'assets/body/looks/beard_blonde.png', 'assets/outfits/paladin.png']);
+    expect(allSpriteAssets, containsAll(['assets/body/looks/body_light_blonde.png', 'assets/body/looks/beard_brown.png']));
+    expect((heightMetres(0), heightMetres(100), weightKg(0), weightKg(100)), (1.5, 2.0, 50, 200));
+  });
+
   // --------------------------------------------------------- session rule
 
   test('one session per calendar day, with class, difficulty and area', () async {
@@ -562,20 +575,45 @@ void main() {
     await _frames(t);
     expect(find.text('CHARACTER · STEP 1 OF 5'), findsOneWidget);
     expect(_spriteAsset(t), 'male/fat50_muscle50');
+    expect(find.byKey(const ValueKey('menu-open')), findsNothing); // no menu on the first setup
+    expect(find.byIcon(Icons.casino), findsNothing);
+    expect(find.text('1.50 M · 2.00 M'), findsOneWidget);
+    expect(find.text('50 KG · 200 KG'), findsOneWidget);
+    expect(find.text('1.75 M'), findsOneWidget);
+    expect(find.text('125 KG'), findsOneWidget);
 
     await t.drag(find.byKey(const ValueKey('slider-MUSCLE')), const Offset(400, 0));
     await _frames(t, 4);
     expect(_spriteAsset(t), 'male/fat50_muscle100');
-    await t.drag(find.byKey(const ValueKey('slider-FAT %')), const Offset(-400, 0));
+    await t.drag(find.byKey(const ValueKey('slider-WEIGHT')), const Offset(-400, 0));
     await _frames(t, 4);
     expect(_spriteAsset(t), 'male/fat0_muscle100');
     await t.tap(find.byKey(const ValueKey('sex-female')));
     await _frames(t, 4);
     expect(_spriteAsset(t), 'female/fat0_muscle100');
-    final short = t.getSize(find.byKey(const ValueKey('character-sprite'))).height;
+    expect(find.text('50 KG'), findsOneWidget);
+    final short = t.getSize(find.byKey(const ValueKey('character-sprite')));
     await t.drag(find.byKey(const ValueKey('slider-HEIGHT')), const Offset(400, 0));
     await _frames(t, 8);
-    expect(t.getSize(find.byKey(const ValueKey('character-sprite'))).height, greaterThan(short));
+    final tall = t.getSize(find.byKey(const ValueKey('character-sprite')));
+    expect(find.text('2.00 M'), findsOneWidget);
+    expect(tall.height, greaterThan(short.height));
+    expect(tall.width / tall.height, closeTo(short.width / short.height, 0.01)); // scaled, not stretched
+
+    // Tap the head: the camera zooms in, the panel has skin, hair and facial hair.
+    await t.tap(find.byKey(const ValueKey('creator-head')));
+    await _frames(t, 30);
+    expect(find.text('YOUR HEAD'), findsOneWidget);
+    expect(find.text('BUILD YOUR LIFTER'), findsNothing);
+    for (final k in ['look-skin-deep', 'look-hair-blonde', 'look-facial-beard']) {
+      await t.tap(find.byKey(ValueKey(k)));
+      await _frames(t, 4);
+    }
+    final layers = t.widgetList<AtlasSprite>(find.byType(AtlasSprite)).map((a) => a.asset).toList();
+    expect(layers, containsAll(['assets/body/looks/body_deep_blonde.png', 'assets/body/looks/beard_blonde.png']));
+    await t.tap(find.text('DONE'));
+    await _frames(t, 30);
+    expect(find.text('BUILD YOUR LIFTER'), findsOneWidget);
 
     await t.tap(find.text('NEXT'));
     await t.pump(const Duration(milliseconds: 200));
@@ -633,7 +671,8 @@ void main() {
     await _frames(t, 70); // welcome burst
 
     final saved = Profile.fromJson(jsonDecode(prefs.getString('profile_v1')!) as Map<String, dynamic>);
-    expect(saved.character, const Character(sex: 'female', height: 100, muscle: 100, fat: 0));
+    expect(saved.character,
+        const Character(sex: 'female', height: 100, muscle: 100, fat: 0, skin: 'deep', hair: 'blonde', facialHair: 'beard'));
     expect((saved.classId, saved.difficultyId, saved.areaId, saved.schemaVersion), ('paladin', 'sweat', 'gainsgard', 1));
     expect(find.text('NEXT WORKOUT'), findsOneWidget);
     expect(find.text(exerciseName(store.todayExercises.first.exerciseId).toUpperCase()), findsOneWidget);
@@ -708,7 +747,7 @@ void main() {
     await t.tap(find.byKey(const ValueKey('hub-character')));
     await _frames(t);
     expect(find.text('CHARACTER · STEP 1 OF 5'), findsOneWidget);
-    await t.drag(find.byKey(const ValueKey('slider-FAT %')), const Offset(400, 0));
+    await t.drag(find.byKey(const ValueKey('slider-WEIGHT')), const Offset(400, 0));
     await t.tap(find.text('NEXT'));
     await _frames(t);
     await t.tap(find.text('SAVE'));

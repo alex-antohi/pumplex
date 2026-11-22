@@ -121,6 +121,20 @@ const defaultMuscle = 50;
 const defaultFat = 50;
 
 /// Vertical sprite scale at height 0 and at height 100.
+/// Head looks (tools/moodboard/looks.mjs). The first id is the drawn atlas.
+const skinIds = ['light', 'deep'];
+const hairIds = ['brown', 'blonde'];
+const facialHairIds = ['none', 'beard'];
+const defaultSkin = 'light', defaultHair = 'brown', defaultFacialHair = 'none';
+
+/// Height slider 0..100 shown as 1.50 m .. 2.00 m.
+const minHeightM = 1.5, maxHeightM = 2.0;
+double heightMetres(int v) => minHeightM + (maxHeightM - minHeightM) * v / 100;
+
+/// The fat slider 0..100 is shown as body weight, 50 kg .. 200 kg.
+const minWeightKg = 50, maxWeightKg = 200;
+int weightKg(int fat) => (minWeightKg + (maxWeightKg - minWeightKg) * fat / 100).round();
+
 const minHeightScale = 0.86;
 const maxHeightScale = 1.14;
 

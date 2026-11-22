@@ -12,8 +12,9 @@ The plan is in [docs/app-brief.md](docs/app-brief.md) and
 
 ## What works now
 
-- **First launch:** a WoW-style character screen (sex, height, muscle, fat %
-  sliders; sprite from the 5×5 body atlas), class by equipment, difficulty,
+- **First launch:** a WoW-style character screen (sex; HEIGHT 1.50–2.00 m,
+  WEIGHT 50–200 kg and MUSCLE sliders; tap the head for skin, hair and facial
+  hair, D45; sprite from the 5×5 body atlas), class by equipment, difficulty,
   starting area and LET'S GO.
 - **Classes:** Scrapper, Bargain Bruiser, Plate Paladin, Cablemancer (ids
   `scrapper`, `bruiser`, `paladin`, `cablemancer`, D31). The character wears
