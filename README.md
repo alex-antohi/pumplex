@@ -27,7 +27,8 @@ The plan is in [docs/app-brief.md](docs/app-brief.md) and
 - **Hub**: the area scene with the lifter in it (tap the
   lifter to change the body sliders; changes are kept as a history), the
   level and XP bar, the next workout, the last training day and a
-  bottom bar (HISTORY, HUB, PROFILE). There is no streak (D34).
+  bottom bar (HISTORY, HUB, PROFILE) that also shows on the workout, past
+  sessions and the profile (D44). There is no streak (D34).
 - **Workout**: an exercise strip with the day's list and
   the area scene from the design PNG layers. Tap a card to make it active.
   Tap the object = one working set, hold = one less; the marks stay in the

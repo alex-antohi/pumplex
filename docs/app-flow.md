@@ -57,13 +57,13 @@ flowchart TD
 | 3 | Difficulty | exists | 6 modes from the design board, Sofa to Nightmare Mode. A ladder with XP gems, no numbers. Freeze-frame title card on each pick. |
 | 4 | Starting area | exists | 5 areas from the design board. Each card shows the area's scene art. The class picks the default area. |
 | 5 | Summary | exists | Class, equipment, difficulty, area. Tap a row to change it. LET'S GO (or SAVE when editing). |
-| 6 | Hub | exists | the area scene with the lifter in it (class outfit), level and XP bar, next workout card, last time. Bottom bar: HISTORY, HUB, PROFILE. No streak card (D34). |
-| 7 | Workout | exists | exercise strip with the day's list and the area scene. No tools (D32). Tap a card to make it active. Tap the object = +1 set, hold = −1. Area marks stay in the world. |
+| 6 | Hub | exists | the area scene with the lifter in it (class outfit), level and XP bar, next workout card, last time. Bottom bar (D44). No streak card (D34). |
+| 7 | Workout | exists | exercise strip with the day's list and the area scene. No tools (D32). Tap a card to make it active. Tap the object = +1 set, hold = −1. Area marks stay in the world. Bottom bar, HUB lit (D44). |
 | 8 | Reward | exists | XP on the active exercise line. CRITICAL SET message. Freeze-frame intro card for level-ups. No achievement burst (D35). Not a separate screen. |
-| 9 | Past sessions | exists | Training days (sets per exercise against the target, time, class, area, XP) and old saves. |
+| 9 | Past sessions | exists | Training days (sets per exercise against the target, time, class, area, XP) and old saves. Bottom bar (D44). |
 | 10 | Gear | removed | No gear (D38). |
 | 11 | Menu | exists | Full screen: YOU (profile, past sessions, edit character), GAINS INSURANCE (save / restore backup). No chaos mode, cel shader or sound (D39–D41). Opens from ⋮ on every view. |
-| 12 | Profile | exists | level and level title, XP bar, the path (class, difficulty, world; tap one to change it), PAST SESSIONS. No milestones (D35). Opens from PROFILE or the level bar on the hub. Tap the lifter to change the body. |
+| 12 | Profile | exists | level and level title, XP bar, the path (class, difficulty, world; tap one to change it), PAST SESSIONS. No milestones (D35). Opens from PROFILE or the level bar on the hub. Tap the lifter to change the body. Bottom bar (D44). |
 
 Removed: the preloader, START TRAINING and its clock, I WORKED / I RESTED and UNDO,
 the 7-day pattern, rest days, rest-day stats and the preview pages.
@@ -158,7 +158,9 @@ The app is the reference for this screen (D42).
 - **Next workout card:** today's exercises, with tally marks for the sets done today, and
   TRAIN (or KEEP GOING after the first set). Tap the card: the camera zooms into the workout.
 - **Last time:** the date and sets of the last training day.
-- **Bottom bar:** HISTORY slides to the past sessions. PROFILE opens the profile.
+- **Bottom bar** (D44): HISTORY slides to the past sessions, HUB goes to the hub, PROFILE opens the
+  profile. The same bar shows on the workout (HUB lit), past sessions and the profile. Not on the
+  setup or edit-character steps, and not on the menu.
 
 ### 4.2 Workout
 
@@ -169,7 +171,7 @@ owner's rules ([decisions.md](decisions.md)).
   difficulty, 8 at the hardest (§3). Each exercise has a **target** number of working sets from
   the difficulty. The pools are placeholders, all in `lib/game/content.dart`. The first exercise
   moves along the pool each day.
-- **Header:** ◀ HUB, the class name and the area name.
+- **Header:** the class name and the area name.
 - **Exercise strip:** one card per exercise of the day's list. Each card shows the name, the
   target slots as Xs (filled in rarity colours), +n for sets over the target, and a status: NOW,
   NEXT UP or CRUSHED. Tap a card to make it the active exercise.
@@ -189,7 +191,7 @@ owner's rules ([decisions.md](decisions.md)).
 - **Tip:** on the first workout, until the first set, a tag says "Only working sets count".
 - No sound (D41).
 - Reduced motion: no scene animation.
-- ◀ HUB (or Android back) goes back to the hub.
+- HUB in the bottom bar (or Android back) goes back to the hub.
 - Not used from the design board: the I WORKED button, the running clock and "SESSION n"
   (owner decisions D6 and D7 in [decisions.md](decisions.md)). There is one session per calendar day (§4.4).
 - Not used from the design board: the swipe and the tool row (D32 replaces D16).

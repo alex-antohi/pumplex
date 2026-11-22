@@ -677,15 +677,15 @@ void main() {
     expect(find.textContaining('5/3'), findsOneWidget);
     expect(find.textContaining('+${store.cardXp(0)} XP'), findsOneWidget);
 
-    await t.tap(find.byKey(const ValueKey('workout-hub')));
+    await t.tap(find.byKey(const ValueKey('nav-hub')));
     await _frames(t);
     expect(find.text('KEEP GOING'), findsOneWidget);
     expect(find.text('ON · 5 SETS'), findsOneWidget);
 
-    await t.tap(find.byKey(const ValueKey('hub-past')));
+    await t.tap(find.byKey(const ValueKey('nav-history')));
     await _frames(t);
     expect(find.textContaining('TODAY · '), findsOneWidget);
-    await t.tap(find.byKey(const ValueKey('history-hub')));
+    await t.tap(find.byKey(const ValueKey('nav-hub')));
     await _frames(t, 70);
     expect(t.takeException(), isNull);
   });
@@ -730,7 +730,7 @@ void main() {
     expect(find.text('LEVEL $level'), findsOneWidget);
     await _frames(t, 70);
     expect(find.byKey(const ValueKey('intro-card')), findsNothing);
-    await t.tap(find.byKey(const ValueKey('workout-hub')));
+    await t.tap(find.byKey(const ValueKey('nav-hub')));
     await _frames(t);
     expect(find.byKey(const ValueKey('hub-gear')), findsNothing); // no gear (D38)
   });
@@ -739,10 +739,10 @@ void main() {
     await _openApp(t);
     await t.tap(find.byKey(const ValueKey('hub-workout')));
     await _frames(t);
-    expect(find.byKey(const ValueKey('workout-hub')), findsOneWidget);
+    expect(find.byKey(const ValueKey('world-object')), findsOneWidget);
     await t.binding.handlePopRoute();
     await _frames(t);
-    expect(find.byKey(const ValueKey('workout-hub')), findsNothing);
+    expect(find.byKey(const ValueKey('world-object')), findsNothing);
     expect(find.text('TRAIN'), findsOneWidget);
   });
 
@@ -774,23 +774,23 @@ void main() {
       }
 
       await tapAndSettle(find.byKey(const ValueKey('hub-workout')));
-      await tapAndSettle(find.byKey(const ValueKey('workout-hub')));
-      await tapAndSettle(find.byKey(const ValueKey('hub-past')));
-      await tapAndSettle(find.byKey(const ValueKey('history-hub')));
+      await tapAndSettle(find.byKey(const ValueKey('nav-hub')));
+      await tapAndSettle(find.byKey(const ValueKey('nav-history')));
+      await tapAndSettle(find.byKey(const ValueKey('nav-hub')));
       // Profile (design screen 11): change one setup step, then back.
-      await tapAndSettle(find.byKey(const ValueKey('hub-profile')));
+      await tapAndSettle(find.byKey(const ValueKey('nav-profile')));
       expect(find.text('THE PATH'), findsOneWidget);
       await tapAndSettle(find.byKey(const ValueKey('profile-difficulty')));
       expect(find.text('DIFFICULTY · STEP 3 OF 5'), findsOneWidget);
       await tapAndSettle(find.text('NEXT'));
       await tapAndSettle(find.text('SAVE'));
-      await tapAndSettle(find.byKey(const ValueKey('hub-profile')));
-      await tapAndSettle(find.byKey(const ValueKey('profile-back')));
+      await tapAndSettle(find.byKey(const ValueKey('nav-profile')));
+      await tapAndSettle(find.byKey(const ValueKey('nav-hub')));
       // Menu (design screen 12).
       await tapAndSettle(find.byKey(const ValueKey('menu-open')));
       expect(find.text('GAINS INSURANCE'), findsOneWidget);
       await tapAndSettle(find.byKey(const ValueKey('menu-profile')));
-      await tapAndSettle(find.byKey(const ValueKey('profile-back')));
+      await tapAndSettle(find.byKey(const ValueKey('nav-hub')));
       await tapAndSettle(find.byKey(const ValueKey('menu-open')));
       await tapAndSettle(find.byKey(const ValueKey('menu-edit')));
       await tapAndSettle(find.text('NEXT')); // editing: straight to the summary

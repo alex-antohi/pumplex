@@ -75,23 +75,19 @@ Rect hubStage(Size area) {
   return sceneLifterRect(areaArt.values.first, scene, scale);
 }
 
-/// Height of the bottom navigation (history, hub, profile).
-const hubNavHeight = 56.0;
-
 class HubView extends StatelessWidget {
   const HubView({
     super.key,
     required this.stage,
     required this.store,
     required this.onTrain,
-    required this.onHistory,
     required this.onBody,
     required this.onProfile,
   });
 
   final Rect stage;
   final LogStore store;
-  final VoidCallback onTrain, onHistory, onProfile;
+  final VoidCallback onTrain, onProfile;
 
   /// Opens the body sliders (tap on the character, D12).
   final VoidCallback onBody;
@@ -105,7 +101,6 @@ class HubView extends StatelessWidget {
     final color = classColor(p, cls.id);
     final area = areaById(store.profile?.areaId);
     final accent = Color(area.accent);
-    final bottom = MediaQuery.paddingOf(context).bottom;
     final trained = store.history.where((s) => s.trained && !identical(s, today)).toList();
     return LayoutBuilder(builder: (context, box) {
       final (scene, scale) = hubLayout(box.biggest);
@@ -140,7 +135,7 @@ class HubView extends StatelessWidget {
             left: 0,
             right: 0,
             top: scene.bottom + 8,
-            bottom: hubNavHeight + bottom,
+            bottom: 0,
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 24, 16),
               children: [
@@ -220,35 +215,49 @@ class HubView extends StatelessWidget {
               ],
             ),
           ),
-          // Bottom navigation (design demo 07).
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            height: hubNavHeight + bottom,
-            child: Container(
-              padding: EdgeInsets.only(bottom: bottom),
-              decoration: BoxDecoration(color: kNight, border: Border(top: BorderSide(color: p.panel2, width: 3))),
-              child: Row(
-                children: [
-                  _NavButton(key: const ValueKey('hub-past'), icon: 'history', label: 'HISTORY', onTap: onHistory),
-                  const _NavButton(icon: 'bolt', label: 'HUB', current: true),
-                  _NavButton(key: const ValueKey('hub-profile'), icon: 'user', label: 'PROFILE', onTap: onProfile),
-                ],
-              ),
-            ),
-          ),
         ],
       );
     });
   }
 }
 
+/// The lit tab of [MainNav].
+enum NavTab { history, hub, profile }
+
+/// Bottom navigation (HISTORY, HUB, PROFILE) under the hub, the workout,
+/// past sessions and the profile. The workout lights HUB.
+class MainNav extends StatelessWidget {
+  const MainNav({super.key, required this.current, required this.onHistory, required this.onHub, required this.onProfile});
+
+  static const height = 56.0;
+
+  final NavTab current;
+  final VoidCallback onHistory, onHub, onProfile;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Pal.of(context);
+    final bottom = MediaQuery.paddingOf(context).bottom;
+    return Container(
+      height: height + bottom,
+      padding: EdgeInsets.only(bottom: bottom),
+      decoration: BoxDecoration(color: kNight, border: Border(top: BorderSide(color: p.panel2, width: 3))),
+      child: Row(
+        children: [
+          _NavButton(key: const ValueKey('nav-history'), icon: 'history', label: 'HISTORY', current: current == NavTab.history, onTap: onHistory),
+          _NavButton(key: const ValueKey('nav-hub'), icon: 'bolt', label: 'HUB', current: current == NavTab.hub, onTap: onHub),
+          _NavButton(key: const ValueKey('nav-profile'), icon: 'user', label: 'PROFILE', current: current == NavTab.profile, onTap: onProfile),
+        ],
+      ),
+    );
+  }
+}
+
 class _NavButton extends StatelessWidget {
-  const _NavButton({super.key, required this.icon, required this.label, this.onTap, this.current = false});
+  const _NavButton({super.key, required this.icon, required this.label, required this.onTap, this.current = false});
 
   final String icon, label;
-  final VoidCallback? onTap;
+  final VoidCallback onTap;
   final bool current;
 
   @override
@@ -257,7 +266,7 @@ class _NavButton extends StatelessWidget {
     final c = current ? Colors.white : const Color(0xFFC9B8E8);
     return Expanded(
       child: Semantics(
-        button: !current,
+        button: true,
         selected: current,
         label: label,
         child: GestureDetector(
@@ -288,10 +297,9 @@ class _NavButton extends StatelessWidget {
 /// Header of a list page (past sessions): a HUB button, a title and a line,
 /// to the left of the small character at [stage].
 class _PageHeader extends StatelessWidget {
-  const _PageHeader({required this.stage, required this.button, required this.title, required this.line});
+  const _PageHeader({required this.stage, required this.title, required this.line});
 
   final Rect stage;
-  final Widget button;
   final String title, line;
 
   @override
@@ -304,8 +312,6 @@ class _PageHeader extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            button,
-            const SizedBox(height: 10),
             Text(title, style: display(26, p.ink)),
             const SizedBox(height: 4),
             Text(line, style: mono(11.5, p.pink)),
@@ -321,11 +327,10 @@ EdgeInsets _pageListPadding(BuildContext context) =>
     EdgeInsets.fromLTRB(16, 8, 24, 30 + MediaQuery.paddingOf(context).bottom);
 
 class HistoryView extends StatelessWidget {
-  const HistoryView({super.key, required this.stage, required this.store, required this.onBack});
+  const HistoryView({super.key, required this.stage, required this.store});
 
   final Rect stage;
   final LogStore store;
-  final VoidCallback onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -338,7 +343,6 @@ class HistoryView extends StatelessWidget {
       children: [
         _PageHeader(
           stage: stage,
-          button: BrutalButton(key: const ValueKey('history-hub'), small: true, color: p.sky, onTap: onBack, child: const IconText('next', 'HUB', iconAfter: true)),
           title: 'PAST SESSIONS',
           line: '${all.length} TRAINING DAYS IN THE BOOK',
         ),

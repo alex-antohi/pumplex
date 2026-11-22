@@ -49,7 +49,6 @@ class WorkoutView extends StatefulWidget {
     required this.store,
     required this.onAdd,
     required this.onRemove,
-    required this.onBack,
   });
 
   final Rect stage;
@@ -57,7 +56,6 @@ class WorkoutView extends StatefulWidget {
 
   /// Index in `store.todayExercises` -> one set more / one set less.
   final ValueChanged<int> onAdd, onRemove;
-  final VoidCallback onBack;
 
   @override
   State<WorkoutView> createState() => _WorkoutViewState();
@@ -146,21 +144,13 @@ class _WorkoutViewState extends State<WorkoutView> {
       final (scene, scale) = workoutLayout(box.biggest);
       return Stack(
         children: [
-          // Header: ◀ HUB, class and area.
+          // Header: class and area.
           Positioned(
             left: 16,
             right: 22,
             top: 6,
             child: Row(
               children: [
-                BrutalButton(
-                  key: const ValueKey('workout-hub'),
-                  small: true,
-                  color: p.sky,
-                  onTap: widget.onBack,
-                  child: const IconText('back', 'HUB'),
-                ),
-                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

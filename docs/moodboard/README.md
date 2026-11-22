@@ -225,7 +225,7 @@ With reduced motion, the panels cross-fade in 2 steps and the lifter does not mo
 | 5 Summary → Hub (LET'S GO) | Stays in the same scene, now the hub's | The chips fly to their hub spots (class tag, level, workout card); the HUD and nav slide in | 320 |
 | Any BACK in the setup | The same move, reversed | Reversed | same |
 | Profile → one setup step (`?edit=1`) and back | Stays | The profile slides down, the step's panel slides up; SAVE reverses it | 280 |
-| Hub → Workout (TRAIN ▶) and ◀ HUB | Stays in the scene | The camera zooms 1 step into the scene; the exercise strip drops in from the top; ◀ HUB reverses it | 240 |
+| Hub → Workout (TRAIN ▶) and back (HUB in the bottom bar) | Stays in the scene | The camera zooms 1 step into the scene; the exercise strip drops in from the top; HUB reverses it | 240 |
 
 ## Starting areas (setup step 4)
 
@@ -282,7 +282,7 @@ one session per calendar day that closes by itself, no I WORKED, no clock, no se
 
 Screen, top to bottom (390×844 dp):
 
-1. **Top bar:** **◀ HUB** (back to the hub; every set is already saved), the class name (`SCRAPPER`) and the area name. No session counter, no clock.
+1. **Top bar:** the class name (`SCRAPPER`) and the area name. HUB in the bottom bar goes back (every set is already saved, D44). No session counter, no clock.
 2. **Exercise strip:** one card per exercise, 3 to 8 from the difficulty (D15). Each card shows the name, **target slots** (outlined Xs, filled in rarity-ladder colours as sets land), `+n` for extra sets, and a status: NOW / NEXT UP / CRUSHED.
    The active card is orange with a pink hard shadow. Tap a card to make it active. **Swipe a card** to switch the exercise for another
    from the class pool, **↺** returns a switched card to the first exercise, **✕** removes a card, and **+ ADD EXERCISE** adds one from the pool (D16).

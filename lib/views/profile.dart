@@ -19,7 +19,6 @@ class ProfileView extends StatelessWidget {
     super.key,
     required this.stage,
     required this.store,
-    required this.onBack,
     required this.onBody,
     required this.onHistory,
     required this.onEditStep,
@@ -27,7 +26,7 @@ class ProfileView extends StatelessWidget {
 
   final Rect stage;
   final LogStore store;
-  final VoidCallback onBack, onBody, onHistory;
+  final VoidCallback onBody, onHistory;
 
   /// Opens one setup step to change it: 1 class, 2 difficulty, 3 area (D13).
   final ValueChanged<int> onEditStep;
@@ -53,13 +52,6 @@ class ProfileView extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    BrutalButton(
-                        key: const ValueKey('profile-back'),
-                        small: true,
-                        color: p.sky,
-                        onTap: onBack,
-                        child: const IconText('back', 'HUB')),
-                    const SizedBox(height: 10),
                     Shout('Level ${l.level}', color: p.pink),
                     Text(levelTitle(l.level).toUpperCase(), style: display(28, p.ink)),
                     const SizedBox(height: 4),

@@ -442,7 +442,6 @@ class _GameShellState extends State<GameShell> {
             stage: stage,
             store: _store,
             onTrain: () => _go(Scene.workout),
-            onHistory: _openHistory,
             onBody: _editCharacter,
             onProfile: () => _go(Scene.profile),
           ),
@@ -451,13 +450,11 @@ class _GameShellState extends State<GameShell> {
             store: _store,
             onAdd: _addSet,
             onRemove: _removeSet,
-            onBack: _back,
           ),
-        Scene.history => HistoryView(stage: stage, store: _store, onBack: _back),
+        Scene.history => HistoryView(stage: stage, store: _store),
         Scene.profile => ProfileView(
             stage: stage,
             store: _store,
-            onBack: _back,
             onBody: _editCharacter,
             onHistory: _openHistory,
             onEditStep: _editStep,
@@ -480,6 +477,15 @@ class _GameShellState extends State<GameShell> {
 
   bool get _inSetup => _isSetupScene(_scene == Scene.menu ? _menuFrom : _scene);
 
+  /// The bottom bar's lit tab, or null where there is no bar. The bar shows
+  /// on the hub, the workout, past sessions and the profile only.
+  NavTab? get _navTab => switch (_scene) {
+        Scene.hub || Scene.workout => NavTab.hub,
+        Scene.history => NavTab.history,
+        Scene.profile => NavTab.profile,
+        _ => null,
+      };
+
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
@@ -498,9 +504,10 @@ class _GameShellState extends State<GameShell> {
           body: DotBackground(
             child: Column(
               children: [
+                // The phone status bar sits on the dark strip.
                 Container(
                   color: kNight,
-                  child: const SafeArea(bottom: false, child: Ticker(items: tickerItems)),
+                  child: const SafeArea(bottom: false, child: SizedBox(width: double.infinity)),
                 ),
                 _TopBar(
                   info: _info,
@@ -516,7 +523,12 @@ class _GameShellState extends State<GameShell> {
                 Expanded(
                   child: LayoutBuilder(builder: (context, box) {
                     final stage = stageRect(_scene, box.biggest);
-                    return Stack(
+                    // The bottom bar takes the system inset, so the views
+                    // above it get none.
+                    return MediaQuery.removePadding(
+                      context: context,
+                      removeBottom: _navTab != null,
+                      child: Stack(
                       children: [
                         Positioned.fill(
                           child: SceneSwitcher(
@@ -560,9 +572,16 @@ class _GameShellState extends State<GameShell> {
                             _ => Positioned.fill(child: _introCard()),
                           },
                       ],
-                    );
+                    ));
                   }),
                 ),
+                if (_navTab case final tab?)
+                  MainNav(
+                    current: tab,
+                    onHistory: _openHistory,
+                    onHub: _back,
+                    onProfile: () => _go(Scene.profile),
+                  ),
               ],
             ),
           ),
