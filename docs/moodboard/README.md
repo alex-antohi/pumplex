@@ -165,17 +165,18 @@ equipment the class trains with) and three **training tags** take its place.
 Screen, top to bottom (390×844 dp):
 
 1. Kicker `STEP 2 OF 5 · THE SWOLEMANCER'S PATHS`, title **CHOOSE YOUR PATH**, subline **What do you train with?**
-2. Preview card: **the user's own body from step 1** at 3× (D25). The class colour, and later the class outfit,
-   shows the class, not a different body. Then the class name in its colour, the loadout line and 3 tags.
+2. One big card that fills the space down to the dots (D46): **the user's own body from step 1** on top (D25).
+   The class colour and the class outfit show the class, not a different body. Then the class name in its colour,
+   the equipment, the loadout line, 3 tags and a short description in the voice of an RPG class intro.
    The card's hard shadow takes the class colour.
-3. A short description in the voice of an RPG class intro, which also hints at the equipment.
-4. Four class buttons (a radio group): class name on the left, equipment on the right. The picked one fills with its colour.
-5. **NEXT: DIFFICULTY**.
+3. Swipe the card to change the class: left for the next, right for the one before, round and round.
+   The texts slide with the swipe. Four dots under the card show the class; tap one to jump. No class buttons.
+4. **BACK** and **NEXT: DIFFICULTY**.
 
 ### Freeze-frame intro card
 
-From `borderlands-reference.md` (character intro card: show it on class pick and on level-up).
-Each time a class is picked:
+From `borderlands-reference.md` (character intro card). The app shows it on a difficulty pick and on level-up,
+not on class select (D46). Each time it shows:
 
 - The preview **freezes**: the sprite goes greyscale with high contrast, and dark diagonal stripes cover the card.
 - The class name **slams in** as a stencil tag: an Anton 40 px name on the class colour, with a 4 px ink border,
@@ -219,7 +220,7 @@ With reduced motion, the panels cross-fade in 2 steps and the lifter does not mo
 | From → to | Lifter | Panels | Ms |
 | --- | --- | --- | --- |
 | First launch → 1 Creator | Drops onto the stage floor from the top, one squash on landing | The sliders panel slides up from the bottom | 320 |
-| 1 Creator → 2 Class select | Shrinks from 4× to 3× and steps onto the preview card | The sliders slide out left, the class card slides in from the right; then the class freeze-frame card | 280 |
+| 1 Creator → 2 Class select | Shrinks from 4× to 3× and steps onto the preview card | The sliders slide out left, the class card slides in from the right | 280 |
 | 2 Class select → 3 Difficulty | Stays at 3×, moves to the left of the ladder | The class card slides out left, the ladder rises from the bottom rung up | 280 |
 | 3 Difficulty → 4 Starting area | Stays on the floor line | The ladder slides out left; the area scene wipes in behind the lifter from the right, floor first, then the sky | 320 |
 | 4 Starting area → 5 Summary | Stays in the area scene | The camera pulls back 1 step; the four choice chips stamp in around the lifter, one by one | 320 |

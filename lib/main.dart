@@ -46,11 +46,12 @@ enum Scene { migrate, create, classSelect, difficulty, area, summary, hub, worko
 /// Where the character stands in each scene, inside the content area.
 /// The views leave this rect free; the shell draws the one character there,
 /// so it glides from place to place when the scene changes.
-Rect stageRect(Scene s, Size a) {
+/// [bottomInset] is the phone's navigation bar, for views that keep it.
+Rect stageRect(Scene s, Size a, {double bottomInset = 0}) {
   final w = a.width, h = a.height;
   return switch (s) {
     Scene.create => Rect.fromLTWH(0, 8, w, h * 0.42),
-    Scene.classSelect => Rect.fromLTWH(26, 132, w * 0.34, h * 0.25),
+    Scene.classSelect => classLayout(a, bottomInset).stage,
     Scene.difficulty => Rect.fromLTWH(w * 0.76, 2, w * 0.2, 88),
     Scene.area => Rect.fromLTWH(12, 8, w * 0.30, h * 0.22),
     Scene.summary => Rect.fromLTWH(0, 10, w, h * 0.40),
@@ -226,8 +227,7 @@ class _GameShellState extends State<GameShell> {
       // The class picks the default area, until the player picks one.
       if (!_areaPicked) _areaId = defaultAreaFor(id).id;
     });
-    final c = classById(id);
-    _showIntro((title: c.name, subtitle: c.subtitle, color: classColor(Pal.of(context), id)));
+    // No freeze-frame intro card on the class carousel (D46).
   }
 
   void _pickDifficulty(String id) {
@@ -532,7 +532,7 @@ class _GameShellState extends State<GameShell> {
                 Container(height: 6, color: p.violet),
                 Expanded(
                   child: LayoutBuilder(builder: (context, box) {
-                    final stage = stageRect(_scene, box.biggest);
+                    final stage = stageRect(_scene, box.biggest, bottomInset: MediaQuery.paddingOf(context).bottom);
                     // The bottom bar takes the system inset, so the views
                     // above it get none.
                     return MediaQuery.removePadding(
@@ -568,14 +568,9 @@ class _GameShellState extends State<GameShell> {
                           ),
                         ),
                         // Freeze-frame intro card: over the preview card on
-                        // the class and difficulty steps, over the whole
-                        // view on level-ups.
+                        // the difficulty step, over the whole view on level-ups.
                         if (_intro != null)
                           switch (_scene) {
-                            Scene.classSelect => Positioned.fromRect(
-                                rect: classCardRect(stage, box.maxWidth),
-                                child: _introCard(),
-                              ),
                             Scene.difficulty => Positioned.fromRect(
                                 rect: difficultyCardRect(box.biggest),
                                 child: _introCard(),

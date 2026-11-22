@@ -232,14 +232,22 @@ class _LookButton extends StatelessWidget {
 
 // ------------------------------------------------------------ class select
 
-/// The preview card around the character on the class-select step.
-Rect classCardRect(Rect stage, double width) =>
-    Rect.fromLTRB(16, stage.top - 10, width - 22, stage.bottom + 10);
+/// Room under the class card: the dots row and the BACK / NEXT row.
+const _classDotsHeight = 30.0, _classNavHeight = 92.0;
+
+/// The class card and, inside it, where the shell draws the lifter, in a
+/// view of [area] with [bottomInset] (the phone's navigation bar).
+({Rect card, Rect stage}) classLayout(Size area, double bottomInset) {
+  final card = Rect.fromLTRB(16, 122, area.width - 22, area.height - bottomInset - _classNavHeight - _classDotsHeight);
+  final stage = Rect.fromLTWH(card.left + 12, card.top + 12, card.width - 24, card.height * 0.38);
+  return (card: card, stage: stage);
+}
 
 /// Setup step 2, "CHOOSE YOUR PATH" (docs/moodboard/README.md "Class
-/// select"): a preview card with the lifter, the loadout and 3 tags (no
-/// stat table), a description, 4 class buttons, NEXT: DIFFICULTY.
-class ClassView extends StatelessWidget {
+/// select", D46): one big card with the lifter, the class name, the
+/// equipment, the loadout, 3 tags and the description. Swipe the card to
+/// change the class, both ways, round and round. Dots show where you are.
+class ClassView extends StatefulWidget {
   const ClassView({
     super.key,
     required this.stage,
@@ -257,12 +265,36 @@ class ClassView extends StatelessWidget {
   final bool editing;
 
   @override
+  State<ClassView> createState() => _ClassViewState();
+}
+
+class _ClassViewState extends State<ClassView> {
+  /// 1: the new class comes in from the right (swipe left), -1: from the left.
+  int _dir = 1;
+  double _dx = 0;
+
+  int get _index => max(0, gameClasses.indexWhere((c) => c.id == widget.classId));
+
+  /// The class [d] steps away, round and round.
+  void _step(int d) {
+    setState(() => _dir = d);
+    widget.onPick(gameClasses[(_index + d) % gameClasses.length].id);
+  }
+
+  void _jump(int i) {
+    if (i == _index) return;
+    setState(() => _dir = i > _index ? 1 : -1);
+    widget.onPick(gameClasses[i].id);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
-    final cls = classById(classId);
+    final cls = classById(widget.classId);
     final color = classColor(p, cls.id);
     return LayoutBuilder(builder: (context, box) {
-      final card = classCardRect(stage, box.maxWidth);
+      final card = classLayout(box.biggest, MediaQuery.paddingOf(context).bottom).card;
+      final stage = widget.stage;
       return Stack(
         children: [
           // Kicker, title, subline.
@@ -285,65 +317,97 @@ class ClassView extends StatelessWidget {
               ],
             ),
           ),
-          // Preview card: the shell draws the lifter at [stage], inside it.
+          // The card: the shell draws the lifter at [stage], at its top.
           Positioned.fromRect(
             rect: card,
-            child: Brutal(
+            child: GestureDetector(
               key: const ValueKey('class-card'),
-              shadow: color,
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(stage.right - card.left + 4, 10, 10, 10),
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
-                  child: Column(
-                    key: ValueKey(cls.id),
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(cls.name.toUpperCase(), style: display(26, p.ink).copyWith(shadows: [
-                          Shadow(offset: const Offset(2, 2), color: color),
-                        ])),
+              behavior: HitTestBehavior.opaque,
+              onHorizontalDragStart: (_) => _dx = 0,
+              onHorizontalDragUpdate: (d) => _dx += d.delta.dx,
+              onHorizontalDragEnd: (d) {
+                final v = d.primaryVelocity ?? 0;
+                if (_dx < -40 || v < -300) {
+                  _step(1);
+                } else if (_dx > 40 || v > 300) {
+                  _step(-1);
+                }
+              },
+              child: Brutal(
+                shadow: color,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(height: stage.bottom - card.top),
+                    Expanded(
+                      child: ClipRect(
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 240),
+                          switchInCurve: Curves.easeOutCubic,
+                          switchOutCurve: Curves.easeInCubic,
+                          layoutBuilder: (current, previous) => Stack(
+                            alignment: Alignment.topLeft,
+                            children: [...previous, ?current],
+                          ),
+                          transitionBuilder: (child, anim) {
+                            final incoming = child.key == ValueKey(cls.id);
+                            return SlideTransition(
+                              position: Tween(
+                                begin: Offset(incoming ? _dir.toDouble() : -_dir.toDouble(), 0),
+                                end: Offset.zero,
+                              ).animate(anim),
+                              child: child,
+                            );
+                          },
+                          child: _ClassText(key: ValueKey(cls.id), cls: cls, color: color),
+                        ),
                       ),
-                      const SizedBox(height: 6),
-                      Text(cls.loadout, style: mono(11.5, p.ink), maxLines: 3),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: [for (final t in cls.tags) Tag(t, bg: color, fg: p.on, size: 11, angle: 0)],
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
+            ),
+          ),
+          // Dots: where you are in the carousel. Tap one to jump.
+          Positioned(
+            left: 0,
+            right: 0,
+            top: card.bottom + 8,
+            height: _classDotsHeight - 8,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                for (final (i, c) in gameClasses.indexed)
+                  GestureDetector(
+                    key: ValueKey('class-dot-${c.id}'),
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => _jump(i),
+                    child: Semantics(
+                      label: c.name,
+                      selected: c.id == cls.id,
+                      button: true,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 160),
+                          width: c.id == cls.id ? 26 : 12,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            color: c.id == cls.id ? classColor(p, c.id) : p.panel2,
+                            border: Border.all(color: p.ink, width: 2),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
           Positioned(
             left: 0,
             right: 0,
-            top: card.bottom + 14,
             bottom: 0,
-            child: Column(
-              children: [
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 22, 8),
-                    children: [
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 200),
-                        child: Text(cls.style, key: ValueKey(cls.id), style: mono(12, p.ink)),
-                      ),
-                      const SizedBox(height: 14),
-                      for (final c in gameClasses)
-                        _PathButton(c: c, selected: c.id == classId, onTap: () => onPick(c.id)),
-                    ],
-                  ),
-                ),
-                _Nav(onBack: onBack, next: editing ? 'NEXT' : 'NEXT: DIFFICULTY', onNext: onNext),
-              ],
-            ),
+            child: _Nav(onBack: widget.onBack, next: widget.editing ? 'NEXT' : 'NEXT: DIFFICULTY', onNext: widget.onNext),
           ),
         ],
       );
@@ -351,41 +415,41 @@ class ClassView extends StatelessWidget {
   }
 }
 
-/// One class in the radio group: name left, equipment right.
-class _PathButton extends StatelessWidget {
-  const _PathButton({required this.c, required this.selected, required this.onTap});
+/// The texts of one class in the card: name, equipment, loadout, tags,
+/// description. Scrolls if the phone is short.
+class _ClassText extends StatelessWidget {
+  const _ClassText({super.key, required this.cls, required this.color});
 
-  final GameClass c;
-  final bool selected;
-  final VoidCallback onTap;
+  final GameClass cls;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
-    final color = classColor(p, c.id);
-    return Semantics(
-      inMutuallyExclusiveGroup: true,
-      checked: selected,
-      button: true,
-      child: GestureDetector(
-        key: ValueKey('path-${c.id}'),
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            color: selected ? color : p.panel,
-            border: Border.all(color: p.ink, width: selected ? 4 : 3),
-            boxShadow: [BoxShadow(color: selected ? p.ink : color, offset: const Offset(4, 4))],
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(14, 4, 14, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(cls.name.toUpperCase(), style: display(30, p.ink).copyWith(shadows: [
+              Shadow(offset: const Offset(2, 2), color: color),
+            ])),
           ),
-          child: Row(
-            children: [
-              Expanded(child: Text(c.name.toUpperCase(), style: display(19, selected ? p.on : p.ink))),
-              Text(c.equipment.toUpperCase(), style: mono(11, selected ? p.on : p.ink)),
-            ],
+          const SizedBox(height: 2),
+          Text(cls.equipment.toUpperCase(), style: display(15, color).copyWith(letterSpacing: 1.2)),
+          const SizedBox(height: 8),
+          Text(cls.loadout, style: mono(11.5, p.ink)),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [for (final t in cls.tags) Tag(t, bg: color, fg: p.on, size: 11, angle: 0)],
           ),
-        ),
+          const SizedBox(height: 10),
+          Text(cls.style, style: mono(12, p.ink)),
+        ],
       ),
     );
   }

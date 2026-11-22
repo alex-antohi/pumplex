@@ -11,7 +11,6 @@ import 'package:gym_app/game/rules.dart';
 import 'package:gym_app/main.dart';
 import 'package:gym_app/pumplex.dart';
 import 'package:gym_app/store.dart';
-import 'package:gym_app/views/intro.dart';
 import 'package:gym_app/views/scene.dart';
 import 'package:gym_app/views/sprite.dart';
 import 'package:gym_app/views/workout.dart';
@@ -627,34 +626,34 @@ void main() {
     expect(find.text('BUILD YOUR LIFTER'), findsNothing);
     expect(find.text('CLASS · STEP 2 OF 5'), findsOneWidget);
 
-    // Class select: one class per equipment type; a pick shows the
-    // freeze-frame intro card and the frozen (greyscale) character.
+    // Class select (D46): one big card; swipe it to change the class, both
+    // ways and round and round. No class buttons, no freeze-frame card.
+    final classCard = find.byKey(const ValueKey('class-card'));
+    String shown() => t.widgetList<Text>(find.descendant(of: classCard, matching: find.byType(Text)))
+        .map((w) => w.data).firstWhere((s) => gameClasses.any((c) => c.name.toUpperCase() == s))!;
+    expect(find.byKey(const ValueKey('path-paladin')), findsNothing);
+    expect(shown(), 'SCRAPPER');
+    expect(find.text('NO EQUIPMENT'), findsOneWidget);
+    expect(find.text(classById('scrapper').style), findsOneWidget); // the description is in the card
+    await t.fling(classCard, const Offset(-300, 0), 1000); // swipe left: next
+    await _frames(t, 10);
+    expect(shown(), 'BARGAIN BRUISER');
+    expect(find.byKey(const ValueKey('intro-card')), findsNothing);
+    await t.fling(classCard, const Offset(300, 0), 1000); // swipe right: back
+    await _frames(t, 10);
+    await t.fling(classCard, const Offset(300, 0), 1000); // and round to the last one
+    await _frames(t, 10);
+    expect(shown(), 'CABLEMANCER');
+    await t.fling(classCard, const Offset(-300, 0), 1000); // and round to the first
+    await _frames(t, 10);
+    expect(shown(), 'SCRAPPER');
+    await t.tap(find.byKey(const ValueKey('class-dot-paladin')));
+    await _frames(t, 10);
+    expect(shown(), 'PLATE PALADIN');
     expect(find.text('LOTS OF FREE WEIGHTS'), findsOneWidget);
-    await t.ensureVisible(find.byKey(const ValueKey('path-paladin')));
-    await _frames(t, 4);
-    await t.tap(find.byKey(const ValueKey('path-paladin')));
-    await t.pump(const Duration(milliseconds: 100));
-    expect(find.byKey(const ValueKey('intro-card')), findsOneWidget);
-    expect(find.text('OATH-SWORN TO THE BARBELL'), findsOneWidget);
-    expect(
-      find.ancestor(of: find.byKey(const ValueKey('character-sprite')), matching: find.byType(ColorFiltered)).evaluate()
-          .any((e) => (e.widget as ColorFiltered).colorFilter == freezeFilter),
-      isTrue,
-    );
-    await t.pump(introHold);
-    await _frames(t, 4);
-    expect(find.byKey(const ValueKey('intro-card')), findsNothing); // closes by itself
-    expect(find.text('A BARBELL, A RACK AND A WALL OF PLATES.'.toLowerCase()), findsNothing);
     expect(find.text('A barbell, a rack and a wall of plates.'), findsOneWidget); // loadout
     expect(find.text('STRONGMAN'), findsOneWidget); // tags
-    await t.ensureVisible(find.byKey(const ValueKey('path-cablemancer')));
-    await t.tap(find.byKey(const ValueKey('path-cablemancer')));
-    await t.pump(const Duration(milliseconds: 100));
-    await t.tap(find.byKey(const ValueKey('intro-card'))); // closes on a tap
-    await t.pump(const Duration(milliseconds: 100));
     expect(find.byKey(const ValueKey('intro-card')), findsNothing);
-    await t.tap(find.byKey(const ValueKey('path-paladin')));
-    await t.pump(const Duration(milliseconds: 100));
     await t.tap(find.text('NEXT: DIFFICULTY'));
     await _frames(t);
     expect(find.byKey(const ValueKey('intro-card')), findsNothing);
@@ -837,8 +836,7 @@ void main() {
       await tapAndSettle(find.byKey(const ValueKey('menu-edit')));
       await tapAndSettle(find.text('NEXT')); // editing: straight to the summary
       await tapAndSettle(find.text('CLASS'));
-      await tapAndSettle(find.byKey(const ValueKey('path-bruiser')));
-      await t.pump(introHold);
+      await tapAndSettle(find.byKey(const ValueKey('class-dot-bruiser')));
       await tapAndSettle(find.text('NEXT'));
       await tapAndSettle(find.text('DIFFICULTY'));
       await tapAndSettle(find.text('NEXT'));

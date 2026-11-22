@@ -38,8 +38,9 @@ The plan is in [docs/app-brief.md](docs/app-brief.md) and
 - **Free-form sessions:** one session per calendar day, no buttons to start
   or stop. The rule is in [docs/app-flow.md](docs/app-flow.md) §4.4.
 - The whole app is one screen: views change with a camera zoom or slide.
-- Class select ("CHOOSE YOUR PATH", design in `docs/moodboard/`) with the
-  freeze-frame intro card, also used for level-ups.
+- Class select ("CHOOSE YOUR PATH", design in `docs/moodboard/`): swipe one big
+  class card, both ways, round and round (D46). The freeze-frame intro card shows
+  on difficulty picks and level-ups.
 - XP from [docs/rules.md](docs/rules.md): sets × difficulty (×1.5 over the
   target, 0 past 2× the target), 3% critical sets, +50 for the first set of
   the day. Habitica level curve. A level gives a level title.
