@@ -120,13 +120,6 @@ uninstall first.
 | [docs/rules.md](docs/rules.md) | The rules table: XP, level curve and later systems. |
 | [docs/marketing/](docs/marketing/01-name.md) | Name research, promo pictures, promo text, marketing ideas and the promo design handoff. |
 | [docs/moodboard/](docs/moodboard/README.md) | Design team: the game look, sprites, areas, icons and sounds. |
-| [docs/demo/](docs/demo/BRIEF.md) | Design team: the clickable HTML demo and the [handoff to the app](docs/demo/HANDOFF.md). |
-
-## Design demo
-
-A clickable HTML demo of every screen in the app flow, linked together, is in
-[`docs/demo/`](docs/demo/BRIEF.md). Open `docs/demo/index.html` in a browser.
-`tools/demo/cdp.mjs` drives one headless Edge to test it (no npm packages).
 
 ## Game moodboard
 

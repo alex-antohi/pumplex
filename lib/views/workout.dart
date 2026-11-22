@@ -1,4 +1,4 @@
-// The workout (design demo docs/demo/08-workout.html), with the owner's
+// The workout (design demo screen 08), with the owner's
 // rules (docs/decisions.md): one session per calendar day, so there is NO
 // I WORKED button and NO clock (D6, D7).
 //

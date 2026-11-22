@@ -1,9 +1,9 @@
 # Area scenes (design handoff item 1)
 
-Image layers for the 5 area scenes, drawn from the CSS boxes in `docs/demo/05-area.html` (`SCENES`).
+Image layers for the 5 area scenes, drawn from the design demo's area scenes (demo since removed; the coordinates live in `tools/moodboard/areas.mjs`).
 Regenerate with `node tools/moodboard/areas.mjs` (Node 22, no packages).
 
-Folders: `riptide`, `gainsgard`, `rustbelt`, `arcade`, `frostbite` (ids from `shared/demo.js`).
+Folders: `riptide`, `gainsgard`, `rustbelt`, `arcade`, `frostbite` (the area ids, D36).
 Each has the PNG layers and an `anim.json` with frame order, ms and positions.
 
 ## Size and scale

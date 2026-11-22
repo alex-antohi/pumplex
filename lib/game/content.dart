@@ -353,7 +353,7 @@ const levelUpLines = [
   'THE BAR FEARS YOU SLIGHTLY MORE.',
 ];
 
-/// Level titles (design demo `docs/demo/shared/demo.js` LEVEL_TITLES).
+/// Level titles (from the design demo, since removed).
 /// Design proposals; one title per level, the last one stays.
 const levelTitles = [
   'Fresh Spawn',

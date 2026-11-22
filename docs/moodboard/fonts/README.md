@@ -38,4 +38,3 @@ flutter:
 Then set `kDisplay = 'Anton'` and `kMono = 'Space Mono'` in `lib/pumplex.dart`
 (now `sans-serif-condensed` and `monospace`, the phone's own fonts).
 
-The demo (`docs/demo/shared/pumplex.css`) loads these same files, so the demo and the app use the same type.

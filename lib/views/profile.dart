@@ -1,4 +1,4 @@
-// Profile and menu (design demo screens 11 and 12, docs/demo/).
+// Profile and menu (design demo screens 11 and 12).
 
 import 'package:flutter/material.dart';
 
@@ -13,7 +13,7 @@ import 'sprite.dart';
 // ----------------------------------------------------------------- profile
 
 /// "YOUR LIFTER": level and title and the path (class, difficulty, area).
-/// Design: docs/demo/11-profile.html, without the milestones (D35).
+/// Design: demo screen 11 (profile), without the milestones (D35).
 class ProfileView extends StatelessWidget {
   const ProfileView({
     super.key,
@@ -171,7 +171,7 @@ class _PathRow extends StatelessWidget {
 
 // -------------------------------------------------------------------- menu
 
-/// Full-screen menu (design: docs/demo/12-menu.html). Sections: you and
+/// Full-screen menu (design: demo screen 12, menu). Sections: you and
 /// gains insurance (backup). Not built: the design's DANGER ZONE (D30) and
 /// look and feel (chaos, cel shader, sound: D39-D41).
 class MenuView extends StatelessWidget {

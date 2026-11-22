@@ -1,7 +1,7 @@
 # Pixel icon set (handoff item 3)
 
 60 one-colour pixel icons on a 24×24 grid. They replace the emoji and text glyphs the app shows today
-(the brief says "no emojis"), and the demo draws the same set.
+(the design brief says "no emojis").
 See them all in `sheet.png`; `icons.json` lists each id, its group, where it is used and the emoji or glyph it replaces.
 
 **Source of truth:** `tools/moodboard/icons.mjs`. Every icon is drawn there in code. Do not edit the files here by hand:
@@ -11,7 +11,7 @@ change the drawing and run
 node tools/moodboard/icons.mjs
 ```
 
-It rewrites everything in this folder and the icon table in `docs/demo/shared/demo.js`. Ids never change once shipped.
+It rewrites everything in this folder. Ids never change once shipped.
 
 ## Files
 
