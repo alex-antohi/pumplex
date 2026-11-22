@@ -76,13 +76,13 @@ class WorkoutView extends StatefulWidget {
 }
 
 class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutView> {
-  /// The exercise shown. Null: the first one (a favorite when there is one).
-  String? _currentId;
+  /// The card shown (a group key). Null: the first one (a favorite when there is one).
+  String? _currentKey;
   String? _burst;
   int _hitRun = 0;
 
-  /// The filtered list, refreshed on every build.
-  List<CatalogExercise> _list = const [];
+  /// The filtered cards, refreshed on every build.
+  List<ExerciseGroup> _list = const [];
 
   LogStore get _store => widget.store;
 
@@ -90,46 +90,53 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
   int get count => _list.length;
 
   @override
-  int get index => max(0, _list.indexWhere((e) => e.id == _currentId));
+  int get index => max(0, _list.indexWhere((g) => g.key == _currentKey));
 
   @override
-  void select(int i) => setState(() => _currentId = _list[i].id);
+  void select(int i) => setState(() => _currentKey = _list[i].key);
 
-  CatalogExercise? get _current => _list.isEmpty ? null : _list[index];
+  ExerciseGroup? get _current => _list.isEmpty ? null : _list[index];
 
   void _hit() {
-    final e = _current;
-    if (e == null) return;
-    widget.onAdd(e.id);
-    final sets = _store.setsToday(e.id);
+    final g = _current;
+    if (g == null) return;
+    widget.onAdd(_store.variantFor(g).id);
+    final sets = _store.groupSetsToday(g.key);
     final area = areaById(_store.todaySession?.areaId ?? _store.profile?.areaId);
     HapticFeedback.lightImpact();
     setState(() {
-      _currentId = e.id;
+      _currentKey = g.key;
       _burst = sets % 5 == 0 ? area.stamp : '+1 SET';
       _hitRun++;
     });
   }
 
+  /// Takes back the last set of the exercise picked on the card.
   void _undo() {
-    final e = _current;
-    if (e == null) return;
+    final g = _current;
+    if (g == null) return;
     HapticFeedback.mediumImpact();
-    widget.onRemove(e.id);
+    widget.onRemove(_store.variantFor(g).id);
     setState(() => _burst = null); // undo has no effect animation
   }
 
-  void _star(String id) {
+  void _star(String key) {
     HapticFeedback.selectionClick();
-    setState(() => _currentId = id); // stay on this card
-    _store.toggleFavorite(id);
+    setState(() => _currentKey = key); // stay on this card
+    _store.toggleFavorite(key);
+  }
+
+  void _pick(ExerciseGroup g, String id) {
+    HapticFeedback.selectionClick();
+    setState(() => _currentKey = g.key);
+    _store.pickVariant(id);
   }
 
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
     final store = _store;
-    _list = store.exercises;
+    _list = store.cards;
     final e = _current;
     final f = store.filter;
     final today = store.todaySession;
@@ -137,7 +144,7 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
     final art = areaArt[area.id]!;
     final accent = Color(area.accent);
     final cls = classById(f.classId);
-    final sets = e == null ? 0 : store.setsToday(e.id);
+    final sets = e == null ? 0 : store.groupSetsToday(e.key);
     // Old-app days have no class; days frozen by D54 keep theirs and count.
     final firstTime = store.history.where((s) => !s.legacy || s.classId.isNotEmpty).isEmpty;
     final body = f.muscle ?? bodyPartById(f.body)?.name ?? 'All body parts';
@@ -231,13 +238,16 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
                               children: [
                                 Expanded(
                                   child: slide(
-                                    'exercise-${e.id}',
+                                    'exercise-${e.key}',
                                     _ExerciseText(
-                                      e: e,
+                                      g: e,
+                                      full: exerciseCatalog.byKey[e.key] ?? e,
+                                      v: store.variantFor(e),
                                       sets: sets,
-                                      xp: store.exerciseXpToday(e.id),
-                                      favorite: store.isFavorite(e.id),
-                                      onStar: () => _star(e.id),
+                                      xp: store.groupXpToday(e.key),
+                                      favorite: store.isFavorite(e.key),
+                                      onStar: () => _star(e.key),
+                                      onPick: (id) => _pick(e, id),
                                     ),
                                   ),
                                 ),
@@ -339,21 +349,34 @@ class _Empty extends StatelessWidget {
   }
 }
 
-/// The exercise shown under the world: the name and the star, what it
-/// trains, today's set marks (in rarity colours) and the XP so far.
+/// The card shown under the world: the move's name and the star, the
+/// exercise picked (its database name and what it trains), today's set
+/// marks for the move (in rarity colours), the XP so far, and the modifier
+/// chips that pick the exercise (D55).
 class _ExerciseText extends StatelessWidget {
   const _ExerciseText({
-    required this.e,
+    required this.g,
+    required this.full,
+    required this.v,
     required this.sets,
     required this.xp,
     required this.favorite,
     required this.onStar,
+    required this.onPick,
   });
 
-  final CatalogExercise e;
+  /// The card with only its exercises that pass the filters.
+  final ExerciseGroup g;
+
+  /// The same move with all its exercises (for the greyed-out chips).
+  final ExerciseGroup full;
+
+  /// The exercise picked.
+  final CatalogExercise v;
   final int sets, xp;
   final bool favorite;
   final VoidCallback onStar;
+  final ValueChanged<String> onPick;
 
   /// Marks drawn before "+n".
   static const _maxMarks = 10;
@@ -373,7 +396,7 @@ class _ExerciseText extends StatelessWidget {
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
-                  child: Text(e.name.toUpperCase(), style: display(34, p.ink).copyWith(shadows: [
+                  child: Text(g.name.toUpperCase(), style: display(34, p.ink).copyWith(shadows: [
                     Shadow(offset: const Offset(2, 2), color: p.orange),
                   ])),
                 ),
@@ -394,8 +417,10 @@ class _ExerciseText extends StatelessWidget {
               ),
             ],
           ),
+          if (full.variants.length > 1)
+            Text(v.name.toUpperCase(), key: const ValueKey('exercise-variant'), style: display(15, p.orange)),
           Text(
-            '${e.muscle} · ${levels[e.level]} · ${e.equipment}'.toUpperCase(),
+            '${v.muscle} · ${levels[v.level]} · ${v.equipment}'.toUpperCase(),
             key: const ValueKey('exercise-info'),
             style: mono(11.5, p.ink),
           ),
@@ -417,7 +442,67 @@ class _ExerciseText extends StatelessWidget {
             key: const ValueKey('workout-line'),
             style: mono(13, p.ink),
           ),
+          // Modifiers: one row per way the move's exercises differ.
+          for (final (axis, values) in full.axes) ...[
+            const SizedBox(height: 10),
+            Text(axis.label.toUpperCase(), style: mono(10.5, p.ink.withValues(alpha: 0.7))),
+            const SizedBox(height: 4),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final value in values)
+                  _ModChip(
+                    key: ValueKey('mod-${axis.id}-${value ?? 'none'}'),
+                    label: value ?? axis.none,
+                    selected: v.mods[axis.id] == value,
+                    target: v.mods[axis.id] == value ? null : pickVariant(g, v, axis.id, value),
+                    onPick: onPick,
+                  ),
+              ],
+            ),
+          ],
         ],
+      ),
+    );
+  }
+}
+
+/// One modifier value on the card. Greyed out when no exercise of the move
+/// has it within the filters.
+class _ModChip extends StatelessWidget {
+  const _ModChip({super.key, required this.label, required this.selected, required this.target, required this.onPick});
+
+  final String label;
+  final bool selected;
+
+  /// The exercise a tap picks (null when selected or not available).
+  final CatalogExercise? target;
+  final ValueChanged<String> onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Pal.of(context);
+    final off = !selected && target == null;
+    return Semantics(
+      button: true,
+      selected: selected,
+      enabled: !off,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: target == null ? null : () => onPick(target!.id),
+        child: Opacity(
+          opacity: off ? 0.3 : 1,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+            decoration: BoxDecoration(
+              color: selected ? p.lime : p.panel,
+              border: Border.all(color: p.ink, width: 2),
+              boxShadow: selected ? [BoxShadow(color: p.ink, offset: const Offset(2, 2))] : null,
+            ),
+            child: Text(label.toUpperCase(), style: display(13, selected ? p.on : p.ink)),
+          ),
+        ),
       ),
     );
   }

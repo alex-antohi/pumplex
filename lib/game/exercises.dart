@@ -1,12 +1,19 @@
-// The exercise list and the workout filters (D50-D53).
+// The exercise list, its moves with modifiers, and the workout filters
+// (D50-D53, D55).
 //
 // The list is assets/exercises/exercises.json: free-exercise-db
 // (github.com/yuhonas/free-exercise-db, Unlicense), cut down to the fields
 // the filters use. Ids are the database ids; saved sets point to them.
 //
+// Moves (D55): exercises that are one move with different equipment,
+// angle, grip, stance and so on share a `base` name and list their
+// `mods` (tools/exercise_variants.mjs writes both). The workout shows one
+// card per move, with modifier chips that pick the exercise.
+//
 // Filters, in cascade order: class -> difficulty -> body part (-> muscle),
 // then favorites. Each filter's option counts use only the filters before
-// it (and favorites), so an earlier choice greys out later options.
+// it (and favorites), so an earlier choice greys out later options. A move
+// passes when at least one of its exercises does.
 
 import 'dart:convert';
 
@@ -23,7 +30,9 @@ class CatalogExercise {
     required this.force,
     required this.mechanic,
     required this.muscle,
-  });
+    String? base,
+    this.mods = const {},
+  }) : base = base ?? name;
 
   final String id, name, category;
 
@@ -42,6 +51,12 @@ class CatalogExercise {
   /// The first primary muscle (all but one exercise have exactly one).
   final String muscle;
 
+  /// The move's name (D55); the exercise's own name when it has no variations.
+  final String base;
+
+  /// Modifier axis id -> value (see [modifierAxes]); empty without variations.
+  final Map<String, String> mods;
+
   factory CatalogExercise.fromJson(Map<String, dynamic> j) => CatalogExercise(
         id: j['id'] as String,
         name: j['name'] as String,
@@ -51,8 +66,57 @@ class CatalogExercise {
         force: j['force'] as String?,
         mechanic: j['mechanic'] as String?,
         muscle: ((j['primaryMuscles'] as List?) ?? const []).cast<String>().firstOrNull ?? '',
+        base: j['base'] as String?,
+        mods: Map<String, String>.from(j['mods'] as Map? ?? const {}),
       );
 }
+
+/// A modifier axis on a move's card (D55): its id in `mods`, its label,
+/// and the label of "no value" (for example a flat bench).
+class ModifierAxis {
+  const ModifierAxis(this.id, this.label, this.none);
+
+  final String id, label, none;
+}
+
+/// The axes, in the order the card shows them. The values are normalized
+/// by tools/exercise_variants.mjs ("Close Grip", "Medium Grip", "Wide Grip").
+const modifierAxes = <ModifierAxis>[
+  ModifierAxis('equip', 'Equipment', 'Any'),
+  ModifierAxis('angle', 'Angle', 'Flat'),
+  ModifierAxis('width', 'Grip width', 'Standard'),
+  ModifierAxis('hand', 'Grip', 'Standard'),
+  ModifierAxis('stance', 'Stance', 'Standard'),
+  ModifierAxis('side', 'Arms / legs', 'Both'),
+  ModifierAxis('position', 'Position', 'Standard'),
+  ModifierAxis('attach', 'Attachment', 'Standard'),
+  ModifierAxis('extra', 'Add-on', 'None'),
+];
+
+/// One card of the workout: a move and its exercises (one, for an
+/// exercise with no variations).
+class ExerciseGroup {
+  const ExerciseGroup(this.key, this.name, this.variants);
+
+  /// `move:<name>` for a move with variations, else the exercise id.
+  /// Favorites point to it.
+  final String key;
+  final String name;
+
+  /// Simplest first: fewest modifiers, then the shortest name.
+  final List<CatalogExercise> variants;
+
+  /// The axes where the variants differ, with the values in order of use.
+  List<(ModifierAxis, List<String?>)> get axes => [
+        for (final a in modifierAxes)
+          if ({for (final v in variants) v.mods[a.id]}.length > 1)
+            (a, {for (final v in variants) v.mods[a.id]}.toList()..sort(_noneFirst)),
+      ];
+
+  ExerciseGroup only(List<CatalogExercise> keep) => ExerciseGroup(key, name, keep);
+}
+
+int _noneFirst(String? a, String? b) => a == null ? -1 : b == null ? 1 : a.compareTo(b);
 
 /// The database levels, easiest first.
 const levels = ['beginner', 'intermediate', 'expert'];
@@ -63,12 +127,39 @@ int topLevelFor(int difficulty) => (difficulty.clamp(0, 5)) ~/ 2;
 
 /// The exercise list, loaded once at start (main.dart).
 class ExerciseCatalog {
-  ExerciseCatalog(this.all) : byId = {for (final e in all) e.id: e};
+  ExerciseCatalog(this.all) : byId = {for (final e in all) e.id: e} {
+    final byBase = <String, List<CatalogExercise>>{};
+    for (final e in all) {
+      (byBase[e.base.toLowerCase()] ??= []).add(e);
+    }
+    for (final list in byBase.values) {
+      list.sort((a, b) => a.mods.length != b.mods.length ? a.mods.length - b.mods.length : a.name.length - b.name.length);
+      final g = list.length == 1
+          ? ExerciseGroup(list.single.id, list.single.name, list)
+          : ExerciseGroup('move:${list.first.base.toLowerCase()}', list.first.base, list);
+      groups.add(g);
+      for (final e in list) {
+        _groupOf[e.id] = g;
+      }
+    }
+    byKey.addAll({for (final g in groups) g.key: g});
+  }
 
   static final empty = ExerciseCatalog(const []);
 
   final List<CatalogExercise> all;
   final Map<String, CatalogExercise> byId;
+
+  /// One per card (D55).
+  final List<ExerciseGroup> groups = [];
+  final Map<String, ExerciseGroup> byKey = {};
+  final Map<String, ExerciseGroup> _groupOf = {};
+
+  /// The move an exercise belongs to.
+  ExerciseGroup? groupOf(String id) => _groupOf[id];
+
+  /// The group key of an exercise id (the id itself if it is unknown).
+  String groupKeyOf(String id) => _groupOf[id]?.key ?? id;
 
   static const asset = 'assets/exercises/exercises.json';
 
@@ -85,6 +176,25 @@ ExerciseCatalog exerciseCatalog = ExerciseCatalog.empty;
 /// Display name of an exercise id (the id itself if it is unknown).
 String exerciseName(String id) => exerciseCatalog.byId[id]?.name ?? id;
 
+/// The exercise of [g] to show for the chosen [value] on [axis], keeping as
+/// many of [current]'s other modifiers as it can. Null: no such variant.
+CatalogExercise? pickVariant(ExerciseGroup g, CatalogExercise current, String axis, String? value) {
+  CatalogExercise? best;
+  var bestScore = -1;
+  for (final v in g.variants) {
+    if (v.mods[axis] != value) continue;
+    var score = 0;
+    for (final a in modifierAxes) {
+      if (a.id != axis && v.mods[a.id] == current.mods[a.id]) score++;
+    }
+    if (score > bestScore) {
+      best = v;
+      bestScore = score;
+    }
+  }
+  return best;
+}
+
 // ---------------------------------------------------------------- class
 
 /// The equipment each class trains with (D50). Every class also gets
@@ -96,11 +206,12 @@ const classEquipment = <String, Set<String>>{
   'cablemancer': {'body only', 'machine', 'cable'},
 };
 
-/// The categories each class shows (D50).
+/// The categories each class shows (D50). Stretching, olympic
+/// weightlifting and strongman are not in the list (D56).
 const classCategories = <String, Set<String>>{
-  'scrapper': {'strength', 'plyometrics', 'cardio', 'stretching'},
-  'bruiser': {'strength', 'plyometrics', 'cardio', 'stretching'},
-  'paladin': {'strength', 'powerlifting', 'olympic weightlifting', 'strongman'},
+  'scrapper': {'strength', 'plyometrics', 'cardio'},
+  'bruiser': {'strength', 'plyometrics', 'cardio'},
+  'paladin': {'strength', 'powerlifting'},
   'cablemancer': {'strength', 'cardio'},
 };
 
@@ -113,11 +224,12 @@ class BodyPart {
   final List<String> muscles;
 }
 
-/// The 17 database muscles in 6 groups (D52).
+/// The database muscles in 6 groups (D52). Neck exercises are not in the
+/// list (D56).
 const bodyParts = <BodyPart>[
   BodyPart('chest', 'Chest', ['chest']),
   BodyPart('back', 'Back', ['lats', 'middle back', 'lower back', 'traps']),
-  BodyPart('shoulders', 'Shoulders', ['shoulders', 'neck']),
+  BodyPart('shoulders', 'Shoulders', ['shoulders']),
   BodyPart('arms', 'Arms', ['biceps', 'triceps', 'forearms']),
   BodyPart('legs', 'Legs', ['quadriceps', 'hamstrings', 'glutes', 'calves', 'abductors', 'adductors']),
   BodyPart('core', 'Core', ['abdominals']),
@@ -172,25 +284,29 @@ class ExerciseFilter {
   bool _body(CatalogExercise e) =>
       muscle != null ? e.muscle == muscle : body == null || (bodyPartById(body)?.muscles.contains(e.muscle) ?? false);
 
-  /// The exercises that pass, sorted: favorites, then the hardest level
-  /// first (the user's own level), compound before isolation, then by name.
-  List<CatalogExercise> apply(ExerciseCatalog catalog, Set<String> favs) {
-    final out = [
-      for (final e in catalog.all)
-        if (_class(e) && _level(e) && _body(e) && (!favorites || favs.contains(e.id))) e,
-    ];
-    int mech(CatalogExercise e) => e.mechanic == 'compound' ? 0 : 1;
+  /// The cards that pass, each with only its exercises that pass, sorted:
+  /// favorites, then the hardest level first (the user's own level),
+  /// compound before isolation, then by name.
+  List<ExerciseGroup> apply(ExerciseCatalog catalog, Set<String> favs) {
+    final out = <ExerciseGroup>[];
+    for (final g in catalog.groups) {
+      if (favorites && !favs.contains(g.key)) continue;
+      final keep = [for (final e in g.variants) if (_class(e) && _level(e) && _body(e)) e];
+      if (keep.isNotEmpty) out.add(g.only(keep));
+    }
+    int level(ExerciseGroup g) => g.variants.fold(0, (a, e) => e.level > a ? e.level : a);
+    int mech(ExerciseGroup g) => g.variants.any((e) => e.mechanic == 'compound') ? 0 : 1;
     out.sort((a, b) {
-      final f = (favs.contains(a.id) ? 0 : 1) - (favs.contains(b.id) ? 0 : 1);
+      final f = (favs.contains(a.key) ? 0 : 1) - (favs.contains(b.key) ? 0 : 1);
       if (f != 0) return f;
-      if (a.level != b.level) return b.level - a.level;
+      if (level(a) != level(b)) return level(b) - level(a);
       if (mech(a) != mech(b)) return mech(a) - mech(b);
       return a.name.compareTo(b.name);
     });
     return out;
   }
 
-  /// Counts for the options of each filter (cascade: only earlier filters).
+  /// Card counts for the options of each filter (cascade: only earlier filters).
   int countClass(ExerciseCatalog c, Set<String> favs, String id) =>
       _count(c, favs, (e) => ExerciseFilter(classId: id, difficulty: difficulty)._class(e));
 
@@ -204,7 +320,7 @@ class ExerciseFilter {
       _count(c, favs, (e) => _class(e) && _level(e) && withMuscle(m)._body(e));
 
   int _count(ExerciseCatalog c, Set<String> favs, bool Function(CatalogExercise) test) =>
-      c.all.where((e) => test(e) && (!favorites || favs.contains(e.id))).length;
+      c.groups.where((g) => (!favorites || favs.contains(g.key)) && g.variants.any(test)).length;
 
   /// After an earlier filter changed: a body part or muscle with no
   /// exercises left goes back to all.

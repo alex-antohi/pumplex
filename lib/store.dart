@@ -353,14 +353,46 @@ class LogStore extends ChangeNotifier {
 
   // ------------------------------------------------- favorites and filters
 
-  /// Favorite exercise ids (D53).
+  /// Favorite cards (D53): group keys (`move:<name>`, or an exercise id
+  /// for an exercise with no variations, D55).
   Set<String> get favorites => Set.unmodifiable(_favorites);
 
-  bool isFavorite(String id) => _favorites.contains(id);
+  bool isFavorite(String key) => _favorites.contains(key);
 
-  void toggleFavorite(String id) {
-    if (!_favorites.remove(id)) _favorites.add(id);
+  void toggleFavorite(String key) {
+    if (!_favorites.remove(key)) _favorites.add(key);
     _prefs.setString(_favoritesKey, jsonEncode(_favorites.toList()));
+    notifyListeners();
+  }
+
+  /// A favorite saved as an exercise id of a move (before D55) points to its move.
+  void _favoritesToMoves() {
+    final moved = {for (final f in _favorites) exerciseCatalog.groupKeyOf(f)};
+    if (moved.length == _favorites.length && moved.containsAll(_favorites)) return;
+    _favorites
+      ..clear()
+      ..addAll(moved);
+    _prefs.setString(_favoritesKey, jsonEncode(_favorites.toList()));
+  }
+
+  /// The exercise picked on each card today (in memory): group key -> id.
+  final Map<String, String> _picked = {};
+
+  /// The exercise to show for card [g] (one of its exercises that pass the
+  /// filters): the one picked, else the one used last today, else the simplest.
+  CatalogExercise variantFor(ExerciseGroup g) {
+    final ids = {for (final v in g.variants) v.id};
+    final picked = _picked[g.key];
+    if (picked != null && ids.contains(picked)) return exerciseCatalog.byId[picked]!;
+    final used = todaySession?.exercises.lastWhere((e) => ids.contains(e.exerciseId) && e.sets > 0,
+        orElse: () => const SessionExercise(exerciseId: ''));
+    if (used != null && used.exerciseId.isNotEmpty) return exerciseCatalog.byId[used.exerciseId]!;
+    return g.variants.first;
+  }
+
+  /// A modifier chip picked exercise [id] on its card.
+  void pickVariant(String id) {
+    _picked[exerciseCatalog.groupKeyOf(id)] = id;
     notifyListeners();
   }
 
@@ -386,8 +418,11 @@ class LogStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// The exercises the filters show, in carousel order.
-  List<CatalogExercise> get exercises => filter.apply(exerciseCatalog, _favorites);
+  /// The cards the filters show, in carousel order (one per move, D55).
+  List<ExerciseGroup> get cards {
+    _favoritesToMoves();
+    return filter.apply(exerciseCatalog, _favorites);
+  }
 
   // ------------------------------------------------------------- sessions
 
@@ -407,6 +442,11 @@ class LogStore extends ChangeNotifier {
   /// Today's working sets of exercise [id].
   int setsToday(String id) =>
       todaySession?.exercises.where((e) => e.exerciseId == id).firstOrNull?.sets ?? 0;
+
+  /// Today's working sets of all the exercises of card [key] (D55).
+  int groupSetsToday(String key) => (todaySession?.exercises ?? const <SessionExercise>[])
+      .where((e) => exerciseCatalog.groupKeyOf(e.exerciseId) == key)
+      .fold(0, (a, e) => a + e.sets);
 
   void _edit(List<SessionExercise> Function(List<SessionExercise> list) edit) {
     final s = todaySession ??
@@ -439,18 +479,22 @@ class LogStore extends ChangeNotifier {
 
   // ------------------------------------------------------------------- XP
 
-  /// XP of one exercise in a session (docs/rules.md §1, set by set).
-  static int _exerciseXp(Session s, SessionExercise e) {
+  /// Set XP of a session (docs/rules.md §1, set by set), only for card
+  /// [key] when given. Sets count per card: all the exercises of one move
+  /// share the 10-set cap and the set numbers (D55).
+  static int _setsXp(Session s, [String? key]) {
     final d = difficultyIndex(s.difficultyId);
+    final n = <String, int>{};
     var xp = 0;
-    for (var n = 1; n <= e.sets; n++) {
-      xp += xpForSet(setNumber: n, difficulty: d, critical: isCritical(s.date, e.exerciseId, n));
+    for (final e in s.exercises) {
+      final g = exerciseCatalog.groupKeyOf(e.exerciseId);
+      for (var i = 0; i < e.sets; i++) {
+        final k = n[g] = (n[g] ?? 0) + 1;
+        if (key == null || key == g) xp += xpForSet(setNumber: k, difficulty: d, critical: isCritical(s.date, g, k));
+      }
     }
     return xp;
   }
-
-  /// A session's set XP.
-  static int _setsXp(Session s) => s.exercises.fold(0, (a, e) => a + _exerciseXp(s, e));
 
   /// All XP events: the saved ones (legacy, and the old streak and
   /// achievement XP) and the computed ones (sets, day = first set of the
@@ -486,19 +530,17 @@ class LogStore extends ChangeNotifier {
     return _setsXp(s) + day + saved;
   }
 
-  SessionExercise? _todayEntry(String id) =>
-      todaySession?.exercises.where((e) => e.exerciseId == id).firstOrNull;
-
-  /// XP of exercise [id] today so far (with criticals).
-  int exerciseXpToday(String id) {
-    final e = _todayEntry(id);
-    return e == null ? 0 : _exerciseXp(todaySession!, e);
+  /// XP of card [key] today so far (with criticals).
+  int groupXpToday(String key) {
+    final s = todaySession;
+    return s == null ? 0 : _setsXp(s, key);
   }
 
-  /// Whether the last set of exercise [id] today was a critical set.
+  /// Whether the last set of exercise [id] today (on its card) was a critical set.
   bool lastSetCritical(String id) {
-    final e = _todayEntry(id);
-    return e != null && e.sets <= xpSetsPerExercise && isCritical(_today, id, e.sets);
+    final g = exerciseCatalog.groupKeyOf(id);
+    final n = groupSetsToday(g);
+    return n > 0 && n <= xpSetsPerExercise && isCritical(_today, g, n);
   }
 
   // ----------------------------------------------------------------- backup

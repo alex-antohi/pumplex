@@ -61,7 +61,7 @@ class _FilterSheetState extends State<FilterSheet> {
         final favs = store.favorites;
         final cat = exerciseCatalog;
         final part = bodyPartById(f.body);
-        final total = store.exercises.length;
+        final total = store.cards.length;
         void set(ExerciseFilter n) => store.setFilter(n);
         return ConstrainedBox(
           constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.85),

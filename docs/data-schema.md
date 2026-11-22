@@ -115,7 +115,7 @@ ignores them, and §5.6 drops those old lists.
 | Class | `id`, `name`, `equipment` (none / home / free weights / machines); the filter equipment and categories in `lib/game/exercises.dart` (D50) | One class per equipment type. Ids (D31): `scrapper`, `bruiser`, `paladin`, `cablemancer`. Names are working names (D9). |
 | Difficulty | `id`, `name`, `order`, `xpMultiplier`; the hardest exercise level it shows (D51) | 6 levels (D28). Ids: `sofa`, `warmup`, `sweat`, `pain`, `brutal`, `nightmare`. Names are design proposals. No `streakN` (D34). |
 | Area | `id`, `name`, `palette`, `markStyle` (shells, wall marks…) | From the mood board. Ids (D36): `riptide`, `gainsgard`, `rustbelt`, `arcade`, `frostbite`. The id is also the design folder name for the art. |
-| Exercise | `id`, `name`, `category`, `equipment`, `level`, `force`, `mechanic`, `primaryMuscles` | From free-exercise-db (Unlicense), in `assets/exercises/exercises.json` (D50). Id = the database id, for example `Barbell_Squat`. Null equipment = `body only`. |
+| Exercise | `id`, `name`, `category`, `equipment`, `level`, `force`, `mechanic`, `primaryMuscles`; for a move with variations also `base` (the move name) and `mods` (axis → value, D55) | From free-exercise-db (Unlicense), in `assets/exercises/exercises.json` (D50). Id = the database id, for example `Barbell_Squat`. Null equipment = `body only`. |
 
 Rule: never reuse or rename an `id`. Saved data points to it.
 The two exceptions are the class id change in D31 and the area id change in D36 (owner decisions).
@@ -129,7 +129,7 @@ The app migrates each one once (§5.2, §5.3).
 | `body_history_v1` | List of BODY_CHANGE. |
 | `sessions_v3` | Map date → SESSION with its SESSION_EXERCISE list. |
 | `xp_events_v1` | List of the saved XP_EVENTs: `legacy`, and the old `streak`, `achievement` and `workout` XP. |
-| `favorites_v1` | List of favorite exercise ids (D53). |
+| `favorites_v1` | List of favorite cards (D53): `move:<move name>` for a move with variations (D55), else the exercise id. An old favorite exercise id of a move is changed to its move. |
 | `old_exercises_v0_backup` | Written once by §5.6: the old `sessions_v3` text. |
 | `gear_v1`, `chaos`, `cel`, `sound` | **Removed** (D38–D41). The app deletes these keys on every start. |
 | `class_ids_v0_backup` | Written once by the class id migration (§5.2): the old `profile_v1` and `sessions_v3` text. |

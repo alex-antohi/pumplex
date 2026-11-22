@@ -184,7 +184,13 @@ owner's rules ([decisions.md](decisions.md)).
   - Rules in `lib/game/exercises.dart`: the class uses equipment, then category (D50); the mode
     shows levels up to its own (Sofa, Warm-up: beginner; Sweat, Pain: + intermediate; Brutal,
     Nightmare: + expert); body parts group the 17 muscles in 6 (D52).
-- **Exercise carousel** under them: one exercise at a time from the filtered list, sorted:
+- **Moves** (D55): exercises that are one move with different equipment, angle, grip and so on share one
+  card. Under the name, the card shows the exercise picked (its database name) and one chip row per way
+  the move's exercises differ (EQUIPMENT, ANGLE, GRIP WIDTH, GRIP, STANCE, ARMS / LEGS, POSITION,
+  ATTACHMENT, ADD-ON). A tap on a chip picks that exercise; chips the filters hide are greyed out. The
+  card starts on the exercise picked today, else the one used last today, else the simplest. Sets,
+  the set marks and the 10-set XP cap count per card.
+- **Exercise carousel** under them: one card at a time from the filtered list, sorted:
   favorites, then the hardest level first, compound before isolation, then by name. So the first
   card is a favorite (D53). The card shows the name, a **star button** (favorite on / off), the
   muscle, level and equipment, today's sets as Xs (rarity colours, +n after 10) and "n SETS · +XP"
