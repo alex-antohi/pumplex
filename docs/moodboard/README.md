@@ -110,7 +110,8 @@ Neons (highlight / base / shadow):
 Rows 0–4 = male, muscle 0, 25, 50, 75, 100; rows 5–9 = female, same order.
 Cell for (sex, fat, muscle): `x = fat/25 * 52`, `y = ((sex == female ? 5 : 0) + muscle/25) * 64`.
 The canvas's Creator board shows it at 4× with a sex toggle and three 5-step sliders: HEIGHT, FAT and MUSCLE (D10, D11).
-Height has no atlas rows: the app stretches the cell vertically, 0.86× to 1.14× (`lib/game/rules.dart`).
+Height has no atlas rows: the app scales the cell evenly, 0.86× to 1.14× (`lib/game/rules.dart`, D45).
+The app shows the FAT slider as WEIGHT, 50–200 kg. Skin, hair and facial hair are in [`looks/`](looks/README.md).
 
 ## Animation style test
 
@@ -163,18 +164,20 @@ equipment the class trains with) and three **training tags** take its place.
 
 Screen, top to bottom (390×844 dp):
 
-1. Kicker `STEP 2 OF 5 · THE SWOLEMANCER'S PATHS`, title **CHOOSE YOUR PATH**, subline **What do you train with?**
-2. Preview card: **the user's own body from step 1** at 3× (D25). The class colour, and later the class outfit,
-   shows the class, not a different body. Then the class name in its colour, the loadout line and 3 tags.
+1. No kicker, title or subtitle in the view (D47): the PUMPLEX bar says `CLASS · STEP 2 OF 4`.
+2. One big card that fills the space down to the dots (D46): **the user's own body from step 1** on top (D25).
+   The class colour and the class outfit show the class, not a different body. Then the class name in its colour,
+   the equipment, the loadout line, 3 tags and a short description in the voice of an RPG class intro.
    The card's hard shadow takes the class colour.
-3. A short description in the voice of an RPG class intro, which also hints at the equipment.
-4. Four class buttons (a radio group): class name on the left, equipment on the right. The picked one fills with its colour.
-5. **NEXT: DIFFICULTY**.
+3. Swipe the card to change the class: left for the next, right for the one before, round and round.
+   The texts slide with the swipe. Four dots under the card show the class; tap one to jump. No class buttons.
+4. **DIFFICULTY** slider under the dots (D47): 6 stops, the mode name above it on the right in its rarity colour.
+5. **BACK** and **NEXT: STARTING AREA**.
 
 ### Freeze-frame intro card
 
-From `borderlands-reference.md` (character intro card: show it on class pick and on level-up).
-Each time a class is picked:
+From `borderlands-reference.md` (character intro card). The app shows it on level-up only,
+not on class select (D46) or on a difficulty pick (D47). Each time it shows:
 
 - The preview **freezes**: the sprite goes greyscale with high contrast, and dark diagonal stripes cover the card.
 - The class name **slams in** as a stencil tag: an Anton 40 px name on the class colour, with a 4 px ink border,
@@ -218,16 +221,18 @@ With reduced motion, the panels cross-fade in 2 steps and the lifter does not mo
 | From → to | Lifter | Panels | Ms |
 | --- | --- | --- | --- |
 | First launch → 1 Creator | Drops onto the stage floor from the top, one squash on landing | The sliders panel slides up from the bottom | 320 |
-| 1 Creator → 2 Class select | Shrinks from 4× to 3× and steps onto the preview card | The sliders slide out left, the class card slides in from the right; then the class freeze-frame card | 280 |
+| 1 Creator → 2 Class select | Shrinks from 4× to 3× and steps onto the preview card | The sliders slide out left, the class card slides in from the right | 280 |
 | 2 Class select → 3 Difficulty | Stays at 3×, moves to the left of the ladder | The class card slides out left, the ladder rises from the bottom rung up | 280 |
 | 3 Difficulty → 4 Starting area | Stays on the floor line | The ladder slides out left; the area scene wipes in behind the lifter from the right, floor first, then the sky | 320 |
 | 4 Starting area → 5 Summary | Stays in the area scene | The camera pulls back 1 step; the four choice chips stamp in around the lifter, one by one | 320 |
 | 5 Summary → Hub (LET'S GO) | Stays in the same scene, now the hub's | The chips fly to their hub spots (class tag, level, workout card); the HUD and nav slide in | 320 |
 | Any BACK in the setup | The same move, reversed | Reversed | same |
 | Profile → one setup step (`?edit=1`) and back | Stays | The profile slides down, the step's panel slides up; SAVE reverses it | 280 |
-| Hub → Workout (TRAIN ▶) and ◀ HUB | Stays in the scene | The camera zooms 1 step into the scene; the exercise strip drops in from the top; ◀ HUB reverses it | 240 |
+| Hub → Workout (TRAIN ▶) and back (HUB in the bottom bar) | Stays in the scene | The camera zooms 1 step into the scene; the exercise strip drops in from the top; HUB reverses it | 240 |
 
-## Starting areas (setup step 4)
+## Starting areas (setup step 3)
+
+**In the app** (D47) the area is picked on a swipe card like the class card: the scene with the lifter in it, then the name, line, hint and default tag.
 
 **Reference board, not an app screen.** Like every board here, it shows the look and the behaviour for the Flutter build.
 Shapes are placeholders for pixel-art scenes.
@@ -280,9 +285,12 @@ default area, and the player can still choose any area. Lifters use `creator/bod
 Owner choices (21 Nov 2026): an active-exercise strip, a set target per exercise, this area and class. Owner decisions D6, D7, D15, D16 and D19 apply:
 one session per calendar day that closes by itself, no I WORKED, no clock, no session counter, and XP per set with no reward screen.
 
+**In the app** (D48) the workout is one card: the world on top, and under it an exercise carousel (one exercise at a time,
+swiped both ways, round and round, with dots) in place of the strip and the header. Tapping the world adds to the exercise shown.
+
 Screen, top to bottom (390×844 dp):
 
-1. **Top bar:** **◀ HUB** (back to the hub; every set is already saved), the class name (`SCRAPPER`) and the area name. No session counter, no clock.
+1. **Top bar:** the class name (`SCRAPPER`) and the area name. HUB in the bottom bar goes back (every set is already saved, D44). No session counter, no clock.
 2. **Exercise strip:** one card per exercise, 3 to 8 from the difficulty (D15). Each card shows the name, **target slots** (outlined Xs, filled in rarity-ladder colours as sets land), `+n` for extra sets, and a status: NOW / NEXT UP / CRUSHED.
    The active card is orange with a pink hard shadow. Tap a card to make it active. **Swipe a card** to switch the exercise for another
    from the class pool, **↺** returns a switched card to the first exercise, **✕** removes a card, and **+ ADD EXERCISE** adds one from the pool (D16).
@@ -302,7 +310,9 @@ Rules:
 
 For other areas, swap the scene and the action object. Everything else stays the same (see "Starting areas").
 
-## Difficulty (setup step 3)
+## Difficulty (reference board)
+
+**In the app** (D47) difficulty is a slider on the class step, not a ladder screen. The names, colours and jokes below still apply.
 
 **Reference board, not an app screen.** Brief 4.3: many levels from total beginner to years of lifting, fantasy names, Borderlands tone.
 Owner choices (21 Nov 2026): **6 levels**, a **vertical ladder** picker, XP shown as **gems with no numbers**, and names written here (proposals).

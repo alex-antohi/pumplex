@@ -29,41 +29,67 @@ class Character {
     this.height = defaultHeight,
     this.muscle = defaultMuscle,
     this.fat = defaultFat,
+    this.skin = defaultSkin,
+    this.hair = defaultHair,
+    this.facialHair = defaultFacialHair,
     this.name,
   });
 
   /// 'male' or 'female'.
   final String sex;
+
+  /// Slider values 0..100. The creator shows height in metres and fat as
+  /// body weight in kg (rules.dart); the saved value stays 0..100.
   final int height, muscle, fat;
+
+  /// Head looks (ids in rules.dart: skinIds, hairIds, facialHairIds).
+  final String skin, hair, facialHair;
   final String? name;
 
   bool get female => sex == 'female';
 
-  Character copyWith({String? sex, int? height, int? muscle, int? fat}) => Character(
+  Character copyWith({String? sex, int? height, int? muscle, int? fat, String? skin, String? hair, String? facialHair}) =>
+      Character(
         sex: sex ?? this.sex,
         height: height ?? this.height,
         muscle: muscle ?? this.muscle,
         fat: fat ?? this.fat,
+        skin: skin ?? this.skin,
+        hair: hair ?? this.hair,
+        facialHair: facialHair ?? this.facialHair,
         name: name,
       );
 
-  /// Same body (the name does not count).
+  /// Same body and looks (the name does not count).
   bool sameBody(Character o) =>
-      o.sex == sex && o.height == height && o.muscle == muscle && o.fat == fat;
+      o.sex == sex &&
+      o.height == height &&
+      o.muscle == muscle &&
+      o.fat == fat &&
+      o.skin == skin &&
+      o.hair == hair &&
+      o.facialHair == facialHair;
 
   Map<String, dynamic> toJson() => {
         'sex': sex,
         'height': height,
         'muscle': muscle,
         'fat': fat,
+        'skin': skin,
+        'hair': hair,
+        'facialHair': facialHair,
         if (name != null) 'name': name,
       };
 
+  /// Saved data from before the head looks gets the default looks.
   factory Character.fromJson(Map<String, dynamic> j) => Character(
         sex: j['sex'] == 'female' ? 'female' : 'male',
         height: _pct(j['height'], defaultHeight),
         muscle: _pct(j['muscle'], defaultMuscle),
         fat: _pct(j['fat'], defaultFat),
+        skin: _id(j['skin'], skinIds, defaultSkin),
+        hair: _id(j['hair'], hairIds, defaultHair),
+        facialHair: _id(j['facialHair'], facialHairIds, defaultFacialHair),
         name: j['name'] as String?,
       );
 
@@ -71,10 +97,12 @@ class Character {
   bool operator ==(Object other) => other is Character && sameBody(other) && other.name == name;
 
   @override
-  int get hashCode => Object.hash(sex, height, muscle, fat, name);
+  int get hashCode => Object.hash(sex, height, muscle, fat, skin, hair, facialHair, name);
 }
 
 int _pct(Object? v, int fallback) => v is num ? v.toInt().clamp(0, 100) : fallback;
+
+String _id(Object? v, List<String> ids, String fallback) => ids.contains(v) ? v as String : fallback;
 
 /// BODY_CHANGE: the sliders at one moment.
 class BodyChange {

@@ -12,6 +12,7 @@ import '../game/model.dart';
 import '../game/rules.dart';
 import '../pumplex.dart';
 import 'area_scene.dart';
+import 'carousel.dart';
 import 'sprite.dart';
 
 /// Bottom row with BACK / NEXT style buttons.
@@ -52,7 +53,8 @@ class _Nav extends StatelessWidget {
 // ------------------------------------------------------ character creation
 
 /// WoW-style character screen (setup step 1): the character large in the
-/// centre, the options around it, everything changes live.
+/// centre, the options around it, everything changes live. Tap the head:
+/// the camera zooms in and the panel shows skin, hair and facial hair.
 class CreateView extends StatelessWidget {
   const CreateView({
     super.key,
@@ -60,6 +62,8 @@ class CreateView extends StatelessWidget {
     required this.character,
     required this.onCharacter,
     required this.onNext,
+    required this.headOpen,
+    required this.onHead,
   });
 
   final Rect stage;
@@ -67,15 +71,9 @@ class CreateView extends StatelessWidget {
   final ValueChanged<Character> onCharacter;
   final VoidCallback onNext;
 
-  void _random() {
-    final r = Random();
-    onCharacter(Character(
-      sex: r.nextBool() ? 'male' : 'female',
-      height: r.nextInt(101),
-      muscle: r.nextInt(101),
-      fat: r.nextInt(101),
-    ));
-  }
+  /// The head looks panel is open (the shell zooms the character in).
+  final bool headOpen;
+  final ValueChanged<bool> onHead;
 
   @override
   Widget build(BuildContext context) {
@@ -94,21 +92,39 @@ class CreateView extends StatelessWidget {
       );
     }
 
+    final head = headRect(spriteGeometry(stage.size, character.height).sprite).shift(stage.topLeft);
     return Column(
       children: [
         SizedBox(
           height: stage.bottom,
           child: Stack(
             children: [
-              Positioned(
-                left: 14,
-                top: stage.top + 6,
-                child: Column(children: [sexButton('male', 'male'), sexButton('female', 'female')]),
-              ),
-              Positioned(
-                right: 18,
-                top: stage.top + 6,
-                child: BrutalButton(small: true, color: p.orange, onTap: _random, child: PxIcon('dice', size: 24, color: p.on)),
+              if (!headOpen)
+                Positioned(
+                  left: 14,
+                  top: stage.top + 6,
+                  child: Column(children: [sexButton('male', 'male'), sexButton('female', 'female')]),
+                ),
+              // An outline box marks the head: tap it for the head looks.
+              if (!headOpen)
+                Positioned.fromRect(
+                  // Ends at the chin, so the shoulders do not hide its bottom edge.
+                  rect: Rect.fromLTRB(head.left - 4, head.top - 4, head.right + 4, head.bottom),
+                  child: IgnorePointer(
+                    child: Container(
+                      key: const ValueKey('head-outline'),
+                      decoration: BoxDecoration(border: Border.all(color: p.lime, width: 3)),
+                    ),
+                  ),
+                ),
+              // Tap the head to open (or close) the head looks.
+              Positioned.fromRect(
+                rect: headOpen ? stage : head.inflate(8),
+                child: GestureDetector(
+                  key: const ValueKey('creator-head'),
+                  behavior: HitTestBehavior.translucent,
+                  onTap: () => onHead(!headOpen),
+                ),
               ),
             ],
           ),
@@ -116,125 +132,198 @@ class CreateView extends StatelessWidget {
         Expanded(
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 12, 22, 8),
+            children: headOpen ? _headPanel(p) : _bodyPanel(p),
+          ),
+        ),
+        _Nav(next: headOpen ? 'DONE' : 'NEXT', onNext: headOpen ? () => onHead(false) : onNext),
+      ],
+    );
+  }
+
+  List<Widget> _bodyPanel(Pal p) => [
+        Shout('Build your lifter', size: 14, color: p.pink),
+        const SizedBox(height: 10),
+        _BodySlider(
+          label: 'HEIGHT',
+          shown: '${heightMetres(character.height).toStringAsFixed(2)} M',
+          value: character.height,
+          onChanged: (v) => onCharacter(character.copyWith(height: v)),
+        ),
+        _BodySlider(
+          label: 'WEIGHT',
+          shown: '${weightKg(character.fat)} KG',
+          value: character.fat,
+          onChanged: (v) => onCharacter(character.copyWith(fat: v)),
+        ),
+        _BodySlider(
+          label: 'MUSCLE',
+          value: character.muscle,
+          onChanged: (v) => onCharacter(character.copyWith(muscle: v)),
+        ),
+      ];
+
+  List<Widget> _headPanel(Pal p) {
+    Widget row(String title, String kind, List<Look> looks, String current, Character Function(String) pick) => Padding(
+          padding: const EdgeInsets.only(bottom: 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Shout('Build your lifter', size: 14, color: p.pink),
-              const SizedBox(height: 10),
-              _BodySlider(
-                label: 'HEIGHT',
-                low: 'SHORT',
-                high: 'TALL',
-                value: character.height,
-                onChanged: (v) => onCharacter(character.copyWith(height: v)),
-              ),
-              _BodySlider(
-                label: 'MUSCLE',
-                low: 'NOODLE',
-                high: 'BOULDER',
-                value: character.muscle,
-                onChanged: (v) => onCharacter(character.copyWith(muscle: v)),
-              ),
-              _BodySlider(
-                label: 'FAT %',
-                low: 'SHREDDED',
-                high: 'COZY',
-                value: character.fat,
-                onChanged: (v) => onCharacter(character.copyWith(fat: v)),
+              Shout(title, size: 14),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  for (final l in looks) ...[
+                    _LookButton(
+                      key: ValueKey('look-$kind-${l.id}'),
+                      look: l,
+                      on: l.id == current,
+                      onTap: () => onCharacter(pick(l.id)),
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+                ],
               ),
             ],
           ),
-        ),
-        _Nav(next: 'NEXT', onNext: onNext),
-      ],
+        );
+    return [
+      Shout('Your head', size: 14, color: p.pink),
+      const SizedBox(height: 10),
+      row('SKIN', 'skin', skinLooks, character.skin, (id) => character.copyWith(skin: id)),
+      row('HAIR', 'hair', hairLooks, character.hair, (id) => character.copyWith(hair: id)),
+      row('FACIAL HAIR', 'facial', facialHairLooks, character.facialHair, (id) => character.copyWith(facialHair: id)),
+    ];
+  }
+}
+
+/// One head look: a swatch and its name. Pink when picked.
+class _LookButton extends StatelessWidget {
+  const _LookButton({super.key, required this.look, required this.on, required this.onTap});
+
+  final Look look;
+  final bool on;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Pal.of(context);
+    final fg = on ? p.on : p.ink;
+    return BrutalButton(
+      small: true,
+      color: on ? p.pink : p.panel,
+      onTap: onTap,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 18,
+            height: 18,
+            decoration: BoxDecoration(
+              color: look.swatch == 0 ? null : Color(look.swatch),
+              border: Border.all(color: fg, width: 2),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(look.name, style: mono(13, fg)),
+        ],
+      ),
     );
   }
 }
 
 // ------------------------------------------------------------ class select
 
-/// The preview card around the character on the class-select step.
-Rect classCardRect(Rect stage, double width) =>
-    Rect.fromLTRB(16, stage.top - 10, width - 22, stage.bottom + 10);
+/// Room under the class card: the dots row, the difficulty slider and the
+/// BACK / NEXT row.
+const _classDotsHeight = 30.0, _classDifficultyHeight = 74.0, _classNavHeight = 92.0;
 
-/// Setup step 2, "CHOOSE YOUR PATH" (docs/moodboard/README.md "Class
-/// select"): a preview card with the lifter, the loadout and 3 tags (no
-/// stat table), a description, 4 class buttons, NEXT: DIFFICULTY.
-class ClassView extends StatelessWidget {
+/// Top of the setup cards (class, area): no title block above them.
+const _setupCardTop = 8.0;
+
+/// Room the class texts keep under the lifter (name to description).
+const _classTextMin = 150.0;
+
+/// The class card and, inside it, where the shell draws the lifter, in a
+/// view of [area] with [bottomInset] (the phone's navigation bar).
+/// The lifter gets the biggest whole-number scale that leaves
+/// [_classTextMin] for the texts, and the stage is cut to that size, so
+/// there is no empty band above the head.
+({Rect card, Rect stage}) classLayout(Size area, double bottomInset) {
+  final card = Rect.fromLTRB(16, _setupCardTop, area.width - 22,
+      area.height - bottomInset - _classNavHeight - _classDifficultyHeight - _classDotsHeight);
+  // CharacterSprite: pedestal = 10% of the box, the sprite gets the rest
+  // minus half of it, at most spriteHeight × maxHeightScale × scale.
+  const perScale = spriteHeight * maxHeightScale / 0.945;
+  final avail = card.height - 16 - _classTextMin;
+  final byWidth = (card.width - 24) / spriteWidth;
+  final scale = max(2, min(byWidth, avail / perScale).floor());
+  final stage = Rect.fromLTWH(card.left + 12, card.top + 8, card.width - 24, min(avail, perScale * scale + 2));
+  return (card: card, stage: stage);
+}
+
+/// Setup step 2 (docs/moodboard/README.md "Class select", D46, D47): one
+/// big card with the lifter, the class name, the equipment, the loadout,
+/// 3 tags and the description. Swipe the card to change the class, both
+/// ways, round and round. Dots show where you are. Under them, the
+/// DIFFICULTY slider (6 modes) with the mode name on the right.
+class ClassView extends StatefulWidget {
   const ClassView({
     super.key,
     required this.stage,
     required this.classId,
+    required this.difficultyId,
     required this.onPick,
+    required this.onDifficulty,
     required this.onBack,
     required this.onNext,
     required this.editing,
   });
 
   final Rect stage;
-  final String classId;
-  final ValueChanged<String> onPick;
+  final String classId, difficultyId;
+  final ValueChanged<String> onPick, onDifficulty;
   final VoidCallback onBack, onNext;
   final bool editing;
 
   @override
+  State<ClassView> createState() => _ClassViewState();
+}
+
+class _ClassViewState extends State<ClassView> with SwipeCarousel<ClassView> {
+  @override
+  int get count => gameClasses.length;
+
+  @override
+  int get index => max(0, gameClasses.indexWhere((c) => c.id == widget.classId));
+
+  @override
+  void select(int i) => widget.onPick(gameClasses[i].id);
+
+  @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
-    final cls = classById(classId);
+    final cls = classById(widget.classId);
     final color = classColor(p, cls.id);
+    final di = difficultyIndex(widget.difficultyId);
+    final dColor = difficultyColor(p, di);
     return LayoutBuilder(builder: (context, box) {
-      final card = classCardRect(stage, box.maxWidth);
+      final card = classLayout(box.biggest, MediaQuery.paddingOf(context).bottom).card;
+      final stage = widget.stage;
       return Stack(
         children: [
-          // Kicker, title, subline.
-          Positioned(
-            left: 16,
-            right: 22,
-            top: 6,
-            height: card.top - 6,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Shout('Step 2 of 5 · $pathsKicker', color: p.pink, size: 12),
-                ),
-                const SizedBox(height: 6),
-                const FittedBox(fit: BoxFit.scaleDown, child: MegaText('Choose your path', size: 34)),
-                const SizedBox(height: 6),
-                Text('What do you train with?', style: mono(12.5, p.ink)),
-              ],
-            ),
-          ),
-          // Preview card: the shell draws the lifter at [stage], inside it.
+          // The card: the shell draws the lifter at [stage], at its top.
           Positioned.fromRect(
             rect: card,
-            child: Brutal(
+            child: swipe(
               key: const ValueKey('class-card'),
-              shadow: color,
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(stage.right - card.left + 4, 10, 10, 10),
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
-                  child: Column(
-                    key: ValueKey(cls.id),
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(cls.name.toUpperCase(), style: display(26, p.ink).copyWith(shadows: [
-                          Shadow(offset: const Offset(2, 2), color: color),
-                        ])),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(cls.loadout, style: mono(11.5, p.ink), maxLines: 3),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
-                        children: [for (final t in cls.tags) Tag(t, bg: color, fg: p.on, size: 11, angle: 0)],
-                      ),
-                    ],
-                  ),
+              child: Brutal(
+                shadow: color,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(height: stage.bottom - card.top),
+                    Expanded(child: slide(cls.id, _ClassText(cls: cls, color: color))),
+                  ],
                 ),
               ),
             ),
@@ -242,27 +331,66 @@ class ClassView extends StatelessWidget {
           Positioned(
             left: 0,
             right: 0,
-            top: card.bottom + 14,
-            bottom: 0,
+            top: card.bottom + 8,
+            height: _classDotsHeight - 8,
+            child: CarouselDots(
+              prefix: 'class',
+              ids: [for (final c in gameClasses) c.id],
+              names: [for (final c in gameClasses) c.name],
+              current: cls.id,
+              colorOf: (id) => classColor(p, id),
+              onTap: jump,
+            ),
+          ),
+          // Difficulty (D47): 6 modes, the current one named on the right.
+          Positioned(
+            left: 16,
+            right: 22,
+            top: card.bottom + _classDotsHeight,
+            height: _classDifficultyHeight,
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 22, 8),
-                    children: [
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 200),
-                        child: Text(cls.style, key: ValueKey(cls.id), style: mono(12, p.ink)),
+                Row(
+                  children: [
+                    Shout('Difficulty', size: 14),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Text(difficulties[di].name.toUpperCase(),
+                            key: const ValueKey('value-DIFFICULTY'), style: display(16, dColor)),
                       ),
-                      const SizedBox(height: 14),
-                      for (final c in gameClasses)
-                        _PathButton(c: c, selected: c.id == classId, onTap: () => onPick(c.id)),
-                    ],
+                    ),
+                  ],
+                ),
+                SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    trackHeight: 10,
+                    activeTrackColor: dColor,
+                    inactiveTrackColor: p.panel2,
+                    thumbColor: p.lime,
+                    overlayColor: dColor.withValues(alpha: 0.2),
+                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 11),
+                    tickMarkShape: SliderTickMarkShape.noTickMark,
+                  ),
+                  child: Slider(
+                    key: const ValueKey('slider-DIFFICULTY'),
+                    value: di.toDouble(),
+                    max: difficulties.length - 1.0,
+                    divisions: difficulties.length - 1,
+                    onChanged: (v) => widget.onDifficulty(difficulties[v.round()].id),
                   ),
                 ),
-                _Nav(onBack: onBack, next: editing ? 'NEXT' : 'NEXT: DIFFICULTY', onNext: onNext),
               ],
             ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: _Nav(onBack: widget.onBack, next: widget.editing ? 'NEXT' : 'NEXT: STARTING AREA', onNext: widget.onNext),
           ),
         ],
       );
@@ -270,56 +398,58 @@ class ClassView extends StatelessWidget {
   }
 }
 
-/// One class in the radio group: name left, equipment right.
-class _PathButton extends StatelessWidget {
-  const _PathButton({required this.c, required this.selected, required this.onTap});
+/// The texts of one class in the card: name, equipment, loadout, tags,
+/// description. Scrolls if the phone is short.
+class _ClassText extends StatelessWidget {
+  const _ClassText({required this.cls, required this.color});
 
-  final GameClass c;
-  final bool selected;
-  final VoidCallback onTap;
+  final GameClass cls;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
-    final color = classColor(p, c.id);
-    return Semantics(
-      inMutuallyExclusiveGroup: true,
-      checked: selected,
-      button: true,
-      child: GestureDetector(
-        key: ValueKey('path-${c.id}'),
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            color: selected ? color : p.panel,
-            border: Border.all(color: p.ink, width: selected ? 4 : 3),
-            boxShadow: [BoxShadow(color: selected ? p.ink : color, offset: const Offset(4, 4))],
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(14, 4, 14, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(cls.name.toUpperCase(), style: display(30, p.ink).copyWith(shadows: [
+              Shadow(offset: const Offset(2, 2), color: color),
+            ])),
           ),
-          child: Row(
-            children: [
-              Expanded(child: Text(c.name.toUpperCase(), style: display(19, selected ? p.on : p.ink))),
-              Text(c.equipment.toUpperCase(), style: mono(11, selected ? p.on : p.ink)),
-            ],
+          const SizedBox(height: 2),
+          Text(cls.equipment.toUpperCase(), style: display(15, color).copyWith(letterSpacing: 1.2)),
+          const SizedBox(height: 8),
+          Text(cls.loadout, style: mono(11.5, p.ink)),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [for (final t in cls.tags) Tag(t, bg: color, fg: p.on, size: 11, angle: 0)],
           ),
-        ),
+          const SizedBox(height: 10),
+          Text(cls.style, style: mono(12, p.ink)),
+        ],
       ),
     );
   }
 }
 
+/// A body slider (0..100). [shown] is the current value, above the slider
+/// on the right.
 class _BodySlider extends StatelessWidget {
   const _BodySlider({
     required this.label,
-    required this.low,
-    required this.high,
+    this.shown,
     required this.value,
     required this.onChanged,
   });
 
-  final String label, low, high;
+  final String label;
+  final String? shown;
   final int value;
   final ValueChanged<int> onChanged;
 
@@ -333,7 +463,7 @@ class _BodySlider extends StatelessWidget {
           children: [
             Shout(label, size: 14),
             const Spacer(),
-            Text('$low · $high', style: mono(11, p.ink)),
+            if (shown != null) Text(shown!, key: ValueKey('value-$label'), style: display(16, p.lime)),
           ],
         ),
         SliderTheme(
@@ -358,9 +488,6 @@ class _BodySlider extends StatelessWidget {
 }
 
 // -------------------------------------------------------------- difficulty
-
-/// Top of the ladder on the difficulty step (under the title block).
-const _ladderTop = 92.0;
 
 /// Rarity-ladder colour of difficulty [i] (borderlands-reference.md §4):
 /// muted, lime, sky, violet, orange, pink. Harder reads as rarer.
@@ -388,232 +515,30 @@ class Gems extends StatelessWidget {
       );
 }
 
-/// Where the detail card sits on the difficulty step (the freeze-frame
-/// title card covers it).
-Rect difficultyCardRect(Size area) {
-  final ladderBottom = _ladderTop + area.height * 0.46;
-  return Rect.fromLTRB(16, ladderBottom + 10, area.width - 22, area.height - 96);
-}
-
-/// Setup step 3 (docs/moodboard/README.md "Difficulty"): a six-rung ladder,
-/// hardest at the top, a detail card, NEXT: STARTING AREA. Picking a rung
-/// plays the freeze-frame title card (the shell shows it).
-class DifficultyView extends StatelessWidget {
-  const DifficultyView({
-    super.key,
-    required this.stage,
-    required this.difficultyId,
-    required this.editing,
-    required this.onPick,
-    required this.onBack,
-    required this.onNext,
-  });
-
-  final Rect stage;
-  final String difficultyId;
-  final bool editing;
-  final ValueChanged<String> onPick;
-  final VoidCallback onBack, onNext;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = Pal.of(context);
-    final sel = difficultyIndex(difficultyId);
-    final d = difficulties[sel];
-    final color = difficultyColor(p, sel);
-    return LayoutBuilder(builder: (context, box) {
-      final card = difficultyCardRect(box.biggest);
-      final ladder = Rect.fromLTRB(16, _ladderTop, box.maxWidth - 22, card.top - 10);
-      const rail = 10.0;
-      final rung = (ladder.height - 8) / difficulties.length;
-      return Stack(
-        children: [
-          Positioned(
-            left: 16,
-            right: stage.width + 26,
-            top: 6,
-            height: _ladderTop - 8,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Shout('Step 3 of 5 · difficulty', color: p.pink, size: 12),
-                const SizedBox(height: 6),
-                const FittedBox(fit: BoxFit.scaleDown, child: MegaText('How hard do you go?', size: 30)),
-                const SizedBox(height: 6),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text('Pick a difficulty mode. Harder modes earn more XP.', style: mono(12, p.ink)),
-                ),
-              ],
-            ),
-          ),
-          // The ladder: two rails, 6 rungs, hardest at the top.
-          Positioned.fromRect(
-            rect: ladder,
-            child: Stack(
-              children: [
-                for (final left in [true, false])
-                  Positioned(
-                    left: left ? 0 : null,
-                    right: left ? null : 0,
-                    top: 0,
-                    bottom: 0,
-                    width: rail,
-                    child: Container(
-                      decoration: BoxDecoration(color: const Color(0xFF8A5A3B), border: Border.all(color: p.ink, width: 3)),
-                    ),
-                  ),
-                for (var i = 0; i < difficulties.length; i++)
-                  Positioned(
-                    left: rail + 6,
-                    right: rail + 10,
-                    top: (difficulties.length - 1 - i) * rung + 4,
-                    height: rung - 8,
-                    child: _Rung(
-                      key: ValueKey('difficulty-${difficulties[i].id}'),
-                      index: i,
-                      selected: i == sel,
-                      onTap: () => onPick(difficulties[i].id),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          // Detail card.
-          Positioned.fromRect(
-            rect: card,
-            child: Brutal(
-              shadow: color,
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
-                  child: Column(
-                    key: ValueKey(d.id),
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(d.name.toUpperCase(), style: display(28, p.ink).copyWith(shadows: [
-                          Shadow(offset: const Offset(2, 2), color: color),
-                        ])),
-                      ),
-                      const SizedBox(height: 4),
-                      Shout('Difficulty ${sel + 1} of ${difficulties.length}', color: p.pink, size: 12),
-                      const SizedBox(height: 6),
-                      Flexible(child: Text(d.line, style: mono(12, p.ink), overflow: TextOverflow.fade)),
-                      const SizedBox(height: 6),
-                      Gems(sel + 1, size: 18, color: color),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: _Nav(onBack: onBack, next: editing ? 'NEXT' : 'NEXT: STARTING AREA', onNext: onNext),
-          ),
-        ],
-      );
-    });
-  }
-}
-
-/// One rung: a diamond in its rarity colour, the name, the XP gems.
-class _Rung extends StatelessWidget {
-  const _Rung({super.key, required this.index, required this.selected, required this.onTap});
-
-  final int index;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = Pal.of(context);
-    final color = difficultyColor(p, index);
-    final fg = selected ? p.on : p.ink;
-    return Semantics(
-      inMutuallyExclusiveGroup: true,
-      checked: selected,
-      button: true,
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          decoration: BoxDecoration(
-            color: selected ? color : p.panel,
-            border: Border.all(color: p.ink, width: selected ? 4 : 3),
-            boxShadow: [BoxShadow(color: selected ? p.pink : p.ink, offset: const Offset(4, 4))],
-          ),
-          child: Row(
-            children: [
-              Transform.rotate(
-                angle: pi / 4,
-                child: Container(
-                  width: 12,
-                  height: 12,
-                  decoration: BoxDecoration(color: color, border: Border.all(color: p.ink, width: 2)),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text(difficulties[index].name.toUpperCase(), style: display(18, fg)),
-                ),
-              ),
-              Gems(index + 1, size: 12, color: fg),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 // ----------------------------------------------------------- starting area
 
-/// Title block beside the small character at the top left.
-class _SideTitle extends StatelessWidget {
-  const _SideTitle({required this.stage, required this.step, required this.title, required this.line});
+/// Room under the area card: the dots row and the BACK / NEXT row.
+const _areaDotsHeight = 30.0;
 
-  final Rect stage;
-  final String step, title, line;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = Pal.of(context);
-    return ConstrainedBox(
-      constraints: BoxConstraints(minHeight: stage.bottom + 6),
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(stage.right + 10, stage.top + 4, 18, 0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Shout(step, color: p.pink),
-            const SizedBox(height: 6),
-            FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: MegaText(title, size: 40)),
-            const SizedBox(height: 8),
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 200),
-              child: Text(line, key: ValueKey(line), style: mono(12.5, p.ink), maxLines: 3),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+/// The area card, the scene in it (whole-number scale) and where the shell
+/// draws the lifter (standing in the scene, like on the hub). The scene
+/// fills the top of the card edge to edge; at most 24 px a side are cut
+/// off to reach the next whole-number scale (crop the sides, never stretch).
+({Rect card, Rect scene, int scale, Rect stage}) areaLayout(Size area, double bottomInset) {
+  final card = Rect.fromLTRB(16, _setupCardTop, area.width - 22, area.height - bottomInset - _classNavHeight - _areaDotsHeight);
+  // Inside the card's 4 px border.
+  final avail = Rect.fromLTWH(card.left + 4, card.top + 4, card.width - 8, card.height * 0.62);
+  final scale = max(1, min((avail.width + 48) / sceneSize.width, avail.height / sceneSize.height).floor());
+  final scene = sceneRectIn(avail, scale);
+  return (card: card, scene: scene, scale: scale, stage: sceneLifterRect(areaArt.values.first, scene, scale));
 }
 
-/// Setup step 4 (docs/moodboard/README.md "Starting areas"): five areas,
-/// each with its scene colours, the object to hit and the default path.
-/// The class picks the default; the player can choose any area.
-class AreaView extends StatelessWidget {
+/// Setup step 3 (docs/moodboard/README.md "Starting areas", D47): one big
+/// card like the class card: the area's scene with the lifter in it, then
+/// the name, the line, what you hit and the default-path tag. Swipe the
+/// card to change the area, both ways, round and round. Dots show where
+/// you are. The class picks the default; the player can choose any area.
+class AreaView extends StatefulWidget {
   const AreaView({
     super.key,
     required this.stage,
@@ -632,87 +557,120 @@ class AreaView extends StatelessWidget {
   final VoidCallback onBack, onNext;
 
   @override
+  State<AreaView> createState() => _AreaViewState();
+}
+
+class _AreaViewState extends State<AreaView> with SwipeCarousel<AreaView> {
+  @override
+  int get count => areas.length;
+
+  @override
+  int get index => max(0, areas.indexWhere((a) => a.id == areaById(widget.areaId).id));
+
+  @override
+  void select(int i) => widget.onPick(areas[i].id);
+
+  @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        _SideTitle(
-          stage: stage,
-          step: 'Step 4 of 5',
-          title: 'Where?',
-          line: 'Your starting area: the look, and what you hit to log a set.',
-        ),
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 24, 8),
-            children: [
-              for (final a in areas)
-                _AreaCard(
-                  key: ValueKey('area-${a.id}'),
-                  area: a,
-                  selected: a.id == areaById(areaId).id,
-                  isDefault: a.defaultFor == classId,
-                  onTap: () => onPick(a.id),
+    final p = Pal.of(context);
+    final a = areaById(widget.areaId);
+    final accent = Color(a.accent);
+    return LayoutBuilder(builder: (context, box) {
+      final l = areaLayout(box.biggest, MediaQuery.paddingOf(context).bottom);
+      return Stack(
+        children: [
+          Positioned.fromRect(
+            rect: l.card,
+            child: swipe(
+              key: const ValueKey('area-card'),
+              child: Brutal(
+                shadow: accent,
+                child: slide(
+                  a.id,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // The scene, edge to edge (the shell draws the lifter in it).
+                      Container(
+                        height: l.scene.height + 3,
+                        decoration: BoxDecoration(border: Border(bottom: BorderSide(color: p.ink, width: 3))),
+                        child: ClipRect(
+                          child: OverflowBox(
+                            alignment: Alignment.topCenter,
+                            minWidth: l.scene.width,
+                            maxWidth: l.scene.width,
+                            child: AreaScene(art: areaArt[a.id]!, scale: l.scale),
+                          ),
+                        ),
+                      ),
+                      Expanded(child: _AreaText(area: a, isDefault: a.defaultFor == widget.classId)),
+                    ],
+                  ),
                 ),
-            ],
+              ),
+            ),
           ),
-        ),
-        _Nav(onBack: onBack, next: editing ? 'NEXT' : 'NEXT: READY?', onNext: onNext),
-      ],
-    );
+          Positioned(
+            left: 0,
+            right: 0,
+            top: l.card.bottom + 8,
+            height: _areaDotsHeight - 8,
+            child: CarouselDots(
+              prefix: 'area',
+              ids: [for (final x in areas) x.id],
+              names: [for (final x in areas) x.name],
+              current: a.id,
+              colorOf: (id) => Color(areaById(id).accent),
+              onTap: jump,
+            ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: _Nav(onBack: widget.onBack, next: widget.editing ? 'NEXT' : 'NEXT: READY?', onNext: widget.onNext),
+          ),
+        ],
+      );
+    });
   }
 }
 
-class _AreaCard extends StatelessWidget {
-  const _AreaCard({super.key, required this.area, required this.selected, required this.isDefault, required this.onTap});
+/// The texts of one area in the card: name, line, what you hit, and the
+/// default-path tag. Scrolls if the phone is short.
+class _AreaText extends StatelessWidget {
+  const _AreaText({required this.area, required this.isDefault});
 
   final Area area;
-  final bool selected, isDefault;
-  final VoidCallback onTap;
+  final bool isDefault;
 
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
     final accent = Color(area.accent);
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        margin: const EdgeInsets.only(bottom: 10),
-        transform: Matrix4.translationValues(selected ? 6 : 0, 0, 0),
-        decoration: BoxDecoration(
-          color: selected ? accent : p.panel,
-          border: Border.all(color: p.ink, width: 4),
-          boxShadow: [BoxShadow(color: selected ? p.ink : accent, offset: const Offset(5, 5))],
-        ),
-        child: Row(
-          children: [
-            // Scene thumbnail from the design art (no lifter, no taps).
-            SizedBox(
-              width: 88,
-              height: 75,
-              child: FittedBox(child: AreaScene(art: areaArt[area.id]!, scale: 1)),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(area.name.toUpperCase(), style: display(19, selected ? p.on : p.ink)),
-                    const SizedBox(height: 3),
-                    Text(area.line, maxLines: 1, overflow: TextOverflow.ellipsis, style: mono(10.5, selected ? p.on : p.ink)),
-                    if (isDefault) ...[
-                      const SizedBox(height: 5),
-                      Tag('Your path\'s home', bg: kNight, fg: accent, size: 11, angle: 0),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-          ],
-        ),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(area.name.toUpperCase(), style: display(30, p.ink).copyWith(shadows: [
+              Shadow(offset: const Offset(2, 2), color: accent),
+            ])),
+          ),
+          const SizedBox(height: 6),
+          Text(area.line, style: mono(12, p.ink)),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              Tag(area.hint, bg: kNight, fg: accent, size: 12, angle: 0),
+              if (isDefault) Tag('Your path\'s home', bg: accent, fg: p.on, size: 12, angle: 0),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -739,7 +697,7 @@ class SummaryView extends StatelessWidget {
   /// Changing an existing profile from the menu (not the first launch).
   final bool editing;
 
-  /// Jump back to a step: 0 character, 1 class, 2 difficulty, 3 area.
+  /// Jump back to a step: 0 character, 1 class and difficulty, 2 area.
   final ValueChanged<int> onEdit;
   final VoidCallback onBack, onGo;
 
@@ -770,7 +728,7 @@ class SummaryView extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 4, 24, 8),
             children: [
-              Center(child: Tag('Step 5 of 5 · ready?', bg: p.lime, fg: p.on, size: 18)),
+              Center(child: Tag('Step 4 of 4 · ready?', bg: p.lime, fg: p.on, size: 18)),
               const SizedBox(height: 14),
               Brutal(
                 color: kNight,
@@ -781,8 +739,8 @@ class SummaryView extends StatelessWidget {
                     children: [
                       row(1, 'Class', cls.name, color),
                       row(1, 'Gear', cls.equipment, p.sky),
-                      row(2, 'Difficulty', d.name, p.pink),
-                      row(3, 'Area', a.name, p.orange),
+                      row(1, 'Difficulty', d.name, p.pink),
+                      row(2, 'Area', a.name, p.orange),
                     ],
                   ),
                 ),

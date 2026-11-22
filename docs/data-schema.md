@@ -37,10 +37,6 @@ erDiagram
     SESSION }o--|| DIFFICULTY : "used"
     SESSION }o--|| AREA : "used"
     PROFILE ||--o{ XP_EVENT : earns
-    PROFILE ||--o{ OWNED_ITEM : owns
-    OWNED_ITEM }o--|| ITEM : "is"
-    PROFILE ||--o{ EQUIPPED : wears
-    EQUIPPED }o--|| ITEM : "slot holds"
 
     PROFILE {
         int schemaVersion
@@ -53,14 +49,21 @@ erDiagram
         string sex "male | female"
         int height "0-100"
         int muscle "0-100"
-        int fat "0-100"
+        int fat "0-100, shown as weight 50-200 kg"
+        string skin "light | deep"
+        string hair "brown | blonde"
+        string facialHair "none | beard"
         string name "optional"
     }
     BODY_CHANGE {
         string at "ISO time"
+        string sex
         int height
         int muscle
         int fat
+        string skin
+        string hair
+        string facialHair
     }
     SESSION {
         string date PK "yyyy-MM-dd, one per day"
@@ -94,7 +97,7 @@ erDiagram
     }
 ```
 
-Fixed game data (in code, not in storage): `CLASS`, `DIFFICULTY`, `AREA`, `EXERCISE`, `ITEM`.
+Fixed game data (in code, not in storage): `CLASS`, `DIFFICULTY`, `AREA`, `EXERCISE`.
 
 The workout has no tools since D32. The fields `added`, `removed` and a switched `exerciseId`
 (not the same as `originalExerciseId`) stay in the model only for old sessions. New sessions never set them.

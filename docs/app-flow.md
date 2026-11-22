@@ -30,21 +30,18 @@ flowchart TD
     migrate -- NOT NOW / no file --> setupDone
     old -- no --> setupDone{Setup done?}
     setupDone -- no --> char[Character: sliders]
-    char --> cls[Class: CHOOSE YOUR PATH, freeze-frame intro card]
-    cls --> diff[Difficulty: 6 modes, ladder, freeze-frame title card]
-    diff --> area[Starting area: 5 areas, the class picks the default]
+    char --> cls[Class: swipe the card, difficulty slider]
+    cls --> area[Starting area: swipe the card, the class picks the default]
     area --> summary[Summary: READY? LET'S GO]
-    summary --> hub
-    setupDone -- yes --> hub[Hub: area scene with the lifter, level, XP bar, next workout, last time]
+    summary --> work
+    setupDone -- yes --> work[Workout = home: the world with the lifter, filter tags, exercise carousel]
 
-    hub -- tap the workout card --> work[Workout: tap a card = active, tap the object = +1 set, hold = -1]
     work -- each set --> xp[XP, critical sets, level-up intro card]
-    work -- HUB --> hub
 
-    hub -. HISTORY .-> history[Past sessions]
-    hub -. PROFILE or the level bar .-> profile[Profile: level title, the path]
-    hub -. tap the lifter .-> char
-    hub -. menu .-> menu[Profile, past sessions, edit character, backup]
+    work -. HISTORY .-> history[Past sessions]
+    work -. PROFILE or the level bar .-> profile[Profile: level title, the path]
+    work -. tap the lifter .-> char
+    work -. menu .-> menu[Profile, past sessions, edit character, backup]
 ```
 
 ## 2. Screens (scenes)
@@ -52,18 +49,18 @@ flowchart TD
 | # | Scene | Status | Purpose |
 |---|---|---|---|
 | 0 | Upgrade | exists | Only with old-app data. SAVE BACKUP & UPGRADE, or NOT NOW. |
-| 1 | Character | exists | WoW-style: the character large in the centre on a pedestal. Sex toggle, 🎲 random, sliders for height, muscle and fat %. Changes live. The sprite comes from the 5×5 body atlas. |
-| 2 | Class select | exists | CHOOSE YOUR PATH: preview card (lifter, loadout, 3 tags), description, 4 class buttons, NEXT: DIFFICULTY. Freeze-frame intro card on each pick. |
-| 3 | Difficulty | exists | 6 modes from the design board, Sofa to Nightmare Mode. A ladder with XP gems, no numbers. Freeze-frame title card on each pick. |
-| 4 | Starting area | exists | 5 areas from the design board. Each card shows the area's scene art. The class picks the default area. |
+| 1 | Character | exists | WoW-style: the character large in the centre on a pedestal. Sex toggle; sliders HEIGHT (1.50–2.00 m), WEIGHT (50–200 kg) and MUSCLE, with the current height and weight on the right. A lime box marks the head: tap it for skin, hair and facial hair (D45). Changes live. No ⋮ menu button on the first setup. The sprite comes from the 5×5 body atlas. |
+| 2 | Class select | exists | One big card (lifter, class name, equipment, loadout, 3 tags, description). Swipe to change the class, both ways, round and round; dots under the card (D46). Under them the DIFFICULTY slider, the mode name on the right (D47). No titles in the view. NEXT: STARTING AREA. |
+| 3 | Difficulty | removed | Now the slider on the class step (D47). |
+| 4 | Starting area | exists | A swipe card like the class card: the area scene with the lifter in it, the name, the line, what you hit, "YOUR PATH'S HOME" on the default; dots under it (D47). The class picks the default area. |
 | 5 | Summary | exists | Class, equipment, difficulty, area. Tap a row to change it. LET'S GO (or SAVE when editing). |
-| 6 | Hub | exists | the area scene with the lifter in it (class outfit), level and XP bar, next workout card, last time. Bottom bar: HISTORY, HUB, PROFILE. No streak card (D34). |
-| 7 | Workout | exists | exercise strip with the day's list and the area scene. No tools (D32). Tap a card to make it active. Tap the object = +1 set, hold = −1. Area marks stay in the world. |
+| 6 | Hub | removed | No hub (D49): the app opens on the workout. The level and XP bar is in the PUMPLEX bar there; tap the lifter in the world for the body sliders. |
+| 7 | Workout | exists | The home screen (D49). One card (D48): the world (area scene with the lifter) on top, an exercise carousel under it (swipe both ways, round and round; dots). No tools (D32). Tap the object = +1 set to the exercise shown, hold = −1. Area marks stay in the world. Bottom bar, HUB lit (D44). |
 | 8 | Reward | exists | XP on the active exercise line. CRITICAL SET message. Freeze-frame intro card for level-ups. No achievement burst (D35). Not a separate screen. |
-| 9 | Past sessions | exists | Training days (sets per exercise against the target, time, class, area, XP) and old saves. |
+| 9 | Past sessions | exists | Training days (sets per exercise against the target, time, class, area, XP) and old saves. Bottom bar (D44). |
 | 10 | Gear | removed | No gear (D38). |
 | 11 | Menu | exists | Full screen: YOU (profile, past sessions, edit character), GAINS INSURANCE (save / restore backup). No chaos mode, cel shader or sound (D39–D41). Opens from ⋮ on every view. |
-| 12 | Profile | exists | level and level title, XP bar, the path (class, difficulty, world; tap one to change it), PAST SESSIONS. No milestones (D35). Opens from PROFILE or the level bar on the hub. Tap the lifter to change the body. |
+| 12 | Profile | exists | level and level title, XP bar, the path (class, difficulty, world; tap one to change it), PAST SESSIONS. No milestones (D35). Opens from PROFILE or the level bar on the hub. Tap the lifter to change the body. Bottom bar (D44). |
 
 Removed: the preloader, START TRAINING and its clock, I WORKED / I RESTED and UNDO,
 the 7-day pattern, rest days, rest-day stats and the preview pages.
@@ -72,21 +69,34 @@ the streak and the hub's "This week" card (D34), and the achievements and milest
 
 ## 3. Initial setup
 
-Show it on the first launch. The body sliders open again from the hub (tap the character) and
+Show it on the first launch. The body sliders open again from the workout (tap the lifter) and
 the whole setup from the menu (EDIT CHARACTER).
 
 1. **Character.**
-   - Pick male or female. Sliders: height, muscle size, fat %. The user never types a weight or a height.
+   - Pick male or female. Sliders (D45):
+     - HEIGHT, 1.50 M to 2.00 M. Only the current value shows, above the slider on the right.
+     - WEIGHT, 50 KG to 200 KG. Only the current value shows, the same way. It picks the fat column of the atlas.
+     - MUSCLE, with no value and no end labels.
+     No hint text: a lime outline box around the head shows it can be tapped.
+     The user never types a weight or a height. The values are saved as 0–100 (`height`, `fat`, `muscle`).
+   - No random button. No ⋮ menu button on the first setup (it shows again when editing later).
+   - **Tap the head** (inside the lime box): the camera zooms onto the head and the panel shows SKIN (light, deep),
+     HAIR (brown, blonde) and FACIAL HAIR (none, beard; both bodies). DONE (or a tap on the head,
+     or Android back) zooms out. The looks come from `tools/moodboard/looks.mjs`
+     (`assets/body/looks/`): skin and hair are recolours of the body atlas, the beard is an overlay.
    - Sprites: the design team's 5×5 body atlas (`assets/body/body_atlas.png`, a copy of
      `docs/moodboard/creator/body_atlas.png`). Fat and muscle each have stops at 0/25/50/75/100,
      per sex. The app shows the nearest cell for in-between values.
-   - The HEIGHT slider stretches the sprite vertically (owner decision D11).
-     Nearest-neighbour scaling only.
-2. **Class select** (design: `docs/moodboard/README.md` "Class select").
-   - Kicker `STEP 2 OF 5 · THE SWOLEMANCER'S PATHS`, title CHOOSE YOUR PATH, subline "What do you train with?".
-   - Preview card: the user's lifter (from step 1), the class name in its colour, the loadout and
-     3 tags. No stat table. The card's hard shadow takes the class colour. Then the description.
-   - 4 class buttons (a radio group): name left, equipment right. One class per equipment type.
+   - The HEIGHT slider scales the sprite evenly, 0.86× to 1.14× (D11, D45). Nearest-neighbour scaling only.
+2. **Class select and difficulty** (design: `docs/moodboard/README.md` "Class select", D46, D47).
+   - No step kicker, title or subtitle in the view: the PUMPLEX bar says "CLASS · STEP 2 OF 4".
+   - One big card fills the top (D46): the user's lifter (from step 1) on top, then the class name
+     in its colour, the equipment, the loadout, 3 tags and the description. No stat table. The
+     card's hard shadow takes the class colour. The lifter gets the biggest whole-number scale that
+     leaves room for the texts; the texts scroll on a short phone.
+   - Swipe the card left for the next class, right for the one before, round and round. Dots under
+     the card show the class; tap a dot to jump. No class buttons and no freeze-frame card here.
+     One class per equipment type.
      Proposed names, kept in `lib/game/content.dart`. The ids are the design ids (D31) and never change:
 
      | Equipment | Class | Id | Colour |
@@ -96,20 +106,10 @@ the whole setup from the menu (EDIT CHARACTER).
      | Lots of free weights | Plate Paladin | `paladin` | lime |
      | Lots of machines | Cablemancer | `cablemancer` | violet |
 
-   - Each pick shows the **freeze-frame intro card** over the preview card: the lifter goes greyscale
-     with high contrast, dark stripes cover the card, the class name slams in as a stencil tag
-     (−6°, from 2.2× in 6 hard steps over 420 ms), the joke subtitle slides in on an ink strip (−3°).
-     It closes after 1.8 s or on a tap. A new pick restarts it. Reduced motion: no slam or slide.
-   - NEXT: DIFFICULTY.
-   - The preview shows the body the user made in step 1, in the class outfit (D25).
-3. **Difficulty** (design: `docs/moodboard/README.md` "Difficulty").
-   - 6 modes, names in `lib/game/content.dart`: Sofa, Warm-up, Sweat, Pain, Brutal, Nightmare Mode (D28).
-     Ids: `sofa`, `warmup`, `sweat`, `pain`, `brutal`, `nightmare`.
-   - A vertical ladder, the hardest mode on top. Each rung has a diamond in its rarity colour and
-     XP gems. The ladder shows no numbers.
-   - A detail card: "DIFFICULTY n OF 6", who the mode is for, and the XP gems.
-   - Each pick shows the freeze-frame title card over the detail card (the same card as in step 2).
-   - The numbers per mode are in `lib/game/rules.dart`:
+   - **Difficulty** (D47): a slider under the dots, 6 stops, the mode name above it on the right in
+     its rarity colour. No ladder and no freeze-frame card. Names in `lib/game/content.dart`:
+     Sofa, Warm-up, Sweat, Pain, Brutal, Nightmare Mode (D28). Ids: `sofa`, `warmup`, `sweat`,
+     `pain`, `brutal`, `nightmare`. The numbers per mode are in `lib/game/rules.dart`:
 
      | Mode | Exercises (D33) | Target sets | XP multiplier |
      |---|---|---|---|
@@ -121,7 +121,9 @@ the whole setup from the menu (EDIT CHARACTER).
      | Nightmare | 8 | 5 | 2.0 |
 
    - NEXT: STARTING AREA.
-4. **Starting area** (design: `docs/moodboard/README.md` "Starting areas").
+   - The preview shows the body the user made in step 1, in the class outfit (D25).
+3. **Starting area** (design: `docs/moodboard/README.md` "Starting areas", D47).
+   - No titles in the view: the PUMPLEX bar says "STARTING AREA · STEP 3 OF 4".
    - 5 areas. Each area has an object to hit, a set-mark style and a stamp for every 5th set:
 
      | Area | Id | Object | Set marks | Stamp | Default for |
@@ -136,29 +138,29 @@ the whole setup from the menu (EDIT CHARACTER).
      `assets/areas/`. Old saved ids (`beach`, `castle`, `summit`) migrate once
      ([data-schema.md](data-schema.md) §5.3).
    - The class picks the default area until the user picks one. The user can choose any area.
-   - Each area card shows a small copy of the area's scene art.
-     The default area shows "YOUR PATH'S HOME".
+   - One swipe card like the class card: the area's scene edge to edge at a whole-number scale
+     (the sides may be cut a little, never stretched) with the lifter standing in it, then the name,
+     the line, what you hit (e.g. SCRATCH THE WALL) and "YOUR PATH'S HOME" on the default area.
+     Swipe both ways, round and round; dots under the card.
    - The scenes are the design team's PNG layers (`assets/areas/<area id>/`). `tools/app/area_art.mjs`
      turns their `anim.json` files into `lib/game/area_art.dart`.
    - NEXT: READY?.
-5. **Summary.** LET'S GO saves the profile. If old sessions were upgraded, the welcome burst shows their XP.
+4. **Summary** ("STEP 4 OF 4 · READY?"). Its DIFFICULTY row opens the class step. LET'S GO saves the profile. If old sessions were upgraded, the welcome burst shows their XP.
 
 ## 4. Play
 
-### 4.1 Hub
+### 4.1 Hub (removed)
 
-The app is the reference for this screen (D42).
+There is no hub screen (D49). The app opens on the workout (§4.2), and HUB in the bottom bar goes there.
 
-- **Scene** (top): the area's scene with the lifter in it. The lifter wears the class outfit.
-  Tags show the area name and "class · difficulty".
-- Tap the lifter to change the body sliders at any time. Each saved change is kept
+- **Level and XP bar:** in the PUMPLEX bar on the workout. Tap it to open the profile.
+- **Tap the lifter** in the world to change the body sliders at any time. Each saved change is kept
   in a history (for charts later). In this edit, NEXT goes straight to the summary; tap a summary row
   to change the class, difficulty or area too.
-- **Level and XP bar.** Tap it to open the profile.
-- **Next workout card:** today's exercises, with tally marks for the sets done today, and
-  TRAIN (or KEEP GOING after the first set). Tap the card: the camera zooms into the workout.
-- **Last time:** the date and sets of the last training day.
-- **Bottom bar:** HISTORY slides to the past sessions. PROFILE opens the profile.
+- **Last training days:** in HISTORY.
+- **Bottom bar** (D44): HISTORY slides to the past sessions, HUB goes to the workout, PROFILE opens the
+  profile. The bar shows on the workout (HUB lit), past sessions and the profile. Not on the
+  setup or edit-character steps, and not on the menu.
 
 ### 4.2 Workout
 
@@ -169,27 +171,31 @@ owner's rules ([decisions.md](decisions.md)).
   difficulty, 8 at the hardest (§3). Each exercise has a **target** number of working sets from
   the difficulty. The pools are placeholders, all in `lib/game/content.dart`. The first exercise
   moves along the pool each day.
-- **Header:** ◀ HUB, the class name and the area name.
-- **Exercise strip:** one card per exercise of the day's list. Each card shows the name, the
-  target slots as Xs (filled in rarity colours), +n for sets over the target, and a status: NOW,
-  NEXT UP or CRUSHED. Tap a card to make it the active exercise.
+- **One card** (D48), like the starting-area card. No header.
+- **The world** on top of the card: see "World scene" below. It adds sets to the exercise shown
+  under it.
+- **Filter tags** between the world and the carousel (D49): CLASS (your class), DIFFICULTY (your
+  mode) and BODY PART (ALL BODY PARTS). They show the defaults; they do not filter yet.
+- **Exercise carousel** under them: one exercise of the day's list at a time (no "x of y" line):
+  the name, the target slots as Xs (filled in rarity colours), +n for sets over
+  the target, and "SET n OF t" (or sets / target) with the XP so far. Swipe left for the next
+  exercise, right for the one before, round and round. Dots under it; tap one to jump.
 - **No tools** (D32): no swap, no back to the first exercise, no skip, no remove, no add.
   The workout is the list the app picks for the day. To skip an exercise, do no sets on it.
 - Old sessions (from before D32) can still hold removed, added or switched exercises.
-  The strip and the hub do not show removed ones.
+  The carousel does not show removed ones.
 - **World scene:** the area's scene from the design PNG layers, with the lifter and the area's object.
-  - TAP THE OBJECT: one working set of the active exercise.
+  - TAP THE OBJECT: one working set of the exercise shown in the carousel.
   - HOLD THE OBJECT: take the last set back.
   - Each set plays the object's hit frames and shakes the scene in hard steps (320 ms). A starburst
     says "+1 SET", "CRUSHED!" at the target, or the area's stamp on every 5th set.
   - The marks stay in the world, in the area's mark style, in groups of five.
-  - At the target, the strip moves to the next unfinished exercise after 0.8 s.
-- **Over the sky:** the area's tap hint, and one line with the exercise, "SET n OF t" (or
-  sets / target at the target) and the XP so far.
+  - At the target, the carousel moves to the next unfinished exercise after 0.8 s.
+- **Over the sky:** the area's tap hint.
 - **Tip:** on the first workout, until the first set, a tag says "Only working sets count".
 - No sound (D41).
 - Reduced motion: no scene animation.
-- ◀ HUB (or Android back) goes back to the hub.
+- The workout is home: Android back leaves the app from here. Tap the lifter for the body sliders.
 - Not used from the design board: the I WORKED button, the running clock and "SESSION n"
   (owner decisions D6 and D7 in [decisions.md](decisions.md)). There is one session per calendar day (§4.4).
 - Not used from the design board: the swipe and the tool row (D32 replaces D16).
@@ -240,7 +246,7 @@ There is no I WORKED button. The calendar day decides:
 - Training days, newest first: date, sets, time from the first to the last mark, class, area, XP,
   and "sets / target" with a tally per exercise. Today shows first, marked TODAY.
 - Old saves (legacy sessions from the old app): date and time, if the old clock was used.
-- Opens from HISTORY on the hub, PAST SESSIONS on the profile and in the menu. HUB goes back.
+- Opens from HISTORY in the bottom bar, PAST SESSIONS on the profile and in the menu. HUB goes back.
 
 ## 6. Special cases
 

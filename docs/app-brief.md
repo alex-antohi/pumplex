@@ -50,10 +50,10 @@ The class names come from the design team (D9). The final names are still open (
 ### 4.2 Character creation (no weight or height input)
 
 - The user never types a weight or a height.
-- Character creation has **sliders**: height, muscle size, fat %.
+- Character creation has **sliders**: height (1.50–2.00 m), weight (50–200 kg) and muscle size, plus skin, hair and facial hair (tap the head, D45).
 - The sliders change the character's look. The app uses the design team's 5 × 5 body atlas:
   fat 0 / 25 / 50 / 75 / 100 × muscle 0 / 25 / 50 / 75 / 100, male and female.
-  The height slider stretches the sprite (D11).
+  The height slider scales the sprite evenly (D11, D45).
 - The character is **2D** (pixel art, cel-shaded; see `docs/moodboard/README.md`).
 
 ### 4.3 Difficulty
@@ -101,7 +101,7 @@ The class names come from the design team (D9). The final names are still open (
 | Main goal | Motivation System | XP and levels; harder difficulty gives more XP. No streak and no achievements (D34, D35). The workout has no swap (D32), so "change exercises when there is no progress" is on hold. |
 | Main game loop | Workouts | Preset workouts from the class (equipment) and the character. |
 | Main game loop | Tracking Sets | Count working sets per exercise, with area-themed marks. |
-| Initial setup | Character Creation | Sliders: height, muscle, fat %. 2D look. |
+| Initial setup | Character Creation | Sliders: height, weight, muscle. Head: skin, hair, facial hair. 2D look. |
 | Initial setup | Class System | One class per equipment type. |
 | Initial setup | Starting Area | Look, palette and set-mark style. From the mood board. |
 | Initial setup | Difficulty Level | Many fantasy-named levels, beginner to expert. |
@@ -109,7 +109,7 @@ The class names come from the design team (D9). The final names are still open (
 ## 6. Core loop
 
 1. Open the app (any time).
-2. See today's workout for your class on the hub. Tap it.
+2. The app opens on today's workout for your class (D49).
 3. Do each exercise. Tap the area's object for each working set. The mark (shells, wall scratches and so on) stays in the scene.
 4. Get XP for each set. See the level change. The session closes by itself ([app-flow.md](app-flow.md) §4.4).
 
@@ -120,7 +120,7 @@ The class names come from the design team (D9). The final names are still open (
 | Fixed exercises, sets, reps, kg, rep-outs, PRs, swaps, CSV | Removed (21 Nov). |
 | Alex / Anca flavors | Removed. One app id: `com.alex.gym_app`. |
 | Old sessions (`sessions_v2`), backup | One-time upgrade: backup file first, then legacy sessions with XP. |
-| 7-day pattern, START TRAINING, I WORKED / I RESTED, preloader | Removed (21 Nov). Free-form sessions, hub, set counting, XP and character creation built. |
+| 7-day pattern, START TRAINING, I WORKED / I RESTED, preloader | Removed (21 Nov). Free-form sessions, the workout as home (D49), set counting, XP and character creation built. |
 | CEL SHADER mode, chaos mode | Removed (22 Nov, D39, D40). |
 | Old logged sets and swaps | Deleted by the one-time upgrade, after its backup file (owner's decision, [data-schema.md](data-schema.md) §5). |
 | Class ids | The design ids since 22 Nov (D31). Saved data migrates once. |

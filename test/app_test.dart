@@ -11,7 +11,6 @@ import 'package:gym_app/game/rules.dart';
 import 'package:gym_app/main.dart';
 import 'package:gym_app/pumplex.dart';
 import 'package:gym_app/store.dart';
-import 'package:gym_app/views/intro.dart';
 import 'package:gym_app/views/scene.dart';
 import 'package:gym_app/views/sprite.dart';
 import 'package:gym_app/views/workout.dart';
@@ -277,14 +276,12 @@ void main() {
     store.addSet(0);
     await t.pumpWidget(GymApp(store: store));
     await _frames(t);
-    await t.tap(find.byKey(const ValueKey('hub-workout')));
-    await _frames(t);
     expect(find.text('SCRATCH THE WALL'), findsOneWidget);
     await t.tap(find.byKey(const ValueKey('world-object'))); // 3rd set = target
     await t.pump(const Duration(milliseconds: 100));
     expect(find.text('CRUSHED!'), findsOneWidget);
     await _frames(t, 40);
-    await t.tap(find.byKey(const ValueKey('strip-0'))); // back to the first exercise
+    await t.tap(find.byKey(const ValueKey('exercise-dot-0'))); // back to the first exercise
     await _frames(t, 4);
     await t.tap(find.byKey(const ValueKey('world-object')));
     await _frames(t, 4);
@@ -305,6 +302,19 @@ void main() {
     expect(allSpriteAssets.first, bodyAtlas);
     expect(allSpriteAssets, contains('assets/outfits/paladin.png'));
     expect(allSpriteAssets.where((a) => a.contains('gear')), isEmpty); // no gear (D38)
+  });
+
+  test('head looks: saved, old data gets the defaults, layers pick the atlases', () {
+    const c = Character(skin: 'deep', hair: 'blonde', facialHair: 'beard');
+    expect(Character.fromJson(c.toJson()), c);
+    final old = Character.fromJson({'sex': 'male', 'height': 10, 'muscle': 20, 'fat': 30});
+    expect((old.skin, old.hair, old.facialHair), ('light', 'brown', 'none'));
+    expect(Character.fromJson({'skin': 'green', 'hair': 7}).skin, 'light'); // unknown ids fall back
+    expect(spriteLayers(const Character(), 'paladin'), [bodyAtlas, 'assets/outfits/paladin.png']);
+    expect(spriteLayers(c, 'paladin'),
+        ['assets/body/looks/body_deep_blonde.png', 'assets/body/looks/beard_blonde.png', 'assets/outfits/paladin.png']);
+    expect(allSpriteAssets, containsAll(['assets/body/looks/body_light_blonde.png', 'assets/body/looks/beard_brown.png']));
+    expect((heightMetres(0), heightMetres(100), weightKg(0), weightKg(100)), (1.5, 2.0, 50, 200));
   });
 
   // --------------------------------------------------------- session rule
@@ -535,7 +545,7 @@ void main() {
     await _frames(t);
     expect(files.single, contains('Floor Press')); // the old data, saved first
     expect(prefs.containsKey('logs_v2'), isFalse);
-    expect(find.text('CHARACTER · STEP 1 OF 5'), findsOneWidget);
+    expect(find.text('CHARACTER · STEP 1 OF 4'), findsOneWidget);
     await t.pump(const Duration(seconds: 5));
   });
 
@@ -546,7 +556,7 @@ void main() {
     await _frames(t);
     await t.tap(find.text('NOT NOW'));
     await _frames(t);
-    expect(find.text('CHARACTER · STEP 1 OF 5'), findsOneWidget);
+    expect(find.text('CHARACTER · STEP 1 OF 4'), findsOneWidget);
     expect(prefs.getString('logs_v2'), _oldLogs);
   });
 
@@ -560,72 +570,116 @@ void main() {
       home: GameShell(store: store),
     ));
     await _frames(t);
-    expect(find.text('CHARACTER · STEP 1 OF 5'), findsOneWidget);
+    expect(find.text('CHARACTER · STEP 1 OF 4'), findsOneWidget);
     expect(_spriteAsset(t), 'male/fat50_muscle50');
+    expect(find.byKey(const ValueKey('menu-open')), findsNothing); // no menu on the first setup
+    expect(find.byIcon(Icons.casino), findsNothing);
+    expect(find.text('1.50 M · 2.00 M'), findsNothing); // only the current value
+    expect(find.text('50 KG · 200 KG'), findsNothing);
+    expect(find.textContaining('TAP THE HEAD'), findsNothing);
+    expect(find.byKey(const ValueKey('head-outline')), findsOneWidget);
+    expect(find.text('1.75 M'), findsOneWidget);
+    expect(find.text('125 KG'), findsOneWidget);
 
     await t.drag(find.byKey(const ValueKey('slider-MUSCLE')), const Offset(400, 0));
     await _frames(t, 4);
     expect(_spriteAsset(t), 'male/fat50_muscle100');
-    await t.drag(find.byKey(const ValueKey('slider-FAT %')), const Offset(-400, 0));
+    await t.drag(find.byKey(const ValueKey('slider-WEIGHT')), const Offset(-400, 0));
     await _frames(t, 4);
     expect(_spriteAsset(t), 'male/fat0_muscle100');
     await t.tap(find.byKey(const ValueKey('sex-female')));
     await _frames(t, 4);
     expect(_spriteAsset(t), 'female/fat0_muscle100');
-    final short = t.getSize(find.byKey(const ValueKey('character-sprite'))).height;
+    expect(find.text('50 KG'), findsOneWidget);
+    final short = t.getSize(find.byKey(const ValueKey('character-sprite')));
     await t.drag(find.byKey(const ValueKey('slider-HEIGHT')), const Offset(400, 0));
     await _frames(t, 8);
-    expect(t.getSize(find.byKey(const ValueKey('character-sprite'))).height, greaterThan(short));
+    final tall = t.getSize(find.byKey(const ValueKey('character-sprite')));
+    expect(find.text('2.00 M'), findsOneWidget);
+    expect(tall.height, greaterThan(short.height));
+    expect(tall.width / tall.height, closeTo(short.width / short.height, 0.01)); // scaled, not stretched
+
+    // Tap the head: the camera zooms in, the panel has skin, hair and facial hair.
+    await t.tap(find.byKey(const ValueKey('creator-head')));
+    await _frames(t, 30);
+    expect(find.text('YOUR HEAD'), findsOneWidget);
+    expect(find.byKey(const ValueKey('head-outline')), findsNothing);
+    expect(find.text('BUILD YOUR LIFTER'), findsNothing);
+    for (final k in ['look-skin-deep', 'look-hair-blonde', 'look-facial-beard']) {
+      await t.tap(find.byKey(ValueKey(k)));
+      await _frames(t, 4);
+    }
+    final layers = t.widgetList<AtlasSprite>(find.byType(AtlasSprite)).map((a) => a.asset).toList();
+    expect(layers, containsAll(['assets/body/looks/body_deep_blonde.png', 'assets/body/looks/beard_blonde.png']));
+    await t.tap(find.text('DONE'));
+    await _frames(t, 30);
+    expect(find.text('BUILD YOUR LIFTER'), findsOneWidget);
 
     await t.tap(find.text('NEXT'));
     await t.pump(const Duration(milliseconds: 200));
     // Mid-transition: both scenes are on screen (no blank frame).
     expect(find.text('BUILD YOUR LIFTER'), findsOneWidget);
-    expect(find.text('CHOOSE YOUR PATH'), findsWidgets);
+    expect(find.byKey(const ValueKey('class-card')), findsOneWidget);
     await _frames(t);
     expect(find.text('BUILD YOUR LIFTER'), findsNothing);
-    expect(find.text('CLASS · STEP 2 OF 5'), findsOneWidget);
+    expect(find.text('CLASS · STEP 2 OF 4'), findsOneWidget);
 
-    // Class select: one class per equipment type; a pick shows the
-    // freeze-frame intro card and the frozen (greyscale) character.
+    // Class select (D46): one big card; swipe it to change the class, both
+    // ways and round and round. No class buttons, no freeze-frame card.
+    final classCard = find.byKey(const ValueKey('class-card'));
+    String shown() => t.widgetList<Text>(find.descendant(of: classCard, matching: find.byType(Text)))
+        .map((w) => w.data).firstWhere((s) => gameClasses.any((c) => c.name.toUpperCase() == s))!;
+    expect(find.byKey(const ValueKey('path-paladin')), findsNothing);
+    expect(shown(), 'SCRAPPER');
+    expect(find.text('NO EQUIPMENT'), findsOneWidget);
+    expect(find.text(classById('scrapper').style), findsOneWidget); // the description is in the card
+    await t.fling(classCard, const Offset(-300, 0), 1000); // swipe left: next
+    await _frames(t, 10);
+    expect(shown(), 'BARGAIN BRUISER');
+    expect(find.byKey(const ValueKey('intro-card')), findsNothing);
+    await t.fling(classCard, const Offset(300, 0), 1000); // swipe right: back
+    await _frames(t, 10);
+    await t.fling(classCard, const Offset(300, 0), 1000); // and round to the last one
+    await _frames(t, 10);
+    expect(shown(), 'CABLEMANCER');
+    await t.fling(classCard, const Offset(-300, 0), 1000); // and round to the first
+    await _frames(t, 10);
+    expect(shown(), 'SCRAPPER');
+    await t.tap(find.byKey(const ValueKey('class-dot-paladin')));
+    await _frames(t, 10);
+    expect(shown(), 'PLATE PALADIN');
     expect(find.text('LOTS OF FREE WEIGHTS'), findsOneWidget);
-    await t.ensureVisible(find.byKey(const ValueKey('path-paladin')));
-    await _frames(t, 4);
-    await t.tap(find.byKey(const ValueKey('path-paladin')));
-    await t.pump(const Duration(milliseconds: 100));
-    expect(find.byKey(const ValueKey('intro-card')), findsOneWidget);
-    expect(find.text('OATH-SWORN TO THE BARBELL'), findsOneWidget);
-    expect(
-      find.ancestor(of: find.byKey(const ValueKey('character-sprite')), matching: find.byType(ColorFiltered)).evaluate()
-          .any((e) => (e.widget as ColorFiltered).colorFilter == freezeFilter),
-      isTrue,
-    );
-    await t.pump(introHold);
-    await _frames(t, 4);
-    expect(find.byKey(const ValueKey('intro-card')), findsNothing); // closes by itself
-    expect(find.text('A BARBELL, A RACK AND A WALL OF PLATES.'.toLowerCase()), findsNothing);
     expect(find.text('A barbell, a rack and a wall of plates.'), findsOneWidget); // loadout
     expect(find.text('STRONGMAN'), findsOneWidget); // tags
-    await t.ensureVisible(find.byKey(const ValueKey('path-cablemancer')));
-    await t.tap(find.byKey(const ValueKey('path-cablemancer')));
-    await t.pump(const Duration(milliseconds: 100));
-    await t.tap(find.byKey(const ValueKey('intro-card'))); // closes on a tap
-    await t.pump(const Duration(milliseconds: 100));
     expect(find.byKey(const ValueKey('intro-card')), findsNothing);
-    await t.tap(find.byKey(const ValueKey('path-paladin')));
-    await t.pump(const Duration(milliseconds: 100));
-    await t.tap(find.text('NEXT: DIFFICULTY'));
-    await _frames(t);
+    // Difficulty (D47): a slider on the class step, the mode name on the right.
+    // No titles in the view, no freeze-frame card.
+    expect(find.text('CHOOSE YOUR PATH'), findsNothing);
+    expect(find.text('HOW HARD DO YOU GO?'), findsNothing);
+    t.widget<Slider>(find.byKey(const ValueKey('slider-DIFFICULTY'))).onChanged!(2);
+    await _frames(t, 4);
+    expect(find.text('SWEAT MODE'), findsOneWidget);
     expect(find.byKey(const ValueKey('intro-card')), findsNothing);
-    expect(find.text('HOW HARD DO YOU GO?'), findsWidgets);
-    await t.tap(find.byKey(const ValueKey('difficulty-sweat')));
-    await t.pump(const Duration(milliseconds: 100));
-    expect(find.text('TOWEL STRONGLY RECOMMENDED'), findsOneWidget); // title card
-    expect(find.text('DIFFICULTY 3 OF 6'), findsOneWidget);
     await t.tap(find.text('NEXT: STARTING AREA'));
     await _frames(t);
-    expect(find.text("YOUR PATH'S HOME"), findsOneWidget); // Plate Paladin -> Gainsgard Keep
-    await t.tap(find.byKey(const ValueKey('area-gainsgard')));
+    expect(find.text('STARTING AREA · STEP 3 OF 4'), findsOneWidget);
+    // Area (D47): one card like the class card; swipe it, round and round.
+    // Plate Paladin's default area shows first.
+    final areaCard = find.byKey(const ValueKey('area-card'));
+    expect(find.text('GAINSGARD KEEP'), findsOneWidget);
+    expect(find.text("YOUR PATH'S HOME"), findsOneWidget);
+    expect(find.text('SCRATCH THE WALL'), findsOneWidget);
+    await t.fling(areaCard, const Offset(-300, 0), 1000);
+    await _frames(t, 10);
+    expect(find.text('RUSTBELT FLATS'), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('area-dot-riptide')));
+    await _frames(t, 10);
+    expect(find.text('RIPTIDE SHORE'), findsOneWidget);
+    await t.fling(areaCard, const Offset(300, 0), 1000); // round to the last one
+    await _frames(t, 10);
+    expect(find.text('FROSTBITE SUMMIT'), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('area-dot-gainsgard')));
+    await _frames(t, 10);
     await t.tap(find.text('NEXT: READY?'));
     await _frames(t);
     expect(find.text('SWEAT MODE'), findsOneWidget);
@@ -633,9 +687,10 @@ void main() {
     await _frames(t, 70); // welcome burst
 
     final saved = Profile.fromJson(jsonDecode(prefs.getString('profile_v1')!) as Map<String, dynamic>);
-    expect(saved.character, const Character(sex: 'female', height: 100, muscle: 100, fat: 0));
+    expect(saved.character,
+        const Character(sex: 'female', height: 100, muscle: 100, fat: 0, skin: 'deep', hair: 'blonde', facialHair: 'beard'));
     expect((saved.classId, saved.difficultyId, saved.areaId, saved.schemaVersion), ('paladin', 'sweat', 'gainsgard', 1));
-    expect(find.text('NEXT WORKOUT'), findsOneWidget);
+    expect(find.byKey(const ValueKey('world-object')), findsOneWidget); // the workout is home (D49)
     expect(find.text(exerciseName(store.todayExercises.first.exerciseId).toUpperCase()), findsOneWidget);
     expect(find.textContaining('THIS WEEK'), findsNothing); // no streak (D34)
     expect(pushes.pushes, 1); // only the home route: views never push routes
@@ -643,12 +698,11 @@ void main() {
 
   testWidgets('workout: tap adds a working set, long-press takes one away', (t) async {
     final (store, _) = await _openApp(t);
-    expect(find.text('TRAIN'), findsOneWidget);
+    expect(find.byKey(const ValueKey('world-object')), findsOneWidget); // the app opens on the workout
+    expect(find.text('TRAIN'), findsNothing);
     expect(find.text('START TRAINING ▶'), findsNothing);
     expect(find.text('I WORKED 💪'), findsNothing);
 
-    await t.tap(find.byKey(const ValueKey('hub-workout')));
-    await _frames(t);
     final card = find.byKey(const ValueKey('world-object'));
     await t.tap(card);
     await _frames(t, 70); // level-up intro card
@@ -668,8 +722,8 @@ void main() {
     await closeCard();
     // At the target the strip moved on; go back to the first exercise.
     await _frames(t, 20);
-    expect(find.descendant(of: find.byKey(const ValueKey('strip-1')), matching: find.text('NOW')), findsOneWidget);
-    await t.tap(find.byKey(const ValueKey('strip-0')));
+    expect(find.byKey(const ValueKey('exercise-1')), findsOneWidget); // the carousel moved on
+    await t.tap(find.byKey(const ValueKey('exercise-dot-0')));
     await _frames(t, 4);
     await t.longPress(card);
     await _frames(t, 70);
@@ -677,15 +731,15 @@ void main() {
     expect(find.textContaining('5/3'), findsOneWidget);
     expect(find.textContaining('+${store.cardXp(0)} XP'), findsOneWidget);
 
-    await t.tap(find.byKey(const ValueKey('workout-hub')));
+    await t.tap(find.byKey(const ValueKey('nav-hub')));
     await _frames(t);
-    expect(find.text('KEEP GOING'), findsOneWidget);
-    expect(find.text('ON · 5 SETS'), findsOneWidget);
+    expect(find.text('KEEP GOING'), findsNothing); // no hub (D49)
+    expect(store.todaySession!.totalSets, 5);
 
-    await t.tap(find.byKey(const ValueKey('hub-past')));
+    await t.tap(find.byKey(const ValueKey('nav-history')));
     await _frames(t);
     expect(find.textContaining('TODAY · '), findsOneWidget);
-    await t.tap(find.byKey(const ValueKey('history-hub')));
+    await t.tap(find.byKey(const ValueKey('nav-hub')));
     await _frames(t, 70);
     expect(t.takeException(), isNull);
   });
@@ -693,35 +747,61 @@ void main() {
   testWidgets('workout: no tools, no add card; the hub and profile show no streak or milestones', (t) async {
     await _openApp(t);
     expect(find.text('THIS WEEK'), findsNothing);
-    await t.tap(find.byKey(const ValueKey('hub-workout')));
-    await _frames(t);
     for (final k in ['tool-swap', 'tool-first', 'tool-skip', 'tool-remove', 'strip-add']) {
       expect(find.byKey(ValueKey(k)), findsNothing, reason: k);
     }
-    expect(find.byKey(const ValueKey('strip-0')), findsOneWidget);
+    expect(find.byKey(const ValueKey('exercise-dot-0')), findsOneWidget);
     expect(find.byKey(const ValueKey('world-object')), findsOneWidget);
     expect(t.takeException(), isNull);
   });
 
-  testWidgets('tap the character on the hub to edit the body sliders', (t) async {
+  testWidgets('workout (D48): swipe the exercise carousel; the world adds to the one shown', (t) async {
     final (store, _) = await _openApp(t);
-    await t.tap(find.byKey(const ValueKey('hub-character')));
+    final n = store.todayCards.length;
+    expect(find.byKey(const ValueKey('exercise-0')), findsOneWidget);
+    expect(find.text('EXERCISE 1 OF $n'), findsNothing); // no "x of y" (D49)
+    // Filter tags with the defaults (D49).
+    expect(find.descendant(of: find.byKey(const ValueKey('filter-class')), matching: find.text('PLATE PALADIN')), findsOneWidget);
+    expect(find.descendant(of: find.byKey(const ValueKey('filter-difficulty')), matching: find.text('SWEAT MODE')), findsOneWidget);
+    expect(find.descendant(of: find.byKey(const ValueKey('filter-body')), matching: find.text('ALL BODY PARTS')), findsOneWidget);
+    // The level and XP bar sits in the PUMPLEX bar.
+    expect(find.byKey(const ValueKey('top-level')), findsOneWidget);
+    final carousel = find.byKey(const ValueKey('exercise-card'));
+    await t.fling(carousel, const Offset(-300, 0), 1000); // next
+    await _frames(t, 10);
+    expect(find.byKey(const ValueKey('exercise-1')), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('world-object')));
+    await _frames(t, 70);
+    if (find.byKey(const ValueKey('intro-card')).evaluate().isNotEmpty) {
+      await t.tap(find.byKey(const ValueKey('intro-card')));
+      await _frames(t, 4);
+    }
+    expect((store.todayExercises[0].sets, store.todayExercises[1].sets), (0, 1));
+    await t.fling(carousel, const Offset(300, 0), 1000); // back
+    await _frames(t, 10);
+    await t.fling(carousel, const Offset(300, 0), 1000); // round to the last one
+    await _frames(t, 10);
+    expect(find.byKey(ValueKey('exercise-${store.todayCards.last}')), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('tap the lifter on the workout to edit the body sliders', (t) async {
+    final (store, _) = await _openApp(t);
+    await t.tap(find.byKey(const ValueKey('workout-character')));
     await _frames(t);
-    expect(find.text('CHARACTER · STEP 1 OF 5'), findsOneWidget);
-    await t.drag(find.byKey(const ValueKey('slider-FAT %')), const Offset(400, 0));
+    expect(find.text('CHARACTER · STEP 1 OF 4'), findsOneWidget);
+    await t.drag(find.byKey(const ValueKey('slider-WEIGHT')), const Offset(400, 0));
     await t.tap(find.text('NEXT'));
     await _frames(t);
     await t.tap(find.text('SAVE'));
     await _frames(t);
     expect(store.profile!.character.fat, 100);
     expect(store.bodyHistory.last.character.fat, 100);
-    expect(find.text('NEXT WORKOUT'), findsOneWidget);
+    expect(find.byKey(const ValueKey('world-object')), findsOneWidget); // the workout is home (D49)
   });
 
   testWidgets('a level-up shows the freeze-frame card', (t) async {
     final (store, _) = await _openApp(t);
-    await t.tap(find.byKey(const ValueKey('hub-workout')));
-    await _frames(t);
     await t.tap(find.byKey(const ValueKey('world-object'))); // first set: +50 and more
     await t.pump(const Duration(milliseconds: 600));
     final level = levelFor(store.totalXp).level;
@@ -730,20 +810,20 @@ void main() {
     expect(find.text('LEVEL $level'), findsOneWidget);
     await _frames(t, 70);
     expect(find.byKey(const ValueKey('intro-card')), findsNothing);
-    await t.tap(find.byKey(const ValueKey('workout-hub')));
+    await t.tap(find.byKey(const ValueKey('nav-hub')));
     await _frames(t);
     expect(find.byKey(const ValueKey('hub-gear')), findsNothing); // no gear (D38)
   });
 
-  testWidgets('android back goes one step back, not out of the app', (t) async {
+  testWidgets('android back goes one step back, to the workout', (t) async {
     await _openApp(t);
-    await t.tap(find.byKey(const ValueKey('hub-workout')));
+    await t.tap(find.byKey(const ValueKey('top-level'))); // the level bar opens the profile
     await _frames(t);
-    expect(find.byKey(const ValueKey('workout-hub')), findsOneWidget);
+    expect(find.text('THE PATH'), findsOneWidget);
     await t.binding.handlePopRoute();
     await _frames(t);
-    expect(find.byKey(const ValueKey('workout-hub')), findsNothing);
-    expect(find.text('TRAIN'), findsOneWidget);
+    expect(find.text('THE PATH'), findsNothing);
+    expect(find.byKey(const ValueKey('world-object')), findsOneWidget);
   });
 
   testWidgets('the menu has no look-and-feel toggles; EDIT CHARACTER keeps the body', (t) async {
@@ -755,7 +835,7 @@ void main() {
     }
     await t.tap(find.byKey(const ValueKey('menu-edit')));
     await _frames(t);
-    expect(find.text('CHARACTER · STEP 1 OF 5'), findsOneWidget);
+    expect(find.text('CHARACTER · STEP 1 OF 4'), findsOneWidget);
     expect(_spriteAsset(t), spriteFrame(_profile.character));
     await t.pump(const Duration(seconds: 5));
   });
@@ -773,37 +853,35 @@ void main() {
         expect(t.takeException(), isNull);
       }
 
-      await tapAndSettle(find.byKey(const ValueKey('hub-workout')));
-      await tapAndSettle(find.byKey(const ValueKey('workout-hub')));
-      await tapAndSettle(find.byKey(const ValueKey('hub-past')));
-      await tapAndSettle(find.byKey(const ValueKey('history-hub')));
+      await tapAndSettle(find.byKey(const ValueKey('nav-hub')));
+      await tapAndSettle(find.byKey(const ValueKey('nav-history')));
+      await tapAndSettle(find.byKey(const ValueKey('nav-hub')));
       // Profile (design screen 11): change one setup step, then back.
-      await tapAndSettle(find.byKey(const ValueKey('hub-profile')));
+      await tapAndSettle(find.byKey(const ValueKey('nav-profile')));
       expect(find.text('THE PATH'), findsOneWidget);
       await tapAndSettle(find.byKey(const ValueKey('profile-difficulty')));
-      expect(find.text('DIFFICULTY · STEP 3 OF 5'), findsOneWidget);
+      expect(find.text('CLASS · STEP 2 OF 4'), findsOneWidget); // difficulty is on the class step (D47)
       await tapAndSettle(find.text('NEXT'));
       await tapAndSettle(find.text('SAVE'));
-      await tapAndSettle(find.byKey(const ValueKey('hub-profile')));
-      await tapAndSettle(find.byKey(const ValueKey('profile-back')));
+      await tapAndSettle(find.byKey(const ValueKey('nav-profile')));
+      await tapAndSettle(find.byKey(const ValueKey('nav-hub')));
       // Menu (design screen 12).
       await tapAndSettle(find.byKey(const ValueKey('menu-open')));
       expect(find.text('GAINS INSURANCE'), findsOneWidget);
       await tapAndSettle(find.byKey(const ValueKey('menu-profile')));
-      await tapAndSettle(find.byKey(const ValueKey('profile-back')));
+      await tapAndSettle(find.byKey(const ValueKey('nav-hub')));
       await tapAndSettle(find.byKey(const ValueKey('menu-open')));
       await tapAndSettle(find.byKey(const ValueKey('menu-edit')));
       await tapAndSettle(find.text('NEXT')); // editing: straight to the summary
       await tapAndSettle(find.text('CLASS'));
-      await tapAndSettle(find.byKey(const ValueKey('path-bruiser')));
-      await t.pump(introHold);
+      await tapAndSettle(find.byKey(const ValueKey('class-dot-bruiser')));
       await tapAndSettle(find.text('NEXT'));
       await tapAndSettle(find.text('DIFFICULTY'));
       await tapAndSettle(find.text('NEXT'));
       await tapAndSettle(find.text('AREA'));
       await tapAndSettle(find.text('NEXT'));
       await tapAndSettle(find.text('SAVE'));
-      expect(find.text('NEXT WORKOUT'), findsOneWidget);
+      expect(find.byKey(const ValueKey('world-object')), findsOneWidget); // the workout is home (D49)
       await t.pumpWidget(const SizedBox());
     });
   }

@@ -41,20 +41,19 @@ class GymApp extends StatelessWidget {
 }
 
 /// Every view of the app. They are scenes of ONE screen (see GameShell).
-enum Scene { migrate, create, classSelect, difficulty, area, summary, hub, workout, history, profile, menu }
+enum Scene { migrate, create, classSelect, area, summary, workout, history, profile, menu }
 
 /// Where the character stands in each scene, inside the content area.
 /// The views leave this rect free; the shell draws the one character there,
 /// so it glides from place to place when the scene changes.
-Rect stageRect(Scene s, Size a) {
+/// [bottomInset] is the phone's navigation bar, for views that keep it.
+Rect stageRect(Scene s, Size a, {double bottomInset = 0}) {
   final w = a.width, h = a.height;
   return switch (s) {
     Scene.create => Rect.fromLTWH(0, 8, w, h * 0.42),
-    Scene.classSelect => Rect.fromLTWH(26, 132, w * 0.34, h * 0.25),
-    Scene.difficulty => Rect.fromLTWH(w * 0.76, 2, w * 0.2, 88),
-    Scene.area => Rect.fromLTWH(12, 8, w * 0.30, h * 0.22),
+    Scene.classSelect => classLayout(a, bottomInset).stage,
+    Scene.area => areaLayout(a, bottomInset).stage,
     Scene.summary => Rect.fromLTWH(0, 10, w, h * 0.40),
-    Scene.hub => hubStage(a),
     Scene.migrate => Rect.fromLTWH(0, 10, w, h * 0.34),
     Scene.workout => workoutStage(a),
     Scene.history => Rect.fromLTWH(w * 0.70, 6, w * 0.26, h * 0.17),
@@ -85,7 +84,7 @@ class _GameShellState extends State<GameShell> {
   /// The upgrade scene while old data is on the phone, else [_startScene].
   Scene get _openingScene => _store.hasOldData ? Scene.migrate : _startScene;
 
-  Scene get _startScene => _store.profile == null ? Scene.create : Scene.hub;
+  Scene get _startScene => _store.profile == null ? Scene.create : Scene.workout;
 
   // Setup draft (the profile is only saved on LET'S GO).
   late Character _char;
@@ -162,9 +161,13 @@ class _GameShellState extends State<GameShell> {
     if (mounted) _go(_startScene);
   }
 
+  /// The creator's head looks are open (the camera is on the head).
+  bool _head = false;
+
   void _go(Scene to, [Motion motion = Motion.zoomIn]) {
     if (to == _scene) return;
     setState(() {
+      _head = false;
       _scene = to;
       _motion = motion;
       _intro = null;
@@ -186,7 +189,7 @@ class _GameShellState extends State<GameShell> {
     ));
     final first = !_editing;
     _editing = false;
-    _go(Scene.hub);
+    _go(Scene.workout);
     if (first) {
       celebratePr(
         context,
@@ -206,7 +209,7 @@ class _GameShellState extends State<GameShell> {
 
   /// The setup steps a summary or profile EDIT opens (0 body, 1 class,
   /// 2 difficulty, 3 area).
-  static const _setupSteps = [Scene.create, Scene.classSelect, Scene.difficulty, Scene.area];
+  static const _setupSteps = [Scene.create, Scene.classSelect, Scene.area];
 
   /// Opens one setup step to change it. NEXT leads to the summary, which
   /// saves (D13).
@@ -222,15 +225,11 @@ class _GameShellState extends State<GameShell> {
       // The class picks the default area, until the player picks one.
       if (!_areaPicked) _areaId = defaultAreaFor(id).id;
     });
-    final c = classById(id);
-    _showIntro((title: c.name, subtitle: c.subtitle, color: classColor(Pal.of(context), id)));
+    // No freeze-frame intro card on the class carousel (D46).
   }
 
-  void _pickDifficulty(String id) {
-    setState(() => _difficultyId = id);
-    final i = difficultyIndex(id);
-    _showIntro((title: difficulties[i].name, subtitle: difficulties[i].joke, color: difficultyColor(Pal.of(context), i)));
-  }
+  /// The difficulty slider on the class step (D47): no freeze-frame card.
+  void _pickDifficulty(String id) => setState(() => _difficultyId = id);
 
   // ---------------------------------------------------------------- workout
 
@@ -275,7 +274,7 @@ class _GameShellState extends State<GameShell> {
   // ------------------------------------------------------------------- menu
 
   /// The scene the menu returns to.
-  Scene _menuFrom = Scene.hub;
+  Scene _menuFrom = Scene.workout;
 
   void _openMenu() {
     if (_scene == Scene.menu) return;
@@ -353,12 +352,10 @@ class _GameShellState extends State<GameShell> {
     final l = levelFor(_store.totalXp).level;
     return switch (_scene) {
       Scene.migrate => 'OLD SAVE · ONE-TIME UPGRADE',
-      Scene.create => 'CHARACTER · STEP 1 OF 5',
-      Scene.classSelect => 'CLASS · STEP 2 OF 5',
-      Scene.difficulty => 'DIFFICULTY · STEP 3 OF 5',
-      Scene.area => 'STARTING AREA · STEP 4 OF 5',
-      Scene.summary => 'READY? · STEP 5 OF 5',
-      Scene.hub => 'LVL $l · ${_store.gameClass.name.toUpperCase()} · ${areaById(_store.profile?.areaId).name.toUpperCase()}',
+      Scene.create => 'CHARACTER · STEP 1 OF 4',
+      Scene.classSelect => 'CLASS · STEP 2 OF 4',
+      Scene.area => 'STARTING AREA · STEP 3 OF 4',
+      Scene.summary => 'READY? · STEP 4 OF 4',
       Scene.workout => 'WORKOUT · ${_store.todaySession?.totalSets ?? 0} SETS · LVL $l',
       Scene.history => 'PAST SESSIONS · LVL $l',
       Scene.profile => 'YOUR LIFTER · LVL $l ${levelTitle(l).toUpperCase()}',
@@ -369,17 +366,18 @@ class _GameShellState extends State<GameShell> {
   /// Android back: one step back in the flow, never out of the app mid-flow.
   Scene? get _backTo => switch (_scene) {
         Scene.migrate => null,
-        Scene.create => _editing ? Scene.hub : null,
+        Scene.create => _editing ? Scene.workout : null,
         Scene.classSelect => Scene.create,
-        Scene.difficulty => Scene.classSelect,
-        Scene.area => Scene.difficulty,
+        Scene.area => Scene.classSelect,
         Scene.summary => Scene.area,
-        Scene.workout || Scene.history || Scene.profile => Scene.hub,
+        Scene.history || Scene.profile => Scene.workout,
         Scene.menu => _menuFrom,
-        Scene.hub => null,
+        // The workout is home (D49): back leaves the app.
+        Scene.workout => null,
       };
 
   void _back() {
+    if (_head) return setState(() => _head = false);
     final to = _backTo;
     if (to == null) return;
     if (_scene == Scene.menu) return _closeMenu();
@@ -399,20 +397,16 @@ class _GameShellState extends State<GameShell> {
             character: _char,
             onCharacter: (c) => setState(() => _char = c),
             onNext: () => _go(_editing ? Scene.summary : Scene.classSelect),
+            headOpen: _head,
+            onHead: (open) => setState(() => _head = open),
           ),
         Scene.classSelect => ClassView(
             stage: stage,
             classId: _classId,
-            editing: _editing,
-            onPick: _pickClass,
-            onBack: _back,
-            onNext: () => _go(_editing ? Scene.summary : Scene.difficulty),
-          ),
-        Scene.difficulty => DifficultyView(
-            stage: stage,
             difficultyId: _difficultyId,
             editing: _editing,
-            onPick: _pickDifficulty,
+            onPick: _pickClass,
+            onDifficulty: _pickDifficulty,
             onBack: _back,
             onNext: () => _go(_editing ? Scene.summary : Scene.area),
           ),
@@ -438,26 +432,17 @@ class _GameShellState extends State<GameShell> {
             onBack: _back,
             onGo: _finishSetup,
           ),
-        Scene.hub => HubView(
-            stage: stage,
-            store: _store,
-            onTrain: () => _go(Scene.workout),
-            onHistory: _openHistory,
-            onBody: _editCharacter,
-            onProfile: () => _go(Scene.profile),
-          ),
         Scene.workout => WorkoutView(
             stage: stage,
             store: _store,
             onAdd: _addSet,
             onRemove: _removeSet,
-            onBack: _back,
+            onBody: _editCharacter,
           ),
-        Scene.history => HistoryView(stage: stage, store: _store, onBack: _back),
+        Scene.history => HistoryView(stage: stage, store: _store),
         Scene.profile => ProfileView(
             stage: stage,
             store: _store,
-            onBack: _back,
             onBody: _editCharacter,
             onHistory: _openHistory,
             onEditStep: _editStep,
@@ -480,6 +465,15 @@ class _GameShellState extends State<GameShell> {
 
   bool get _inSetup => _isSetupScene(_scene == Scene.menu ? _menuFrom : _scene);
 
+  /// The bottom bar's lit tab, or null where there is no bar. The bar shows
+  /// on the hub, the workout, past sessions and the profile only.
+  NavTab? get _navTab => switch (_scene) {
+        Scene.workout => NavTab.hub,
+        Scene.history => NavTab.history,
+        Scene.profile => NavTab.profile,
+        _ => null,
+      };
+
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
@@ -488,7 +482,7 @@ class _GameShellState extends State<GameShell> {
     final char = _inSetup || profile == null ? _char : profile.character;
     final classId = _inSetup || profile == null ? _classId : profile.classId;
     return PopScope(
-      canPop: _backTo == null,
+      canPop: _backTo == null && !_head,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) _back();
       },
@@ -498,14 +492,22 @@ class _GameShellState extends State<GameShell> {
           body: DotBackground(
             child: Column(
               children: [
+                // The phone status bar sits on the dark strip.
                 Container(
                   color: kNight,
-                  child: const SafeArea(bottom: false, child: Ticker(items: tickerItems)),
+                  child: const SafeArea(bottom: false, child: SizedBox(width: double.infinity)),
                 ),
                 _TopBar(
                   info: _info,
-                  // Opens the full-screen menu (design screen 12).
-                  menu: IconButton(
+                  // On the workout (home) the bar shows the level and XP (D49).
+                  level: _scene == Scene.workout
+                      ? _TopLevel(xp: _store.totalXp, onTap: () => _go(Scene.profile))
+                      : null,
+                  // Opens the full-screen menu (design screen 12). Not on the
+                  // first setup: there is nothing to open yet.
+                  menu: _store.profile == null && _inSetup
+                      ? null
+                      : IconButton(
                     key: const ValueKey('menu-open'),
                     tooltip: 'Menu',
                     icon: Icon(_scene == Scene.menu ? Icons.close : Icons.more_vert, color: p.ink, size: 28),
@@ -515,8 +517,13 @@ class _GameShellState extends State<GameShell> {
                 Container(height: 6, color: p.violet),
                 Expanded(
                   child: LayoutBuilder(builder: (context, box) {
-                    final stage = stageRect(_scene, box.biggest);
-                    return Stack(
+                    final stage = stageRect(_scene, box.biggest, bottomInset: MediaQuery.paddingOf(context).bottom);
+                    // The bottom bar takes the system inset, so the views
+                    // above it get none.
+                    return MediaQuery.removePadding(
+                      context: context,
+                      removeBottom: _navTab != null,
+                      child: Stack(
                       children: [
                         Positioned.fill(
                           child: SceneSwitcher(
@@ -539,30 +546,26 @@ class _GameShellState extends State<GameShell> {
                               child: CharacterSprite(
                                 character: char,
                                 classId: classId,
-                                pedestal: _scene != Scene.workout && _scene != Scene.hub,
+                                // In an area scene the scene has its own ground.
+                                pedestal: _scene != Scene.workout && _scene != Scene.area,
+                                zoomHead: _scene == Scene.create && _head,
                               ),
                             ),
                           ),
                         ),
-                        // Freeze-frame intro card: over the preview card on
-                        // the class and difficulty steps, over the whole
-                        // view on level-ups.
-                        if (_intro != null)
-                          switch (_scene) {
-                            Scene.classSelect => Positioned.fromRect(
-                                rect: classCardRect(stage, box.maxWidth),
-                                child: _introCard(),
-                              ),
-                            Scene.difficulty => Positioned.fromRect(
-                                rect: difficultyCardRect(box.biggest),
-                                child: _introCard(),
-                              ),
-                            _ => Positioned.fill(child: _introCard()),
-                          },
+                        // Freeze-frame intro card: level-ups, over the whole view.
+                        if (_intro != null) Positioned.fill(child: _introCard()),
                       ],
-                    );
+                    ));
                   }),
                 ),
+                if (_navTab case final tab?)
+                  MainNav(
+                    current: tab,
+                    onHistory: _openHistory,
+                    onHub: _back,
+                    onProfile: () => _go(Scene.profile),
+                  ),
               ],
             ),
           ),
@@ -573,10 +576,15 @@ class _GameShellState extends State<GameShell> {
 }
 
 class _TopBar extends StatelessWidget {
-  const _TopBar({required this.info, required this.menu});
+  const _TopBar({required this.info, required this.menu, this.level});
 
   final String info;
-  final Widget menu;
+
+  /// Shown in place of [info] (the workout's level and XP bar).
+  final Widget? level;
+
+  /// The ⋮ button, or null (the space stays, so the bar keeps its height).
+  final Widget? menu;
 
   @override
   Widget build(BuildContext context) {
@@ -600,7 +608,7 @@ class _TopBar extends StatelessWidget {
                 SizedBox(
                   height: 18,
                   width: double.infinity,
-                  child: AnimatedSwitcher(
+                  child: level ?? AnimatedSwitcher(
                     duration: const Duration(milliseconds: 180),
                     layoutBuilder: (current, previous) => Stack(
                       alignment: Alignment.centerLeft,
@@ -617,7 +625,47 @@ class _TopBar extends StatelessWidget {
               ],
             ),
           ),
-          menu,
+          menu ?? const SizedBox(width: 48, height: 48),
+        ],
+      ),
+    );
+  }
+}
+
+/// The level and XP bar in the PUMPLEX bar on the workout (D49). Tap it to
+/// open the profile.
+class _TopLevel extends StatelessWidget {
+  const _TopLevel({required this.xp, required this.onTap});
+
+  final int xp;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Pal.of(context);
+    final l = levelFor(xp);
+    return GestureDetector(
+      key: const ValueKey('top-level'),
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Row(
+        children: [
+          Text('LVL ${l.level}', style: display(16, p.pink)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Container(
+              height: 12,
+              decoration: BoxDecoration(color: kNight, border: Border.all(color: p.ink, width: 2)),
+              child: FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: (l.into / l.need).clamp(0.0, 1.0),
+                child: Container(color: p.lime),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text('${l.into}/${l.need} XP', style: mono(11, p.ink)),
+          const SizedBox(width: 8),
         ],
       ),
     );

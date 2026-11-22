@@ -21,6 +21,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/body/body_atlas.png
+    - assets/body/looks/
     - assets/icons/
     - assets/outfits/
     - assets/areas/riptide/
