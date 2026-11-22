@@ -49,13 +49,11 @@ The plan is in [docs/app-brief.md](docs/app-brief.md) and
   that the streak and achievements gave before stays.
 - **Old-app data:** a one-time upgrade saves a backup file first, then
   turns the old sessions into XP and deletes the old kg / reps data.
-- **Lifter profile** (D50-D52): the workout shrinks to a square arena tile;
-  under it a past-sessions card (swipe through the training days) and a
-  lifter card (BODY, CLASS, DIFFICULTY, AREA). A row opens the same setup
-  screen below, with lifter and last-session tiles beside the arena; changes
-  save at once (body changes are kept as a history). The phone's back button
-  leaves the app. No milestones (D35). No
-  backup save / restore screen, no chaos mode, cel shader or sound (D39–D41).
+- **Lifter profile** (D50-D53): the workout shrinks to a square arena tile;
+  beside it the last-session tile; the lifter editor (the setup screens,
+  without BACK / NEXT) takes the rest: swipe it up / down for BODY, CLASS,
+  AREA. Changes save at once. Tap the session tile for the sessions carousel.
+  The phone's back button leaves the app.
 - **Design art:** Anton and Space Mono fonts (`assets/fonts`, OFL), pixel
   icons (`assets/icons`), class outfits and area scenes.
 
