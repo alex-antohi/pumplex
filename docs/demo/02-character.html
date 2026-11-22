@@ -6,7 +6,6 @@
 <title>PUMPLEX · Character</title>
 <link rel="stylesheet" href="shared/pumplex.css">
 <script src="shared/demo.js"></script>
-<script src="shared/atlas.js"></script>
 <style>
 /* ---- 02 character creation: screen-only styles ---- */
 .chr-screen { display: flex; flex-direction: column; gap: var(--s3); padding-top: var(--s3); }
@@ -14,7 +13,7 @@
 /* ---- stage: polka-dot sky, light floor so the ink outline reads ---- */
 .chr-stage {
   position: relative; flex: none; overflow: hidden;
-  height: 316px;
+  height: 332px;
   box-shadow: 6px 6px 0 var(--pink);
   margin: 0 6px 0 0;
 }
@@ -30,13 +29,14 @@
 .chr-stage.is-zoom .chr-floor { transform: translateY(70px); }
 .chr-stage.is-zoom .chr-shadow, .chr-stage.is-zoom .chr-cap, .chr-stage.is-zoom .chr-pin { display: none; }
 
-/* the rig: the lifter canvas plus the two tap zones; the camera moves this */
+/* the rig: the lifter canvas plus the two tap zones; the camera moves this.
+   Its height follows the sprite: the HEIGHT slider stretches the frame vertically (D10, D11). */
 .chr-rig {
   position: absolute; left: 50%; bottom: 30px; z-index: 1;
-  width: 208px; height: 256px; margin-left: -104px;
+  width: 208px; margin-left: -104px;
   transition: transform .3s steps(5, end);
 }
-.chr-rig canvas, .chr-rig .sprite { display: block; width: 208px; height: 256px; image-rendering: pixelated; }
+.chr-rig canvas, .chr-rig .sprite { display: block; width: 208px; image-rendering: pixelated; }
 .chr-rig.is-pop canvas, .chr-rig.is-pop .sprite { animation: chr-pop .24s steps(3, end); }
 @keyframes chr-pop { 0% { transform: scale(1.06, .92) translateY(8px); } 50% { transform: scale(.97, 1.04) translateY(-6px); } 100% { transform: none; } }
 
@@ -44,8 +44,8 @@
   position: absolute; z-index: 2; appearance: none; background: transparent; border: 0; padding: 0; cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
-.chr-zone.is-head { left: 64px; top: 0; width: 80px; height: 66px; }
-.chr-zone.is-body { left: 8px; top: 66px; width: 192px; height: 186px; }
+.chr-zone.is-head { left: 64px; top: 0; width: 80px; height: 25.8%; }
+.chr-zone.is-body { left: 8px; top: 25.8%; width: 192px; height: 72.7%; }
 .chr-zone::after { content: ""; position: absolute; inset: 0; border: 3px dashed var(--text); opacity: 0; }
 .chr-zone:hover::after { opacity: .5; }
 .chr-zone:focus-visible { outline: none; }
@@ -144,6 +144,7 @@
 /* ---- pixel sliders ---- */
 .chr-slider { --fill: var(--orange); }
 .chr-slider.is-mus { --fill: var(--sky); }
+.chr-slider.is-hgt { --fill: var(--violet); }
 .chr-track { position: relative; margin-top: var(--s1); }
 .chr-ticks { position: absolute; left: 0; right: 0; top: 34px; height: 8px; pointer-events: none; }
 .chr-ticks i { position: absolute; top: 0; width: 4px; height: 8px; margin-left: -2px; background: var(--line); }
@@ -218,6 +219,18 @@
         </div>
       </div>
 
+      <div class="chr-slider is-hgt" data-key="height">
+        <div class="chr-row">
+          <label class="chr-label" for="chr-height">Height</label>
+          <span class="chr-now" aria-hidden="true"></span>
+        </div>
+        <div class="chr-track">
+          <input class="chr-range" id="chr-height" type="range" min="0" max="100" step="25" value="50">
+          <div class="chr-ticks" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+        </div>
+        <div class="chr-ends"><button type="button" data-v="0" tabindex="-1">Pocket</button><button type="button" data-v="100" tabindex="-1">Skyscraper</button></div>
+      </div>
+
       <div class="chr-slider is-fat" data-key="fat">
         <div class="chr-row">
           <label class="chr-label" for="chr-fat">Fat</label>
@@ -266,6 +279,7 @@
 (function () {
   "use strict";
   var STOPS = {
+    height: ["POCKET-SIZED", "COMPACT", "AVERAGE", "TALL", "SKYSCRAPER"],
     fat:    ["SHREDDED", "LEAN", "SOLID", "FLUFFY", "CHONK"],
     muscle: ["NOODLE", "WIRY", "FIT", "BEEFY", "HULK"]
   };
@@ -278,48 +292,19 @@
     ["MAXIMUM COZY", "GENTLE GIANT", "BEANBAG OF POWER", "SUMO ON A MISSION", "FINAL BOSS ENERGY"]
   ];
 
-  /* ---------- look options: 3-step ramps (highlight, base, shadow) ---------- */
-  var SKIN = [
-    { id: "porcelain", name: "Porcelain", r: ["#f7dcc8", "#ecb994", "#b98068"] },
-    { id: "peach",     name: "Peach",     r: ["#e4bc97", "#d39a6a", "#8c605c"] },
-    { id: "tan",       name: "Tan",       r: ["#d6a274", "#b47848", "#734832"] },
-    { id: "brown",     name: "Brown",     r: ["#a06c48", "#7c4c2e", "#4c2c1c"] },
-    { id: "deep",      name: "Deep",      r: ["#74483a", "#523022", "#301a12"] },
-    { id: "orc",       name: "Gym orc",   r: ["#c6ec86", "#8cbc4c", "#527a2c"] }
-  ];
-  var HAIRC = [
-    { id: "brown",  name: "Brown",  r: ["#997d6b", "#5a3424", "#462533"] },
-    { id: "black",  name: "Black",  r: ["#5a4a5e", "#2e2032", "#180e1a"] },
-    { id: "blonde", name: "Blonde", r: ["#ffe9a0", "#e8b84a", "#9c7226"] },
-    { id: "ginger", name: "Ginger", r: ["#ffb070", "#e86e2c", "#8e3c1a"] },
-    { id: "pink",   name: "Pink",   r: ["#ff98c2", "#ff5fb0", "#a63e84"] },
-    { id: "silver", name: "Silver", r: ["#f6eeff", "#c9b8e8", "#8672a5"] }
-  ];
-  var CLOTH = [
-    { id: "lilac",  name: "Lilac",  r: ["#decfe5", "#c9b8e8", "#8672a5"] },
-    { id: "violet", name: "Violet", r: ["#ad8ed6", "#7b4fd0", "#593597"] },
-    { id: "slate",  name: "Slate",  r: ["#857788", "#3a2a52", "#33204e"] },
-    { id: "pink",   name: "Pink",   r: ["#ff98c2", "#ff5fb0", "#a63e84"] },
-    { id: "lime",   name: "Lime",   r: ["#dcfb7b", "#c6ff3d", "#849b42"] },
-    { id: "orange", name: "Orange", r: ["#ffc075", "#ffa033", "#a6643c"] },
-    { id: "sky",    name: "Sky",    r: ["#88dff3", "#3fd2ff", "#3681b2"] }
-  ];
-  var HAIR = [{ id: "crop", name: "Crop" }, { id: "buzz", name: "Buzz" }, { id: "mohawk", name: "Mohawk" }, { id: "afro", name: "Afro" }, { id: "long", name: "Long" }, { id: "bald", name: "Bald" }];
-  var FACE = [{ id: "none", name: "None" }, { id: "stubble", name: "Stubble" }, { id: "stache", name: "Stache" }, { id: "beard", name: "Beard" }];
-  var TOPS = [{ id: "tee", name: "Tee" }, { id: "crop", name: "Crop" }, { id: "sleeves", name: "Sleeves" }];
-  var BOTTOMS = [{ id: "shorts", name: "Shorts" }, { id: "bike", name: "Bike" }, { id: "pants", name: "Pants" }];
-  var SHOES = [{ id: "sneakers", name: "Sneakers" }, { id: "hightops", name: "High-tops" }, { id: "barefoot", name: "Barefoot" }];
+  /* look options live in demo.js (PX.LOOK) so every screen draws the same lifter */
+  var SKIN = PX.LOOK.SKIN, HAIRC = PX.LOOK.HAIRC, CLOTH = PX.LOOK.CLOTH, HAIR = PX.LOOK.HAIR, FACE = PX.LOOK.FACE,
+      TOPS = PX.LOOK.TOPS, BOTTOMS = PX.LOOK.BOTTOMS, SHOES = PX.LOOK.SHOES;
   var PARTS = {
     top:    { styleKey: "top",    colorKey: "topColor",    styles: TOPS,    label: "Top",     focus: [26, 27], scale: 2.1 },
     bottom: { styleKey: "bottom", colorKey: "bottomColor", styles: BOTTOMS, label: "Bottoms", focus: [26, 43], scale: 2.1 },
     shoes:  { styleKey: "shoes",  colorKey: "shoesColor",  styles: SHOES,   label: "Shoes",   focus: [26, 55], scale: 2.4 }
   };
-  var LOOK_DEFAULT = { skin: "peach", hair: "crop", hairColor: "brown", face: "none",
-                       top: "tee", topColor: "lilac", bottom: "shorts", bottomColor: "violet", shoes: "sneakers", shoesColor: "slate" };
+  var LOOK_DEFAULT = PX.LOOK.DEFAULT;
   function find(list, id) { for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i]; return list[0]; }
 
   var s = PX.get(), saved = s.character || {};
-  var ch = { sex: saved.sex === "female" ? "female" : "male", fat: PX.snap(saved.fat == null ? 50 : saved.fat), muscle: PX.snap(saved.muscle == null ? 50 : saved.muscle) };
+  var ch = { sex: saved.sex === "female" ? "female" : "male", height: PX.snap(saved.height == null ? 50 : saved.height), fat: PX.snap(saved.fat == null ? 50 : saved.fat), muscle: PX.snap(saved.muscle == null ? 50 : saved.muscle) };
   for (var k in LOOK_DEFAULT) ch[k] = saved[k] || LOOK_DEFAULT[k];
 
   var $ = function (id) { return document.getElementById(id); };
@@ -329,128 +314,12 @@
 
   function restart(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
 
-  /* ---------- the painter: atlas frame -> pixel labels -> style edits -> colours ----------
-     The atlas uses fixed ramps for skin (s), top (t), bottoms (b), shoes (f), hair (h).
-     Each pixel is labelled by its ramp and step (0 highlight, 1 base, 2 shadow); styles edit
-     the labels; then every label is painted with the chosen ramp. New pixels get an ink outline. */
-  var ORIG = { "#e4bc97": "s0", "#d39a6a": "s1", "#8c605c": "s2", "#decfe5": "t0", "#c9b8e8": "t1", "#8672a5": "t2",
-               "#ad8ed6": "b0", "#7b4fd0": "b1", "#593597": "b2", "#857788": "f0", "#3a2a52": "f1", "#33204e": "f2",
-               "#997d6b": "h0", "#5a3424": "h1", "#462533": "h2", "#0b0414": "k", "#281424": "e" };
-  var W = 52, H = 64, atlas = null, canvas = null, fallback = false;
-
-  function hex(r, g, b) { return "#" + [r, g, b].map(function (v) { return v.toString(16).padStart(2, "0"); }).join(""); }
-
+  /* the lifter: PX.sprite recolours the atlas frame with the look (demo.js) */
+  var ready = false;
   function paint() {
-    if (!atlas) return;
-    if (fallback) { PX.sprite(art, ch, 4); return; }
-    var ctx = canvas.getContext("2d");
-    var fx = ch.fat / 25, fy = (ch.sex === "female" ? 5 : 0) + ch.muscle / 25;
-    ctx.clearRect(0, 0, W, H);
-    ctx.drawImage(atlas, fx * W, fy * H, W, H, 0, 0, W, H);
-    var img = ctx.getImageData(0, 0, W, H), d = img.data, L = new Array(W * H), x, y, i;
-    for (i = 0; i < W * H; i++) {
-      if (!d[i * 4 + 3]) { L[i] = null; continue; }
-      var hx = hex(d[i * 4], d[i * 4 + 1], d[i * 4 + 2]);
-      L[i] = ORIG[hx] || "x" + hx;
-    }
-    function at(x, y) { return x < 0 || y < 0 || x >= W || y >= H ? null : L[y * W + x]; }
-    function set(x, y, v) { if (x >= 0 && y >= 0 && x < W && y < H) L[y * W + x] = v; }
-    function is(v, r) { return !!v && v.charAt(0) === r && v.length === 2; }
-    function swapRamp(x, y, from, to) { var v = at(x, y); if (is(v, from)) set(x, y, to + v.charAt(1)); }
-
-    /* face geometry: eyes on row 8, head outline from row 9 */
-    var ex = []; for (x = 0; x < W; x++) if (at(x, 8) === "e") ex.push(x);
-    var cx = ex.length ? Math.round((ex[0] + ex[ex.length - 1]) / 2) : 26;
-    var hl = cx - 6; for (x = 0; x < cx; x++) if (at(x, 10) === "k" && is(at(x + 1, 10), "s")) { hl = x; break; }
-    var hr = 2 * cx - hl - 2; /* last interior column of the head, mirrored from the left outline */
-
-    /* torso skin (midriff) has top/bottoms on both sides; everything else in rows 17-41 is arm */
-    function isArm(x, y) {
-      if (y < 17 || y > 41 || !is(at(x, y), "s")) return false;
-      var l = false, r = false, j;
-      for (j = x - 1; j >= 0; j--) if (is(at(j, y), "t") || is(at(j, y), "b")) { l = true; break; }
-      for (j = x + 1; j < W; j++) if (is(at(j, y), "t") || is(at(j, y), "b")) { r = true; break; }
-      return !(l && r);
-    }
-
-    /* ---- hair ---- */
-    if (ch.hair !== "crop" && ch.hair !== "long") {
-      for (y = 0; y <= 20; y++) for (x = 0; x < W; x++) {
-        var v = at(x, y);
-        if (!is(v, "h")) continue;
-        set(x, y, x > hl && x <= hr && y >= 3 ? "s" + v.charAt(1) : null);
-      }
-      /* drop outline pixels left floating outside the head */
-      for (y = 0; y <= 14; y++) for (x = 0; x < W; x++) if (at(x, y) === "k" && (x < hl || x > hr + 1)) set(x, y, null);
-      if (ch.hair === "buzz") for (y = 3; y <= 5; y++) for (x = hl + 1; x <= hr; x++) if (is(at(x, y), "s") && (y < 5 || (x + y) % 2)) set(x, y, "h2");
-      if (ch.hair === "mohawk") for (y = 0; y <= 5; y++) { set(cx - 1, y, "h0"); set(cx, y, "h1"); }
-      if (ch.hair === "afro") {
-        for (y = 0; y <= 13; y++) for (x = cx - 11; x <= cx + 10; x++) {
-          var dx = x - cx + .5, dy = y - 5.5, cur = at(x, y);
-          if (dx * dx + dy * dy > 92) continue;
-          if (y >= 6 && x > hl && x <= hr) continue;            /* keep the face */
-          if (cur && !is(cur, "h") && cur !== "k" && !(is(cur, "s") && y < 6)) continue;
-          set(x, y, dx + dy < -9 ? "h0" : dx + dy > 7 ? "h2" : "h1");
-        }
-      }
-    }
-    if (ch.hair === "long") {
-      for (y = 4; y <= 18; y++) [hl - 2, hl - 1, hl, hr + 1, hr + 2, hr + 3].forEach(function (xx, n) {
-        var cur = at(xx, y);
-        if (cur === null || cur === "k" || is(cur, "h")) set(xx, y, n === 0 || n === 5 ? "h2" : "h1");
-      });
-    }
-
-    /* ---- facial hair ---- */
-    if (ch.face === "stubble") for (y = 11; y <= 14; y++) for (x = hl + 1; x <= hr; x++) if (is(at(x, y), "s") && (x + y) % 2 === 0) set(x, y, "h2");
-    if (ch.face === "stache") {
-      for (x = cx - 3; x <= cx + 2; x++) if (is(at(x, 11), "s")) set(x, 11, "h1");
-      if (is(at(cx - 3, 12), "s")) set(cx - 3, 12, "h1");
-      if (is(at(cx + 2, 12), "s")) set(cx + 2, 12, "h1");
-    }
-    if (ch.face === "beard") {
-      for (y = 9; y <= 14; y++) for (x = hl + 1; x <= hr; x++) {
-        if (!is(at(x, y), "s")) continue;
-        var side = x <= hl + 1 || x >= hr;
-        if (y < 11 && !side) continue;                        /* sideburns only above the cheeks */
-        if (y === 12 && x >= cx - 1 && x <= cx) continue;     /* the mouth */
-        set(x, y, y === 14 ? "h2" : side ? "h2" : "h1");
-      }
-    }
-
-    /* ---- clothes ---- */
-    for (y = 0; y < H; y++) for (x = 0; x < W; x++) {
-      var p = at(x, y);
-      if (ch.top === "crop" && y >= 30 && y <= 33) swapRamp(x, y, "t", "s");
-      if (ch.top === "sleeves" && y <= 35 && isArm(x, y)) set(x, y, "t" + p.charAt(1));
-      if (ch.bottom === "pants" && y >= 42 && y <= 53) swapRamp(x, y, "s", "b");
-      if (ch.bottom === "bike" && y >= 42 && y <= 46) swapRamp(x, y, "s", "b");
-      if (ch.shoes === "hightops" && y >= 49 && y <= 53) swapRamp(x, y, "s", "f");
-      if (ch.shoes === "barefoot" && y >= 54) swapRamp(x, y, "f", "s");
-    }
-
-    /* ink outline around anything that now touches the void */
-    var add = [];
-    for (y = 0; y < H; y++) for (x = 0; x < W; x++) {
-      if (at(x, y) !== null) continue;
-      var nb = [at(x - 1, y), at(x + 1, y), at(x, y - 1), at(x, y + 1)];
-      if (nb.some(function (n) { return n && n.length === 2 && "stbfh".indexOf(n.charAt(0)) >= 0; })) add.push([x, y]);
-    }
-    add.forEach(function (a) { set(a[0], a[1], "k"); });
-
-    /* colour */
-    var R = { s: find(SKIN, ch.skin).r, h: find(HAIRC, ch.hairColor).r, t: find(CLOTH, ch.topColor).r, b: find(CLOTH, ch.bottomColor).r, f: find(CLOTH, ch.shoesColor).r };
-    for (i = 0; i < W * H; i++) {
-      var lab = L[i], col = null;
-      if (lab === null) { d[i * 4 + 3] = 0; continue; }
-      if (lab === "k") col = "#0b0414";
-      else if (lab === "e") col = "#281424";
-      else if (lab.charAt(0) === "x") col = lab.slice(1);
-      else col = R[lab.charAt(0)][+lab.charAt(1)];
-      d[i * 4] = parseInt(col.slice(1, 3), 16); d[i * 4 + 1] = parseInt(col.slice(3, 5), 16); d[i * 4 + 2] = parseInt(col.slice(5, 7), 16); d[i * 4 + 3] = 255;
-    }
-    ctx.putImageData(img, 0, 0);
-    canvas.setAttribute("aria-label", (ch.sex === "female" ? "Female" : "Male") + " lifter, " + STOPS.fat[ch.fat / 25].toLowerCase() + " and " + STOPS.muscle[ch.muscle / 25].toLowerCase() +
+    if (!ready) return;
+    PX.sprite(art, ch, 4);
+    art.setAttribute("aria-label", (ch.sex === "female" ? "Female" : "Male") + " lifter, " + STOPS.height[ch.height / 25].toLowerCase() + ", " + STOPS.fat[ch.fat / 25].toLowerCase() + " and " + STOPS.muscle[ch.muscle / 25].toLowerCase() +
       ", " + find(SKIN, ch.skin).name.toLowerCase() + " skin, " + find(HAIRC, ch.hairColor).name.toLowerCase() + " " + find(HAIR, ch.hair).name.toLowerCase() + " hair");
   }
 
@@ -459,7 +328,7 @@
   function aim() {
     if (cam === "full") { rig.style.transform = ""; return; }
     var f = cam === "head" ? [26, 9] : PARTS[part].focus, sc = cam === "head" ? 2.7 : PARTS[part].scale;
-    var px = f[0] * 4, py = f[1] * 4;
+    var px = f[0] * 4, py = f[1] * 4 * PX.heightScale(ch.height);
     var tx = stage.clientWidth / 2 - (rig.offsetLeft + px), ty = stage.clientHeight / 2 - (rig.offsetTop + py);
     rig.style.transformOrigin = px + "px " + py + "px";
     rig.style.transform = "translate(" + tx + "px, " + ty + "px) scale(" + sc + ")";
@@ -572,7 +441,7 @@
   var edit = PX.editMode();
   function commitBody() {
     var hist = (PX.get().bodyHistory || []).slice(), last = hist[hist.length - 1];
-    if (!last || last.sex !== ch.sex || last.fat !== ch.fat || last.muscle !== ch.muscle) hist.push({ at: Date.now(), sex: ch.sex, fat: ch.fat, muscle: ch.muscle });
+    if (!last || last.sex !== ch.sex || last.height !== ch.height || last.fat !== ch.fat || last.muscle !== ch.muscle) hist.push({ at: Date.now(), sex: ch.sex, height: ch.height, fat: ch.fat, muscle: ch.muscle });
     PX.save({ character: snapshot(), bodyHistory: hist });
   }
   if (edit) {
@@ -588,21 +457,15 @@
 
   /* loading and error states for the sprite atlas */
   var msg = $("chr-msg");
-  var img = new Image();
-  img.onload = function () {
-    stage.classList.remove("is-loading"); msg.textContent = "";
-    atlas = img;
-    canvas = document.createElement("canvas"); canvas.width = W; canvas.height = H;
-    canvas.setAttribute("role", "img");
-    try { canvas.getContext("2d").drawImage(img, 0, 0); canvas.getContext("2d").getImageData(0, 0, 1, 1); art.appendChild(canvas); }
-    catch (e) { fallback = true; }   /* tainted canvas: plain sprite, no recolour */
-    render(false);
-  };
-  img.onerror = function () {
-    stage.classList.remove("is-loading"); stage.classList.add("is-broken");
-    msg.textContent = "YOUR LIFTER SKIPPED LEG DAY AND THE SPRITE. THE SLIDERS STILL WORK.";
-  };
-  img.src = window.PX_ATLAS || "../moodboard/creator/body_atlas.png";
+  PX.onAtlas(function (ok) {
+    stage.classList.remove("is-loading");
+    if (!ok) {
+      stage.classList.add("is-broken");
+      msg.textContent = "YOUR LIFTER SKIPPED LEG DAY AND THE SPRITE. THE SLIDERS STILL WORK.";
+      return;
+    }
+    msg.textContent = ""; ready = true; render(false);
+  });
 
   /* ?cam=head|body opens a close-up on load, for screenshots */
   var m = /[?&]cam=(head|body)/.exec(location.search);

@@ -12,10 +12,15 @@
 .wo-ttl { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .wo-ttl .kicker { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .wo-area { font-size: 24px; color: var(--wo-c); white-space: nowrap; }
-.wo-clock {
-  flex: none; padding: 6px 10px; background: var(--ink); border: 3px solid var(--lime); box-shadow: 4px 4px 0 var(--ink);
-  font-weight: 700; font-size: 22px; line-height: 1; color: var(--lime);
-}
+/* ◀ HUB: back to the hub; every set is already saved (D6, D7: no clock, no I WORKED) */
+.wo-hub { flex: none; min-height: 44px; padding: 0 var(--s3) 0 var(--s2); gap: 4px; font-size: 18px; }
+.wo-hub svg { width: 20px; height: 20px; }
+/* XP pop on each set, CRITICAL SET on a crit (D19: XP comes per set) */
+.wo-xp { position: absolute; z-index: 10; left: 50%; top: 18%; transform: translateX(-50%); padding: 4px 10px; background: var(--ink); border: 3px solid var(--lime); color: var(--lime);
+  font-family: var(--display); font-size: 26px; line-height: 1; white-space: nowrap; pointer-events: none; animation: wo-xp .9s steps(6, end) both; }
+.wo-xp.crit { border-color: var(--pink); color: var(--pink); font-size: 30px; }
+.wo-xp small { display: block; font-size: 14px; letter-spacing: 1px; color: var(--text); }
+@keyframes wo-xp { 0% { transform: translate(-50%, 20px) scale(.6); opacity: 0; } 20% { transform: translate(-50%, 0) scale(1.1); opacity: 1; } 80% { opacity: 1; } 100% { transform: translate(-50%, -36px); opacity: 0; } }
 .wo-body { display: flex; flex-direction: column; gap: var(--s3); }
 
 /* exercise strip */
@@ -59,8 +64,6 @@
 /* the world */
 .wo-scene { position: relative; flex: 1 1 auto; min-height: 400px; overflow: hidden; border: 4px solid var(--ink); box-shadow: 6px 6px 0 var(--wo-c); }
 .wo-scene > * { position: absolute; }
-.wo-scene.locked .wo-hit { cursor: default; }
-.wo-scene.locked .wo-ring, .wo-scene.locked .wo-hint { display: none; }
 .wo-shadow { left: 14px; bottom: 20px; width: 136px; height: 14px; background: rgba(11, 4, 20, .45); border-radius: 50%; z-index: 4; }
 .wo-lifter { left: 4px; bottom: 28px; z-index: 5; }
 .wo-stars { inset: 0; background-image: radial-gradient(#f6eeff 1px, transparent 1.6px), radial-gradient(#c9b8e8 1px, transparent 1.6px); background-size: 41px 31px, 67px 47px; background-position: 5px 7px, 23px 19px; animation: wo-twinkle 2.4s steps(2, end) infinite; }
@@ -149,9 +152,6 @@
 /* newest record pops in */
 .wo-new { animation: wo-pop .22s steps(4, end) both; }
 
-/* the CTA while the UNDO window is open */
-.wo-cta[data-pending="true"] { background: var(--lime-hi); }
-
 @keyframes wo-twinkle { 50% { background-position: 5px 7px, 24px 19px; opacity: .6; } }
 @keyframes wo-nudge { 50% { transform: rotate(-2deg) translateY(-3px); } }
 @keyframes wo-ring { 50% { opacity: .15; } }
@@ -184,12 +184,11 @@
 <body class="px">
 <main class="phone" data-screen="workout">
   <header class="topbar wo-top">
-    <button class="icon-btn" type="button" id="wo-close" aria-label="Back to the hub. The workout keeps running."></button>
+    <button class="btn ghost wo-hub" type="button" id="wo-close" aria-label="Back to the hub. Every set is already saved."></button>
     <div class="wo-ttl">
-      <span class="kicker" id="wo-sess">SESSION 1</span>
+      <span class="kicker" id="wo-cls">SCRAPPER</span>
       <span class="wo-area display" id="wo-area">RUSTBELT FLATS</span>
     </div>
-    <div class="wo-clock" role="timer" aria-label="Workout time" id="wo-clock">00:00</div>
   </header>
 
   <section class="screen wo-body">
@@ -198,9 +197,6 @@
     <div class="wo-scene" id="wo-scene"></div>
   </section>
 
-  <footer class="foot">
-    <button class="btn cta wo-cta" type="button" id="wo-cta" disabled>I WORKED</button>
-  </footer>
   <div class="wo-scrim" id="wo-add" hidden>
     <div class="wo-sheet" role="dialog" aria-modal="true" aria-labelledby="wo-add-t">
       <p class="kicker" id="wo-add-t">ADD AN EXERCISE · FROM YOUR PATH</p>
@@ -463,9 +459,8 @@
   phone.style.setProperty("--wo-ui", PX.c(SC.ui));
   phone.style.setProperty("--wo-ui-sh", PX.c(SC.uiSh));
 
-  document.getElementById("wo-close").innerHTML = PX.icon("back");
-  var realCount = (st.sessions || []).filter(function (x) { return !x.legacy && x.date !== cur.date; }).length;
-  document.getElementById("wo-sess").textContent = (cur.round > 1 ? "TODAY · ROUND 2" : "SESSION " + (realCount + 1)) + " · " + up(CLS.name);
+  document.getElementById("wo-close").innerHTML = PX.icon("back") + "<span>HUB</span>";
+  document.getElementById("wo-cls").textContent = up(CLS.name);
   document.getElementById("wo-area").textContent = up(AREA.name);
 
   var scene = document.getElementById("wo-scene");
@@ -488,7 +483,6 @@
   var fxEl = document.getElementById("wo-fx");
   var live = document.getElementById("wo-live");
   var strip = document.getElementById("wo-strip");
-  var cta = document.getElementById("wo-cta");
   strip.style.setProperty("--n", LIST.length);
 
   /* ---------- render ---------- */
@@ -515,19 +509,19 @@
       var y0 = null, swiped = false;
       b.addEventListener("pointerdown", function (e) { y0 = e.clientY; swiped = false; });
       b.addEventListener("pointermove", function (e) {
-        if (y0 === null || swiped || pending) return;
+        if (y0 === null || swiped) return;
         var dy = e.clientY - y0;
         if (Math.abs(dy) > 36) { swiped = true; y0 = null; swap(i, dy > 0 ? 1 : -1); }
       });
       b.addEventListener("pointerup", function () { y0 = null; });
-      b.addEventListener("click", function () { if (pending || swiped) { swiped = false; return; } setActive(i); });
+      b.addEventListener("click", function () { if (swiped) { swiped = false; return; } setActive(i); });
       strip.appendChild(b);
     });
     var add = document.createElement("button");
     add.type = "button"; add.className = "wo-card wo-addcard";
     add.innerHTML = PX.icon("plus") + "<b>ADD</b>";
     add.setAttribute("aria-label", "Add an exercise");
-    add.onclick = function () { if (!pending) openAdd(); };
+    add.onclick = function () { openAdd(); };
     strip.appendChild(add);
     var act = strip.querySelector('[aria-selected="true"]');
     if (act) strip.scrollLeft = Math.max(0, act.offsetLeft - strip.offsetLeft - 8);
@@ -542,7 +536,6 @@
       '<button type="button" data-t="rm"' + (shown().length < 2 ? " disabled" : "") + ">" + PX.icon("trash") + "<span>REMOVE</span></button>";
     tools.querySelectorAll("button").forEach(function (b) {
       b.onclick = function () {
-        if (pending) return;
         var t = b.dataset.t;
         if (t === "swap") swap(i, 1);
         else if (t === "orig") original(i);
@@ -612,27 +605,19 @@
     else sub.textContent = up(name) + " · SET " + (n + 1) + (n < ex.targetSets ? " OF " + ex.targetSets : n < 2 * ex.targetSets ? " · BONUS" : " · NO MORE XP");
     hitEl.setAttribute("aria-label", SC.verb + ": log one working set of " + name.toLowerCase() + ". " + n + " of " + ex.targetSets + " done. Hold, or Shift+Enter, to take one back.");
   }
-  function renderCta() {
-    var t = total();
-    cta.disabled = t === 0 && !pending;
-    cta.textContent = pending ? "SEE REWARD" : "I WORKED";
-    cta.setAttribute("data-pending", pending ? "true" : "false");
-    cta.setAttribute("aria-label", pending ? "See the reward now" : t === 0 ? "I worked. Log at least one working set first." : "I worked: finish the workout, " + t + " sets");
-  }
-  function render(fresh) { renderStrip(); renderTools(); renderWorld(fresh); renderCta(); }
+  function render(fresh) { renderStrip(); renderTools(); renderWorld(fresh); }
 
   /* ---------- actions ---------- */
-  var advTimer = null, fxTimer = null, pending = false, committed = false;
+  var advTimer = null, fxTimer = null;
   function setActive(i) { clearTimeout(advTimer); cur.active = i; LIST[i].skipped = false; persist(); render(false); }
 
   var lastIdx = null; /* exercise that got the most recent set */
   function addSet() {
-    if (pending) return;
     var i = cur.active, ex = LIST[i], n = count(i);
     if (n >= CAP) { PX.toast(CAP + " SETS IS THE CAP. NEXT EXERCISE.", { ms: 1800 }); return; }
     n += 1; ex.sets = n; ex.skipped = false; lastIdx = i;
-    if (!cur.firstMarkAt) cur.firstMarkAt = Date.now();
     persist();
+    var got = PX.saveSet(); /* every set goes straight into today's session (D6) */
     clearTimeout(advTimer);
     render(true);
 
@@ -643,17 +628,19 @@
     var text = crushed ? "CRUSHED!" : fifth ? AREA.fifth : "+1 SET";
     clearTimeout(fxTimer);
     fxEl.innerHTML = SC.fx(n) + '<div class="wo-burst' + (crushed || fifth ? " big" : "") + '" style="--fx:' + rung(n - 1) + ";" + SC.burst + '"><b>' + text + "</b></div>";
-    fxTimer = setTimeout(function () { fxEl.innerHTML = ""; }, 750);
-    live.textContent = nameOf(i) + ": set " + n + (n <= ex.targetSets ? " of " + ex.targetSets : ", extra") + (crushed ? ". Crushed." : ".");
+    /* XP pop on each set; CRITICAL SET on a crit (rules.md §1) */
+    if (got && got.xp > 0) fxEl.innerHTML += '<div class="wo-xp' + (got.crit ? " crit" : "") + '">' + (got.crit ? "<small>CRITICAL SET!!!</small>" : "") + "+" + got.xp + " XP</div>";
+    fxTimer = setTimeout(function () { fxEl.innerHTML = ""; }, 950);
+    if (got && got.levelAfter > got.levelBefore) levelUp(got);
+    live.textContent = (got && got.crit ? "Critical set! " : "") + (got && got.xp > 0 ? "Plus " + got.xp + " XP. " : "") + nameOf(i) + ": set " + n + (n <= ex.targetSets ? " of " + ex.targetSets : ", extra") + (crushed ? ". Crushed." : ".");
     if (crushed) {
       var next = nextOpen(i);
-      if (next >= 0) advTimer = setTimeout(function () { if (!pending) setActive(next); }, 800);
-      else live.textContent += " Every exercise crushed. Press I worked.";
+      if (next >= 0) advTimer = setTimeout(function () { setActive(next); }, 800);
+      else live.textContent += " Every exercise crushed. Every set is saved.";
     }
   }
 
   function takeBack() {
-    if (pending) return;
     var i = cur.active, ex, n = count(i);
     /* after an auto-advance the active card is empty: take back the set that was just logged */
     if (n <= 0 && lastIdx !== null && count(lastIdx) > 0) { i = lastIdx; cur.active = i; n = count(i); }
@@ -661,6 +648,7 @@
     if (n <= 0) { PX.toast("NOTHING TO TAKE BACK ON " + up(nameOf(i)) + ".", { ms: 1600 }); return; }
     ex.sets = n - 1;
     persist();
+    PX.saveSet();
     clearTimeout(advTimer); clearTimeout(fxTimer); fxEl.innerHTML = "";
     render(false);
     PX.toast("ONE SET TAKEN BACK · " + up(nameOf(i)), { ms: 1600 });
@@ -668,29 +656,19 @@
   }
 
   PX.press(hitEl, addSet, takeBack, 550);
-  hitEl.addEventListener("pointerdown", function () { if (!pending) hitEl.classList.add("down"); });
+  hitEl.addEventListener("pointerdown", function () { hitEl.classList.add("down"); });
   ["pointerup", "pointerleave", "pointercancel"].forEach(function (ev) { hitEl.addEventListener(ev, function () { hitEl.classList.remove("down"); }); });
 
-  /* ---------- I WORKED: a 6-second UNDO, then the reward ---------- */
-  function commit() {
-    if (committed || !pending) return;
-    committed = true;
-    persist();
-    PX.finishWorkout(); /* writes today's session (one per calendar day) and the reward record */
-    PX.go("reward");
+  /* ---------- level-up: the freeze-frame card, with any gear that dropped (D19: no reward screen) ---------- */
+  function levelUp(got) {
+    var L = PX.levelInfo(PX.game().total);
+    var gear = got.drops.map(function (id) { return PX.ITEMS[id]; }).filter(Boolean);
+    clearTimeout(advTimer);
+    setTimeout(function () {
+      PX.slam({ name: "LEVEL " + got.levelAfter, sub: up(L.title) + (gear.length ? " · NEW GEAR: " + gear.map(function (g) { return up(g.name); }).join(", ") : ""),
+        color: gear.length ? PX.RARITIES[gear[0].rarity].color : "lime", ms: 2600 });
+    }, 450);
   }
-  cta.addEventListener("click", function () {
-    if (pending) { var t = phone.querySelector(".toast"); if (t) t.remove(); commit(); return; }
-    var n = total(); if (!n) return;
-    pending = true; clearTimeout(advTimer);
-    scene.classList.add("locked");
-    renderCta();
-    PX.toast(n + (n === 1 ? " SET" : " SETS") + " IN THE BAG. WRONG BUTTON?", {
-      action: "UNDO", ms: 6000,
-      onAction: function () { pending = false; scene.classList.remove("locked"); renderCta(); cta.focus(); },
-      onTimeout: commit
-    });
-  });
 
   document.getElementById("wo-close").addEventListener("click", function () { persist(); PX.go("hub"); });
 
@@ -702,11 +680,6 @@
     tip.querySelector("button").addEventListener("click", function () { PX.save({ seenSetTip: true }); tip.remove(); hitEl.focus(); });
     scene.appendChild(tip);
   }
-
-  /* ---------- clock (keeps running from the saved start) ---------- */
-  var clock = document.getElementById("wo-clock");
-  function tick() { clock.textContent = PX.fmtClock(Date.now() - cur.start); }
-  tick(); setInterval(tick, 1000);
 
   render(false);
 

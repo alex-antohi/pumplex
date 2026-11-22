@@ -100,11 +100,10 @@
 .hub-last svg { width: 16px; height: 16px; flex: none; color: var(--orange); }
 .hub-last b { color: var(--text); }
 
-/* footer: the CTA, then the nav bar */
-.hub-foot { padding-bottom: var(--s3); border-top: 4px solid var(--ink); }
-.hub-cta svg { width: 24px; height: 24px; }
-.hub-cta .hub-clock { font-family: var(--display); font-size: 20px; color: var(--lime); background: var(--ink); padding: 2px 8px; min-width: 76px; text-align: center; }
-.hub-cta.hub-cont { font-size: 22px; }
+/* the workout card's TRAIN button opens the workout (D7: no START TRAINING, no clock) */
+.hub-train { width: 100%; margin-top: var(--s3); }
+.hub-train svg { width: 24px; height: 24px; }
+/* the nav bar */
 .hub-nav { flex: none; display: grid; grid-template-columns: repeat(3, 1fr); background: var(--ink); border-top: 3px solid var(--line); }
 .hub-nav button { appearance: none; min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; background: transparent; border: 0; border-right: 3px solid var(--surface); color: var(--muted); font-family: var(--body); font-weight: 700; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; }
 .hub-nav button:last-child { border-right: 0; }
@@ -186,6 +185,7 @@
         <div class="hub-qhead"><p class="kicker" id="questKicker">NEXT WORKOUT</p><span class="hub-run" id="runTag" hidden>IN PROGRESS</span></div>
         <ul class="hub-ex" id="exList"></ul>
         <p class="hub-rule" id="rule"><i aria-hidden="true"></i><span></span></p>
+        <button class="btn cta hub-train" type="button" id="cta"></button>
       </section>
       <section class="panel hub-week" aria-labelledby="weekKicker">
         <div class="hub-qhead"><p class="kicker" id="weekKicker">THIS WEEK</p><span class="hub-embers" id="embers"></span></div>
@@ -196,9 +196,6 @@
     </div>
   </section>
 
-  <footer class="foot hub-foot">
-    <button class="btn cta hub-cta" type="button" id="cta"></button>
-  </footer>
   <nav class="hub-nav" aria-label="Main">
     <button type="button" id="navHistory"></button>
     <button type="button" aria-current="page" id="navHub"></button>
@@ -339,12 +336,10 @@
     $("exList").appendChild(li);
   });
   $("rule").querySelector("span").textContent = RULE[area.id] || RULE.rustbelt;
-  if (cur) {
-    $("questKicker").textContent = "CURRENT WORKOUT";
-    $("runTag").hidden = false;
-  } else if (todays) {
+  /* D6: every set goes straight into today's session, and the day closes by itself */
+  if (todays) {
     $("questKicker").textContent = "TODAY'S SESSION";
-    $("runTag").textContent = "DONE"; $("runTag").hidden = false; $("runTag").classList.add("still");
+    $("runTag").textContent = "OPEN TILL MIDNIGHT"; $("runTag").hidden = false; $("runTag").classList.add("still");
   }
   if (list.length > 4) $("exList").classList.add("many");
   /* ---------- this week: streak, embers, bounties (rules.md §3, §5) ---------- */
@@ -372,7 +367,7 @@
     last.innerHTML = PX.icon("bolt") + "<span><b>YOUR FIRST QUEST AWAITS.</b> NO PRESSURE. (SOME PRESSURE.)</span>";
   } else {
     var ls = sessions[sessions.length - 1];
-    var ago = Math.floor((startOfDay(Date.now()) - startOfDay(ls.start)) / 864e5);
+    var ago = Math.floor((startOfDay(Date.now()) - startOfDay(ls.firstMarkAt || ls.start)) / 864e5);
     var when = ago <= 0 ? "TODAY" : ago === 1 ? "YESTERDAY" : ago + " DAYS AGO";
     var n = PX.sessionSets(ls);
     var tail = ago > 10 ? " · WELCOME BACK, NO HARD FEELINGS" : ""; /* rest never punishes (rules.md) */
@@ -380,18 +375,10 @@
   }
   function startOfDay(t) { var d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); }
 
-  /* ---------- CTA ---------- */
+  /* ---------- TRAIN on the workout card ---------- */
   var cta = $("cta");
-  var tick = null;
-  if (cur) {
-    cta.classList.add("hub-cont");
-    cta.innerHTML = PX.icon("play") + '<span>CONTINUE TRAINING</span><span class="hub-clock" id="clock"></span>';
-    var paint = function () { $("clock").textContent = PX.fmtClock(Date.now() - cur.start); };
-    paint(); tick = setInterval(paint, 1000);
-    cta.setAttribute("aria-label", "Continue training");
-  } else {
-    cta.innerHTML = PX.icon("play") + "<span>" + (todays ? "TRAIN MORE TODAY" : "START TRAINING") + "</span>";
-  }
+  cta.innerHTML = "<span>" + (todays ? "TRAIN MORE" : "TRAIN") + "</span>" + PX.icon("play");
+  cta.setAttribute("aria-label", todays ? "Open today's workout and add more sets" : "Open the workout");
   cta.onclick = function () { PX.startWorkout(); PX.go("workout"); };
 
   /* ---------- navigation ---------- */
@@ -415,7 +402,7 @@
     "SWEAT IS JUST FAT CRYING."
   ];
   if (!sessions.length) LINES.unshift("FIRST QUEST? I WAS BORN READY. LIKE, LITERALLY. JUST NOW.");
-  if (cur) LINES.unshift("THE CLOCK IS RUNNING. SO SHOULD WE.");
+  if (todays) LINES.unshift("TODAY STILL COUNTS. ONE MORE SET?");
   var bubble = $("bubble"), lifter = $("lifter"), lineI = 0, hideT = null;
   function say(text, ms) {
     bubble.hidden = true; void bubble.offsetWidth;
@@ -431,7 +418,7 @@
 
   /* the lifter greets you once on arrival */
   setTimeout(function () {
-    say(cur ? "THE CLOCK IS RUNNING. SO SHOULD WE." : !sessions.length ? "FIRST QUEST? I WAS BORN READY." : "BACK FOR MORE? GOOD.", 2400);
+    say(todays ? "TODAY STILL COUNTS. ONE MORE SET?" : !sessions.length ? "FIRST QUEST? I WAS BORN READY." : "BACK FOR MORE? GOOD.", 2400);
   }, 350);
 })();
 </script>

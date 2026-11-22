@@ -22,15 +22,15 @@ a{color:#c6ff3d}a:hover{color:#dcfb7b}
 .pxr:focus-visible{outline:3px dashed #f6eeff;outline-offset:2px}
 </style>
 </helmet>
-<div style="width: 390px; height: 844px; box-sizing: border-box; padding: 28px 24px; background: #12061f; color: #f6eeff; font-family: 'Space Mono', monospace; display: flex; flex-direction: column; gap: 18px">
+<div style="width: 390px; height: 844px; box-sizing: border-box; padding: 28px 24px; background: #12061f; color: #f6eeff; font-family: 'Space Mono', monospace; display: flex; flex-direction: column; gap: 12px">
 
   <div style="display: flex; flex-direction: column; gap: 2px">
-    <span style="font-size: 12px; color: #c9b8e8">STEP 1 OF 3</span>
+    <span style="font-size: 12px; color: #c9b8e8">STEP 1 OF 5</span>
     <h1 style="margin: 0; font-family: Anton, Impact, sans-serif; font-weight: 400; font-size: 36px; line-height: 1.05; letter-spacing: 1px; text-transform: uppercase; text-shadow: 2px 2px 0 #c6ff3d, 4px 4px 0 #ff5fb0">Build your lifter</h1>
   </div>
 
-  <div style="height: 290px; display: flex; align-items: center; justify-content: center; background-color: #2a1148; background-image: radial-gradient(rgba(255,95,176,.22) 2px, transparent 2.5px); background-size: 20px 20px; border: 4px solid #0b0414; box-shadow: 6px 6px 0 #ff5fb0">
-    <div class="spr" role="img" aria-label="{{alt}}" style="width: 208px; height: 256px; background-position: {{pos}}"></div>
+  <div style="height: 300px; display: flex; align-items: center; justify-content: center; background-color: #2a1148; background-image: radial-gradient(rgba(255,95,176,.22) 2px, transparent 2.5px); background-size: 20px 20px; border: 4px solid #0b0414; box-shadow: 6px 6px 0 #ff5fb0">
+    <div class="spr" role="img" aria-label="{{alt}}" style="width: 208px; height: {{sprH}}; background-size: {{bgSize}}; background-position: {{pos}}"></div>
   </div>
 
   <div style="display: flex; flex-direction: column; gap: 8px">
@@ -39,6 +39,14 @@ a{color:#c6ff3d}a:hover{color:#dcfb7b}
       <button type="button" onClick="{{pickM}}" aria-pressed="{{isM}}" style="height: 48px; font-family: Anton, Impact, sans-serif; font-size: 18px; letter-spacing: 1px; border: 3px solid #0b0414; cursor: pointer; background: {{mBg}}; color: {{mFg}}; box-shadow: {{mSh}}">MALE</button>
       <button type="button" onClick="{{pickF}}" aria-pressed="{{isF}}" style="height: 48px; font-family: Anton, Impact, sans-serif; font-size: 18px; letter-spacing: 1px; border: 3px solid #0b0414; cursor: pointer; background: {{fBg}}; color: {{fFg}}; box-shadow: {{fSh}}">FEMALE</button>
     </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 2px">
+    <div style="display: flex; justify-content: space-between; align-items: baseline">
+      <label for="height" style="font-family: Anton, Impact, sans-serif; font-size: 18px; letter-spacing: 1px">HEIGHT</label>
+      <span style="font-size: 14px; font-weight: 700; color: #a77bff">{{hgtPct}}</span>
+    </div>
+    <input id="height" class="pxr" type="range" min="0" max="4" step="1" value="{{hgt}}" onChange="{{onHgt}}">
   </div>
 
   <div style="display: flex; flex-direction: column; gap: 2px">
@@ -64,24 +72,28 @@ a{color:#c6ff3d}a:hover{color:#dcfb7b}
 class Component extends DCLogic {
   constructor(props) {
     super(props);
-    this.state = { sex: 'm', fat: 1, mus: 2 };
+    this.state = { sex: 'm', hgt: 2, fat: 1, mus: 2 };
   }
   renderVals() {
     const s = this.state;
     const row = (s.sex === 'm' ? 0 : 5) + s.mus;
+    /* D10, D11: height stretches the atlas cell vertically, 0.86x to 1.14x (lib/game/rules.dart) */
+    const hs = 0.86 + 0.28 * s.hgt / 4;
     const on = { bg: '#c6ff3d', fg: '#0b0414', sh: '4px 4px 0 #ff5fb0' };
     const off = { bg: '#1f0d36', fg: '#f6eeff', sh: 'none' };
     const m = s.sex === 'm' ? on : off;
     const f = s.sex === 'f' ? on : off;
     return {
-      pos: (-s.fat * 208) + 'px ' + (-row * 256) + 'px',
-      alt: (s.sex === 'm' ? 'Male' : 'Female') + ' lifter, fat ' + (s.fat * 25) + ', muscle ' + (s.mus * 25),
-      fat: s.fat, mus: s.mus,
-      fatPct: (s.fat * 25) + ' / 100', musPct: (s.mus * 25) + ' / 100',
+      pos: (-s.fat * 208) + 'px ' + (-row * 256 * hs) + 'px',
+      sprH: (256 * hs) + 'px', bgSize: '1040px ' + (2560 * hs) + 'px',
+      alt: (s.sex === 'm' ? 'Male' : 'Female') + ' lifter, height ' + (s.hgt * 25) + ', fat ' + (s.fat * 25) + ', muscle ' + (s.mus * 25),
+      hgt: s.hgt, fat: s.fat, mus: s.mus,
+      hgtPct: (s.hgt * 25) + ' / 100', fatPct: (s.fat * 25) + ' / 100', musPct: (s.mus * 25) + ' / 100',
       isM: s.sex === 'm' ? 'true' : 'false', isF: s.sex === 'f' ? 'true' : 'false',
       mBg: m.bg, mFg: m.fg, mSh: m.sh, fBg: f.bg, fFg: f.fg, fSh: f.sh,
       pickM: () => this.setState({ sex: 'm' }),
       pickF: () => this.setState({ sex: 'f' }),
+      onHgt: (e) => this.setState({ hgt: Number(e.target.value) }),
       onFat: (e) => this.setState({ fat: Number(e.target.value) }),
       onMus: (e) => this.setState({ mus: Number(e.target.value) }),
     };

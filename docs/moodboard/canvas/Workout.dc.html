@@ -13,7 +13,7 @@
 <style>
 body{margin:0}
 a{color:#c6ff3d}a:hover{color:#dcfb7b}
-.scene{position:relative;height:540px;overflow:hidden;border:4px solid #0b0414;box-sizing:border-box}
+.scene{position:relative;flex:1 1 auto;min-height:480px;overflow:hidden;border:4px solid #0b0414;box-sizing:border-box}
 .scene>*{position:absolute}
 .spr3{left:4px;bottom:28px;width:156px;height:192px;background-image:url(../creator/body_atlas.png);background-repeat:no-repeat;background-size:780px 1920px;background-position:0 -1152px;image-rendering:pixelated;z-index:5}
 .shadow{left:14px;bottom:20px;width:136px;height:14px;background:rgba(11,4,20,.45);border-radius:50%;z-index:4}
@@ -43,8 +43,19 @@ a{color:#c6ff3d}a:hover{color:#dcfb7b}
 .tag.off b{color:transparent;-webkit-text-stroke:2px rgba(236,215,208,.55)}
 .slot{font-family:Anton,Impact,sans-serif;font-size:20px;line-height:1}
 .slot.off{color:transparent;-webkit-text-stroke:1.5px currentColor;opacity:.6}
+.strip{display:flex;gap:8px;overflow-x:auto;padding:0 6px 6px 0;scrollbar-width:thin}
+.strip>.card{flex:0 0 108px;touch-action:pan-x}
+.add{flex:0 0 60px;border-style:dashed !important;background:#12061f;color:#c9b8e8;align-items:center;justify-content:center;text-align:center}
+.tools{display:flex;gap:6px}
+.tool{flex:1 1 0;height:40px;background:#1f0d36;color:#f6eeff;border:3px solid #0b0414;box-shadow:3px 3px 0 #0b0414;font-family:Anton,Impact,sans-serif;font-size:15px;letter-spacing:1px;cursor:pointer}
+.tool:disabled{opacity:.4;cursor:default}
+.hub{height:44px;padding:0 12px 0 8px;background:#1f0d36;color:#f6eeff;border:3px solid #0b0414;box-shadow:3px 3px 0 #0b0414;font-family:Anton,Impact,sans-serif;font-size:18px;letter-spacing:1px;cursor:pointer}
+.xp{position:absolute;z-index:10;left:50%;top:120px;padding:4px 10px;background:#0b0414;border:3px solid #c6ff3d;color:#c6ff3d;font-family:Anton,Impact,sans-serif;font-size:26px;line-height:1;white-space:nowrap;pointer-events:none;animation:xp .9s steps(6,end) both}
+.xp.crit{border-color:#ff5fb0;color:#ff5fb0;font-size:30px}
+.xp small{display:block;font-size:14px;letter-spacing:1px;color:#f6eeff}
+@keyframes xp{0%{transform:translate(-50%,20px) scale(.6);opacity:0}20%{transform:translate(-50%,0) scale(1.1);opacity:1}80%{opacity:1}100%{transform:translate(-50%,-36px);opacity:0}}
 .card{position:relative;height:96px;box-sizing:border-box;padding:8px 8px 6px;border:3px solid #0b0414;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;text-align:left;font-family:'Space Mono',monospace}
-.card:focus-visible,.cta:focus-visible,.x:focus-visible{outline:3px dashed #f6eeff;outline-offset:2px}
+.card:focus-visible,.cta:focus-visible,.x:focus-visible,.tool:focus-visible,.hub:focus-visible{outline:3px dashed #f6eeff;outline-offset:2px}
 .cta{height:60px;border:4px solid #0b0414;font-family:Anton,Impact,sans-serif;font-size:26px;letter-spacing:1px;cursor:pointer}
 .freeze{background:repeating-linear-gradient(-55deg,rgba(11,4,20,.86) 0 12px,rgba(11,4,20,.74) 12px 24px)}
 .slam{transform:rotate(-6deg);animation:slam .42s steps(6,end) both}
@@ -59,22 +70,24 @@ a{color:#c6ff3d}a:hover{color:#dcfb7b}
 @keyframes shake{20%{transform:translate(-5px,2px)}40%{transform:translate(5px,-2px)}60%{transform:translate(-3px,-1px)}80%{transform:translate(2px,2px)}100%{transform:none}}
 @keyframes pop{0%{transform:scale(2.2) rotate(-14deg);opacity:0}100%{transform:scale(1) rotate(0);opacity:1}}
 @keyframes slam{0%{transform:scale(2.2) rotate(-14deg);opacity:0}55%{transform:scale(.92) rotate(-5deg);opacity:1}100%{transform:scale(1) rotate(-6deg)}}
-@media (prefers-reduced-motion:reduce){.hint,.ring,.barrel,.boom,.puff,.debris,.burst,.shake,.tag.on,.slam,.anim{animation:none !important}}
+@media (prefers-reduced-motion:reduce){.hint,.ring,.barrel,.boom,.puff,.debris,.burst,.shake,.tag.on,.slam,.anim,.xp{animation:none !important}}
 </style>
 </helmet>
 <div style="position: relative; width: 390px; height: 844px; overflow: hidden; box-sizing: border-box; padding: 16px; background: #12061f; color: #f6eeff; font-family: 'Space Mono', monospace; display: flex; flex-direction: column; gap: 10px">
 
-  <div style="display: flex; justify-content: space-between; align-items: center; height: 48px">
+  <!-- D6, D7: no session counter, no clock, no I WORKED. Every set is saved at once; ◀ HUB goes back. -->
+  <div style="display: flex; align-items: center; gap: 12px; height: 48px">
+    <button type="button" class="hub" aria-label="Back to the hub. Every set is already saved.">◀ HUB</button>
     <div style="display: flex; flex-direction: column; gap: 2px">
-      <span style="font-size: 11px; font-weight: 700; color: #c9b8e8">SESSION 14 · SCRAPPER</span>
+      <span style="font-size: 11px; font-weight: 700; color: #c9b8e8">SCRAPPER</span>
       <span style="font-family: Anton, Impact, sans-serif; font-size: 24px; line-height: 1; letter-spacing: 1px; color: #ffa033">RUSTBELT FLATS</span>
     </div>
-    <div role="timer" aria-label="Workout time" style="padding: 6px 10px; background: #0b0414; border: 3px solid #c6ff3d; box-shadow: 4px 4px 0 #0b0414; font-family: 'Space Mono', monospace; font-size: 22px; font-weight: 700; line-height: 1; color: #c6ff3d">{{clock}}</div>
   </div>
 
-  <div role="tablist" aria-label="Exercises" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+  <!-- D15, D16: 3 to 8 cards from the class pool. Swipe a card up or down to switch it from the pool. -->
+  <div class="strip" role="tablist" aria-label="Exercises. Swipe a card up or down to switch it.">
     <sc-for list="{{cards}}" as="c" hint-placeholder-count="3">
-      <button type="button" class="card" role="tab" aria-selected="{{c.on}}" aria-label="{{c.label}}" onClick="{{c.pick}}" style="background: {{c.bg}}; color: {{c.fg}}; box-shadow: {{c.sh}}">
+      <button type="button" class="card" role="tab" aria-selected="{{c.on}}" aria-label="{{c.label}}" onClick="{{c.pick}}" onPointerDown="{{c.down}}" onPointerUp="{{c.up}}" style="background: {{c.bg}}; color: {{c.fg}}; box-shadow: {{c.sh}}">
         <span style="font-family: Anton, Impact, sans-serif; font-size: 19px; line-height: 1; letter-spacing: 1px">{{c.name}}</span>
         <span style="display: flex; gap: 4px; align-items: baseline">
           <sc-for list="{{c.slots}}" as="s" hint-placeholder-count="3"><span class="slot {{s.cls}}" style="color: {{s.color}}">X</span></sc-for>
@@ -83,6 +96,15 @@ a{color:#c6ff3d}a:hover{color:#dcfb7b}
         <span style="font-size: 10px; font-weight: 700">{{c.status}}</span>
       </button>
     </sc-for>
+    <sc-if value="{{canAdd}}" hint-placeholder-val="{{ true }}">
+      <button type="button" class="card add" onClick="{{addEx}}" aria-label="Add an exercise from your path"><span style="font-family: Anton, Impact, sans-serif; font-size: 15px; line-height: 1.1">+ ADD<br>EXERCISE</span></button>
+    </sc-if>
+  </div>
+
+  <div class="tools" role="toolbar" aria-label="Change the active exercise">
+    <button type="button" class="tool" onClick="{{swapEx}}" aria-label="Switch the active exercise for the next one from the pool">⇅ SWAP</button>
+    <button type="button" class="tool" onClick="{{origEx}}" disabled="{{noOrig}}" aria-label="Back to the first exercise">↺ FIRST</button>
+    <button type="button" class="tool" onClick="{{removeEx}}" disabled="{{noRemove}}" aria-label="Remove the active exercise">✕ REMOVE</button>
   </div>
 
   <div class="scene {{shake}}" style="background: #1f0d36; box-shadow: 6px 6px 0 #ffa033">
@@ -127,6 +149,9 @@ a{color:#c6ff3d}a:hover{color:#dcfb7b}
       <span class="debris" style="left: 222px; bottom: 76px; --dx: -50px; --dy: -160px; background: #ffa033"></span>
       <div class="burst" style="--fx: {{burstColor}}; left: 150px; bottom: 300px"><b>{{burstText}}</b></div>
     </sc-if>
+    <sc-if value="{{xpPop}}" hint-placeholder-val="{{ false }}">
+      <div class="xp {{xpCls}}"><sc-if value="{{crit}}" hint-placeholder-val="{{ false }}"><small>CRITICAL SET!!!</small></sc-if>+{{xpGain}} XP</div>
+    </sc-if>
     <sc-if value="{{tip}}" hint-placeholder-val="{{ true }}">
       <div style="left: 8px; right: 8px; top: 70px; z-index: 8; display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 12px; background: #0b0414; border: 3px solid #c6ff3d">
         <span style="flex: 1 1 auto; font-size: 11px; font-weight: 700; line-height: 1.35; color: #c6ff3d">ONLY WORKING SETS COUNT. WARM-UPS DON’T. HOLD THE BARREL TO TAKE ONE BACK.</span>
@@ -135,23 +160,13 @@ a{color:#c6ff3d}a:hover{color:#dcfb7b}
     </sc-if>
   </div>
 
-  <button type="button" class="cta" onClick="{{finish}}" disabled="{{noSets}}" aria-label="I worked: finish the workout" style="margin-top: auto; background: #c6ff3d; color: #0b0414; box-shadow: 6px 6px 0 #ff5fb0; opacity: {{ctaOpacity}}">I WORKED</button>
-
-  <sc-if value="{{done}}" hint-placeholder-val="{{ false }}">
-    <div class="freeze" role="dialog" aria-label="Workout crushed" style="position: absolute; inset: 0; z-index: 20; display: flex; flex-direction: column; justify-content: center; gap: 18px; padding: 24px">
-      <span class="slam" style="align-self: flex-start; padding: 6px 14px 4px; background: #c6ff3d; border: 4px solid #0b0414; box-shadow: 6px 6px 0 #ff5fb0; font-family: Anton, Impact, sans-serif; font-size: 46px; line-height: 1; letter-spacing: 1px; color: #0b0414">WORKOUT<br>CRUSHED</span>
-      <span style="align-self: flex-start; margin-left: 18px; padding: 4px 10px; background: #0b0414; border: 2px solid #c6ff3d; font-size: 14px; font-weight: 700; color: #c6ff3d; transform: rotate(-3deg)">+[XP] XP · THE LEVEL BAR CLIMBS</span>
-      <div style="display: flex; flex-direction: column; gap: 8px; padding: 14px; background: #1f0d36; border: 3px solid #0b0414">
-        <sc-for list="{{cards}}" as="c" hint-placeholder-count="3">
-          <div style="display: flex; justify-content: space-between; align-items: center">
-            <span style="font-family: Anton, Impact, sans-serif; font-size: 20px; letter-spacing: 1px">{{c.name}}</span>
-            <span style="display: flex; gap: 4px"><sc-for list="{{c.slots}}" as="s" hint-placeholder-count="3"><span class="slot {{s.cls}}" style="color: {{s.color}}">X</span></sc-for><span style="font-size: 11px; font-weight: 700; color: #c9b8e8">{{c.extra}}</span></span>
-          </div>
-        </sc-for>
-        <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: #c9b8e8"><span>TIME</span><span>{{clock}}</span></div>
-      </div>
-      <span style="font-size: 12px; color: #c9b8e8">XP rules are still open (brief 4.8): [XP] is a placeholder.</span>
-      <button type="button" class="cta" onClick="{{closeReward}}" style="background: #ffa033; color: #0b0414; box-shadow: 6px 6px 0 #0b0414">BACK TO HUB</button>
+  <!-- D19: XP comes per set. A level-up plays the freeze-frame card; new gear shows on it. No reward overlay. -->
+  <sc-if value="{{lvUp}}" hint-placeholder-val="{{ false }}">
+    <div class="freeze" role="dialog" aria-label="Level up" onClick="{{closeLv}}" style="position: absolute; inset: 0; z-index: 20; display: flex; flex-direction: column; justify-content: center; gap: 18px; padding: 24px">
+      <span class="slam" style="align-self: flex-start; padding: 6px 14px 4px; background: #c6ff3d; border: 4px solid #0b0414; box-shadow: 6px 6px 0 #ff5fb0; font-family: Anton, Impact, sans-serif; font-size: 52px; line-height: 1; letter-spacing: 1px; color: #0b0414">LEVEL {{level}}</span>
+      <span style="align-self: flex-start; margin-left: 18px; padding: 4px 10px; background: #0b0414; border: 2px solid #c6ff3d; font-size: 14px; font-weight: 700; color: #c6ff3d; transform: rotate(-3deg)">{{levelTitle}}</span>
+      <span style="align-self: flex-start; margin-left: 8px; padding: 6px 10px; background: #0b0414; border: 3px solid #3fd2ff; box-shadow: 4px 4px 0 #0b0414; font-family: Anton, Impact, sans-serif; font-size: 18px; letter-spacing: 1px; color: #3fd2ff">NEW GEAR · CHALK BAG · RARE</span>
+      <span style="font-size: 12px; color: #c9b8e8">Tap to close. Closes by itself after 2.6 s.</span>
     </div>
   </sc-if>
 </div>
@@ -160,81 +175,106 @@ a{color:#c6ff3d}a:hover{color:#dcfb7b}
 class Component extends DCLogic {
   constructor(props) {
     super(props);
-    this.ex = [
-      { name: 'PUSH-UPS', target: 3 },
-      { name: 'BURPEES', target: 3 },
-      { name: 'SPRINTS', target: 3 },
-    ];
-    this.state = { sets: [1, 0, 0], active: 0, fx: false, tip: true, done: false, sec: 734 };
-    this.fxTimer = null; this.advTimer = null; this.lpTimer = null; this.tick = null; this.longFired = false;
+    /* Scrapper pool (placeholder, D27). The workout takes the first 3 (the easiest difficulty takes 3, the hardest 8). */
+    this.pool = ['PUSH-UPS', 'BURPEES', 'SPRINTS', 'SQUAT JUMPS', 'LUNGES', 'CLIMBERS', 'PLANKS', 'STAIR RUNS'];
+    this.state = {
+      list: [{ name: 'PUSH-UPS', orig: 'PUSH-UPS', target: 3, sets: 1 }, { name: 'BURPEES', orig: 'BURPEES', target: 3, sets: 0 }, { name: 'SPRINTS', orig: 'SPRINTS', target: 3, sets: 0 }],
+      active: 0, fx: false, tip: true, xpPop: false, xpGain: 0, crit: false, xp: 96, level: 6, lvUp: false
+    };
+    this.fxTimer = null; this.advTimer = null; this.lpTimer = null; this.lvTimer = null; this.longFired = false; this.y0 = null; this.marks = 1;
   }
-  componentDidMount() {
-    this.tick = setInterval(() => { if (!this.state.done) this.setState({ sec: this.state.sec + 1 }); }, 1000);
-  }
-  componentWillUnmount() {
-    clearInterval(this.tick); clearTimeout(this.fxTimer); clearTimeout(this.advTimer); clearTimeout(this.lpTimer);
+  componentWillUnmount() { clearTimeout(this.fxTimer); clearTimeout(this.advTimer); clearTimeout(this.lpTimer); clearTimeout(this.lvTimer); }
+  /* docs/rules.md §1: 10 XP x the difficulty (1.4 here), x1.5 over the target, 0 past 2x the target, a crit doubles it.
+     Board stand-in: every 7th mark is a crit; 120 XP per level. */
+  setXp(k, target) {
+    let xp = 10 * 1.4;
+    if (k > target) xp = k <= 2 * target ? xp * 1.5 : 0;
+    this.marks += 1;
+    const crit = xp > 0 && this.marks % 7 === 0;
+    if (crit) xp *= 2;
+    return { xp: Math.round(xp), crit };
   }
   add() {
-    const i = this.state.active, sets = this.state.sets.slice();
-    if (sets[i] >= 9) return;
-    sets[i] += 1;
+    const s = this.state, i = s.active, list = s.list.map((e) => Object.assign({}, e)), e = list[i];
+    if (e.sets >= 9) return;
+    e.sets += 1;
+    const got = this.setXp(e.sets, e.target);
+    let xp = s.xp + got.xp, level = s.level, lvUp = false;
+    if (xp >= 120) { xp -= 120; level += 1; lvUp = true; }
     clearTimeout(this.fxTimer); clearTimeout(this.advTimer);
-    this.setState({ sets, fx: false }, () => {
-      this.setState({ fx: true });
-      this.fxTimer = setTimeout(() => this.setState({ fx: false }), 700);
-      if (sets[i] === this.ex[i].target) {
-        const next = this.ex.findIndex((e, j) => j !== i && sets[j] < e.target);
+    this.setState({ list, fx: false, xpPop: false }, () => {
+      this.setState({ fx: true, xpPop: got.xp > 0, xpGain: got.xp, crit: got.crit, xp, level });
+      this.fxTimer = setTimeout(() => this.setState({ fx: false, xpPop: false }), 900);
+      if (lvUp) { clearTimeout(this.lvTimer); this.lvTimer = setTimeout(() => { this.setState({ lvUp: true }); this.lvTimer = setTimeout(() => this.setState({ lvUp: false }), 2600); }, 450); }
+      if (e.sets === e.target) {
+        const next = list.findIndex((x, j) => j !== i && x.sets < x.target);
         if (next >= 0) this.advTimer = setTimeout(() => this.setState({ active: next }), 800);
       }
     });
   }
   undo() {
-    const i = this.state.active, sets = this.state.sets.slice();
-    if (sets[i] <= 0) return;
-    sets[i] -= 1;
+    const s = this.state, list = s.list.map((e) => Object.assign({}, e)), e = list[s.active];
+    if (e.sets <= 0) return;
+    e.sets -= 1;
     clearTimeout(this.fxTimer); clearTimeout(this.advTimer);
-    this.setState({ sets, fx: false });
+    this.setState({ list, fx: false, xpPop: false });
+  }
+  used(name) { return this.state.list.some((e) => e.name === name); }
+  swap(i, dir) {
+    const list = this.state.list.map((e) => Object.assign({}, e)), free = this.pool.filter((n) => !this.used(n));
+    if (!free.length) return;
+    const at = this.pool.indexOf(list[i].name);
+    let k = at;
+    for (let step = 0; step < this.pool.length; step++) { k = (k + dir + this.pool.length) % this.pool.length; if (!this.used(this.pool[k])) break; }
+    list[i].name = this.pool[k];
+    this.setState({ list, active: i });
   }
   renderVals() {
     const s = this.state, ladder = ['#c9b8e8', '#c6ff3d', '#3fd2ff', '#a77bff', '#ffa033', '#ff5fb0'];
     const rung = (i) => ladder[Math.min(i, ladder.length - 1)];
-    const cards = this.ex.map((e, i) => {
-      const n = s.sets[i], on = i === s.active, crushed = n >= e.target;
+    const cards = s.list.map((e, i) => {
+      const n = e.sets, on = i === s.active, crushed = n >= e.target;
       const slots = Array.from({ length: e.target }, (_, j) => ({ cls: j < n ? '' : 'off', color: j < n ? rung(j) : (on ? '#0b0414' : '#c9b8e8') }));
       return {
         name: e.name, slots, on: on ? 'true' : 'false',
         extra: n > e.target ? '+' + (n - e.target) : '',
         status: crushed ? 'CRUSHED' : on ? 'NOW' : 'NEXT UP',
-        label: e.name + ', ' + n + ' of ' + e.target + ' sets' + (crushed ? ', crushed' : ''),
+        label: e.name + ', ' + n + ' of ' + e.target + ' sets' + (crushed ? ', crushed' : '') + '. Swipe up or down to switch it.',
         bg: on ? '#ffa033' : crushed ? '#2a1148' : '#1f0d36',
         fg: on ? '#0b0414' : '#f6eeff',
         sh: on ? '4px 4px 0 #ff5fb0' : 'none',
-        pick: () => this.setState({ active: i }),
+        pick: () => { if (this.swiped) { this.swiped = false; return; } this.setState({ active: i }); },
+        down: (ev) => { this.y0 = ev.clientY; this.swiped = false; },
+        up: (ev) => { if (this.y0 === null) return; const dy = ev.clientY - this.y0; this.y0 = null; if (Math.abs(dy) > 30) { this.swiped = true; this.swap(i, dy < 0 ? 1 : -1); } },
       };
     });
-    const a = this.ex[s.active], n = s.sets[s.active];
+    const a = s.list[s.active], n = a.sets;
     const sign = Array.from({ length: Math.max(a.target, n) }, (_, j) => ({
       cls: j < n ? 'on' : 'off', color: j < n ? rung(j) : 'transparent', drip: (5 + (j * 7) % 9) + 'px',
     }));
-    const total = s.sets.reduce((x, y) => x + y, 0);
-    const mm = Math.floor(s.sec / 60), ss = s.sec % 60;
     return {
       cards, sign, activeName: a.name,
-      hintSub: a.name + ' · SET ' + Math.min(n + 1, 9) + (n < a.target ? ' OF ' + a.target : ' (EXTRA)'),
+      hintSub: a.name + ' · SET ' + Math.min(n + 1, 9) + (n < a.target ? ' OF ' + a.target : n < 2 * a.target ? ' · BONUS' : ' · NO MORE XP'),
       hitLabel: 'Blow up the barrel: log one working set of ' + a.name.toLowerCase() + '. Hold to take one back.',
-      clock: String(mm).padStart(2, '0') + ':' + String(ss).padStart(2, '0'),
       fx: s.fx, idle: !s.fx, shake: s.fx ? 'shake' : '',
       burstText: n === a.target ? 'CRUSHED!' : '+1 SET',
       burstColor: rung(Math.max(0, n - 1)),
-      tip: s.tip, done: s.done,
-      noSets: total === 0, ctaOpacity: total === 0 ? '.5' : '1',
+      xpPop: s.xpPop, xpGain: s.xpGain, crit: s.crit, xpCls: s.crit ? 'crit' : '',
+      lvUp: s.lvUp, level: s.level, levelTitle: s.level >= 7 ? 'IRON RONIN' : 'PUMP RAIDER',
+      closeLv: () => { clearTimeout(this.lvTimer); this.setState({ lvUp: false }); },
+      tip: s.tip,
+      canAdd: s.list.length < 8 && this.pool.some((p) => !this.used(p)),
+      addEx: () => { const free = this.pool.filter((p) => !this.used(p)); if (!free.length || s.list.length >= 8) return; this.setState({ list: s.list.concat([{ name: free[0], orig: free[0], target: 3, sets: 0 }]), active: s.list.length }); },
+      swapEx: () => this.swap(s.active, 1),
+      noOrig: a.name === a.orig || this.used(a.orig),
+      origEx: () => { const list = s.list.map((e) => Object.assign({}, e)); list[s.active].name = list[s.active].orig; this.setState({ list }); },
+      noRemove: s.list.length <= 1,
+      removeEx: () => { if (s.list.length <= 1) return; const list = s.list.filter((_, j) => j !== s.active); this.setState({ list, active: Math.min(s.active, list.length - 1) }); },
       tap: () => { if (this.longFired) { this.longFired = false; return; } this.add(); },
       press: () => { this.longFired = false; clearTimeout(this.lpTimer); this.lpTimer = setTimeout(() => { this.longFired = true; this.undo(); }, 550); },
       release: () => clearTimeout(this.lpTimer),
       noMenu: (e) => e.preventDefault(),
       hideTip: () => this.setState({ tip: false }),
-      finish: () => { if (total > 0) this.setState({ done: true }); },
-      closeReward: () => this.setState({ done: false }),
     };
   }
 }

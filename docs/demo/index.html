@@ -47,26 +47,26 @@
 </div>
 <script>
   var NOTES = {
-    preloader: "Fake loader, tap to skip", character: "Body type, fat and muscle", "class": "Pick your path by equipment",
+    character: "Body type, height, fat and muscle", "class": "Pick your path by equipment",
     difficulty: "Fantasy-named levels", area: "The world you train in", summary: "All 4 choices, LET'S GO",
-    hub: "Character, level, next workout", workout: "Hit the object = one set", reward: "XP and level-up",
-    history: "What you did, how long", profile: "Your build and progress", menu: "Backup, chaos, cel shader"
+    hub: "Character, level, next workout", workout: "Hit the object = one set, XP per set",
+    history: "What you did, by date", profile: "Your build and progress", menu: "Backup, chaos, cel shader"
   };
-  PX.SCREENS.forEach(function (sc, i) {
+  PX.SCREENS.forEach(function (sc) {
     var a = document.createElement("a");
     a.className = "idx-card"; a.href = sc.file;
     a.innerHTML = "<i></i><b></b><span></span>";
-    a.querySelector("i").textContent = String(i + 1).padStart(2, "0") + (sc.step ? " · SETUP " + sc.step + "/5" : "");
+    a.querySelector("i").textContent = sc.file.slice(0, 2) + (sc.step ? " · SETUP " + sc.step + "/5" : "");
     a.querySelector("b").textContent = sc.title;
     a.querySelector("span").textContent = NOTES[sc.id] || "";
     a.addEventListener("click", function (e) {
       // screens past setup need a finished profile; seed one so they open on their own
-      if (i >= 6 && !PX.get().setupDone) PX.seedReturning();
+      if (!sc.step && !PX.get().setupDone) PX.seedReturning();
     });
-    document.querySelector('[data-group="' + (i < 6 ? "setup" : "play") + '"]').appendChild(a);
+    document.querySelector('[data-group="' + (sc.step ? "setup" : "play") + '"]').appendChild(a);
   });
-  document.getElementById("new").onclick = function () { PX.reset(); PX.go("preloader"); };
-  document.getElementById("ret").onclick = function () { PX.seedReturning(); PX.go("preloader"); };
+  document.getElementById("new").onclick = function () { PX.reset(); PX.go(PX.homeId()); };
+  document.getElementById("ret").onclick = function () { PX.seedReturning(); PX.go(PX.homeId()); };
 </script>
 </body>
 </html>

@@ -14,8 +14,8 @@
   var KEY = "pumplex-demo-v2";
 
   /* ---------- screens (order = demo order) ---------- */
+  /* No preloader (D29) and no reward screen (D7, D19): files 01 and 09 are gone, the others keep their numbers. */
   var SCREENS = [
-    { id: "preloader",  file: "01-preloader.html",  title: "Preloader" },
     { id: "character",  file: "02-character.html",  title: "Character creation", step: 1 },
     { id: "class",      file: "03-class.html",      title: "Class (path)",        step: 2 },
     { id: "difficulty", file: "04-difficulty.html", title: "Difficulty",          step: 3 },
@@ -23,14 +23,14 @@
     { id: "summary",    file: "06-summary.html",    title: "Setup summary",       step: 5 },
     { id: "hub",        file: "07-hub.html",        title: "Hub" },
     { id: "workout",    file: "08-workout.html",    title: "Workout" },
-    { id: "reward",     file: "09-reward.html",     title: "Reward" },
     { id: "history",    file: "10-history.html",    title: "Past sessions" },
     { id: "profile",    file: "11-profile.html",    title: "Profile" },
     { id: "menu",       file: "12-menu.html",       title: "Menu" }
   ];
   var SETUP_STEPS = 5;
 
-  /* ---------- classes (moodboard "Class select") ---------- */
+  /* ---------- classes (moodboard "Class select") ----------
+     No preview body per class (D25): every screen draws the user's own body; the class colour shows the class. */
   var CLASSES = {
     scrapper: {
       id: "scrapper", name: "Scrapper", equipment: "No equipment", color: "orange",
@@ -38,7 +38,7 @@
       tags: ["CARDIO", "BODYWEIGHT", "SPRINTS"],
       subtitle: "BUILT FROM STAIRS AND SPITE",
       description: "No gym, no gear, no problem. Builds every workout out of floors, stairs and pure spite. Homemade, held together with tape, and very loud about it.",
-      body: { sex: "female", fat: 0, muscle: 25 }, area: "rustbelt"
+      area: "rustbelt"
     },
     bruiser: {
       id: "bruiser", name: "Bargain Bruiser", equipment: "Basic home gym", color: "sky",
@@ -46,7 +46,7 @@
       tags: ["FLOOR WORK", "SOME CARDIO", "SOME WEIGHTS"],
       subtitle: "BUY ONE GAIN, GET ONE FREE",
       description: "Kitted out from the clearance aisle. Every piece of gear is store-brand, slightly wobbly and fully committed. Cheap kit, real gains.",
-      body: { sex: "male", fat: 25, muscle: 50 }, area: "arcade"
+      area: "arcade"
     },
     paladin: {
       id: "paladin", name: "Plate Paladin", equipment: "Lots of free weights", color: "lime",
@@ -54,7 +54,7 @@
       tags: ["STRONGMAN", "BARBELL", "HEAVY"],
       subtitle: "OATH-SWORN TO THE BARBELL",
       description: "Sworn to the barbell. Carries plates like holy relics and drops them like thunder. Big, burly, unbothered.",
-      body: { sex: "male", fat: 75, muscle: 100 }, area: "gainsgard"
+      area: "gainsgard"
     },
     cablemancer: {
       id: "cablemancer", name: "Cablemancer", equipment: "Lots of machines", color: "violet",
@@ -62,7 +62,7 @@
       tags: ["MACHINES", "CABLES", "LEAN POWER"],
       subtitle: "SPEAKS FLUENT PULLEY",
       description: "Bends steel cables and pin-stacks to their will. Thin as a wire, strong as the machine. Never waits for the squat rack.",
-      body: { sex: "female", fat: 0, muscle: 75 }, area: "frostbite"
+      area: "frostbite"
     }
   };
   var CLASS_ORDER = ["scrapper", "bruiser", "paladin", "cablemancer"];
@@ -182,14 +182,13 @@
   function blank() {
     return {
       setupDone: false,
-      character: { sex: "male", fat: 50, muscle: 50 },
-      bodyHistory: [],     // data-schema BODY_CHANGE: [{at, sex, fat, muscle}]
+      character: { sex: "male", height: 50, fat: 50, muscle: 50 },
+      bodyHistory: [],     // data-schema BODY_CHANGE: [{at, sex, height, fat, muscle}]
       cls: null,
       difficulty: null,
       area: null,
       sessions: [],        // data-schema SESSION, one per calendar day, oldest first
-      current: null,       // the running workout: {date, start, active, exercises: [SESSION_EXERCISE + skipped]}
-      lastReward: null,
+      current: null,       // today's workout list: {date, active, exercises: [SESSION_EXERCISE + skipped]}
       equipped: {},        // slot -> item id
       seenSetTip: false,
       settings: { cel: false, chaos: false, sound: true }
@@ -401,56 +400,52 @@
     return g;
   }
 
-  /* ---------- the running workout (one session per calendar day, data-schema §1) ---------- */
-  /* Start or continue today's workout. Marks on a day that already has a session add to that session. */
+  /* ---------- today's workout (one session per calendar day, data-schema §1, D6) ----------
+     There is no START or I WORKED (D7): every set is saved into today's session as it is marked,
+     and the day closes by itself at midnight. A second visit on the same day tops up that session. */
   function startWorkout() {
     var s = get();
     if (s.current && s.current.date === today()) return s.current;
     var done = sessionByDate(today(), s);
     var exs = done ? JSON.parse(JSON.stringify(done.exercises)) : planWorkout(s.cls, s.difficulty);
-    var cur = { date: today(), start: Date.now(), active: 0, exercises: exs, round: done ? 2 : 1 };
+    var cur = { date: today(), active: 0, exercises: exs };
     save({ current: cur });
     return cur;
   }
-  /* I WORKED: write the running workout into today's session; returns the reward record. */
-  function finishWorkout() {
+  /* Write the workout list into today's session. Returns what changed:
+     { xp, crit, levelBefore, levelAfter, drops: [item ids] } so the screen can pop XP and slam a level-up. */
+  function saveSet() {
     var s = get(), cur = s.current; if (!cur) return null;
     var before = game(s), lvBefore = before.level.level, bountiesBefore = before.bountyDone;
-    var old = sessionByDate(cur.date, s);
-    var sess = {
+    var old = sessionByDate(cur.date, s), now = Date.now();
+    var exs = cur.exercises.map(function (e, i) {
+      return { position: i, exerciseId: e.exerciseId, originalExerciseId: e.originalExerciseId, targetSets: e.targetSets, sets: e.sets || 0, added: !!e.added, removed: !!e.removed };
+    });
+    var any = exs.some(function (e) { return !e.removed && e.sets > 0; });
+    var list = s.sessions.filter(function (x) { return x.date !== cur.date; });
+    if (any) list.push({
       date: cur.date, classId: s.cls, difficultyId: s.difficulty, areaId: s.area,
-      firstMarkAt: old ? old.firstMarkAt : cur.firstMarkAt || cur.start,
-      lastMarkAt: Date.now(), start: old ? old.start : cur.start,
-      minutes: (old ? old.minutes || 0 : 0) + Math.max(1, Math.round((Date.now() - cur.start) / 6e4)),
-      legacy: false,
-      exercises: cur.exercises.map(function (e, i) {
-        return { position: i, exerciseId: e.exerciseId, originalExerciseId: e.originalExerciseId, targetSets: e.targetSets, sets: e.sets || 0, added: !!e.added, removed: !!e.removed };
-      })
-    };
-    var list = s.sessions.filter(function (x) { return x.date !== cur.date; }).concat([sess]).sort(function (a, b) { return a.date < b.date ? -1 : 1; });
-    save({ sessions: list, current: null });
+      firstMarkAt: old ? old.firstMarkAt : now, lastMarkAt: now, legacy: false, exercises: exs
+    });
+    list.sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+    save({ sessions: list });
     var after = game();
     var drops = after.owned.filter(function (o) { return (o.level && o.level > lvBefore) || (o.board && o.board > Math.floor(bountiesBefore / 3)); });
-    var reward = {
-      date: cur.date, round: old ? 2 : 1, xp: after.total - before.total,
-      levelBefore: lvBefore, levelAfter: after.level.level, xpBefore: before.total,
-      parts: after.byDate[cur.date], bountiesDone: after.bountyDone - bountiesBefore,
-      drops: drops.map(function (o) { return o.item.id; })
-    };
-    save({ lastReward: reward });
-    return reward;
+    var critsBefore = (before.byDate[cur.date] || {}).crits || 0, critsAfter = (after.byDate[cur.date] || {}).crits || 0;
+    return { xp: after.total - before.total, crit: critsAfter > critsBefore, levelBefore: lvBefore, levelAfter: after.level.level,
+             drops: drops.map(function (o) { return o.item.id; }) };
   }
 
   /* A returning player with history, so any screen can be opened on its own. */
   function seedReturning() {
     var s = blank();
     s.setupDone = true;
-    s.character = { sex: "female", fat: 25, muscle: 50 };
-    s.bodyHistory = [{ at: Date.now() - 40 * 864e5, sex: "female", fat: 25, muscle: 50 }];
+    s.character = { sex: "female", height: 50, fat: 25, muscle: 50 };
+    s.bodyHistory = [{ at: Date.now() - 40 * 864e5, sex: "female", height: 50, fat: 25, muscle: 50 }];
     s.cls = "scrapper"; s.difficulty = "ranger"; s.area = "rustbelt";
     s.seenSetTip = true;
     var monday = weekKey(today()), todayIdx = (dateOf(today()).getDay() + 6) % 7;
-    /* [weeks back, weekday, minutes, sets per exercise] - week 2 misses the streak target, an ember covers it */
+    /* [weeks back, weekday, minutes from first to last mark, sets per exercise] - week 2 misses the streak target, an ember covers it */
     var plan = [[4, 0, 41, [3, 3, 3, 3, 2]], [4, 2, 36, [3, 2, 3, 3, 3]], [4, 4, 44, [4, 3, 3, 3, 3]],
                 [3, 1, 38, [3, 3, 4, 3, 3]], [3, 3, 29, [3, 3, 3, 3, 3]], [3, 5, 47, [5, 2, 3, 2, 3]],
                 [2, 1, 33, [3, 0, 3, 3, 2]], [2, 4, 40, [3, 2, 3, 3, 3]],
@@ -464,13 +459,13 @@
       var exs = planWorkout(s.cls, s.difficulty);
       exs.forEach(function (e, j) { e.sets = p[3][j]; });
       if (p[0] === 1 && p[1] === 2) { exs[2].exerciseId = "squatjump"; } /* a swipe-swap, kept with its original */
-      s.sessions.push({ date: date, classId: s.cls, difficultyId: s.difficulty, areaId: s.area, start: start,
-        firstMarkAt: start, lastMarkAt: start + p[2] * 6e4, minutes: p[2], legacy: false, exercises: exs });
+      s.sessions.push({ date: date, classId: s.cls, difficultyId: s.difficulty, areaId: s.area,
+        firstMarkAt: start, lastMarkAt: start + p[2] * 6e4, legacy: false, exercises: exs });
     });
     /* two sessions from the old app, turned into XP (brief 4.7, rules.md: 150 each) */
     [70, 66].forEach(function (back) {
       var date = addDays(today(), -back), start = dateOf(date).getTime() + 18 * 36e5;
-      s.sessions.push({ date: date, classId: null, difficultyId: null, areaId: null, start: start, firstMarkAt: start, lastMarkAt: start + 50 * 6e4, minutes: 50, legacy: true, exercises: [] });
+      s.sessions.push({ date: date, classId: null, difficultyId: null, areaId: null, firstMarkAt: start, lastMarkAt: start + 50 * 6e4, legacy: true, exercises: [] });
     });
     s.sessions.sort(function (a, b) { return a.date < b.date ? -1 : 1; });
     mem = s; save();
@@ -485,7 +480,7 @@
     var url = sc.file + (opts && opts.query ? "?" + opts.query : "");
     if (opts && opts.replace) location.replace(url); else location.href = url;
   }
-  /* Where the app sends you when it opens (app-flow §1). */
+  /* Where the app opens (app-flow §1, D29: no preloader): the hub, or the creator at the first launch. */
   function homeId() { return get().setupDone ? "hub" : "character"; }
   /* Setup screens opened from the profile to change one choice (data-schema: all can change later). */
   function editMode() { return /[?&]edit=1\b/.test(location.search) && get().setupDone; }
@@ -498,17 +493,19 @@
 
   /* ---------- character sprite ---------- */
   function snap(v) { return Math.max(0, Math.min(100, Math.round(v / 25) * 25)); }
+  /* Height (D10, D11) stretches the frame vertically, 0.86x to 1.14x, like the app (lib/game/rules.dart). */
+  function heightScale(h) { h = h == null ? 50 : Math.max(0, Math.min(100, h)); return 0.86 + 0.28 * h / 100; }
   function sprite(el, ch, scale) {
     ch = ch || get().character; scale = scale || 3;
-    var fat = snap(ch.fat), mus = snap(ch.muscle);
+    var fat = snap(ch.fat), mus = snap(ch.muscle), hy = heightScale(ch.height);
     var x = (fat / 25) * 52, y = ((ch.sex === "female" ? 5 : 0) + mus / 25) * 64;
     el.classList.add("sprite");
     el.style.width = 52 * scale + "px";
-    el.style.height = 64 * scale + "px";
-    el.style.backgroundSize = 260 * scale + "px " + 640 * scale + "px";
-    el.style.backgroundPosition = -x * scale + "px " + -y * scale + "px";
+    el.style.height = 64 * scale * hy + "px";
+    el.style.backgroundSize = 260 * scale + "px " + 640 * scale * hy + "px";
+    el.style.backgroundPosition = -x * scale + "px " + -y * scale * hy + "px";
     el.setAttribute("role", "img");
-    el.setAttribute("aria-label", (ch.sex === "female" ? "Female" : "Male") + " lifter, fat " + fat + ", muscle " + mus);
+    el.setAttribute("aria-label", (ch.sex === "female" ? "Female" : "Male") + " lifter, height " + (ch.height == null ? 50 : ch.height) + ", fat " + fat + ", muscle " + mus);
     return el;
   }
 
@@ -569,7 +566,7 @@
     return t;
   }
 
-  /* Freeze-frame stencil slam (class pick, difficulty pick, level up, reward). Resolves when closed. */
+  /* Freeze-frame stencil slam (class pick, difficulty pick, level up). Resolves when closed. */
   function slam(opts) {
     opts = opts || {};
     return new Promise(function (resolve) {
@@ -589,11 +586,6 @@
     });
   }
 
-  function fmtClock(ms) {
-    var t = Math.max(0, Math.floor(ms / 1000)), h = Math.floor(t / 3600), m = Math.floor(t / 60) % 60, s = t % 60;
-    return (h ? h + ":" + String(m).padStart(2, "0") : String(m).padStart(2, "0")) + ":" + String(s).padStart(2, "0");
-  }
-  function fmtMinutes(min) { var h = Math.floor(min / 60), m = min % 60; return (h ? h + "H " : "") + m + "M"; }
   function fmtDate(ts) {
     if (typeof ts === "string") ts = dateOf(ts).getTime();
     return new Date(ts).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }).toUpperCase();
@@ -659,7 +651,7 @@
     bar.innerHTML = '<a href="index.html">PUMPLEX DEMO</a><select aria-label="Jump to screen">' + opts + "</select>" +
       '<button type="button" data-act="returning">Returning player</button><button type="button" data-act="reset">Restart</button>';
     bar.querySelector("select").onchange = function (e) { go(e.target.value); };
-    bar.querySelector('[data-act="reset"]').onclick = function () { reset(); go("preloader"); };
+    bar.querySelector('[data-act="reset"]').onclick = function () { reset(); go(homeId()); };
     bar.querySelector('[data-act="returning"]').onclick = function () { seedReturning(); go("hub"); };
     document.body.appendChild(bar);
   }
@@ -687,10 +679,10 @@
     get: get, save: save, reset: reset, seedReturning: seedReturning,
     cls: cls, area: area, difficulty: difficulty, exercise: exercise, pool: pool, planWorkout: planWorkout,
     live: live, sessionSets: sessionSets, sessionByDate: sessionByDate, today: today, dayKey: dayKey, weekKey: weekKey,
-    startWorkout: startWorkout, finishWorkout: finishWorkout, c: c,
+    startWorkout: startWorkout, saveSet: saveSet, c: c,
     screen: screen, go: go, homeId: homeId, editMode: editMode, require: require,
-    sprite: sprite, snap: snap, icon: icon, gems: gems, stars: stars, toast: toast, slam: slam, press: press, swipe: swipe,
-    fmtClock: fmtClock, fmtMinutes: fmtMinutes, fmtDate: fmtDate, applySettings: applySettings
+    sprite: sprite, snap: snap, heightScale: heightScale, icon: icon, gems: gems, stars: stars, toast: toast, slam: slam, press: press, swipe: swipe,
+    fmtDate: fmtDate, applySettings: applySettings
   };
 })();
 
@@ -740,3 +732,203 @@ window.PX.picker = function (opts) {
   paint(0);
   return { go: go, index: function () { return i; } };
 };
+
+/* ---------- the lifter's look (skin, hair, facial hair, clothes) ----------
+   PX.sprite draws the plain atlas frame; when the character has a look (set on the character screen)
+   the frame is recoloured pixel by pixel and used as the sprite's background instead, so every screen
+   shows the same lifter. The atlas loads as a data URL (shared/atlas.js) so this works from file:// too. */
+(function () {
+  "use strict";
+  var PX = window.PX, plainSprite = PX.sprite;
+  var LOOK = {
+    SKIN: [
+      { id: "porcelain", name: "Porcelain", r: ["#f7dcc8", "#ecb994", "#b98068"] },
+      { id: "peach",     name: "Peach",     r: ["#e4bc97", "#d39a6a", "#8c605c"] },
+      { id: "tan",       name: "Tan",       r: ["#d6a274", "#b47848", "#734832"] },
+      { id: "brown",     name: "Brown",     r: ["#a06c48", "#7c4c2e", "#4c2c1c"] },
+      { id: "deep",      name: "Deep",      r: ["#74483a", "#523022", "#301a12"] },
+      { id: "orc",       name: "Gym orc",   r: ["#c6ec86", "#8cbc4c", "#527a2c"] }
+    ],
+    HAIRC: [
+      { id: "brown",  name: "Brown",  r: ["#997d6b", "#5a3424", "#462533"] },
+      { id: "black",  name: "Black",  r: ["#5a4a5e", "#2e2032", "#180e1a"] },
+      { id: "blonde", name: "Blonde", r: ["#ffe9a0", "#e8b84a", "#9c7226"] },
+      { id: "ginger", name: "Ginger", r: ["#ffb070", "#e86e2c", "#8e3c1a"] },
+      { id: "pink",   name: "Pink",   r: ["#ff98c2", "#ff5fb0", "#a63e84"] },
+      { id: "silver", name: "Silver", r: ["#f6eeff", "#c9b8e8", "#8672a5"] }
+    ],
+    CLOTH: [
+      { id: "lilac",  name: "Lilac",  r: ["#decfe5", "#c9b8e8", "#8672a5"] },
+      { id: "violet", name: "Violet", r: ["#ad8ed6", "#7b4fd0", "#593597"] },
+      { id: "slate",  name: "Slate",  r: ["#857788", "#3a2a52", "#33204e"] },
+      { id: "pink",   name: "Pink",   r: ["#ff98c2", "#ff5fb0", "#a63e84"] },
+      { id: "lime",   name: "Lime",   r: ["#dcfb7b", "#c6ff3d", "#849b42"] },
+      { id: "orange", name: "Orange", r: ["#ffc075", "#ffa033", "#a6643c"] },
+      { id: "sky",    name: "Sky",    r: ["#88dff3", "#3fd2ff", "#3681b2"] }
+    ],
+    HAIR: [{ id: "crop", name: "Crop" }, { id: "buzz", name: "Buzz" }, { id: "mohawk", name: "Mohawk" }, { id: "afro", name: "Afro" }, { id: "long", name: "Long" }, { id: "bald", name: "Bald" }],
+    FACE: [{ id: "none", name: "None" }, { id: "stubble", name: "Stubble" }, { id: "stache", name: "Stache" }, { id: "beard", name: "Beard" }],
+    TOPS: [{ id: "tee", name: "Tee" }, { id: "crop", name: "Crop" }, { id: "sleeves", name: "Sleeves" }],
+    BOTTOMS: [{ id: "shorts", name: "Shorts" }, { id: "bike", name: "Bike" }, { id: "pants", name: "Pants" }],
+    SHOES: [{ id: "sneakers", name: "Sneakers" }, { id: "hightops", name: "High-tops" }, { id: "barefoot", name: "Barefoot" }],
+    DEFAULT: { skin: "peach", hair: "crop", hairColor: "brown", face: "none",
+               top: "tee", topColor: "lilac", bottom: "shorts", bottomColor: "violet", shoes: "sneakers", shoesColor: "slate" }
+  };
+  function find(list, id) { for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i]; return list[0]; }
+
+  /* atlas: null while loading, false if unusable (the plain sprite stays), else the image */
+  var atlas = null, waiting = [], cache = {};
+  var base = ((document.currentScript && document.currentScript.src) || "").replace(/[^\/]*$/, "");
+  function flush() { var w = waiting; waiting = []; w.forEach(function (f) { f(); }); }
+  function loadImg() {
+    var img = new Image();
+    img.onload = function () {
+      try { var c = document.createElement("canvas"); c.width = c.height = 1; c.getContext("2d").drawImage(img, 0, 0); c.getContext("2d").getImageData(0, 0, 1, 1); atlas = img; }
+      catch (e) { atlas = false; }
+      flush();
+    };
+    img.onerror = function () { atlas = false; flush(); };
+    img.src = window.PX_ATLAS;
+  }
+  if (window.PX_ATLAS) loadImg();
+  else {
+    var sc = document.createElement("script");
+    sc.src = base + "atlas.js";
+    sc.onload = function () { if (window.PX_ATLAS) loadImg(); else { atlas = false; flush(); } };
+    sc.onerror = function () { atlas = false; flush(); };
+    (document.head || document.documentElement).appendChild(sc);
+  }
+
+  /* Atlas ramps: skin (s), top (t), bottoms (b), shoes (f), hair (h); step 0 highlight, 1 base, 2 shadow.
+     Pixels are labelled, styles edit the labels, then each label is painted with the chosen ramp. */
+  var ORIG = { "#e4bc97": "s0", "#d39a6a": "s1", "#8c605c": "s2", "#decfe5": "t0", "#c9b8e8": "t1", "#8672a5": "t2",
+               "#ad8ed6": "b0", "#7b4fd0": "b1", "#593597": "b2", "#857788": "f0", "#3a2a52": "f1", "#33204e": "f2",
+               "#997d6b": "h0", "#5a3424": "h1", "#462533": "h2", "#0b0414": "k", "#281424": "e" };
+  var W = 52, H = 64;
+  function hex(r, g, b) { return "#" + [r, g, b].map(function (v) { return v.toString(16).padStart(2, "0"); }).join(""); }
+
+  function paintLook(ch) {
+    var lk = {}; for (var k in LOOK.DEFAULT) lk[k] = ch[k] || LOOK.DEFAULT[k];
+    var canvas = document.createElement("canvas"); canvas.width = W; canvas.height = H;
+    var ctx = canvas.getContext("2d");
+    var fx = PX.snap(ch.fat) / 25, fy = (ch.sex === "female" ? 5 : 0) + PX.snap(ch.muscle) / 25;
+    ctx.drawImage(atlas, fx * W, fy * H, W, H, 0, 0, W, H);
+    var img = ctx.getImageData(0, 0, W, H), d = img.data, L = new Array(W * H), x, y, i;
+    for (i = 0; i < W * H; i++) {
+      if (!d[i * 4 + 3]) { L[i] = null; continue; }
+      var hx = hex(d[i * 4], d[i * 4 + 1], d[i * 4 + 2]);
+      L[i] = ORIG[hx] || "x" + hx;
+    }
+    function at(x, y) { return x < 0 || y < 0 || x >= W || y >= H ? null : L[y * W + x]; }
+    function set(x, y, v) { if (x >= 0 && y >= 0 && x < W && y < H) L[y * W + x] = v; }
+    function is(v, r) { return !!v && v.charAt(0) === r && v.length === 2; }
+    function swapRamp(x, y, from, to) { var v = at(x, y); if (is(v, from)) set(x, y, to + v.charAt(1)); }
+
+    /* face geometry: eyes on row 8, head outline from row 10 */
+    var ex = []; for (x = 0; x < W; x++) if (at(x, 8) === "e") ex.push(x);
+    var cx = ex.length ? Math.round((ex[0] + ex[ex.length - 1]) / 2) : 26;
+    var hl = cx - 6; for (x = 0; x < cx; x++) if (at(x, 10) === "k" && is(at(x + 1, 10), "s")) { hl = x; break; }
+    var hr = 2 * cx - hl - 2; /* last interior column of the head, mirrored from the left outline */
+
+    /* torso skin (midriff) has clothes on both sides; other skin in rows 17-41 is arm */
+    function isArm(x, y) {
+      if (y < 17 || y > 41 || !is(at(x, y), "s")) return false;
+      var l = false, r = false, j;
+      for (j = x - 1; j >= 0; j--) if (is(at(j, y), "t") || is(at(j, y), "b")) { l = true; break; }
+      for (j = x + 1; j < W; j++) if (is(at(j, y), "t") || is(at(j, y), "b")) { r = true; break; }
+      return !(l && r);
+    }
+
+    /* hair */
+    if (lk.hair !== "crop" && lk.hair !== "long") {
+      for (y = 0; y <= 20; y++) for (x = 0; x < W; x++) {
+        var v = at(x, y);
+        if (is(v, "h")) set(x, y, x > hl && x <= hr && y >= 3 ? "s" + v.charAt(1) : null);
+      }
+      for (y = 0; y <= 14; y++) for (x = 0; x < W; x++) if (at(x, y) === "k" && (x < hl || x > hr + 1)) set(x, y, null);
+      if (lk.hair === "buzz") for (y = 3; y <= 5; y++) for (x = hl + 1; x <= hr; x++) if (is(at(x, y), "s") && (y < 5 || (x + y) % 2)) set(x, y, "h2");
+      if (lk.hair === "mohawk") for (y = 0; y <= 5; y++) { set(cx - 1, y, "h0"); set(cx, y, "h1"); }
+      if (lk.hair === "afro") {
+        for (y = 0; y <= 13; y++) for (x = cx - 11; x <= cx + 10; x++) {
+          var dx = x - cx + .5, dy = y - 5.5, cur = at(x, y);
+          if (dx * dx + dy * dy > 92) continue;
+          if (y >= 6 && x > hl && x <= hr) continue;
+          if (cur && !is(cur, "h") && cur !== "k" && !(is(cur, "s") && y < 6)) continue;
+          set(x, y, dx + dy < -9 ? "h0" : dx + dy > 7 ? "h2" : "h1");
+        }
+      }
+    }
+    if (lk.hair === "long") {
+      for (y = 4; y <= 18; y++) [hl - 2, hl - 1, hl, hr + 1, hr + 2, hr + 3].forEach(function (xx, n) {
+        var cur = at(xx, y);
+        if (cur === null || cur === "k" || is(cur, "h")) set(xx, y, n === 0 || n === 5 ? "h2" : "h1");
+      });
+    }
+
+    /* facial hair */
+    if (lk.face === "stubble") for (y = 11; y <= 14; y++) for (x = hl + 1; x <= hr; x++) if (is(at(x, y), "s") && (x + y) % 2 === 0) set(x, y, "h2");
+    if (lk.face === "stache") {
+      for (x = cx - 3; x <= cx + 2; x++) if (is(at(x, 11), "s")) set(x, 11, "h1");
+      if (is(at(cx - 3, 12), "s")) set(cx - 3, 12, "h1");
+      if (is(at(cx + 2, 12), "s")) set(cx + 2, 12, "h1");
+    }
+    if (lk.face === "beard") {
+      for (y = 9; y <= 14; y++) for (x = hl + 1; x <= hr; x++) {
+        if (!is(at(x, y), "s")) continue;
+        var side = x <= hl + 1 || x >= hr;
+        if (y < 11 && !side) continue;
+        if (y === 12 && x >= cx - 1 && x <= cx) continue;
+        set(x, y, y === 14 || side ? "h2" : "h1");
+      }
+    }
+
+    /* clothes */
+    for (y = 0; y < H; y++) for (x = 0; x < W; x++) {
+      var p = at(x, y);
+      if (lk.top === "crop" && y >= 30 && y <= 33) swapRamp(x, y, "t", "s");
+      if (lk.top === "sleeves" && y <= 35 && isArm(x, y)) set(x, y, "t" + p.charAt(1));
+      if (lk.bottom === "pants" && y >= 42 && y <= 53) swapRamp(x, y, "s", "b");
+      if (lk.bottom === "bike" && y >= 42 && y <= 46) swapRamp(x, y, "s", "b");
+      if (lk.shoes === "hightops" && y >= 49 && y <= 53) swapRamp(x, y, "s", "f");
+      if (lk.shoes === "barefoot" && y >= 54) swapRamp(x, y, "f", "s");
+    }
+
+    /* ink outline around anything that now touches the void */
+    var add = [];
+    for (y = 0; y < H; y++) for (x = 0; x < W; x++) {
+      if (at(x, y) !== null) continue;
+      if ([at(x - 1, y), at(x + 1, y), at(x, y - 1), at(x, y + 1)].some(function (n) { return n && n.length === 2 && "stbfh".indexOf(n.charAt(0)) >= 0; })) add.push([x, y]);
+    }
+    add.forEach(function (a) { set(a[0], a[1], "k"); });
+
+    var R = { s: find(LOOK.SKIN, lk.skin).r, h: find(LOOK.HAIRC, lk.hairColor).r, t: find(LOOK.CLOTH, lk.topColor).r, b: find(LOOK.CLOTH, lk.bottomColor).r, f: find(LOOK.CLOTH, lk.shoesColor).r };
+    for (i = 0; i < W * H; i++) {
+      var lab = L[i], col;
+      if (lab === null) { d[i * 4 + 3] = 0; continue; }
+      col = lab === "k" ? "#0b0414" : lab === "e" ? "#281424" : lab.charAt(0) === "x" ? lab.slice(1) : R[lab.charAt(0)][+lab.charAt(1)];
+      d[i * 4] = parseInt(col.slice(1, 3), 16); d[i * 4 + 1] = parseInt(col.slice(3, 5), 16); d[i * 4 + 2] = parseInt(col.slice(5, 7), 16); d[i * 4 + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+    return canvas.toDataURL();
+  }
+
+  function lookURL(ch) {
+    var key = [ch.sex, PX.snap(ch.fat), PX.snap(ch.muscle)].concat(Object.keys(LOOK.DEFAULT).map(function (k) { return ch[k] || ""; })).join("|");
+    return cache[key] || (cache[key] = paintLook(ch));
+  }
+
+  PX.sprite = function (el, ch, scale) {
+    ch = ch || PX.get().character; scale = scale || 3;
+    plainSprite(el, ch, scale);
+    if (!ch || !ch.skin) return el;                 /* no look picked: the plain atlas frame */
+    var copy = {}; for (var k in ch) copy[k] = ch[k];
+    if (atlas === null) { waiting.push(function () { PX.sprite(el, copy, scale); }); return el; }
+    if (!atlas) return el;
+    el.style.backgroundImage = "url(" + lookURL(ch) + ")";
+    el.style.backgroundSize = 52 * scale + "px " + 64 * scale * PX.heightScale(ch.height) + "px";
+    el.style.backgroundPosition = "0 0";
+    return el;
+  };
+  PX.LOOK = LOOK;
+  PX.onAtlas = function (cb) { if (atlas === null) waiting.push(function () { cb(!!atlas); }); else cb(!!atlas); };
+})();
