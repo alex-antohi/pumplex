@@ -68,9 +68,7 @@ need interpolation or more frames. None are drawn yet.
    No gradients, no dithering.
 3. **Neon only on clothes.** Neon colours go on outfits only. Everything around them stays dark.
 4. Shadows lean violet, not grey.
-5. The bases are the dark-theme colours from the PUMPLEX app. The in-app cel
-   shader (`shaders/cel.frag`) has the same look: flat toon bands and ink
-   outlines.
+5. The bases are the dark-theme colours from the PUMPLEX app.
 
 ## Palette
 
@@ -160,8 +158,8 @@ The screen calls the classes **paths**, using the marketing draft's working name
 "the Swolemancer's paths"). If the app name changes, change the kicker line.
 
 The layout is a phone version of a classic RPG class picker. There is no stat
-table, because brief rule 3 says no tables of numbers. A **loadout** (gear) and
-three **training tags** take its place.
+table, because brief rule 3 says no tables of numbers. A **loadout** (the gym
+equipment the class trains with) and three **training tags** take its place.
 
 Screen, top to bottom (390×844 dp):
 
@@ -299,7 +297,7 @@ Rules:
 - The **targets come from the app** (brief rule 4). 3 × 3 here is a placeholder until the workout lists per class exist (brief §8).
 - **First-workout tip** (app-flow §4.2), at the top of the scene: "ONLY WORKING SETS COUNT. WARM-UPS DON'T. HOLD THE BARREL TO TAKE ONE BACK." with an OK button.
 - **XP on each set** (D19, `docs/rules.md`): every set pops `+n XP` over the scene. A critical set (3%, ×2) pops **CRITICAL SET!!!** in pink.
-- **Level-up:** the freeze-frame title card (same as Class select) slams **LEVEL n** with the level title. Gear that drops shows on that card.
+- **Level-up:** the freeze-frame title card (same as Class select) slams **LEVEL n** with the level title.
   There is no reward overlay and no end-of-workout screen.
 
 For other areas, swap the scene and the action object. Everything else stays the same (see "Starting areas").
@@ -334,6 +332,6 @@ It closes after 1.8 s or on tap.
 
 - The gem count is a **picture of the XP multiplier**, not the number. The multipliers are in `docs/rules.md` (D19): 1.0 at the easiest level to 2.0 at the hardest, in even steps.
 - The colours follow the rarity ladder from `borderlands-reference.md` §4, so harder reads as rarer.
-- Don't use **"Chaos mode"** (already an app menu feature) or Borderlands' own difficulty names.
+- Don't use Borderlands' own difficulty names.
 - The tone is loud and silly, never mean about bodies, as the reference asks.
 

@@ -54,12 +54,12 @@ that holds everything together.
 
 | Borderlands rule | Source | PUMPLEX version |
 | --- | --- | --- |
-| Thick black outline on main shapes | [W] | Already rule 1: 1 px `#0b0414` ink on sprites. In the app, `shaders/cel.frag` does ink outlines. |
+| Thick black outline on main shapes | [W] | Already rule 1: 1 px `#0b0414` ink on sprites. |
 | Flat toon bands, not smooth shading | [W] cel-shaded | Already rule 2: 3 flat tones, light from top-left. |
 | Hand-drawn hatching and grit inside shapes | [G] | Optional: a 1-colour hatch texture on large dark panels only. Never on sprites (pixel art stays clean). |
 | Dirty world, loud loot | [W]/[G] | Dark grounds, neon only on clothes and rewards (rule 3). |
 | Every brand has a look you can read at a glance | [W] | Each class (= equipment) gets one shape language and one main neon. See section 6. |
-| Rarity colour on every item | [W] | Use the same ladder for rewards and set streaks. See section 4. |
+| Rarity colour on every item | [W] | Use the same ladder for the set marks and the difficulty rungs. See section 4. |
 | Freeze-frame **character intro card**: the action stops, the name and a joke subtitle appear as a sprayed or stencilled tag | [G] | Show it on class pick and on level-up. Use our own type (Anton), not theirs. |
 | Hand-lettered, chunky, slightly distressed display type | [G] | Anton plus a hard offset shadow (already on our boards). Add a spray or stencil texture only on title cards. |
 | Enemy silhouettes you can read from far away (Psycho = white mask, buzz-axe) | [W] | Give each "boss" workout a mask-like face and one big prop. |

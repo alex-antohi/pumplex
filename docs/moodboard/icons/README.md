@@ -27,16 +27,17 @@ It rewrites everything in this folder. Ids never change once shipped.
 
 | Group | Icons |
 | --- | --- |
-| ui | back, next, menu, close, play, history, user, check, bolt, save, restore, flame, gem, star, ember, swap, plus, skip, trash, undo, edit, gear, arm, dice, male, female |
-| profile, menu | body, lock, sound, chaos (chaos mode), cel (cel shader) |
-| milestone | drop, fire, bell, crown, skull (plus lock and star for locked and open) |
+| ui | back, next, menu, close, play, history, user, check, bolt, save, restore, flame, gem, star, plus, trash, undo, edit, arm, dice, male, female |
+| profile, menu | body, lock |
 | class | class-scrapper, class-bruiser, class-paladin, class-cablemancer |
 | area | area-riptide, area-gainsgard, area-rustbelt, area-arcade, area-frostbite |
 | object | object-chest, object-wall, object-barrel, object-punch, object-ice (the thing to hit in each area) |
 | mark | mark-riptide, mark-gainsgard, mark-rustbelt, mark-arcade, mark-frostbite (how each area records a set) |
-| slot | slot-head, slot-top, slot-bottom, slot-shoes, slot-weapon (gear slots, D21) |
 
 The class icons use the design ids, which the app uses too (D31).
+
+`icons.mjs` still draws 17 icons for features the app no longer has (ember, swap, skip, gear, sound, chaos, cel,
+drop, fire, bell, crown, skull and the 5 `slot-*` icons). The app does not use them.
 
 ## For the app
 

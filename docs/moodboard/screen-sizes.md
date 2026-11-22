@@ -36,10 +36,10 @@ The CSS names below (`.screen`, `.foot`, `--s4`) are the demo's and are kept as 
 | Setup 04 difficulty | Gem rows stay. | The 6 level cards. | The "who it is for" line, except on the selected card. |
 | Setup 05 area | Scene preview height x 0.75. Lifter 2. | The 5 area cards. | The area line. |
 | Setup 06 summary | Lifter 3 -> 2, final-card lifter 4 -> 3. | The rows. | The joke line. |
-| Hub 07 | Sprite 3 -> 2. | The workout card and below. | The streak caption. Keep the XP bar. |
-| Workout 08 | Sprite 3 -> 2. `.wo-scene` min-height 400 -> 300. Exercise cards 96 -> 80 px. | The exercise card strip sideways; the page under it. | The tool-row labels (icons only). Hint text after the first set. |
+| Hub 07 | Sprite 3 -> 2. | The workout card and below. | Nothing. Keep the XP bar. |
+| Workout 08 | Sprite 3 -> 2. `.wo-scene` min-height 400 -> 300. Exercise cards 96 -> 80 px. | The exercise card strip sideways; the page under it. | Hint text after the first set. |
 | History 10 | Row padding `--s3` -> `--s2`. | The list. | The sprite in the empty state. |
-| Profile 11 | Sprite 3 -> 2. | Everything. Gear and medals wrap to 3 columns. | Medal descriptions (name and icon stay). |
+| Profile 11 | Sprite 3 -> 2. | Everything. | Nothing. |
 | Menu 12 | Nothing. | The rows. | Nothing. |
 
 The main button stays visible in `.foot` on every screen. If the content does not fit, the content scrolls, not the button.

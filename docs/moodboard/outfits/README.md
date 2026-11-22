@@ -11,7 +11,6 @@ one of the 50 bodies is covered, and nothing else is drawn. The body is never ch
 
 1. Body cell from `body_atlas.png` (skin, hair, face), already tinted by the user's look.
 2. **Outfit** cell from `outfits/<class-id>.png`. Same cell index as the body.
-3. Gear by slot, from `../gear/<slot>/<item-id>.png`: bottom, top, shoes, head, weapon.
 
 In the app, draw the same `AtlasSprite` cell rect (same source `Rect`) from each atlas, one after the other, at the
 same position and scale, with `FilterQuality.none`. The starter outfit pixels of the body atlas are hidden by the
