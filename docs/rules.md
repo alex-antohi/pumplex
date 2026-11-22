@@ -1,6 +1,6 @@
 # PUMPLEX rules table
 
-Date: 21 November 2026, updated 22 November 2026 (D33–D35). Status: draft v1.1 (numbers for beta testing).
+Date: 21 November 2026, updated 22 November 2026 (D33–D35, D52, D54). Status: draft v1.2 (numbers for beta testing).
 Read with [data-schema.md](data-schema.md) and [decisions.md](decisions.md) (D19 wins over this table; D34 and D35 win over D19).
 Every number below is in one constants file, `lib/game/rules.dart`, so it is easy to tune.
 The numbers per difficulty mode are in [app-flow.md](app-flow.md) §3.
@@ -19,21 +19,22 @@ the user.** So there is no HP loss, no lost XP and no dropped currency.
 | Source | XP | Idea from |
 |---|---|---|
 | Working set | 10 × difficulty multiplier | Habitica XP per task |
-| Set above the target | × 1.5, up to 2 × the target | Bonus without farming |
-| Set beyond 2 × the target | 0 | Habitica diminishing returns |
+| ~~Set above the target~~ | Removed (D52): there are no targets. | |
+| Set 11 and later of one exercise on one day | 0 | No farming (Habitica diminishing returns) |
 | First set of the day | + 50 | Daily bonus |
 | Critical set | 3% chance, × 2 XP, "CRITICAL SET!" | Habitica crits |
 | Bounty done | + 100 to + 300 | Gloomhaven battle goals |
 | Old session (beta) | 150 each | Legacy conversion |
 | ~~Weekly streak~~ | Removed (D34). The old streak XP stays as saved `streak` XP events. | Habitica streak bonus |
 | ~~Achievement~~ | Removed (D35). The old achievement XP stays as saved `achievement` XP events. | Habitica achievements |
+| Old workout | Sessions from before D50 keep their XP (old target rules) as a saved `workout` XP event (D54). | |
 
 **Difficulty multiplier:** 1.0 at the lowest difficulty, rising in even steps to 2.0 at the highest.
 
 **Order of calculation for one set:**
 
 1. Base = 10 × difficulty multiplier.
-2. If the set number is above the target and up to 2 × the target: × 1.5. Above 2 × the target: 0.
+2. If the set number (for this exercise, on this day) is above 10: 0. There are no targets (D52).
 3. Critical roll (3%): × 2.
 4. Round to a whole number.
 
@@ -74,7 +75,9 @@ Pace (a typical session is about 15 sets, or about 200 XP):
 
 ## 4. How to measure progress
 
-There are no kilos or reps, so progress comes from set targets and consistency.
+There are no kilos or reps, so progress comes from sets and consistency.
+
+**Since D52 there are no set targets.** The ideas below used targets, so they need a new rule before anyone builds them. Ask the owner.
 
 ### 4.1 Exercise mastery (Gloomhaven checkmarks)
 
@@ -86,7 +89,7 @@ There are no kilos or reps, so progress comes from set targets and consistency.
 
 - If an exercise gets no new checkmark in 3 weeks (and you did it at least twice in that time), the card suggests a swap from the class pool.
 - This is the "change exercises when no progress" arrow in `pumplex.drawio`.
-- **On hold:** the workout has no swap (D32). Ask the owner before you build this.
+- **On hold:** there is no swap; the user picks exercises from the filtered list (D50). Ask the owner before you build this.
 
 ### 4.3 Difficulty climb (D&D milestones)
 

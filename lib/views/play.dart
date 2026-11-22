@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../dates.dart';
 import '../game/content.dart';
+import '../game/exercises.dart';
 import '../game/model.dart';
 import '../game/rules.dart';
 import '../pumplex.dart';
@@ -172,8 +173,10 @@ class HistoryView extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = Pal.of(context);
     final all = store.history;
-    final game = all.where((s) => !s.legacy).toList();
-    final legacy = all.where((s) => s.legacy).toList();
+    // Old-app days have no class. Days frozen by D54 keep theirs and stay
+    // in the main list, with no exercise lines.
+    final game = all.where((s) => !s.legacy || s.classId.isNotEmpty).toList();
+    final legacy = all.where((s) => s.legacy && s.classId.isEmpty).toList();
     final today = store.todaySession;
     return Column(
       children: [
@@ -237,7 +240,7 @@ class _SessionTile extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              '${session.totalSets} SETS${took == null ? '' : ' · TIME ${fmtDuration(took)}'} · '
+              '${session.legacy ? 'OLD EXERCISE LIST' : '${session.totalSets} SETS'}${took == null ? '' : ' · TIME ${fmtDuration(took)}'} · '
               '${classById(session.classId).name.toUpperCase()} · ${areaById(session.areaId).name.toUpperCase()}',
               style: mono(11.5, p.ink),
             ),
@@ -247,7 +250,7 @@ class _SessionTile extends StatelessWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: Text('${exerciseName(e.exerciseId).toUpperCase()}  ${e.sets}/${e.targetSets}',
+                      child: Text('${exerciseName(e.exerciseId).toUpperCase()}  ${e.sets}',
                           style: display(15, p.ink)),
                     ),
                     TallyMarks(count: e.sets, height: 14),

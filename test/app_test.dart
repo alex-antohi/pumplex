@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:gym_app/game/content.dart';
+import 'package:gym_app/game/exercises.dart';
 import 'package:gym_app/game/model.dart';
 import 'package:gym_app/game/rules.dart';
 import 'package:gym_app/main.dart';
@@ -37,10 +39,14 @@ const _oldSwaps = '{"hu1":{"S00004":"Floor Press"}}';
 const _profile = Profile(
   character: Character(sex: 'female', height: 80, muscle: 100, fat: 0),
   classId: 'paladin',
-  difficultyId: 'sweat', // 4 exercises, 3 target sets, ×1.4
+  difficultyId: 'sweat', // ×1.4, up to intermediate exercises
   areaId: 'gainsgard',
 );
 const _d = 2; // difficulty index of 'sweat'
+
+// Two Plate Paladin exercises from the list.
+const _squat = 'Barbell_Squat';
+const _bench = 'Barbell_Bench_Press_-_Medium_Grip';
 
 /// A test clock the store reads. 21 Nov 2026 is a Saturday.
 var _now = DateTime(2026, 11, 21, 10);
@@ -108,6 +114,7 @@ class _PushCounter extends NavigatorObserver {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  setUpAll(() => exerciseCatalog = ExerciseCatalog.parse(File(ExerciseCatalog.asset).readAsStringSync()));
   setUp(() => _now = DateTime(2026, 11, 21, 10));
 
   test('class id migration (D31): old ids become design ids once, old text kept', () async {
@@ -121,9 +128,10 @@ void main() {
     expect(store.profile!.classId, 'paladin');
     final s = store.history.single;
     expect(s.classId, 'paladin');
-    expect(s.exercises.single.exerciseId, 'paladin.squat');
-    expect(s.exercises.single.originalExerciseId, 'paladin.bench');
-    expect(s.exercises.single.sets, 2);
+    // The old exercise list is dropped (D54); the day and its XP stay.
+    expect(s.legacy, isTrue);
+    expect(s.exercises, isEmpty);
+    expect(store.xpEvents.where((e) => e.source == 'workout').single.ref, '2026-11-20');
     expect(prefs.getString('profile_v1'), isNot(contains('warrior')));
     expect(prefs.getString('sessions_v3'), isNot(contains('warrior')));
     final backup = jsonDecode(prefs.getString(LogStore.classIdBackupKey)!) as Map;
@@ -183,7 +191,7 @@ void main() {
     final store = LogStore(prefs, clock: () => _now);
     var bonus = 0, sets = 0;
     for (var n = 1; n <= 5; n++) {
-      final xp = setXp(setNumber: n, target: 3, difficulty: _d, critical: isCritical('2026-11-16', 'paladin.squat', n));
+      final xp = oldSetXp(setNumber: n, target: 3, difficulty: _d, critical: isCritical('2026-11-16', 'paladin.squat', n));
       bonus += (xp * 1.05).round() - xp.round();
       sets += xp.round();
     }
@@ -199,7 +207,7 @@ void main() {
     final again = LogStore(prefs, clock: () => _now);
     expect(again.totalXp, total);
     expect(prefs.getBool(LogStore.streakFrozenKey), isTrue);
-    again.addSet(0);
+    again.addSet(_squat);
     expect(again.xpEvents.where((e) => e.source == 'streak').length, 1);
 
     // A version-3 backup (made before D34) gets its streak XP worked out on import.
@@ -211,16 +219,17 @@ void main() {
 
   // ------------------------------------------------------------ fixed data
 
-  test('rules table: set XP, over target, cap, critical, level curve', () {
+  test('rules table: set XP (no targets, D52), cap, critical, level curve', () {
     expect(difficultyRules.first.xpMultiplier, 1.0);
     expect(difficultyRules.last.xpMultiplier, 2.0);
-    int set(int n, {bool crit = false, int d = 0}) => xpForSet(setNumber: n, target: 3, difficulty: d, critical: crit);
-    expect(set(3), 10); // within the target
-    expect(set(4), 15); // above the target: ×1.5
-    expect(set(6), 15); // up to 2× the target
-    expect(set(7), 0); // beyond 2× the target
+    int set(int n, {bool crit = false, int d = 0}) => xpForSet(setNumber: n, difficulty: d, critical: crit);
+    expect(set(1), 10);
+    expect(set(xpSetsPerExercise), 10);
+    expect(set(xpSetsPerExercise + 1), 0); // no farming
     expect(set(1, crit: true), 20);
     expect(set(1, d: 5), 20);
+    // The old target rules, kept for the one-time freeze (D54).
+    expect([for (final n in [3, 4, 6, 7]) oldSetXp(setNumber: n, target: 3, difficulty: 0)], [10, 15, 15, 0]);
     expect(xpPerLegacySession, 150);
     // Repeatable criticals, about 3% of sets.
     expect(isCritical('2026-11-21', 'paladin.squat', 1), isCritical('2026-11-21', 'paladin.squat', 1));
@@ -232,15 +241,23 @@ void main() {
     expect(levelFor(25 + 7), (level: 2, into: 7, need: 50));
   });
 
-  test('fixed data: difficulty numbers, pools, ids', () {
+  test('fixed data: difficulty numbers, classes, the exercise list', () {
     expect(difficultyRules.length, difficulties.length);
-    expect(difficultyRules.first.exercisesPerWorkout, 3);
-    expect(difficultyRules.last.exercisesPerWorkout, 8);
-    expect([for (final r in difficultyRules) r.exercisesPerWorkout], [3, 3, 4, 5, 6, 8]); // D33
     expect(gameClasses.map((c) => c.equipment).toSet().length, gameClasses.length);
-    expect(gameClasses.every((c) => c.exercises.length >= 8), isTrue); // enough for Nightmare Mode
-    final ids = [for (final c in gameClasses) for (final e in c.exercises) e.id];
-    expect(ids.toSet().length, ids.length);
+    final all = exerciseCatalog.all;
+    expect(all.length, 876);
+    expect(all.map((e) => e.id).toSet().length, all.length);
+    expect(all.every((e) => !e.id.contains('.')), isTrue); // old ids have a dot (D54)
+    expect(exerciseCatalog.byId['Pushups']!.equipment, 'body only');
+    expect(exerciseName('Leg_Extensions'), 'Leg Extensions');
+    // Every muscle of the list is in exactly one body part (D52).
+    for (final m in all.map((e) => e.muscle).toSet()) {
+      expect(bodyParts.where((b) => b.muscles.contains(m)).length, 1, reason: m);
+    }
+    for (final c in gameClasses) {
+      expect(classEquipment[c.id], contains('body only'), reason: c.id);
+      expect(classCategories[c.id], isNotEmpty, reason: c.id);
+    }
   });
 
   test('design data: 6 difficulty modes, 5 areas, one default area per class', () {
@@ -269,26 +286,26 @@ void main() {
     }
   });
 
-  testWidgets('the workout: CRUSHED! at the target, the area stamp on every 5th set', (t) async {
+  testWidgets('the workout: +1 SET, the area stamp on every 5th set, no CRUSHED (D52)', (t) async {
     _phone(t);
     final (store, _) = await _store(setUp: true); // Gainsgard Keep: SLASHED!
-    store.addSet(0); // level-ups happen here, not on screen
-    store.addSet(0);
+    final first = store.exercises.first.id;
+    for (var i = 0; i < 3; i++) {
+      store.addSet(first); // level-ups happen here, not on screen
+    }
     await t.pumpWidget(GymApp(store: store));
     await _frames(t);
     expect(find.text('SCRATCH THE WALL'), findsOneWidget);
-    await t.tap(find.byKey(const ValueKey('world-object'))); // 3rd set = target
+    await t.tap(find.byKey(const ValueKey('world-object'))); // 4th set
     await t.pump(const Duration(milliseconds: 100));
-    expect(find.text('CRUSHED!'), findsOneWidget);
+    expect(find.text('+1 SET'), findsOneWidget);
+    expect(find.text('CRUSHED!'), findsNothing);
     await _frames(t, 40);
-    await t.tap(find.byKey(const ValueKey('exercise-dot-0'))); // back to the first exercise
-    await _frames(t, 4);
-    await t.tap(find.byKey(const ValueKey('world-object')));
-    await _frames(t, 4);
     await t.tap(find.byKey(const ValueKey('world-object'))); // 5th set
     await t.pump(const Duration(milliseconds: 100));
     expect(find.text('SLASHED!'), findsOneWidget);
-    expect(store.todayExercises[0].sets, 5);
+    expect(store.setsToday(first), 5);
+    expect(find.byKey(ValueKey('exercise-$first')), findsOneWidget); // no moving on
     await _frames(t, 80);
   });
 
@@ -322,72 +339,111 @@ void main() {
   test('one session per calendar day, with class, difficulty and area', () async {
     final (store, prefs) = await _store(setUp: true);
     expect(store.todaySession, isNull);
-    final plan = store.todayExercises.map((e) => e.exerciseId).toList();
     _now = DateTime(2026, 11, 21, 7);
-    store.addSet(0);
+    store.addSet(_squat);
     _now = DateTime(2026, 11, 21, 18); // 11 h later: same day, same session
-    store.addSet(0);
-    store.addSet(1);
+    store.addSet(_squat);
+    store.addSet(_bench);
     final s = store.todaySession!;
     expect(store.sessions.keys, ['2026-11-21']);
     expect((s.classId, s.difficultyId, s.areaId, s.legacy), ('paladin', 'sweat', 'gainsgard', false));
     expect((s.firstMarkAt, s.lastMarkAt), ('2026-11-21T07:00:00', '2026-11-21T18:00:00'));
-    expect(s.exercises.map((e) => e.exerciseId), plan);
+    // Only exercises with sets, in the order of the first set.
+    expect(s.exercises.map((e) => e.exerciseId), [_squat, _bench]);
     expect([s.exercises[0].sets, s.exercises[1].sets], [2, 1]);
     // Saved under sessions_v3 as date -> session, and loads again.
     final raw = jsonDecode(prefs.getString('sessions_v3')!) as Map;
-    expect(raw['2026-11-21']['exercises'][0]['targetSets'], 3);
+    expect(raw['2026-11-21']['exercises'][0], {'exerciseId': _squat, 'sets': 2});
     expect(LogStore(prefs, clock: () => _now).todaySession!.totalSets, 3);
   });
 
   test('a later day is a new session; a day with no sets does not count', () async {
     final (store, _) = await _store(setUp: true);
     _now = DateTime(2026, 11, 21, 23, 50);
-    store.addSet(0);
+    store.addSet(_squat);
     _now = DateTime(2026, 11, 22, 0, 10); // 20 min later, but a new day
     expect(store.todaySession, isNull);
-    store.addSet(0);
+    store.addSet(_squat);
     expect(store.sessions.keys.toSet(), {'2026-11-21', '2026-11-22'});
     _now = DateTime(2026, 11, 23, 9);
-    store.addSet(0); // a set taken back: a session with no sets
-    store.removeSet(0);
+    store.addSet(_squat); // a set taken back: a session with no sets
+    store.removeSet(_squat);
+    expect(store.todaySession!.exercises, isEmpty);
     expect(store.sessions.length, 3);
     expect(store.history.map((s) => s.date), ['2026-11-22', '2026-11-21']);
   });
 
   // -------------------------------------------------------------- workouts
 
-  test('a workout: N exercises from the pool, each with a target', () async {
+  test('filters (D50-D53): class, difficulty, body part, muscle, favorites', () async {
     final (store, _) = await _store(setUp: true);
-    final pool = classById('paladin').exercises.map((e) => e.id).toSet();
-    final list = store.todayExercises;
-    expect(list.length, rulesFor(_d).exercisesPerWorkout);
-    expect(list.every((e) => pool.contains(e.exerciseId) && e.targetSets == rulesFor(_d).targetSets), isTrue);
-    expect(list.map((e) => e.exerciseId).toSet().length, list.length);
-    expect(LogStore.planFor(classById('cablemancer'), 5, '2026-11-21').length, 8);
+    final f = store.filter;
+    expect(f, const ExerciseFilter(classId: 'paladin', difficulty: _d)); // your class and mode
+    final list = store.exercises;
+    expect(list, isNotEmpty);
+    // Class: its equipment and categories only.
+    expect(list.every((e) => classEquipment['paladin']!.contains(e.equipment)), isTrue);
+    expect(list.every((e) => classCategories['paladin']!.contains(e.category)), isTrue);
+    expect(list.any((e) => e.equipment == 'other' || e.equipment == 'foam roll'), isFalse);
+    // Difficulty: Sweat sees beginner and intermediate; harder levels first.
+    expect([for (final d in [0, 1, 2, 3, 4, 5]) topLevelFor(d)], [0, 0, 1, 1, 2, 2]);
+    expect(list.every((e) => e.level <= 1), isTrue);
+    expect(list.first.level, 1);
+    expect(f.countDifficulty(exerciseCatalog, const {}, 5), greaterThan(list.length)); // higher sees lower too
+    // Body part, then a muscle of it.
+    store.setFilter(f.withBody('legs'));
+    final legs = store.exercises;
+    expect(legs.every((e) => bodyPartById('legs')!.muscles.contains(e.muscle)), isTrue);
+    expect(legs.length, f.countBody(exerciseCatalog, const {}, 'legs'));
+    store.setFilter(store.filter.withMuscle('quadriceps'));
+    expect(store.exercises.every((e) => e.muscle == 'quadriceps'), isTrue);
+    expect(store.exercises.length, lessThan(legs.length));
+    // Cascade: an earlier change that leaves the muscle empty resets it.
+    store.setFilter(const ExerciseFilter(classId: 'scrapper', difficulty: 0, body: 'back', muscle: 'lower back'));
+    expect(store.filter.muscle, 'lower back'); // Scrapper in Sofa Mode has some
+    expect(store.filter.copyWith(classId: 'cablemancer').countMuscle(exerciseCatalog, const {}, 'lower back'), 0);
+    store.setFilter(store.filter.copyWith(classId: 'cablemancer'));
+    expect((store.filter.body, store.filter.muscle), ('back', null));
+    // Favorites: first in the list; the star filter combines with the rest.
+    store.resetFilter();
+    expect(store.filter, store.defaultFilter);
+    final fav = store.exercises.last.id;
+    store.toggleFavorite(fav);
+    expect(store.exercises.first.id, fav); // the first card is a favorite
+    store.setFilter(store.filter.copyWith(favorites: true));
+    expect(store.exercises.map((e) => e.id), [fav]);
+    final other = bodyPartOf(exerciseCatalog.byId[fav]!.muscle)!.id == 'core' ? 'chest' : 'core';
+    store.setFilter(store.filter.withBody(other));
+    expect(store.filter.body, isNull); // no favorite there: back to all body parts
+    store.toggleFavorite(fav);
+    expect(store.favorites, isEmpty);
+    expect(store.exercises, isEmpty); // favorites only, and none left
+    // A new day starts from the defaults again.
+    store.setFilter(store.filter.withBody('arms'));
+    _now = _now.add(const Duration(days: 1));
+    expect(store.filter, store.defaultFilter);
   });
 
   test('class, difficulty and area can change; each session keeps its own', () async {
     final (store, _) = await _store(setUp: true);
-    store.addSet(0);
+    store.addSet(_squat);
     final xp = store.totalXp;
     const gym = Profile(character: Character(), classId: 'cablemancer', difficultyId: 'nightmare', areaId: 'riptide');
     store.setProfile(gym);
     expect((store.todaySession!.classId, store.todaySession!.areaId), ('paladin', 'gainsgard'));
     expect(store.totalXp, xp);
+    expect(store.filter, const ExerciseFilter(classId: 'cablemancer', difficulty: 5)); // the filters follow
     _now = _now.add(const Duration(days: 1));
-    expect(store.todayExercises.length, 8);
-    expect(store.todayExercises.first.exerciseId, startsWith('cablemancer.'));
-    store.addSet(0);
+    store.addSet(store.exercises.first.id);
     expect(store.todaySession!.areaId, 'riptide');
     expect(store.sessions['2026-11-21']!.difficultyId, 'sweat');
 
     // With no sets yet, a change makes today's workout again.
     final (fresh, _) = await _store(setUp: true);
-    fresh.addSet(0);
-    fresh.removeSet(0);
+    fresh.addSet(_squat);
+    fresh.removeSet(_squat);
     fresh.setProfile(gym);
-    expect(fresh.todayExercises.first.exerciseId, startsWith('cablemancer.'));
+    expect(fresh.todaySession, isNull);
   });
 
   test('body sliders keep a history of changes', () async {
@@ -405,25 +461,25 @@ void main() {
 
   // ------------------------------------------------------------------- XP
 
-  test('XP: sets (over target, criticals) and the first set of the day; no streak', () async {
+  test('XP: sets (cap, criticals) and the first set of the day; no streak', () async {
     final (store, _) = await _store(setUp: true);
-    for (var i = 0; i < 7; i++) {
-      store.addSet(0); // target 3: sets 4-6 ×1.5, set 7 gives 0
+    for (var i = 0; i < 12; i++) {
+      store.addSet(_squat); // sets 11 and 12 give 0
     }
     int expected(Session s) => [
           for (final e in s.exercises)
             for (var n = 1; n <= e.sets; n++)
-              xpForSet(setNumber: n, target: e.targetSets, difficulty: _d, critical: isCritical(s.date, e.exerciseId, n)),
+              xpForSet(setNumber: n, difficulty: _d, critical: isCritical(s.date, e.exerciseId, n)),
         ].fold(0, (a, b) => a + b);
     final sat = store.todaySession!;
     expect(store.xpEvents.where((e) => e.source == 'sets').single.amount, expected(sat));
     expect(store.xpEvents.where((e) => e.source == 'day').single.amount, xpFirstSetOfDay);
-    expect(store.cardXp(0), expected(sat));
+    expect(store.exerciseXpToday(_squat), expected(sat));
 
     // Training days in later weeks give no extra XP (D34).
     for (final d in [22, 23, 27, 30]) {
       _now = DateTime(2026, 11, d, 9);
-      store.addSet(0);
+      store.addSet(_bench);
     }
     final s = store.sessions.values;
     expect(store.totalXp, s.fold(0, (a, x) => a + expected(x)) + s.length * xpFirstSetOfDay);
@@ -486,20 +542,22 @@ void main() {
   test('backups: everything round-trips; old version-2 backups go through the migration', () async {
     final (store, _) = await _store(setUp: true);
     store.setProfile(_profile);
-    store.addSet(0);
+    store.addSet(_squat);
     _now = _now.add(const Duration(days: 1));
-    store.addSet(1);
+    store.addSet(_bench);
+    store.toggleFavorite(_bench);
     final backup = store.backupJson();
     final data = jsonDecode(backup) as Map;
-    expect(data['version'], 5);
-    expect(data.keys, containsAll(['profile_v1', 'body_history_v1', 'sessions_v3', 'xp_events_v1']));
+    expect(data['version'], 6);
+    expect(data.keys, containsAll(['profile_v1', 'body_history_v1', 'sessions_v3', 'xp_events_v1', 'favorites_v1']));
 
     final (other, otherPrefs) = await _store(old: true); // un-migrated old data on this phone
     await other.importBackup(backup);
     expect(other.profile!.classId, 'paladin');
     expect(other.sessions.length, 2);
     expect(other.bodyHistory.length, 1);
-    expect(other.todaySession!.exercises[1].sets, 1);
+    expect(other.setsToday(_bench), 1);
+    expect(other.favorites, {_bench});
     expect(other.backupJson(), backup);
     expect(otherPrefs.getString('logs_v2'), _oldLogs); // only the migration deletes old keys
     await expectLater(other.importBackup('not json'), throwsA(anything));
@@ -691,7 +749,7 @@ void main() {
         const Character(sex: 'female', height: 100, muscle: 100, fat: 0, skin: 'deep', hair: 'blonde', facialHair: 'beard'));
     expect((saved.classId, saved.difficultyId, saved.areaId, saved.schemaVersion), ('paladin', 'sweat', 'gainsgard', 1));
     expect(find.byKey(const ValueKey('world-object')), findsOneWidget); // the workout is home (D49)
-    expect(find.text(exerciseName(store.todayExercises.first.exerciseId).toUpperCase()), findsOneWidget);
+    expect(find.text(store.exercises.first.name.toUpperCase()), findsOneWidget);
     expect(find.textContaining('THIS WEEK'), findsNothing); // no streak (D34)
     expect(pushes.pushes, 1); // only the home route: views never push routes
   });
@@ -702,6 +760,8 @@ void main() {
     expect(find.text('TRAIN'), findsNothing);
     expect(find.text('START TRAINING ▶'), findsNothing);
     expect(find.text('I WORKED 💪'), findsNothing);
+    final first = store.exercises.first.id;
+    expect(find.text('NO SETS YET'), findsOneWidget);
 
     final card = find.byKey(const ValueKey('world-object'));
     await t.tap(card);
@@ -720,16 +780,12 @@ void main() {
       await t.pump(const Duration(milliseconds: 80));
     }
     await closeCard();
-    // At the target the strip moved on; go back to the first exercise.
     await _frames(t, 20);
-    expect(find.byKey(const ValueKey('exercise-1')), findsOneWidget); // the carousel moved on
-    await t.tap(find.byKey(const ValueKey('exercise-dot-0')));
-    await _frames(t, 4);
+    expect(find.byKey(ValueKey('exercise-$first')), findsOneWidget); // no targets: it stays
     await t.longPress(card);
     await _frames(t, 70);
-    expect(store.todayExercises[0].sets, 5);
-    expect(find.textContaining('5/3'), findsOneWidget);
-    expect(find.textContaining('+${store.cardXp(0)} XP'), findsOneWidget);
+    expect(store.setsToday(first), 5);
+    expect(find.textContaining('5 SETS · +${store.exerciseXpToday(first)} XP'), findsOneWidget);
 
     await t.tap(find.byKey(const ValueKey('nav-hub')));
     await _frames(t);
@@ -750,16 +806,17 @@ void main() {
     for (final k in ['tool-swap', 'tool-first', 'tool-skip', 'tool-remove', 'strip-add']) {
       expect(find.byKey(ValueKey(k)), findsNothing, reason: k);
     }
-    expect(find.byKey(const ValueKey('exercise-dot-0')), findsOneWidget);
+    expect(find.byKey(const ValueKey('exercise-counter')), findsOneWidget);
     expect(find.byKey(const ValueKey('world-object')), findsOneWidget);
     expect(t.takeException(), isNull);
   });
 
-  testWidgets('workout (D48): swipe the exercise carousel; the world adds to the one shown', (t) async {
+  testWidgets('workout (D48, D50): swipe the exercise carousel; the world adds to the one shown', (t) async {
     final (store, _) = await _openApp(t);
-    final n = store.todayCards.length;
-    expect(find.byKey(const ValueKey('exercise-0')), findsOneWidget);
-    expect(find.text('EXERCISE 1 OF $n'), findsNothing); // no "x of y" (D49)
+    final list = store.exercises;
+    expect(find.byKey(ValueKey('exercise-${list[0].id}')), findsOneWidget);
+    expect(find.text('1 / ${list.length}'), findsOneWidget); // a counter, not dots
+    expect(find.byKey(const ValueKey('exercise-dot-0')), findsNothing);
     // Filter tags with the defaults (D49).
     expect(find.descendant(of: find.byKey(const ValueKey('filter-class')), matching: find.text('PLATE PALADIN')), findsOneWidget);
     expect(find.descendant(of: find.byKey(const ValueKey('filter-difficulty')), matching: find.text('SWEAT MODE')), findsOneWidget);
@@ -769,19 +826,79 @@ void main() {
     final carousel = find.byKey(const ValueKey('exercise-card'));
     await t.fling(carousel, const Offset(-300, 0), 1000); // next
     await _frames(t, 10);
-    expect(find.byKey(const ValueKey('exercise-1')), findsOneWidget);
+    expect(find.byKey(ValueKey('exercise-${list[1].id}')), findsOneWidget);
+    expect(find.text('2 / ${list.length}'), findsOneWidget);
     await t.tap(find.byKey(const ValueKey('world-object')));
     await _frames(t, 70);
     if (find.byKey(const ValueKey('intro-card')).evaluate().isNotEmpty) {
       await t.tap(find.byKey(const ValueKey('intro-card')));
       await _frames(t, 4);
     }
-    expect((store.todayExercises[0].sets, store.todayExercises[1].sets), (0, 1));
+    expect((store.setsToday(list[0].id), store.setsToday(list[1].id)), (0, 1));
     await t.fling(carousel, const Offset(300, 0), 1000); // back
     await _frames(t, 10);
     await t.fling(carousel, const Offset(300, 0), 1000); // round to the last one
     await _frames(t, 10);
-    expect(find.byKey(ValueKey('exercise-${store.todayCards.last}')), findsOneWidget);
+    expect(find.byKey(ValueKey('exercise-${list.last.id}')), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('workout: the star button and the star tag (D53)', (t) async {
+    final (store, _) = await _openApp(t);
+    final carousel = find.byKey(const ValueKey('exercise-card'));
+    await t.fling(carousel, const Offset(-300, 0), 1000);
+    await _frames(t, 10);
+    final second = store.exercises[1].id;
+    await t.tap(find.byKey(const ValueKey('favorite-star')));
+    await _frames(t, 10);
+    expect(store.favorites, {second});
+    expect(find.byKey(ValueKey('exercise-$second')), findsOneWidget); // the card stays
+    // The star tag: favorites only.
+    await t.tap(find.byKey(const ValueKey('filter-favorites')));
+    await _frames(t, 10);
+    expect(store.filter.favorites, isTrue);
+    expect(find.text('1 / 1'), findsOneWidget);
+    // Unstar it: nothing left, with a way back.
+    await t.tap(find.byKey(const ValueKey('favorite-star')));
+    await _frames(t, 10);
+    expect(find.text('NO FAVORITES YET. TAP THE STAR ON AN EXERCISE.'), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('filter-reset-empty')));
+    await _frames(t, 10);
+    expect(store.filter, store.defaultFilter);
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('workout: a filter tag opens the sheet; chips cascade and show counts', (t) async {
+    final (store, _) = await _openApp(t);
+    await t.tap(find.byKey(const ValueKey('filter-body')));
+    await _frames(t, 10);
+    expect(find.byKey(const ValueKey('chip-class-paladin')), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('chip-body-legs')));
+    await _frames(t, 4);
+    expect(store.filter.body, 'legs');
+    await t.ensureVisible(find.byKey(const ValueKey('chip-muscle-quadriceps')));
+    await t.tap(find.byKey(const ValueKey('chip-muscle-quadriceps')));
+    await _frames(t, 4);
+    expect(store.filter.muscle, 'quadriceps');
+    final n = store.exercises.length;
+    expect(find.text('SHOW $n EXERCISES'), findsOneWidget);
+    await t.ensureVisible(find.byKey(const ValueKey('chip-difficulty-brutal')));
+    await t.tap(find.byKey(const ValueKey('chip-difficulty-brutal')));
+    await _frames(t, 4);
+    expect(store.filter.difficulty, 4);
+    expect(store.filter.muscle, 'quadriceps'); // still has exercises: kept
+    await t.tap(find.byKey(const ValueKey('filter-show')));
+    await _frames(t, 20);
+    expect(find.byKey(const ValueKey('chip-class-paladin')), findsNothing);
+    expect(find.descendant(of: find.byKey(const ValueKey('filter-body')), matching: find.text('QUADRICEPS')), findsOneWidget);
+    expect(find.descendant(of: find.byKey(const ValueKey('filter-difficulty')), matching: find.text('BRUTAL MODE')), findsOneWidget);
+    expect(store.exercises.every((e) => e.muscle == 'quadriceps'), isTrue);
+    // RESET TO MINE in the sheet.
+    await t.tap(find.byKey(const ValueKey('filter-class')));
+    await _frames(t, 10);
+    await t.tap(find.byKey(const ValueKey('filter-reset')));
+    await _frames(t, 4);
+    expect(store.filter, store.defaultFilter);
     expect(t.takeException(), isNull);
   });
 
@@ -844,7 +961,7 @@ void main() {
     testWidgets('every scene renders on a phone ($b)', (t) async {
       _phone(t);
       final (store, _) = await _store(setUp: true);
-      store.addSet(0);
+      store.addSet(_squat);
       await t.pumpWidget(MaterialApp(theme: pumplexTheme(b), home: GameShell(store: store)));
       await _frames(t);
       Future<void> tapAndSettle(Finder f) async {

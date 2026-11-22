@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'dates.dart';
 import 'game/content.dart';
+import 'game/exercises.dart';
 import 'game/model.dart';
 import 'game/rules.dart';
 
@@ -17,6 +18,7 @@ class LogStore extends ChangeNotifier {
     _load();
     _migrateIds();
     _freezeStreakXp();
+    _freezeOldWorkouts();
     removedKeys.forEach(_prefs.remove);
   }
 
@@ -24,6 +26,11 @@ class LogStore extends ChangeNotifier {
   static const _bodyKey = 'body_history_v1';
   static const _sessionsKey = 'sessions_v3';
   static const _xpKey = 'xp_events_v1';
+  static const _favoritesKey = 'favorites_v1';
+
+  /// Copy of the sessions as they were before the old exercise lists were
+  /// dropped (D54), kept on the phone.
+  static const oldExercisesBackupKey = 'old_exercises_v0_backup';
 
   /// Keys of removed features, deleted on start: achievements (D35; the XP
   /// they gave stays as saved `achievement` XP events), gear (D38), chaos
@@ -51,6 +58,7 @@ class LogStore extends ChangeNotifier {
   final List<BodyChange> _body = [];
   final Map<String, Session> _sessions = {};
   final List<XpEvent> _events = [];
+  final Set<String> _favorites = {};
 
   dynamic _json(String key, Object fallback) {
     final raw = _prefs.getString(key);
@@ -81,16 +89,86 @@ class LogStore extends ChangeNotifier {
   void _freezeStreakXp() {
     if (_prefs.getBool(streakFrozenKey) ?? false) return;
     final known = {for (final e in _events) if (e.source == 'streak') e.ref};
-    _events.addAll(_oldStreakEvents(_sessions.values).where((e) => !known.contains(e.ref)));
+    _events.addAll(_oldStreakEvents(_rawSessions()).where((e) => !known.contains(e.ref)));
     _saveEvents();
     _prefs.setBool(streakFrozenKey, true);
+  }
+
+  /// The saved sessions with the old fields the parsed model no longer has
+  /// (each exercise's target), for the one-time XP freezes.
+  List<_RawSession> _rawSessions() => [
+        for (final e in (_json(_sessionsKey, const {}) as Map).entries)
+          if (e.value is Map)
+            (
+              date: e.key as String,
+              difficultyId: (e.value as Map)['difficultyId'] as String? ?? '',
+              legacy: (e.value as Map)['legacy'] as bool? ?? false,
+              lastMarkAt: (e.value as Map)['lastMarkAt'] as String?,
+              exercises: [
+                for (final x in (e.value as Map)['exercises'] as List? ?? const [])
+                  if (x is Map && x['exerciseId'] is String)
+                    (
+                      id: newExerciseId(x['exerciseId'] as String),
+                      target: (x['targetSets'] as num?)?.toInt() ?? 0,
+                      sets: (x['sets'] as num?)?.toInt() ?? 0,
+                    ),
+              ],
+            ),
+      ];
+
+  /// One-time (D54): sessions from before the exercise list use the old
+  /// class-pool ids (`paladin.squat`). Their exercise lists are dropped;
+  /// each training day stays in history as a legacy day, and its XP (sets
+  /// by the old target rules, and the first-set bonus) is saved as a
+  /// `workout` XP event, so no one loses XP.
+  void _freezeOldWorkouts() {
+    final old = _rawSessions().where((s) => !s.legacy && s.exercises.any((e) => e.id.contains('.'))).toList();
+    if (old.isEmpty) return;
+    if (!_prefs.containsKey(oldExercisesBackupKey)) {
+      _prefs.setString(oldExercisesBackupKey, _prefs.getString(_sessionsKey) ?? '');
+    }
+    final known = {for (final e in _events) if (e.source == 'workout') e.ref};
+    for (final s in old) {
+      final had = _sessions[s.date]!;
+      final sets = s.exercises.fold(0, (a, e) => a + e.sets);
+      if (sets == 0) {
+        _sessions.remove(s.date);
+        continue;
+      }
+      final d = difficultyIndex(s.difficultyId);
+      var xp = 0;
+      for (final e in s.exercises) {
+        for (var n = 1; n <= e.sets; n++) {
+          xp += oldSetXp(setNumber: n, target: e.target, difficulty: d, critical: isCritical(s.date, e.id, n)).round();
+        }
+      }
+      if (!known.contains(s.date)) {
+        _events.add(XpEvent(
+          at: s.lastMarkAt ?? '${s.date}T00:00:00',
+          source: 'workout',
+          amount: xp + xpFirstSetOfDay,
+          ref: s.date,
+        ));
+      }
+      _sessions[s.date] = Session(
+        date: s.date,
+        classId: had.classId,
+        difficultyId: had.difficultyId,
+        areaId: had.areaId,
+        firstMarkAt: had.firstMarkAt,
+        lastMarkAt: had.lastMarkAt,
+        legacy: true,
+      );
+    }
+    _saveEvents();
+    _saveSessions();
   }
 
   /// The streak bonus of each session, by the rules before D34: a week with
   /// N training days (N by difficulty: 2, 2, 2, 3, 3, 4) is a streak week; a
   /// session gets +5% set XP per streak week in a row before its week, at
   /// most +25%, rounded set by set.
-  static List<XpEvent> _oldStreakEvents(Iterable<Session> all) {
+  static List<XpEvent> _oldStreakEvents(List<_RawSession> all) {
     const streakN = [2, 2, 2, 3, 3, 4];
     String weekOf(String date) {
       final d = parseDateKey(date);
@@ -98,7 +176,8 @@ class LogStore extends ChangeNotifier {
     }
 
     String before(String w) => dateKey(addDays(parseDateKey(w), -7));
-    final played = all.where((s) => !s.legacy && s.totalSets > 0).toList()..sort((a, b) => a.date.compareTo(b.date));
+    final played = all.where((s) => !s.legacy && s.exercises.any((e) => e.sets > 0)).toList()
+      ..sort((a, b) => a.date.compareTo(b.date));
     final weeks = <String, ({int days, int n})>{};
     for (final s in played) {
       final w = weekOf(s.date);
@@ -117,7 +196,7 @@ class LogStore extends ChangeNotifier {
       var bonus = 0;
       for (final e in s.exercises) {
         for (var n = 1; n <= e.sets; n++) {
-          final xp = setXp(setNumber: n, target: e.targetSets, difficulty: d, critical: isCritical(s.date, e.exerciseId, n));
+          final xp = oldSetXp(setNumber: n, target: e.target, difficulty: d, critical: isCritical(s.date, e.id, n));
           bonus += (xp * mult).round() - xp.round();
         }
       }
@@ -145,6 +224,10 @@ class LogStore extends ChangeNotifier {
       ..addAll([
         for (final e in _json(_xpKey, const []) as List) XpEvent.fromJson(Map<String, dynamic>.from(e as Map)),
       ]);
+    _favorites
+      ..clear()
+      ..addAll([for (final id in _json(_favoritesKey, const []) as List) if (id is String) id]);
+    _filter = null;
   }
 
   String get _now => isoNow(_clock());
@@ -264,8 +347,47 @@ class LogStore extends ChangeNotifier {
       _sessions.remove(_today);
       _saveSessions();
     }
+    _filter = null; // the filters go back to the new class and mode
     notifyListeners();
   }
+
+  // ------------------------------------------------- favorites and filters
+
+  /// Favorite exercise ids (D53).
+  Set<String> get favorites => Set.unmodifiable(_favorites);
+
+  bool isFavorite(String id) => _favorites.contains(id);
+
+  void toggleFavorite(String id) {
+    if (!_favorites.remove(id)) _favorites.add(id);
+    _prefs.setString(_favoritesKey, jsonEncode(_favorites.toList()));
+    notifyListeners();
+  }
+
+  ExerciseFilter? _filter;
+  String? _filterDay;
+
+  /// Your class, your mode, all body parts, not only favorites.
+  ExerciseFilter get defaultFilter => ExerciseFilter(classId: gameClass.id, difficulty: difficulty);
+
+  /// The workout filters. Each new day starts from [defaultFilter]; in the
+  /// same day the last choice stays (in memory only).
+  ExerciseFilter get filter => (_filterDay == _today ? _filter : null) ?? defaultFilter;
+
+  /// A new choice; a body part or muscle with nothing left goes back to all.
+  void setFilter(ExerciseFilter f) {
+    _filter = f.settle(exerciseCatalog, _favorites);
+    _filterDay = _today;
+    notifyListeners();
+  }
+
+  void resetFilter() {
+    _filter = null;
+    notifyListeners();
+  }
+
+  /// The exercises the filters show, in carousel order.
+  List<CatalogExercise> get exercises => filter.apply(exerciseCatalog, _favorites);
 
   // ------------------------------------------------------------- sessions
 
@@ -282,31 +404,9 @@ class LogStore extends ChangeNotifier {
     return s == null || s.legacy ? null : s;
   }
 
-  /// The first workout of a day: `exercisesPerWorkout` exercises from the
-  /// class pool, starting at a place that moves on each day.
-  static List<SessionExercise> planFor(GameClass c, int difficulty, String day) {
-    final pool = c.exercises;
-    final r = rulesFor(difficulty);
-    final n = r.exercisesPerWorkout.clamp(1, pool.length);
-    final start = daysBetween(DateTime(2026), parseDateKey(day)).abs() % pool.length;
-    final ids = [for (var i = 0; i < n; i++) pool[(start + i) % pool.length].id];
-    return [
-      for (final (i, id) in ids.indexed)
-        SessionExercise(position: i, exerciseId: id, originalExerciseId: id, targetSets: r.targetSets),
-    ];
-  }
-
-  /// Today's workout (all entries; sessions from before D32 may have
-  /// removed ones: use the index of this list for the set calls). A new
-  /// plan until something is done today.
-  List<SessionExercise> get todayExercises =>
-      todaySession?.exercises ?? planFor(gameClass, difficulty, _today);
-
-  /// Indexes of [todayExercises] shown as cards (not removed).
-  List<int> get todayCards => [
-        for (final (i, e) in todayExercises.indexed)
-          if (!e.removed) i,
-      ];
+  /// Today's working sets of exercise [id].
+  int setsToday(String id) =>
+      todaySession?.exercises.where((e) => e.exerciseId == id).firstOrNull?.sets ?? 0;
 
   void _edit(List<SessionExercise> Function(List<SessionExercise> list) edit) {
     final s = todaySession ??
@@ -315,20 +415,26 @@ class LogStore extends ChangeNotifier {
           classId: gameClass.id,
           difficultyId: difficulties[difficulty].id,
           areaId: areaById(_profile?.areaId).id,
-          exercises: planFor(gameClass, difficulty, _today),
         );
     _sessions[_today] = s.copyWith(lastMarkAt: _now, exercises: edit([...s.exercises]));
     _saveSessions();
     notifyListeners();
   }
 
-  /// Tap on card [i]: one more working set.
-  void addSet(int i) => _edit((l) => l..[i] = l[i].copyWith(sets: l[i].sets + 1));
+  /// Tap on the world: one more working set of exercise [id].
+  void addSet(String id) => _edit((l) {
+        final i = l.indexWhere((e) => e.exerciseId == id);
+        return i < 0 ? (l..add(SessionExercise(exerciseId: id, sets: 1))) : (l..[i] = l[i].copyWith(sets: l[i].sets + 1));
+      });
 
-  /// Long-press on card [i]: one working set less (for a wrong tap).
-  void removeSet(int i) {
-    if (todayExercises[i].sets == 0) return;
-    _edit((l) => l..[i] = l[i].copyWith(sets: l[i].sets - 1));
+  /// Hold on the world: one working set less (for a wrong tap). An
+  /// exercise with no sets left leaves the session.
+  void removeSet(String id) {
+    if (setsToday(id) == 0) return;
+    _edit((l) {
+      final i = l.indexWhere((e) => e.exerciseId == id);
+      return l[i].sets == 1 ? (l..removeAt(i)) : (l..[i] = l[i].copyWith(sets: l[i].sets - 1));
+    });
   }
 
   // ------------------------------------------------------------------- XP
@@ -338,12 +444,7 @@ class LogStore extends ChangeNotifier {
     final d = difficultyIndex(s.difficultyId);
     var xp = 0;
     for (var n = 1; n <= e.sets; n++) {
-      xp += xpForSet(
-        setNumber: n,
-        target: e.targetSets,
-        difficulty: d,
-        critical: isCritical(s.date, e.exerciseId, n),
-      );
+      xp += xpForSet(setNumber: n, difficulty: d, critical: isCritical(s.date, e.exerciseId, n));
     }
     return xp;
   }
@@ -356,47 +457,56 @@ class LogStore extends ChangeNotifier {
   /// day). See lib/game/model.dart.
   List<XpEvent> get xpEvents {
     final out = [..._events];
+    // A day frozen by D54 already holds its first-set bonus.
+    final frozen = {for (final e in _events) if (e.source == 'workout') e.ref};
     for (final s in _sessions.values) {
       if (s.legacy || s.totalSets == 0) continue;
       final at = s.lastMarkAt ?? '${s.date}T00:00:00';
       out.add(XpEvent(at: at, source: 'sets', amount: _setsXp(s), ref: s.date));
-      out.add(XpEvent(at: s.firstMarkAt ?? at, source: 'day', amount: xpFirstSetOfDay, ref: s.date));
+      if (!frozen.contains(s.date)) {
+        out.add(XpEvent(at: s.firstMarkAt ?? at, source: 'day', amount: xpFirstSetOfDay, ref: s.date));
+      }
     }
     return out;
   }
 
   int get totalXp => xpEvents.fold(0, (a, e) => a + e.amount);
 
+  /// Saved XP events that belong to one day's session.
+  static const _sessionSources = {'legacy', 'streak', 'workout'};
+
   /// XP a session brought: sets and the first-set bonus, plus its saved
-  /// events (legacy: the old-app day; old streak bonus).
+  /// events (legacy: the old-app day; old streak bonus; old workout, D54).
   int xpOfSession(Session s) {
     final saved = _events
-        .where((e) => e.ref == s.date && (e.source == 'legacy' || e.source == 'streak'))
+        .where((e) => e.ref == s.date && _sessionSources.contains(e.source))
         .fold(0, (a, e) => a + e.amount);
     if (s.legacy || s.totalSets == 0) return saved;
-    return _setsXp(s) + xpFirstSetOfDay + saved;
+    final day = _events.any((e) => e.ref == s.date && e.source == 'workout') ? 0 : xpFirstSetOfDay;
+    return _setsXp(s) + day + saved;
   }
 
-  /// XP of today's card [i] so far (with criticals).
-  int cardXp(int i) {
-    final s = todaySession;
-    if (s == null) return 0;
-    return _exerciseXp(s, s.exercises[i]);
+  SessionExercise? _todayEntry(String id) =>
+      todaySession?.exercises.where((e) => e.exerciseId == id).firstOrNull;
+
+  /// XP of exercise [id] today so far (with criticals).
+  int exerciseXpToday(String id) {
+    final e = _todayEntry(id);
+    return e == null ? 0 : _exerciseXp(todaySession!, e);
   }
 
-  /// Whether the last set on today's card [i] was a critical set.
-  bool lastSetCritical(int i) {
-    final s = todaySession;
-    if (s == null) return false;
-    final e = s.exercises[i];
-    return e.sets > 0 && e.sets <= e.targetSets * overTargetCap && isCritical(s.date, e.exerciseId, e.sets);
+  /// Whether the last set of exercise [id] today was a critical set.
+  bool lastSetCritical(String id) {
+    final e = _todayEntry(id);
+    return e != null && e.sets <= xpSetsPerExercise && isCritical(_today, id, e.sets);
   }
 
   // ----------------------------------------------------------------- backup
 
   /// 4: no achievements, and the old streak XP is in the XP events (D34).
   /// 5: no gear (D38).
-  static const backupVersion = 5;
+  /// 6: favorites; exercise ids from the exercise list (D50, D53).
+  static const backupVersion = 6;
 
   /// Backup file contents: every key of docs/data-schema.md §4.
   String backupJson() => const JsonEncoder.withIndent(' ').convert({
@@ -406,16 +516,18 @@ class LogStore extends ChangeNotifier {
         _bodyKey: [for (final b in _body) b.toJson()],
         _sessionsKey: _sessionsJson(_sessions.values),
         _xpKey: [for (final e in _events) e.toJson()],
+        _favoritesKey: _favorites.toList(),
       });
 
-  /// Replaces everything with a backup file. Version 5 is [backupJson].
-  /// Versions 3 and 4 may hold achievements or gear (ignored); version 3
+  /// Replaces everything with a backup file. Version 6 is [backupJson].
+  /// Versions 3 to 5 have no favorites, and their old exercise lists are
+  /// frozen on import (D54). Versions 3 and 4 may hold achievements or gear (ignored); version 3
   /// has no saved streak XP (worked out again on import). Version 2 (the old app) goes through the same migration: its workout
   /// days become legacy sessions with legacy XP; there is no profile, so
   /// the setup runs again.
   Future<void> importBackup(String raw) async {
     final data = jsonDecode(raw);
-    if (data is! Map || data['app'] != 'pumplex' || ![2, 3, 4, 5].contains(data['version'])) {
+    if (data is! Map || data['app'] != 'pumplex' || ![2, 3, 4, 5, 6].contains(data['version'])) {
       throw const FormatException('Not a PUMPLEX backup');
     }
     // Parse everything before touching current data.
@@ -443,9 +555,10 @@ class LogStore extends ChangeNotifier {
         _bodyKey: jsonEncode(data[_bodyKey] ?? const []),
         _sessionsKey: jsonEncode(data[_sessionsKey] ?? const {}),
         _xpKey: jsonEncode(data[_xpKey] ?? const []),
+        if (data[_favoritesKey] is List) _favoritesKey: jsonEncode(data[_favoritesKey]),
       };
     }
-    for (final k in [_profileKey, _bodyKey, _sessionsKey, _xpKey]) {
+    for (final k in [_profileKey, _bodyKey, _sessionsKey, _xpKey, _favoritesKey]) {
       out.containsKey(k) ? await _prefs.setString(k, out[k]!) : await _prefs.remove(k);
     }
     await _prefs.setBool(streakFrozenKey, (data['version'] as int) >= 4);
@@ -454,6 +567,16 @@ class LogStore extends ChangeNotifier {
     _load();
     _migrateIds();
     _freezeStreakXp();
+    _freezeOldWorkouts();
     notifyListeners();
   }
 }
+
+/// A saved session read straight from the JSON, with the old target field.
+typedef _RawSession = ({
+  String date,
+  String difficultyId,
+  bool legacy,
+  String? lastMarkAt,
+  List<({String id, int target, int sets})> exercises,
+});

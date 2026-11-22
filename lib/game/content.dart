@@ -1,20 +1,10 @@
 // PUMPLEX fixed game data (docs/data-schema.md §3): every NAME of the game
-// lives here (classes, exercise pools, difficulty levels, starting areas,
+// lives here (classes, difficulty levels, starting areas,
 // and level titles). All are working names and placeholders until
 // the design team sends the real ones. The numbers are in rules.dart.
 //
 // Rule: never reuse or rename an id. Saved data points to it. (The class
 // and area renames, D31 and D36, migrate saved data once: model.dart.)
-
-enum ExerciseKind { bodyweight, weights, machine, cardio }
-
-class Exercise {
-  const Exercise(this.id, this.name, this.kind);
-
-  final String id;
-  final String name;
-  final ExerciseKind kind;
-}
 
 /// One class per equipment type (docs/app-brief.md §4.1). Names and copy
 /// from docs/moodboard/README.md "Class select". The names are
@@ -30,7 +20,6 @@ class GameClass {
     required this.tags,
     required this.subtitle,
     required this.icon,
-    required this.exercises,
   });
 
   final String id;
@@ -58,13 +47,7 @@ class GameClass {
 
   /// Icon id in assets/icons (docs/moodboard/icons).
   final String icon;
-
-  /// The class exercise POOL (placeholder, TBD by design). A workout takes
-  /// `exercisesPerWorkout` of them (rules.dart), a new start each day (D32).
-  final List<Exercise> exercises;
 }
-
-const _b = ExerciseKind.bodyweight, _w = ExerciseKind.weights, _m = ExerciseKind.machine, _c = ExerciseKind.cardio;
 
 const gameClasses = <GameClass>[
   GameClass(
@@ -78,18 +61,6 @@ const gameClasses = <GameClass>[
     tags: ['CARDIO', 'BODYWEIGHT', 'SPRINTS'],
     subtitle: 'BUILT FROM STAIRS AND SPITE',
     icon: 'class-scrapper',
-    exercises: [
-      Exercise('scrapper.pushups', 'Push-ups', _b),
-      Exercise('scrapper.burpees', 'Burpees', _c),
-      Exercise('scrapper.sprints', 'Sprints', _c),
-      Exercise('scrapper.jumps', 'Jump squats', _b),
-      Exercise('scrapper.lunges', 'Lunges', _b),
-      Exercise('scrapper.plank', 'Plank', _b),
-      Exercise('scrapper.climbers', 'Mountain climbers', _c),
-      Exercise('scrapper.jacks', 'Jumping jacks', _c),
-      Exercise('scrapper.squats', 'Air squats', _b),
-      Exercise('scrapper.dips', 'Chair dips', _b),
-    ],
   ),
   GameClass(
     id: 'bruiser',
@@ -102,18 +73,6 @@ const gameClasses = <GameClass>[
     tags: ['FLOOR WORK', 'SOME CARDIO', 'SOME WEIGHTS'],
     subtitle: 'BUY ONE GAIN, GET ONE FREE',
     icon: 'class-bruiser',
-    exercises: [
-      Exercise('bruiser.goblet', 'Goblet squats', _w),
-      Exercise('bruiser.pushups', 'Push-ups', _b),
-      Exercise('bruiser.rows', 'Dumbbell rows', _w),
-      Exercise('bruiser.climbers', 'Mountain climbers', _c),
-      Exercise('bruiser.kbswing', 'Kettlebell swings', _w),
-      Exercise('bruiser.press', 'Dumbbell press', _w),
-      Exercise('bruiser.lunges', 'Dumbbell lunges', _w),
-      Exercise('bruiser.burpees', 'Burpees', _c),
-      Exercise('bruiser.curls', 'Dumbbell curls', _w),
-      Exercise('bruiser.plank', 'Plank', _b),
-    ],
   ),
   GameClass(
     id: 'paladin',
@@ -126,18 +85,6 @@ const gameClasses = <GameClass>[
     tags: ['STRONGMAN', 'BARBELL', 'HEAVY'],
     subtitle: 'OATH-SWORN TO THE BARBELL',
     icon: 'class-paladin',
-    exercises: [
-      Exercise('paladin.squat', 'Back squats', _w),
-      Exercise('paladin.deadlift', 'Deadlifts', _w),
-      Exercise('paladin.bench', 'Bench press', _w),
-      Exercise('paladin.press', 'Overhead press', _w),
-      Exercise('paladin.row', 'Barbell rows', _w),
-      Exercise('paladin.frontsquat', 'Front squats', _w),
-      Exercise('paladin.rdl', 'Romanian deadlifts', _w),
-      Exercise('paladin.curls', 'Barbell curls', _w),
-      Exercise('paladin.pullups', 'Pull-ups', _b),
-      Exercise('paladin.dips', 'Dips', _b),
-    ],
   ),
   GameClass(
     id: 'cablemancer',
@@ -150,36 +97,15 @@ const gameClasses = <GameClass>[
     tags: ['MACHINES', 'CABLES', 'LEAN POWER'],
     subtitle: 'SPEAKS FLUENT PULLEY',
     icon: 'class-cablemancer',
-    exercises: [
-      Exercise('cablemancer.legpress', 'Leg press', _m),
-      Exercise('cablemancer.pulldown', 'Lat pulldown', _m),
-      Exercise('cablemancer.chest', 'Chest press', _m),
-      Exercise('cablemancer.cablerow', 'Cable rows', _m),
-      Exercise('cablemancer.legcurl', 'Leg curls', _m),
-      Exercise('cablemancer.legext', 'Leg extensions', _m),
-      Exercise('cablemancer.shoulder', 'Shoulder press machine', _m),
-      Exercise('cablemancer.flyes', 'Pec deck', _m),
-      Exercise('cablemancer.rower', 'Rowing machine', _c),
-      Exercise('cablemancer.abs', 'Ab crunch machine', _m),
-    ],
   ),
 ];
 
 GameClass classById(String? id) =>
     gameClasses.firstWhere((c) => c.id == id, orElse: () => gameClasses.first);
 
-/// Every exercise of every class, by id.
-final Map<String, Exercise> exercisesById = {
-  for (final c in gameClasses)
-    for (final e in c.exercises) e.id: e,
-};
-
-/// Display name of an exercise id (the id itself if it is unknown).
-String exerciseName(String id) => exercisesById[id]?.name ?? id;
-
 /// Difficulty modes, easiest first (docs/moodboard/README.md "Difficulty":
 /// 6 levels, every name is `<WORD> MODE`, proposals). The numbers
-/// (exercises, target sets, XP multiplier) are in rules.dart,
+/// (XP multiplier) are in rules.dart,
 /// same order. The gems are a picture of the multiplier, not the number.
 class Difficulty {
   const Difficulty(this.id, this.name, this.line, this.joke);
@@ -341,7 +267,6 @@ Area areaById(String? id) => areas.firstWhere((a) => a.id == id, orElse: () => a
 Area defaultAreaFor(String classId) =>
     areas.firstWhere((a) => a.defaultFor == classId, orElse: () => areas.first);
 
-/// Kicker line of the class-select step (design: marketing working name).
 /// A head look in the creator: id (rules.dart), name and swatch colour.
 class Look {
   const Look(this.id, this.name, this.swatch);
@@ -354,6 +279,7 @@ const skinLooks = [Look('light', 'LIGHT', 0xFFD39A6A), Look('deep', 'DEEP', 0xFF
 const hairLooks = [Look('brown', 'BROWN', 0xFF5A3424), Look('blonde', 'BLONDE', 0xFFD9A93E)];
 const facialHairLooks = [Look('none', 'NONE', 0x00000000), Look('beard', 'BEARD', 0xFF5A3424)];
 
+/// Kicker line of the class-select step (design: marketing working name).
 const pathsKicker = "THE SWOLEMANCER'S PATHS";
 
 /// Joke lines for the level-up intro card (one per level, in turn).

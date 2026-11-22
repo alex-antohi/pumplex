@@ -7,13 +7,13 @@
 //   lib/views/area_scene.dart) with the lifter in it. TAP THE OBJECT = one
 //   working set for the exercise shown below, HOLD IT = take the last set
 //   back (D17). The marks stay in the world.
-// - Under the world: the exercise carousel, one exercise at a time (name,
-//   target slots, set line, XP). Swipe it both ways, round and round; dots
-//   show where you are. At the target it moves on to the next open
-//   exercise. The list is the one the app picks for the day: no swap, skip,
-//   remove or add (D32).
+// - The filter tags (D49-D53): CLASS, DIFFICULTY and BODY PART open the
+//   filter sheet (lib/views/filters.dart); the star tag shows favorites
+//   only.
+// - Under them: the exercise carousel over every exercise the filters
+//   show (D50), one at a time, with a star button. Swipe it both ways,
+//   round and round; a counter shows where you are. No targets (D52).
 
-import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -21,15 +21,14 @@ import 'package:flutter/services.dart';
 
 import '../game/area_art.dart';
 import '../game/content.dart';
-import '../game/model.dart';
+import '../game/exercises.dart';
 import '../pumplex.dart';
 import '../store.dart';
 import 'area_scene.dart';
 import 'carousel.dart';
+import 'filters.dart';
 import 'setup.dart' show difficultyColor;
 import 'sprite.dart' show classColor;
-
-const _advanceDelay = Duration(milliseconds: 800);
 
 /// The workout card in a view of [area]: the world on top, the exercise
 /// carousel under it.
@@ -66,8 +65,8 @@ class WorkoutView extends StatefulWidget {
   final Rect stage;
   final LogStore store;
 
-  /// Index in `store.todayExercises` -> one set more / one set less.
-  final ValueChanged<int> onAdd, onRemove;
+  /// Exercise id -> one set more / one set less.
+  final ValueChanged<String> onAdd, onRemove;
 
   /// Opens the body sliders (tap on the lifter, D12).
   final VoidCallback onBody;
@@ -77,100 +76,71 @@ class WorkoutView extends StatefulWidget {
 }
 
 class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutView> {
-  // The carousel runs over the day's cards (indexes in todayExercises).
-  @override
-  int get count => _store.todayCards.length;
-
-  @override
-  int get index => max(0, _store.todayCards.indexOf(active));
-
-  @override
-  void select(int i) => setState(() => _active = _store.todayCards[i]);
-
-  int? _active;
+  /// The exercise shown. Null: the first one (a favorite when there is one).
+  String? _currentId;
   String? _burst;
   int _hitRun = 0;
-  Timer? _advance;
+
+  /// The filtered list, refreshed on every build.
+  List<CatalogExercise> _list = const [];
 
   LogStore get _store => widget.store;
 
-  /// The active card: the one picked, else the first open one below its target.
-  int get active {
-    final cards = _store.todayCards;
-    if (cards.isEmpty) return -1;
-    if (_active != null && cards.contains(_active)) return _active!;
-    final list = _store.todayExercises;
-    return cards.firstWhere((i) => list[i].sets < list[i].targetSets, orElse: () => cards.first);
-  }
-
-  /// The next card after [i] that is below its target.
-  int? _nextOpen(int i) {
-    final cards = _store.todayCards, list = _store.todayExercises;
-    final at = cards.indexOf(i);
-    for (var k = 1; k < cards.length; k++) {
-      final j = cards[(at + k) % cards.length];
-      if (list[j].sets < list[j].targetSets) return j;
-    }
-    return null;
-  }
+  @override
+  int get count => _list.length;
 
   @override
-  void dispose() {
-    _advance?.cancel();
-    super.dispose();
-  }
+  int get index => max(0, _list.indexWhere((e) => e.id == _currentId));
+
+  @override
+  void select(int i) => setState(() => _currentId = _list[i].id);
+
+  CatalogExercise? get _current => _list.isEmpty ? null : _list[index];
 
   void _hit() {
-    final i = active;
-    if (i < 0) return;
-    widget.onAdd(i);
-    final e = _store.todayExercises[i];
+    final e = _current;
+    if (e == null) return;
+    widget.onAdd(e.id);
+    final sets = _store.setsToday(e.id);
     final area = areaById(_store.todaySession?.areaId ?? _store.profile?.areaId);
     HapticFeedback.lightImpact();
     setState(() {
-      _active = i;
-      _burst = e.sets == e.targetSets ? 'CRUSHED!' : e.sets % 5 == 0 ? area.stamp : '+1 SET';
+      _currentId = e.id;
+      _burst = sets % 5 == 0 ? area.stamp : '+1 SET';
       _hitRun++;
     });
-    if (e.sets == e.targetSets) {
-      // Move on to the next open exercise.
-      _advance?.cancel();
-      _advance = Timer(_advanceDelay, () {
-        if (!mounted) return;
-        final next = _nextOpen(i);
-        if (next != null) {
-          setState(() {
-            dir = 1;
-            _active = next;
-          });
-        }
-      });
-    }
   }
 
   void _undo() {
-    final i = active;
-    if (i < 0) return;
+    final e = _current;
+    if (e == null) return;
     HapticFeedback.mediumImpact();
-    widget.onRemove(i);
+    widget.onRemove(e.id);
     setState(() => _burst = null); // undo has no effect animation
+  }
+
+  void _star(String id) {
+    HapticFeedback.selectionClick();
+    setState(() => _currentId = id); // stay on this card
+    _store.toggleFavorite(id);
   }
 
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
     final store = _store;
-    final list = store.todayExercises;
-    final cards = store.todayCards;
-    final act = active;
+    _list = store.exercises;
+    final e = _current;
+    final f = store.filter;
     final today = store.todaySession;
     final area = areaById(today?.areaId ?? store.profile?.areaId);
     final art = areaArt[area.id]!;
     final accent = Color(area.accent);
-    final e = act < 0 ? null : list[act];
-    final cls = classById(today?.classId ?? store.gameClass.id);
-    final di = difficultyIndex(today?.difficultyId ?? store.profile?.difficultyId);
+    final cls = classById(f.classId);
+    final sets = e == null ? 0 : store.setsToday(e.id);
     final firstTime = store.history.where((s) => !s.legacy).isEmpty;
+    final body = f.muscle ?? bodyPartById(f.body)?.name ?? 'All body parts';
+    void open(FilterSection at) => showFilterSheet(context, store, at);
     return LayoutBuilder(builder: (context, box) {
       final card = workoutCard(box.biggest);
       final (scene, scale) = workoutLayout(box.biggest);
@@ -197,7 +167,7 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
                         child: AreaScene(
                           art: art,
                           scale: scale,
-                          count: e?.sets ?? 0,
+                          count: sets,
                           hitRun: _hitRun,
                           burstText: _burst,
                           hitLabel: '${area.hint}: one working set. Hold to take one back.',
@@ -207,47 +177,71 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
                       ),
                     ),
                   ),
-                  // Filter tags (D49): class, difficulty, body part. They show
-                  // the defaults; filtering is not built yet.
+                  // Filter tags: class, difficulty and body part open the
+                  // sheet; the star shows favorites only.
                   Padding(
                     key: const ValueKey('workout-filters'),
                     padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
                     child: Wrap(
                       spacing: 6,
                       runSpacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        Tag(cls.name, key: const ValueKey('filter-class'), bg: classColor(p, cls.id), fg: p.on, size: 12, angle: 0),
-                        Tag(difficulties[di].name, key: const ValueKey('filter-difficulty'), bg: difficultyColor(p, di), fg: p.on, size: 12, angle: 0),
-                        Tag('All body parts', key: const ValueKey('filter-body'), bg: p.panel2, fg: p.ink, size: 12, angle: 0),
+                        _TapTag(
+                          key: const ValueKey('filter-class'),
+                          onTap: () => open(FilterSection.classes),
+                          child: Tag(cls.name, bg: classColor(p, cls.id), fg: p.on, size: 12, angle: 0),
+                        ),
+                        _TapTag(
+                          key: const ValueKey('filter-difficulty'),
+                          onTap: () => open(FilterSection.difficulty),
+                          child: Tag(difficulties[f.difficulty].name,
+                              bg: difficultyColor(p, f.difficulty), fg: p.on, size: 12, angle: 0),
+                        ),
+                        _TapTag(
+                          key: const ValueKey('filter-body'),
+                          onTap: () => open(FilterSection.body),
+                          child: Tag(body, bg: f.body == null ? p.panel2 : p.sky, fg: f.body == null ? p.ink : p.on, size: 12, angle: 0),
+                        ),
+                        _TapTag(
+                          key: const ValueKey('filter-favorites'),
+                          label: f.favorites ? 'Favorites only: on' : 'Favorites only: off',
+                          onTap: () {
+                            HapticFeedback.selectionClick();
+                            store.setFilter(f.copyWith(favorites: !f.favorites));
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            color: f.favorites ? p.orange : p.panel2,
+                            child: PxIcon('star', size: 16, color: f.favorites ? p.on : p.ink.withValues(alpha: 0.4)),
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                  // Under the world: the exercise carousel. The world adds
+                  // Under the tags: the exercise carousel. The world adds
                   // sets to the exercise shown here.
                   Expanded(
-                    child: cards.isEmpty
-                        ? const SizedBox()
+                    child: e == null
+                        ? _Empty(store: store)
                         : swipe(
                             key: const ValueKey('exercise-card'),
                             child: Column(
                               children: [
                                 Expanded(
                                   child: slide(
-                                    'exercise-$act',
+                                    'exercise-${e.id}',
                                     _ExerciseText(
-                                      e: e!,
-                                      xp: e.sets > 0 ? store.cardXp(act) : 0,
+                                      e: e,
+                                      sets: sets,
+                                      xp: store.exerciseXpToday(e.id),
+                                      favorite: store.isFavorite(e.id),
+                                      onStar: () => _star(e.id),
                                     ),
                                   ),
                                 ),
-                                CarouselDots(
-                                  prefix: 'exercise',
-                                  ids: [for (final i in cards) '$i'],
-                                  names: [for (final i in cards) exerciseName(list[i].exerciseId)],
-                                  current: '$act',
-                                  colorOf: (_) => p.orange,
-                                  onTap: jump,
-                                ),
+                                Text('${index + 1} / $count',
+                                    key: const ValueKey('exercise-counter'), style: mono(12, p.ink)),
                                 const SizedBox(height: 8),
                               ],
                             ),
@@ -277,7 +271,7 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
                   children: [
                     Tag(area.hint, bg: kNight, fg: accent, size: 13, angle: -2),
                     // First-workout tip (app-flow §4.2), until the first set.
-                    if (firstTime && e.sets == 0) ...[
+                    if (firstTime && sets == 0) ...[
                       const SizedBox(height: 4),
                       Tag('Only working sets count', bg: p.lime, fg: p.on, size: 11, angle: 1),
                     ],
@@ -291,47 +285,134 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
   }
 }
 
-/// The exercise shown under the world: the name, the target slots (filled
-/// in rarity colours) with +extra, and the set line with the XP so far.
-class _ExerciseText extends StatelessWidget {
-  const _ExerciseText({required this.e, required this.xp});
+/// A filter tag you can tap.
+class _TapTag extends StatelessWidget {
+  const _TapTag({super.key, required this.child, required this.onTap, this.label});
 
-  final SessionExercise e;
-  final int xp;
+  final Widget child;
+  final VoidCallback onTap;
+  final String? label;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        button: true,
+        label: label,
+        child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: onTap, child: child),
+      );
+}
+
+/// No exercise passes the filters.
+class _Empty extends StatelessWidget {
+  const _Empty({required this.store});
+
+  final LogStore store;
 
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
-    final done = e.sets >= e.targetSets;
+    final f = store.filter;
+    final text = !f.favorites
+        ? 'NOTHING MATCHES THESE FILTERS.'
+        : store.favorites.isEmpty
+            ? 'NO FAVORITES YET. TAP THE STAR ON AN EXERCISE.'
+            : 'NO FAVORITES MATCH THESE FILTERS.';
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(text, key: const ValueKey('exercise-empty'), textAlign: TextAlign.center, style: mono(13, p.ink)),
+            const SizedBox(height: 10),
+            BrutalButton(
+              key: const ValueKey('filter-reset-empty'),
+              small: true,
+              color: p.lime,
+              onTap: store.resetFilter,
+              child: const Text('RESET TO MINE'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The exercise shown under the world: the name and the star, what it
+/// trains, today's set marks (in rarity colours) and the XP so far.
+class _ExerciseText extends StatelessWidget {
+  const _ExerciseText({
+    required this.e,
+    required this.sets,
+    required this.xp,
+    required this.favorite,
+    required this.onStar,
+  });
+
+  final CatalogExercise e;
+  final int sets, xp;
+  final bool favorite;
+  final VoidCallback onStar;
+
+  /// Marks drawn before "+n".
+  static const _maxMarks = 10;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Pal.of(context);
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(14, 10, 14, 4),
+      padding: const EdgeInsets.fromLTRB(14, 10, 8, 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(exerciseName(e.exerciseId).toUpperCase(), style: display(34, p.ink).copyWith(shadows: [
-              Shadow(offset: const Offset(2, 2), color: p.orange),
-            ])),
-          ),
-          const SizedBox(height: 6),
-          Wrap(
-            spacing: 4,
-            crossAxisAlignment: WrapCrossAlignment.center,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              for (var k = 0; k < e.targetSets; k++)
-                Text('X',
-                    style: display(36, k < e.sets ? rarity(p, k) : p.ink.withValues(alpha: 0.35)).copyWith(
-                      shadows: k < e.sets ? [Shadow(offset: const Offset(2, 2), color: p.ink)] : null,
-                    )),
-              if (e.sets > e.targetSets) Text('+${e.sets - e.targetSets}', style: display(30, p.ink)),
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(e.name.toUpperCase(), style: display(34, p.ink).copyWith(shadows: [
+                    Shadow(offset: const Offset(2, 2), color: p.orange),
+                  ])),
+                ),
+              ),
+              Semantics(
+                button: true,
+                selected: favorite,
+                label: favorite ? 'Remove from favorites' : 'Add to favorites',
+                child: GestureDetector(
+                  key: const ValueKey('favorite-star'),
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onStar,
+                  child: Padding(
+                    padding: const EdgeInsets.all(6),
+                    child: PxIcon('star', size: 30, color: favorite ? p.orange : p.ink.withValues(alpha: 0.25)),
+                  ),
+                ),
+              ),
             ],
           ),
+          Text(
+            '${e.muscle} · ${levels[e.level]} · ${e.equipment}'.toUpperCase(),
+            key: const ValueKey('exercise-info'),
+            style: mono(11.5, p.ink),
+          ),
+          const SizedBox(height: 6),
+          if (sets > 0)
+            Wrap(
+              spacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                for (var k = 0; k < min(sets, _maxMarks); k++)
+                  Text('X',
+                      style: display(30, rarity(p, k)).copyWith(shadows: [Shadow(offset: const Offset(2, 2), color: p.ink)])),
+                if (sets > _maxMarks) Text('+${sets - _maxMarks}', style: display(26, p.ink)),
+              ],
+            ),
           const SizedBox(height: 4),
           Text(
-            '${done ? 'CRUSHED · ${e.sets}/${e.targetSets}' : 'SET ${e.sets + 1} OF ${e.targetSets}'}'
-            '${xp > 0 ? ' · +$xp XP' : ''}',
+            sets == 0 ? 'NO SETS YET' : '$sets ${sets == 1 ? 'SET' : 'SETS'} · +$xp XP',
             key: const ValueKey('workout-line'),
             style: mono(13, p.ink),
           ),

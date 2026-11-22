@@ -286,7 +286,10 @@ Owner choices (21 Nov 2026): an active-exercise strip, a set target per exercise
 one session per calendar day that closes by itself, no I WORKED, no clock, no session counter, and XP per set with no reward screen.
 
 **In the app** (D48) the workout is one card: the world on top, and under it an exercise carousel (one exercise at a time,
-swiped both ways, round and round, with dots) in place of the strip and the header. Tapping the world adds to the exercise shown.
+swiped both ways, round and round) in place of the strip and the header. Tapping the world adds to the exercise shown.
+**Since D50–D53** the carousel runs over every exercise the filter tags (class, difficulty, body part, star) show, with a
+counter (`12 / 437`) in place of the dots and a star button on the card. There are **no targets** (D52): no target slots,
+no "SET n OF t", no CRUSHED, no moving on. The board below still shows the old strip and targets; follow `docs/decisions.md`.
 
 Screen, top to bottom (390×844 dp):
 

@@ -8,24 +8,23 @@ import 'dart:math';
 
 // ------------------------------------------------------------- difficulty
 
-/// The numbers of one difficulty level (docs/data-schema.md §3).
+/// The numbers of one difficulty level (docs/data-schema.md §3). There
+/// are no workout targets (D52): the mode sets the XP multiplier and the
+/// hardest exercise level the filters show (lib/game/exercises.dart).
 typedef DifficultyRules = ({
-  int exercisesPerWorkout, // 3 at the easiest, 8 at the hardest
-  int targetSets, // working sets per exercise
   double xpMultiplier, // 1.0 at the lowest, even steps to 2.0 at the highest
 });
 
 /// Per difficulty level, in the order of `difficulties`
 /// (lib/game/content.dart): the design team's 6 modes. Multiplier in even
-/// steps from 1.0 to 2.0 (rules.md §1); 3 exercises at the easiest, 8 at
-/// the hardest (exercise counts: D33). Targets are placeholders.
+/// steps from 1.0 to 2.0 (rules.md §1).
 const difficultyRules = <DifficultyRules>[
-  (exercisesPerWorkout: 3, targetSets: 2, xpMultiplier: 1.0), // Sofa
-  (exercisesPerWorkout: 3, targetSets: 3, xpMultiplier: 1.2), // Warm-up
-  (exercisesPerWorkout: 4, targetSets: 3, xpMultiplier: 1.4), // Sweat
-  (exercisesPerWorkout: 5, targetSets: 4, xpMultiplier: 1.6), // Pain
-  (exercisesPerWorkout: 6, targetSets: 4, xpMultiplier: 1.8), // Brutal
-  (exercisesPerWorkout: 8, targetSets: 5, xpMultiplier: 2.0), // Nightmare
+  (xpMultiplier: 1.0), // Sofa
+  (xpMultiplier: 1.2), // Warm-up
+  (xpMultiplier: 1.4), // Sweat
+  (xpMultiplier: 1.6), // Pain
+  (xpMultiplier: 1.8), // Brutal
+  (xpMultiplier: 2.0), // Nightmare
 ];
 
 DifficultyRules rulesFor(int difficulty) =>
@@ -36,10 +35,9 @@ DifficultyRules rulesFor(int difficulty) =>
 /// XP for one working set, before the difficulty multiplier.
 const xpPerSet = 10;
 
-/// A set above the target (up to [overTargetCap] × the target) gives this
-/// many times the XP. Sets beyond the cap give 0 (no farming).
-const overTargetMultiplier = 1.5;
-const overTargetCap = 2;
+/// Only the first this many sets of one exercise in a day give XP (no
+/// farming). There are no targets (D52), so this is the only cap.
+const xpSetsPerExercise = 10;
 
 /// XP for the first working set of the day.
 const xpFirstSetOfDay = 50;
@@ -62,19 +60,28 @@ bool isCritical(String date, String exerciseId, int setNumber) {
   return h % 10000 < (critChance * 10000).round();
 }
 
-/// XP of set number [setNumber] (from 1) on an exercise with [target] sets,
-/// before rounding, in the order of rules.md §1: base, over target, critical.
-double setXp({required int setNumber, required int target, required int difficulty, bool critical = false}) {
-  if (setNumber > target * overTargetCap) return 0;
+/// XP of set number [setNumber] (from 1) of one exercise in a day, before
+/// rounding: base × difficulty, ×2 on a critical, 0 past the cap.
+double setXp({required int setNumber, required int difficulty, bool critical = false}) {
+  if (setNumber > xpSetsPerExercise) return 0;
   var xp = xpPerSet * rulesFor(difficulty).xpMultiplier;
-  if (setNumber > target) xp *= overTargetMultiplier;
   if (critical) xp *= critMultiplier;
   return xp;
 }
 
 /// [setXp], rounded.
-int xpForSet({required int setNumber, required int target, required int difficulty, bool critical = false}) =>
-    setXp(setNumber: setNumber, target: target, difficulty: difficulty, critical: critical).round();
+int xpForSet({required int setNumber, required int difficulty, bool critical = false}) =>
+    setXp(setNumber: setNumber, difficulty: difficulty, critical: critical).round();
+
+/// Set XP by the rules before D52 (targets, ×1.5 over the target up to 2×
+/// the target). Only for the one-time freeze of old sessions (store.dart).
+double oldSetXp({required int setNumber, required int target, required int difficulty, bool critical = false}) {
+  if (setNumber > target * 2) return 0;
+  var xp = xpPerSet * rulesFor(difficulty).xpMultiplier;
+  if (setNumber > target) xp *= 1.5;
+  if (critical) xp *= critMultiplier;
+  return xp;
+}
 
 // ---------------------------------------------------------------- levels
 
@@ -120,7 +127,6 @@ const defaultHeight = 50;
 const defaultMuscle = 50;
 const defaultFat = 50;
 
-/// Vertical sprite scale at height 0 and at height 100.
 /// Head looks (tools/moodboard/looks.mjs). The first id is the drawn atlas.
 const skinIds = ['light', 'deep'];
 const hairIds = ['brown', 'blonde'];
@@ -135,6 +141,7 @@ double heightMetres(int v) => minHeightM + (maxHeightM - minHeightM) * v / 100;
 const minWeightKg = 50, maxWeightKg = 200;
 int weightKg(int fat) => (minWeightKg + (maxWeightKg - minWeightKg) * fat / 100).round();
 
+/// Vertical sprite scale at height 0 and at height 100.
 const minHeightScale = 0.86;
 const maxHeightScale = 1.14;
 

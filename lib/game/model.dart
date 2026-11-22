@@ -13,11 +13,12 @@
 //   saved" and "change a rule, and the values update". So the XP events
 //   for sets and training days are COMPUTED from the sessions with
 //   rules.dart every time. Only events that cannot be computed again are
-//   saved in xp_events_v1: `legacy` (old-app days), and `streak` and
-//   `achievement` (kept from before D34 and D35 removed them). The total
-//   is the sum of both.
-// - A removed exercise stays in the session with `removed: true`.
-// - An added exercise has `added: true` and originalExerciseId = its own id.
+//   saved in xp_events_v1: `legacy` (old-app days), `streak` and
+//   `achievement` (kept from before D34 and D35 removed them), and
+//   `workout` (the XP of sessions from before the exercise list, D54).
+//   The total is the sum of both.
+// - A session lists only the exercises with sets that day, in the order
+//   of the first set. Exercise ids are free-exercise-db ids (D50).
 
 import 'rules.dart';
 
@@ -162,60 +163,24 @@ class Profile {
       );
 }
 
-/// SESSION_EXERCISE: one card of a day's workout.
+/// SESSION_EXERCISE: one exercise with sets on a day (no targets, D52).
 class SessionExercise {
-  const SessionExercise({
-    required this.position,
-    required this.exerciseId,
-    required this.originalExerciseId,
-    required this.targetSets,
-    this.sets = 0,
-    this.added = false,
-    this.removed = false,
-  });
+  const SessionExercise({required this.exerciseId, this.sets = 0});
 
-  final int position;
   final String exerciseId;
-
-  /// The exercise the workout first gave (for the back button).
-  final String originalExerciseId;
-  final int targetSets;
 
   /// Working sets done.
   final int sets;
-  final bool added;
-  final bool removed;
 
-  bool get switched => !added && exerciseId != originalExerciseId;
+  SessionExercise copyWith({int? sets}) => SessionExercise(exerciseId: exerciseId, sets: sets ?? this.sets);
 
-  SessionExercise copyWith({String? exerciseId, int? sets, bool? removed}) => SessionExercise(
-        position: position,
-        exerciseId: exerciseId ?? this.exerciseId,
-        originalExerciseId: originalExerciseId,
-        targetSets: targetSets,
-        sets: sets ?? this.sets,
-        added: added,
-        removed: removed ?? this.removed,
-      );
+  Map<String, dynamic> toJson() => {'exerciseId': exerciseId, 'sets': sets};
 
-  Map<String, dynamic> toJson() => {
-        'position': position,
-        'exerciseId': exerciseId,
-        'originalExerciseId': originalExerciseId,
-        'targetSets': targetSets,
-        'sets': sets,
-        'added': added,
-        'removed': removed,
-      };
-
+  /// Old entries also had position, originalExerciseId, targetSets, added
+  /// and removed (before D50); those fields are ignored.
   factory SessionExercise.fromJson(Map<String, dynamic> j) => SessionExercise(
-        position: (j['position'] as num?)?.toInt() ?? 0,
         exerciseId: newExerciseId(j['exerciseId'] as String),
-        originalExerciseId: newExerciseId(j['originalExerciseId'] as String? ?? j['exerciseId'] as String),
-        targetSets: (j['targetSets'] as num?)?.toInt() ?? 0,
         sets: (j['sets'] as num?)?.toInt().clamp(0, 9999) ?? 0,
-        added: j['added'] as bool? ?? false,
-        removed: j['removed'] as bool? ?? false,
       );
 }
 
@@ -240,9 +205,6 @@ class Session {
   /// From the old app (no exercises, XP from a legacy XP event).
   final bool legacy;
   final List<SessionExercise> exercises;
-
-  /// The cards on screen (not removed).
-  Iterable<SessionExercise> get active => exercises.where((e) => !e.removed);
 
   int get totalSets => exercises.fold(0, (a, e) => a + e.sets);
 
@@ -295,7 +257,7 @@ class XpEvent {
 
   final String at;
 
-  /// sets | day | streak | achievement | legacy
+  /// sets | day | streak | achievement | legacy | workout
   final String source;
   final int amount;
 

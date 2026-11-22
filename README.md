@@ -31,10 +31,13 @@ The plan is in [docs/app-brief.md](docs/app-brief.md) and
   the workout, past sessions and the profile (D44); HUB is the workout. There
   is no streak (D34).
 - **Workout** (D48): one card with the world (the area scene with the lifter)
-  on top and an exercise carousel under it: swipe through the day's list.
+  on top, the filter tags, and an exercise carousel under it: swipe through
+  every exercise the filters show, with a star for favorites.
   Tap the object = one working set of the exercise shown, hold = one less;
   the marks stay in the
-  world. No tools: no swap, skip, remove or add (D32). No reps, no kilos, no
+  world. The exercises come from free-exercise-db, filtered by class,
+  difficulty, body part and favorites (D50–D53). No targets (D52). No reps,
+  no kilos, no
   I WORKED button, no clock.
 - **Free-form sessions:** one session per calendar day, no buttons to start
   or stop. The rule is in [docs/app-flow.md](docs/app-flow.md) §4.4.
@@ -42,8 +45,9 @@ The plan is in [docs/app-brief.md](docs/app-brief.md) and
 - Setup has 4 steps (D47): character, class with the difficulty slider (swipe
   one big class card, both ways, round and round, D46), starting area (a swipe
   card too) and the summary. The freeze-frame intro card shows on level-ups.
-- XP from [docs/rules.md](docs/rules.md): sets × difficulty (×1.5 over the
-  target, 0 past 2× the target), 3% critical sets, +50 for the first set of
+- XP from [docs/rules.md](docs/rules.md): sets × difficulty (no targets,
+  the first 10 sets of an exercise a day count), 3% critical sets, +50 for
+  the first set of
   the day. Habitica level curve. A level gives a level title.
   No gear (D38), no streak bonus and no achievements (D34, D35). The XP
   that the streak and achievements gave before stays.

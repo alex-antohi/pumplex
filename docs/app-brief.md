@@ -1,6 +1,6 @@
 # PUMPLEX app brief
 
-Date: 21 November 2026, updated 22 November 2026 (D32–D37). Status: draft v2.2.
+Date: 21 November 2026, updated 22 November 2026 (D32–D37, D50–D54). Status: draft v2.3.
 Sources: `pumplex.drawio` (the 7 systems), [docs/moodboard/](moodboard/README.md) (game look),
 and the owner's decisions in [decisions.md](decisions.md). The decisions win over this brief.
 
@@ -98,7 +98,7 @@ The class names come from the design team (D9). The final names are still open (
 
 | Group | System | Now means |
 |---|---|---|
-| Main goal | Motivation System | XP and levels; harder difficulty gives more XP. No streak and no achievements (D34, D35). The workout has no swap (D32), so "change exercises when there is no progress" is on hold. |
+| Main goal | Motivation System | XP and levels; harder difficulty gives more XP. No streak and no achievements (D34, D35). The user picks exercises from a filtered list (D50), with no targets (D52), so "change exercises when there is no progress" is on hold. |
 | Main game loop | Workouts | Preset workouts from the class (equipment) and the character. |
 | Main game loop | Tracking Sets | Count working sets per exercise, with area-themed marks. |
 | Initial setup | Character Creation | Sliders: height, weight, muscle. Head: skin, hair, facial hair. 2D look. |
@@ -125,7 +125,8 @@ The class names come from the design team (D9). The final names are still open (
 | Old logged sets and swaps | Deleted by the one-time upgrade, after its backup file (owner's decision, [data-schema.md](data-schema.md) §5). |
 | Class ids | The design ids since 22 Nov (D31). Saved data migrates once. |
 | Area ids | The design ids since 22 Nov (D36): `riptide`, `gainsgard`, `rustbelt`, `arcade`, `frostbite`. Saved data migrates once. |
-| Workout tools (swap, back to first, skip, remove, add) | Removed (22 Nov, D32). The workout is the list the app picks for the day. |
+| Workout tools (swap, back to first, skip, remove, add) | Removed (22 Nov, D32). Since D50 there is no daily list: the user swipes through every exercise the filters show. |
+| Workout targets (exercise count, target sets) | Removed (22 Nov, D52). Only sets count, each set gives XP. |
 | Streak, week target | Removed (22 Nov, D34). The old streak XP stays as saved XP events. |
 | Achievements, milestones | Removed (22 Nov, D35). The old achievement XP stays. |
 | Gear (items, unlocks, gear screen) | Removed (22 Nov, D38). The class outfits stay. |

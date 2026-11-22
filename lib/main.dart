@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dates.dart';
 import 'files.dart';
 import 'game/content.dart';
+import 'game/exercises.dart';
 import 'game/model.dart';
 import 'game/rules.dart';
 import 'pumplex.dart';
@@ -20,6 +21,7 @@ import 'views/workout.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
+  exerciseCatalog = await ExerciseCatalog.load();
   runApp(GymApp(store: LogStore(prefs)));
 }
 
@@ -233,10 +235,10 @@ class _GameShellState extends State<GameShell> {
 
   // ---------------------------------------------------------------- workout
 
-  void _addSet(int i) {
+  void _addSet(String id) {
     final before = levelFor(_store.totalXp).level;
-    _store.addSet(i);
-    final crit = _store.lastSetCritical(i);
+    _store.addSet(id);
+    final crit = _store.lastSetCritical(id);
     if (crit) {
       HapticFeedback.heavyImpact();
       _snack('CRITICAL SET!!! ×$critMultiplier XP');
@@ -253,7 +255,7 @@ class _GameShellState extends State<GameShell> {
     setState(() {});
   }
 
-  void _removeSet(int i) => _store.removeSet(i);
+  void _removeSet(String id) => _store.removeSet(id);
 
   // ------------------------------------------------------- freeze-frame card
 

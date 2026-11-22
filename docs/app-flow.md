@@ -1,6 +1,6 @@
 # PUMPLEX app flow
 
-Date: 22 November 2026. Status: draft v9 (matches the code on `main`, with D32–D37).
+Date: 22 November 2026. Status: draft v10 (matches the code on `main`, with D50–D54).
 Read with [decisions.md](decisions.md) (it wins), [app-brief.md](app-brief.md), [data-schema.md](data-schema.md),
 `pumplex.drawio` and [docs/moodboard/](moodboard/README.md).
 
@@ -55,9 +55,9 @@ flowchart TD
 | 4 | Starting area | exists | A swipe card like the class card: the area scene with the lifter in it, the name, the line, what you hit, "YOUR PATH'S HOME" on the default; dots under it (D47). The class picks the default area. |
 | 5 | Summary | exists | Class, equipment, difficulty, area. Tap a row to change it. LET'S GO (or SAVE when editing). |
 | 6 | Hub | removed | No hub (D49): the app opens on the workout. The level and XP bar is in the PUMPLEX bar there; tap the lifter in the world for the body sliders. |
-| 7 | Workout | exists | The home screen (D49). One card (D48): the world (area scene with the lifter) on top, an exercise carousel under it (swipe both ways, round and round; dots). No tools (D32). Tap the object = +1 set to the exercise shown, hold = −1. Area marks stay in the world. Bottom bar, HUB lit (D44). |
+| 7 | Workout | exists | The home screen (D49). One card (D48): the world (area scene with the lifter) on top, filter tags (D51, D53), an exercise carousel under it over every exercise the filters show (D50; swipe both ways, round and round; a counter; a star button). No targets (D52). Tap the object = +1 set to the exercise shown, hold = −1. Area marks stay in the world. Bottom bar, HUB lit (D44). |
 | 8 | Reward | exists | XP on the active exercise line. CRITICAL SET message. Freeze-frame intro card for level-ups. No achievement burst (D35). Not a separate screen. |
-| 9 | Past sessions | exists | Training days (sets per exercise against the target, time, class, area, XP) and old saves. Bottom bar (D44). |
+| 9 | Past sessions | exists | Training days (sets per exercise, time, class, area, XP) and old saves. Bottom bar (D44). |
 | 10 | Gear | removed | No gear (D38). |
 | 11 | Menu | exists | Full screen: YOU (profile, past sessions, edit character), GAINS INSURANCE (save / restore backup). No chaos mode, cel shader or sound (D39–D41). Opens from ⋮ on every view. |
 | 12 | Profile | exists | level and level title, XP bar, the path (class, difficulty, world; tap one to change it), PAST SESSIONS. No milestones (D35). Opens from PROFILE or the level bar on the hub. Tap the lifter to change the body. Bottom bar (D44). |
@@ -109,16 +109,16 @@ the whole setup from the menu (EDIT CHARACTER).
    - **Difficulty** (D47): a slider under the dots, 6 stops, the mode name above it on the right in
      its rarity colour. No ladder and no freeze-frame card. Names in `lib/game/content.dart`:
      Sofa, Warm-up, Sweat, Pain, Brutal, Nightmare Mode (D28). Ids: `sofa`, `warmup`, `sweat`,
-     `pain`, `brutal`, `nightmare`. The numbers per mode are in `lib/game/rules.dart`:
+     `pain`, `brutal`, `nightmare`. The numbers per mode are in `lib/game/rules.dart` (XP) and `lib/game/exercises.dart` (levels):
 
-     | Mode | Exercises (D33) | Target sets | XP multiplier |
-     |---|---|---|---|
-     | Sofa | 3 | 2 | 1.0 |
-     | Warm-up | 3 | 3 | 1.2 |
-     | Sweat | 4 | 3 | 1.4 |
-     | Pain | 5 | 4 | 1.6 |
-     | Brutal | 6 | 4 | 1.8 |
-     | Nightmare | 8 | 5 | 2.0 |
+     | Mode | Exercise levels shown (D51) | XP multiplier |
+     |---|---|---|
+     | Sofa | beginner | 1.0 |
+     | Warm-up | beginner | 1.2 |
+     | Sweat | beginner, intermediate | 1.4 |
+     | Pain | beginner, intermediate | 1.6 |
+     | Brutal | all | 1.8 |
+     | Nightmare | all | 2.0 |
 
    - NEXT: STARTING AREA.
    - The preview shows the body the user made in step 1, in the class outfit (D25).
@@ -167,30 +167,38 @@ There is no hub screen (D49). The app opens on the workout (§4.2), and HUB in t
 Design: `docs/moodboard/README.md` "Workout screen", with the
 owner's rules ([decisions.md](decisions.md)).
 
-- A workout has a set number of exercises from the class exercise **pool**: 3 at the easiest
-  difficulty, 8 at the hardest (§3). Each exercise has a **target** number of working sets from
-  the difficulty. The pools are placeholders, all in `lib/game/content.dart`. The first exercise
-  moves along the pool each day.
+- The exercises come from free-exercise-db (D50): 876 exercises in
+  `assets/exercises/exercises.json`. There is no daily list and there are no targets (D52).
 - **One card** (D48), like the starting-area card. No header.
 - **The world** on top of the card: see "World scene" below. It adds sets to the exercise shown
   under it.
-- **Filter tags** between the world and the carousel (D49): CLASS (your class), DIFFICULTY (your
-  mode) and BODY PART (ALL BODY PARTS). They show the defaults; they do not filter yet.
-- **Exercise carousel** under them: one exercise of the day's list at a time (no "x of y" line):
-  the name, the target slots as Xs (filled in rarity colours), +n for sets over
-  the target, and "SET n OF t" (or sets / target) with the XP so far. Swipe left for the next
-  exercise, right for the one before, round and round. Dots under it; tap one to jump.
-- **No tools** (D32): no swap, no back to the first exercise, no skip, no remove, no add.
-  The workout is the list the app picks for the day. To skip an exercise, do no sets on it.
-- Old sessions (from before D32) can still hold removed, added or switched exercises.
-  The carousel does not show removed ones.
+- **Filter tags** between the world and the carousel (D49, D51): CLASS, DIFFICULTY, BODY PART
+  (or the muscle picked) and a star tag. Defaults: your class, your mode, ALL BODY PARTS, star off.
+  - A tap on CLASS, DIFFICULTY or BODY PART opens the **filter sheet** at that section. Sections:
+    Class, Difficulty, Body part, and Muscle (only when a body part is picked). Each chip shows how
+    many exercises it gives, counted with the earlier filters only. A chip with 0 is greyed out.
+    Changes apply at once. RESET TO MINE goes back to the defaults; SHOW n EXERCISES closes it.
+  - When an earlier filter leaves the body part or muscle with no exercises, it goes back to all.
+  - The star tag shows favorites only (D53), combined with the other filters.
+  - A new day starts from the defaults; in the same day the last choice stays.
+  - Rules in `lib/game/exercises.dart`: the class uses equipment, then category (D50); the mode
+    shows levels up to its own (Sofa, Warm-up: beginner; Sweat, Pain: + intermediate; Brutal,
+    Nightmare: + expert); body parts group the 17 muscles in 6 (D52).
+- **Exercise carousel** under them: one exercise at a time from the filtered list, sorted:
+  favorites, then the hardest level first, compound before isolation, then by name. So the first
+  card is a favorite (D53). The card shows the name, a **star button** (favorite on / off), the
+  muscle, level and equipment, today's sets as Xs (rarity colours, +n after 10) and "n SETS · +XP"
+  (or NO SETS YET). Swipe left for the next exercise, right for the one before, round and round.
+  A counter (`12 / 437`) shows where you are.
+- If nothing passes the filters, the card says so and offers RESET TO MINE.
+- **No tools:** no swap, skip, remove or add. To skip an exercise, swipe past it.
 - **World scene:** the area's scene from the design PNG layers, with the lifter and the area's object.
   - TAP THE OBJECT: one working set of the exercise shown in the carousel.
   - HOLD THE OBJECT: take the last set back.
   - Each set plays the object's hit frames and shakes the scene in hard steps (320 ms). A starburst
-    says "+1 SET", "CRUSHED!" at the target, or the area's stamp on every 5th set.
+    says "+1 SET", or the area's stamp on every 5th set. There is no CRUSHED (D52).
   - The marks stay in the world, in the area's mark style, in groups of five.
-  - At the target, the carousel moves to the next unfinished exercise after 0.8 s.
+  - The carousel never moves on by itself.
 - **Over the sky:** the area's tap hint.
 - **Tip:** on the first workout, until the first set, a tag says "Only working sets count".
 - No sound (D41).
@@ -198,7 +206,6 @@ owner's rules ([decisions.md](decisions.md)).
 - The workout is home: Android back leaves the app from here. Tap the lifter for the body sliders.
 - Not used from the design board: the I WORKED button, the running clock and "SESSION n"
   (owner decisions D6 and D7 in [decisions.md](decisions.md)). There is one session per calendar day (§4.4).
-- Not used from the design board: the swipe and the tool row (D32 replaces D16).
 
 ### 4.3 XP and level
 
@@ -206,12 +213,13 @@ The numbers come from [rules.md](rules.md) (draft v1). They are all in `lib/game
 
 | Source | XP |
 |---|---|
-| Working set | 10 × difficulty multiplier (1.0 → 2.0, 6 modes). Sets above the target ×1.5, up to 2× the target; beyond that 0. |
+| Working set | 10 × difficulty multiplier (1.0 → 2.0, 6 modes). No targets (D52): only the first 10 sets of one exercise a day count; after that 0. |
 | Critical set | 3% chance, ×2, "CRITICAL SET!!!". The roll is repeatable (seed: date, exercise, set number). |
 | First set of the day | +50. |
 | Legacy | 150 for each old-app workout day (beta). |
 | Old streak bonus | No new streak XP (D34). The bonus that old sessions had is saved once as `streak` XP events. |
 | Old achievements | No new achievement XP (D35). The saved `achievement` XP events stay. |
+| Old workouts | Sessions from before D50 lose their exercise lists. Their XP is saved once as a `workout` XP event (D54). |
 
 - Sets and first-set XP are computed from the sessions, so a rule change updates them.
   Legacy XP and the old streak and achievement XP are saved XP events.
@@ -221,11 +229,11 @@ The numbers come from [rules.md](rules.md) (draft v1). They are all in `lib/game
 - A level gives only the level and its title. There is no gear (D38) and there are no achievements (D35).
 - Not built yet (later in rules.md): mastery stars, the difficulty climb, character stats,
   bounties, new game+. Embers are part of the streak, so they are gone (D34).
-  The swap suggestion is on hold: the workout has no swap (D32).
-- Each session stores the class, difficulty, area and exercise list it used, so its XP stays the
-  same when the profile changes later (for example, after joining a gym).
-- A class, difficulty or area change applies to today's workout only if it has no sets yet (the plan
-  is made again). Otherwise today keeps its own, and the change shows from the next day.
+- Each session stores the class, difficulty and area it used, and the exercises with sets, so its XP
+  stays the same when the profile changes later (for example, after joining a gym).
+- A class, difficulty or area change applies to today's session only if it has no sets yet.
+  Otherwise today keeps its own, and the change shows from the next day. The filters go back to
+  the new defaults at once.
 
 ### 4.4 The session rule (owner's decision: one session per calendar day)
 
@@ -244,7 +252,8 @@ There is no I WORKED button. The calendar day decides:
 ## 5. History
 
 - Training days, newest first: date, sets, time from the first to the last mark, class, area, XP,
-  and "sets / target" with a tally per exercise. Today shows first, marked TODAY.
+  and the sets with a tally per exercise. Today shows first, marked TODAY.
+- Days from before D50 show OLD EXERCISE LIST and no exercise lines (D54).
 - Old saves (legacy sessions from the old app): date and time, if the old clock was used.
 - Opens from HISTORY in the bottom bar, PAST SESSIONS on the profile and in the menu. HUB goes back.
 
