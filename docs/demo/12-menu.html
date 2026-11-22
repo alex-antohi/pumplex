@@ -268,11 +268,8 @@
   "use strict";
   if (!PX.get().setupDone) return;
 
-  /* icons this screen needs that shared/demo.js doesn't have, in the same pixel style */
-  var EXTRA = {
-    sound: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9h4l5-5h2v16h-2l-5-5H3z"/><rect x="16" y="9" width="2" height="6"/><rect x="19" y="6" width="2" height="12"/></svg>',
-  };
-  function ico(name) { return EXTRA[name] || PX.icon(name); }
+  /* icons come from the shared pixel set (docs/moodboard/icons) */
+  function ico(name) { return PX.icon(name); }
   document.querySelectorAll("[data-icon]").forEach(function (el) { el.innerHTML = ico(el.getAttribute("data-icon")); });
   document.getElementById("men-close").innerHTML = PX.icon("close");
 

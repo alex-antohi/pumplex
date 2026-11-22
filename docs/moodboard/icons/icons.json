@@ -1,0 +1,371 @@
+{
+  "grid": 24,
+  "colour": "one colour: SVG uses currentColor, PNGs are white on transparent (tint them)",
+  "png": {
+    "1x": "png/<id>.png",
+    "2x": "png/2.0x/<id>.png",
+    "3x": "png/3.0x/<id>.png"
+  },
+  "icons": [
+    {
+      "id": "back",
+      "group": "ui",
+      "use": "Back, ◀ HUB, ◀ BACK",
+      "replaces": "◀"
+    },
+    {
+      "id": "next",
+      "group": "ui",
+      "use": "NEXT ▶, CHANGE ▸, HUB ▶",
+      "replaces": "▶ ▸"
+    },
+    {
+      "id": "menu",
+      "group": "ui",
+      "use": "Open the menu",
+      "replaces": null
+    },
+    {
+      "id": "close",
+      "group": "ui",
+      "use": "Close, ✕ remove",
+      "replaces": "✕"
+    },
+    {
+      "id": "play",
+      "group": "ui",
+      "use": "TRAIN",
+      "replaces": "▶"
+    },
+    {
+      "id": "history",
+      "group": "ui",
+      "use": "Past sessions",
+      "replaces": null
+    },
+    {
+      "id": "user",
+      "group": "ui",
+      "use": "Profile, ★ ME",
+      "replaces": "★"
+    },
+    {
+      "id": "check",
+      "group": "ui",
+      "use": "Done, equipped, SAVE ✔",
+      "replaces": "✔"
+    },
+    {
+      "id": "bolt",
+      "group": "ui",
+      "use": "XP, overkill",
+      "replaces": null
+    },
+    {
+      "id": "save",
+      "group": "ui",
+      "use": "Backup",
+      "replaces": null
+    },
+    {
+      "id": "restore",
+      "group": "ui",
+      "use": "Restore backup",
+      "replaces": null
+    },
+    {
+      "id": "flame",
+      "group": "ui",
+      "use": "Streak, last session",
+      "replaces": "🔥"
+    },
+    {
+      "id": "gem",
+      "group": "ui",
+      "use": "Difficulty XP gem",
+      "replaces": "◆"
+    },
+    {
+      "id": "star",
+      "group": "ui",
+      "use": "Mastery star, open milestone",
+      "replaces": "★"
+    },
+    {
+      "id": "ember",
+      "group": "ui",
+      "use": "Streak ember",
+      "replaces": null
+    },
+    {
+      "id": "swap",
+      "group": "ui",
+      "use": "Swap exercise, change path",
+      "replaces": "⇅"
+    },
+    {
+      "id": "plus",
+      "group": "ui",
+      "use": "+ ADD EXERCISE",
+      "replaces": "+"
+    },
+    {
+      "id": "skip",
+      "group": "ui",
+      "use": "Skip exercise",
+      "replaces": null
+    },
+    {
+      "id": "trash",
+      "group": "ui",
+      "use": "Remove",
+      "replaces": null
+    },
+    {
+      "id": "undo",
+      "group": "ui",
+      "use": "↺ back to the first exercise, take a set back",
+      "replaces": "↺"
+    },
+    {
+      "id": "edit",
+      "group": "ui",
+      "use": "✎ BODY, edit a choice",
+      "replaces": "✎"
+    },
+    {
+      "id": "gear",
+      "group": "ui",
+      "use": "⚔ GEAR",
+      "replaces": "⚔"
+    },
+    {
+      "id": "arm",
+      "group": "ui",
+      "use": "Flex, strength",
+      "replaces": "💪"
+    },
+    {
+      "id": "dice",
+      "group": "ui",
+      "use": "Random body",
+      "replaces": "🎲"
+    },
+    {
+      "id": "male",
+      "group": "ui",
+      "use": "Body type: male",
+      "replaces": "♂"
+    },
+    {
+      "id": "female",
+      "group": "ui",
+      "use": "Body type: female",
+      "replaces": "♀"
+    },
+    {
+      "id": "body",
+      "group": "profile",
+      "use": "Rebuild body",
+      "replaces": null
+    },
+    {
+      "id": "lock",
+      "group": "milestone",
+      "use": "Locked milestone or gear",
+      "replaces": "🔒"
+    },
+    {
+      "id": "sound",
+      "group": "menu",
+      "use": "SOUND toggle",
+      "replaces": null
+    },
+    {
+      "id": "chaos",
+      "group": "menu",
+      "use": "Chaos mode",
+      "replaces": null
+    },
+    {
+      "id": "cel",
+      "group": "menu",
+      "use": "Cel shader",
+      "replaces": null
+    },
+    {
+      "id": "drop",
+      "group": "milestone",
+      "use": "First blood",
+      "replaces": null
+    },
+    {
+      "id": "fire",
+      "group": "milestone",
+      "use": "On a roll",
+      "replaces": "🔥"
+    },
+    {
+      "id": "bell",
+      "group": "milestone",
+      "use": "50 sets club",
+      "replaces": null
+    },
+    {
+      "id": "crown",
+      "group": "milestone",
+      "use": "Double digits, change world",
+      "replaces": "👑"
+    },
+    {
+      "id": "skull",
+      "group": "milestone",
+      "use": "Centurion",
+      "replaces": null
+    },
+    {
+      "id": "class-scrapper",
+      "group": "class",
+      "use": "Scrapper: no equipment",
+      "replaces": "👟"
+    },
+    {
+      "id": "class-bruiser",
+      "group": "class",
+      "use": "Bargain Bruiser: basic home gym",
+      "replaces": "🗡️"
+    },
+    {
+      "id": "class-paladin",
+      "group": "class",
+      "use": "Plate Paladin: free weights",
+      "replaces": "🛡️"
+    },
+    {
+      "id": "class-cablemancer",
+      "group": "class",
+      "use": "Cablemancer: machines",
+      "replaces": "🔮"
+    },
+    {
+      "id": "area-riptide",
+      "group": "area",
+      "use": "Riptide Shore",
+      "replaces": "🏝️"
+    },
+    {
+      "id": "area-gainsgard",
+      "group": "area",
+      "use": "Gainsgard Keep",
+      "replaces": "🏰"
+    },
+    {
+      "id": "area-rustbelt",
+      "group": "area",
+      "use": "Rustbelt Flats",
+      "replaces": "🏜️"
+    },
+    {
+      "id": "area-arcade",
+      "group": "area",
+      "use": "Arcade Underpass",
+      "replaces": "🕹️"
+    },
+    {
+      "id": "area-frostbite",
+      "group": "area",
+      "use": "Frostbite Summit",
+      "replaces": "🏔️"
+    },
+    {
+      "id": "object-chest",
+      "group": "object",
+      "use": "Riptide Shore: treasure chest",
+      "replaces": "🧰"
+    },
+    {
+      "id": "object-wall",
+      "group": "object",
+      "use": "Gainsgard Keep: stone wall",
+      "replaces": "🧱"
+    },
+    {
+      "id": "object-barrel",
+      "group": "object",
+      "use": "Rustbelt Flats: hazard barrel",
+      "replaces": "🛢️"
+    },
+    {
+      "id": "object-punch",
+      "group": "object",
+      "use": "Arcade Underpass: PUNCH-O-TRON glove",
+      "replaces": "🥊"
+    },
+    {
+      "id": "object-ice",
+      "group": "object",
+      "use": "Frostbite Summit: ice block",
+      "replaces": "🧊"
+    },
+    {
+      "id": "mark-riptide",
+      "group": "mark",
+      "use": "A shell in the loot pile",
+      "replaces": null
+    },
+    {
+      "id": "mark-gainsgard",
+      "group": "mark",
+      "use": "Tally marks on the wall",
+      "replaces": null
+    },
+    {
+      "id": "mark-rustbelt",
+      "group": "mark",
+      "use": "A spray-painted X",
+      "replaces": null
+    },
+    {
+      "id": "mark-arcade",
+      "group": "mark",
+      "use": "A ticket on the floor",
+      "replaces": null
+    },
+    {
+      "id": "mark-frostbite",
+      "group": "mark",
+      "use": "A flag up the slope",
+      "replaces": null
+    },
+    {
+      "id": "slot-head",
+      "group": "slot",
+      "use": "Gear slot: head",
+      "replaces": "🎽"
+    },
+    {
+      "id": "slot-top",
+      "group": "slot",
+      "use": "Gear slot: top",
+      "replaces": "👕"
+    },
+    {
+      "id": "slot-bottom",
+      "group": "slot",
+      "use": "Gear slot: bottom",
+      "replaces": "🩳"
+    },
+    {
+      "id": "slot-shoes",
+      "group": "slot",
+      "use": "Gear slot: shoes",
+      "replaces": "👟"
+    },
+    {
+      "id": "slot-weapon",
+      "group": "slot",
+      "use": "Gear slot: weapon (a dumbbell)",
+      "replaces": "🗡️"
+    }
+  ]
+}

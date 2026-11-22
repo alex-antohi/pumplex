@@ -18,7 +18,7 @@ Ask the owner before you design against a decision. Add each new decision here, 
 | D6 | One session per calendar day. Every set marked on a day belongs to that day's session. A day with no sets does not count. | 21 Nov 2026 | `docs/app-flow.md` §4.4. The day closes by itself. |
 | D7 | No I WORKED button, no START TRAINING button, no running session clock, no "SESSION n" counter. | 21 Nov 2026 | Owner confirmed this again on 21 Nov 2026, after the Workout board. |
 | D8 | Class = equipment. One class per equipment type: none, basic home gym, lots of free weights, lots of machines. The class decides the exercises. | 21 Nov 2026 | Class select. |
-| D9 | Class names are design proposals. Scrapper, Bargain Bruiser, Plate Paladin and Cablemancer are the working names. The class ids never change. | 21 Nov 2026 | Final names: still open (D27). |
+| D9 | Class names are design proposals. Scrapper, Bargain Bruiser, Plate Paladin and Cablemancer are the working names. The class ids never change. | 21 Nov 2026 | Final names: still open (D27). The ids are the design ids (D31). |
 | D10 | Character creation has a sex toggle and sliders for height, muscle size and fat %. The user never types a weight or a height. | 21 Nov 2026 | Creator. |
 | D11 | Keep the height slider. | 21 Nov 2026 | Overrides the moodboard README line "No height slider". |
 | D12 | The user can open the body sliders again at any time. The app keeps a history of body changes. | 21 Nov 2026 | Hub: tap the character. |
@@ -37,10 +37,10 @@ Ask the owner before you design against a decision. Add each new decision here, 
 | D25 | On the class-select step, the preview shows the body the user made in step 1. There is no separate preview body per class. | 21 Nov 2026 | Class select. |
 | D26 | The app id stays `com.alex.gym_app`. Add no new code packages without the owner's OK. | 21 Nov 2026 | Code. |
 | D27 | Still open (not decided): how to measure progress, final class names, exercise pools, the achievements list, the gear list. | 21 Nov 2026 | Ask the owner. |
-| D28 | Difficulty has 6 levels: the design team's 6 modes (Sofa, Warm-up, Sweat, Pain, Brutal, Nightmare Mode). The names stay design proposals. | 21 Nov 2026 | Difficulty. Confirmed by the owner. |
+| D28 | Difficulty has 6 levels: the design team's 6 modes (Sofa, Warm-up, Sweat, Pain, Brutal, Nightmare Mode). The names stay design proposals. | 21 Nov 2026 | Difficulty. Confirmed by the owner, again on 22 Nov 2026: the demo's Couch Spawn … Ascended Swolemancer are dropped (they break the "no class-like names" rule). Ids: `sofa`, `warmup`, `sweat`, `pain`, `brutal`, `nightmare`. |
 | D29 | No preloader. The app opens straight on the hub (or the creator on the first launch). | 21 Nov 2026 | Overrides design demo `01-preloader.html`. |
 | D30 | No "wipe all data" / RESTART SETUP button. The setup changes with EDIT CHARACTER, and the XP and sessions stay. | 21 Nov 2026 | Overrides the DANGER ZONE in design demo `12-menu.html`. |
-| D31 | The 6 difficulty levels use the design demo's names: Couch Spawn, Dumbbell Squire, Rep Ranger, Gain Warlock, Barbell Warlord, Ascended Swolemancer. The ids (`sofa` … `nightmare`) stay the same. | 22 Nov 2026 | Replaces the names in D28. `lib/game/content.dart`. |
+| D31 | The class ids are the design ids: `scrapper`, `bruiser`, `paladin`, `cablemancer`. | 22 Nov 2026 | Overrides the app's `speedy`, `rogue`, `warrior`, `mage`. The app must rename them and migrate saved data once. Area, asset and icon file names already use these ids. Note: an earlier D31 (22 Nov 2026, difficulty names Couch Spawn …) was dropped by the owner the same day; see D28. |
 
 ## 2. Where the current boards conflict
 

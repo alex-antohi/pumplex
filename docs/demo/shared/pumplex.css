@@ -2,7 +2,10 @@
    Source of truth: docs/moodboard/README.md and palette.json.
    Every screen links this file. Screen-only styles go in the screen's own <style>. */
 
-@import url("https://fonts.googleapis.com/css2?family=Anton&family=Space+Mono:wght@400;700&display=swap");
+/* The same font files the app ships (docs/moodboard/fonts, handoff item 2): works offline. */
+@font-face { font-family: Anton; src: url("../../moodboard/fonts/Anton-Regular.ttf") format("truetype"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Space Mono"; src: url("../../moodboard/fonts/SpaceMono-Regular.ttf") format("truetype"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Space Mono"; src: url("../../moodboard/fonts/SpaceMono-Bold.ttf") format("truetype"); font-weight: 700; font-display: swap; }
 
 :root {
   /* grounds */
