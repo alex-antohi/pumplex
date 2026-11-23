@@ -1,8 +1,4 @@
-const _weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const _months = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-];
+import 'i18n.dart';
 
 /// Calendar-safe (DST-safe) day arithmetic.
 DateTime addDays(DateTime d, int n) => DateTime(d.year, d.month, d.day + n);
@@ -22,8 +18,9 @@ DateTime parseDateKey(String k) {
   return DateTime(int.parse(p[0]), int.parse(p[1]), int.parse(p[2]));
 }
 
-/// "Mon 4 Nov"
-String shortDate(DateTime d) => '${_weekdays[d.weekday - 1]} ${d.day} ${_months[d.month - 1]}';
+/// "Mon 4 Nov": the words and their order come from the language file (D68).
+String shortDate(DateTime d) =>
+    t('date.short', {'weekday': t('date.weekday.${d.weekday}'), 'day': d.day, 'month': t('date.month.${d.month}')});
 
 /// 1:05:09, or 12:04 under an hour.
 String fmtDuration(Duration d) {

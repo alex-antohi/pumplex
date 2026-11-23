@@ -9,12 +9,31 @@ import 'package:flutter/material.dart';
 
 import '../game/content.dart';
 import '../game/exercises.dart';
+import '../i18n.dart';
 import '../pumplex.dart';
 import '../store.dart';
 import 'setup.dart' show difficultyColor;
 import 'sprite.dart' show classColor;
 
 enum FilterSection { classes, difficulty, body }
+
+// Exercise labels in the current language (D68). The English names in
+// lib/game/exercises.dart and the exercise list are the fallback.
+
+/// A body part's name: `part.<id>`.
+String bodyPartLabel(String id) => tOr('part.$id', bodyPartById(id)?.name ?? id);
+
+/// A database muscle ("middle back"): `muscle.<muscle>`.
+String muscleLabel(String muscle) => tOr('muscle.$muscle', muscle);
+
+/// A modifier row's title: `axis.<id>`.
+String axisLabel(ModifierAxis a) => tOr('axis.${a.id}', a.label);
+
+/// A modifier row's "no value" chip (Flat, Both...): `axis.<id>.none`.
+String axisNone(ModifierAxis a) => tOr('axis.${a.id}.none', a.none);
+
+/// A modifier value from the exercise list ("Close Grip"): `mod.<value>`.
+String modLabel(String value) => tOr('mod.$value', value);
 
 Future<void> showFilterSheet(BuildContext context, LogStore store, FilterSection at) {
   final p = Pal.of(context);
@@ -77,7 +96,7 @@ class _FilterSheetState extends State<FilterSheet> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _Section(key: _keys[FilterSection.classes], title: 'Class', children: [
+                        _Section(key: _keys[FilterSection.classes], title: t('label.class'), children: [
                           for (final c in gameClasses)
                             _Chip(
                               id: 'chip-class-${c.id}',
@@ -88,7 +107,7 @@ class _FilterSheetState extends State<FilterSheet> {
                               onTap: () => set(f.copyWith(classId: c.id)),
                             ),
                         ]),
-                        _Section(key: _keys[FilterSection.difficulty], title: 'Difficulty', children: [
+                        _Section(key: _keys[FilterSection.difficulty], title: t('label.difficulty'), children: [
                           for (final (i, d) in difficulties.indexed)
                             _Chip(
                               id: 'chip-difficulty-${d.id}',
@@ -99,10 +118,10 @@ class _FilterSheetState extends State<FilterSheet> {
                               onTap: () => set(f.copyWith(difficulty: i)),
                             ),
                         ]),
-                        _Section(key: _keys[FilterSection.body], title: 'Body part', children: [
+                        _Section(key: _keys[FilterSection.body], title: t('label.bodyPart'), children: [
                           _Chip(
                             id: 'chip-body-all',
-                            label: 'All',
+                            label: t('filter.all'),
                             count: f.countBody(cat, favs, null),
                             selected: f.body == null,
                             color: p.sky,
@@ -111,7 +130,7 @@ class _FilterSheetState extends State<FilterSheet> {
                           for (final b in bodyParts)
                             _Chip(
                               id: 'chip-body-${b.id}',
-                              label: b.name,
+                              label: bodyPartLabel(b.id),
                               count: f.countBody(cat, favs, b.id),
                               selected: f.body == b.id,
                               color: p.sky,
@@ -120,10 +139,10 @@ class _FilterSheetState extends State<FilterSheet> {
                         ]),
                         // The muscles of the body part picked.
                         if (part != null)
-                          _Section(title: 'Muscle', children: [
+                          _Section(title: t('label.muscle'), children: [
                             _Chip(
                               id: 'chip-muscle-all',
-                              label: 'All ${part.name}',
+                              label: t('filter.allOf', {'part': bodyPartLabel(part.id)}),
                               count: f.countMuscle(cat, favs, null),
                               selected: f.muscle == null,
                               color: p.violet,
@@ -132,7 +151,7 @@ class _FilterSheetState extends State<FilterSheet> {
                             for (final m in part.muscles)
                               _Chip(
                                 id: 'chip-muscle-$m',
-                                label: m,
+                                label: muscleLabel(m),
                                 count: f.countMuscle(cat, favs, m),
                                 selected: f.muscle == m,
                                 color: p.violet,
@@ -152,7 +171,7 @@ class _FilterSheetState extends State<FilterSheet> {
                         small: true,
                         color: p.sky,
                         onTap: store.resetFilter,
-                        child: const Text('RESET TO MINE'),
+                        child: Text(t('filter.reset')),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -160,7 +179,7 @@ class _FilterSheetState extends State<FilterSheet> {
                           key: const ValueKey('filter-show'),
                           color: p.lime,
                           onTap: () => Navigator.of(context).pop(),
-                          child: Text('SHOW $total ${total == 1 ? 'EXERCISE' : 'EXERCISES'}'),
+                          child: Text(t('filter.show', {'exercises': tn('exercises', total)})),
                         ),
                       ),
                     ],

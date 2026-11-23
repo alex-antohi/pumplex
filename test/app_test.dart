@@ -6,10 +6,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:gym_app/dates.dart';
 import 'package:gym_app/game/content.dart';
 import 'package:gym_app/game/exercises.dart';
 import 'package:gym_app/game/model.dart';
 import 'package:gym_app/game/rules.dart';
+import 'package:gym_app/i18n.dart';
 import 'package:gym_app/main.dart';
 import 'package:gym_app/pumplex.dart';
 import 'package:gym_app/store.dart';
@@ -115,7 +117,54 @@ class _PushCounter extends NavigatorObserver {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(() => exerciseCatalog = ExerciseCatalog.parse(File(ExerciseCatalog.asset).readAsStringSync()));
-  setUp(() => _now = DateTime(2026, 11, 21, 10));
+  // The tests read the English texts (D68).
+  final langFiles = {for (final l in I18n.languages) l: File(I18n.asset(l)).readAsStringSync()};
+  setUp(() {
+    _now = DateTime(2026, 11, 21, 10);
+    I18n.instance.useJson(langFiles);
+  });
+
+  test('languages (D68): the same keys in every file, plurals, placeholders, fallbacks', () {
+    final en = I18n.parse(langFiles['en']!);
+    for (final l in I18n.languages) {
+      final keys = I18n.parse(langFiles[l]!).keys.toSet();
+      expect(keys, en.keys.toSet(), reason: l);
+      // Romanian uses ș and ț with a comma below, not ş and ţ with a cedilla.
+      expect(RegExp('[şţŞŢ]').hasMatch(langFiles[l]!), isFalse, reason: l);
+    }
+    // Every content name has a text.
+    for (final c in gameClasses) {
+      expect(en.containsKey('class.${c.id}.name'), isTrue, reason: c.id);
+    }
+    for (final k in [for (final d in difficulties) 'difficulty.${d.id}.name', for (final a in areas) 'area.${a.id}.name']) {
+      expect(en.containsKey(k), isTrue, reason: k);
+    }
+    for (final a in modifierAxes) {
+      expect(en['axis.${a.id}'], a.label);
+      expect(en['axis.${a.id}.none'], a.none);
+    }
+    for (final b in bodyParts) {
+      expect(en['part.${b.id}'], b.name);
+      for (final m in b.muscles) {
+        expect(en['muscle.$m'], m);
+      }
+    }
+    expect(t('level.up', {'n': 3}), 'LEVEL 3');
+    expect([tn('sets', 1), tn('sets', 12)], ['1 SET', '12 SETS']);
+    expect(shortDate(DateTime(2026, 11, 23)), 'Mon 23 Nov');
+    // Unknown keys: English, then the fallback (exercise names, later).
+    expect(exerciseLabel('Pushups', 'Pushups'), 'Pushups');
+    expect(groupLabel('move:bench press', 'Bench Press'), 'Bench Press');
+    I18n.instance.useJson(langFiles, lang: 'ro');
+    expect([tn('sets', 1), tn('sets', 12), tn('sets', 20), tn('sets', 101), tn('sets', 0)],
+        ['1 SERIE', '12 SERII', '20 DE SERII', '101 SERII', '0 SERII']);
+    expect(classById('paladin').name, 'Paladin de Discuri');
+    expect(shortDate(DateTime(2026, 11, 23)), 'Lun 23 Noi');
+    expect(decimal(1.75, 2), '1,75');
+    I18n.instance.useJson({'en': '{"a": "A {x}"}', 'ro': '{}'}, lang: 'ro');
+    expect(t('a', {'x': 1}), 'A 1'); // a key Romanian lacks: English
+    expect(t('missing'), 'missing');
+  });
 
   test('class id migration (D31): old ids become design ids once, old text kept', () async {
     const oldProfile = '{"classId":"warrior","difficultyId":"sweat","areaId":"gainsgard","character":{}}';
@@ -673,6 +722,33 @@ void main() {
     await t.pump(const Duration(seconds: 5));
   });
 
+  testWidgets('language switch (D68): EN / RO on the body card, saved, every text changes', (t) async {
+    _phone(t);
+    final (store, prefs) = await _store();
+    I18n.instance.useJson(langFiles, prefs: prefs);
+    await t.pumpWidget(GymApp(store: store));
+    await _frames(t);
+    expect(find.text('CHARACTER · STEP 1 OF 4'), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('lang-ro')));
+    await _frames(t);
+    expect(find.text('PERSONAJ · PASUL 1 DIN 4'), findsOneWidget);
+    expect(find.text('ÎNAINTE: CLASA'), findsOneWidget);
+    expect(find.text('CREEAZĂ-ȚI ATLETUL'), findsOneWidget);
+    expect(find.text('1,75 M'), findsOneWidget);
+    expect(prefs.getString(I18n.prefsKey), 'ro');
+    await t.tap(find.text('ÎNAINTE: CLASA'));
+    await _frames(t);
+    expect(find.text('HAIDUC'), findsOneWidget);
+    expect(find.text('MOD CANAPEA'), findsOneWidget);
+    await t.tap(find.text('ÎNAPOI'));
+    await _frames(t);
+    await t.tap(find.byKey(const ValueKey('lang-en')));
+    await _frames(t);
+    expect(find.text('CHARACTER · STEP 1 OF 4'), findsOneWidget);
+    expect(prefs.getString(I18n.prefsKey), 'en');
+    expect(t.takeException(), isNull);
+  });
+
   testWidgets('old data: NOT NOW keeps it and goes to the setup', (t) async {
     _phone(t);
     final (store, prefs) = await _store(old: true);
@@ -1122,9 +1198,10 @@ void main() {
     await t.pump(const Duration(seconds: 5));
   });
 
-  for (final b in Brightness.values) {
-    testWidgets('every scene renders on a phone ($b)', (t) async {
+  for (final (b, lang) in [for (final b in Brightness.values) for (final l in I18n.languages) (b, l)]) {
+    testWidgets('every scene renders on a phone ($b, $lang)', (t) async {
       _phone(t);
+      I18n.instance.useJson(langFiles, lang: lang);
       final (store, _) = await _store(setUp: true);
       store.addSet(_squat);
       await t.pumpWidget(MaterialApp(theme: pumplexTheme(b), home: GameShell(store: store)));
@@ -1151,8 +1228,15 @@ void main() {
       await tapAndSettle(find.byKey(const ValueKey('area-dot-arcade')));
       await t.fling(find.byKey(const ValueKey('lifter-editor')), const Offset(0, -300), 1000);
       await _frames(t);
-      expect(find.text('BUILD YOUR LIFTER'), findsOneWidget);
+      expect(find.byKey(const ValueKey('body-card')), findsOneWidget);
+      // The filter sheet, with its longest texts.
       await tapAndSettle(find.byKey(const ValueKey('mini-workout')));
+      await tapAndSettle(find.byKey(const ValueKey('filter-body')));
+      await tapAndSettle(find.byKey(const ValueKey('chip-body-back')));
+      await tapAndSettle(find.byKey(const ValueKey('filter-show')));
+      store.resetFilter();
+      await _frames(t);
+      await tapAndSettle(find.byKey(const ValueKey('top-level')));
       expect((store.profile!.classId, store.profile!.areaId), ('bruiser', 'arcade'));
       expect(find.byKey(const ValueKey('world-object')), findsOneWidget); // the workout is home (D49)
       await t.pumpWidget(const SizedBox());

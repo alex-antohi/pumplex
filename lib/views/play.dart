@@ -8,6 +8,7 @@ import '../game/content.dart';
 import '../game/exercises.dart';
 import '../game/model.dart';
 import '../game/rules.dart';
+import '../i18n.dart';
 import '../pumplex.dart';
 import 'sprite.dart';
 
@@ -27,7 +28,8 @@ class SessionPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = Pal.of(context);
     final took = session.duration;
-    final date = (live ? 'TODAY · ' : '') + shortDate(parseDateKey(session.date)).toUpperCase();
+    final date = (live ? '${t('session.today')} · ' : '') + shortDate(parseDateKey(session.date)).toUpperCase();
+    final time = took == null ? '' : ' · ${t('session.time', {'t': fmtDuration(took)})}';
     // Old-app days have no class. Days frozen by D54 keep theirs (OLD EXERCISE LIST).
     if (session.legacy && session.classId.isEmpty) {
       return Column(
@@ -40,7 +42,7 @@ class SessionPage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 4),
-          Text('OLD WORKOUT${took == null ? '' : ' · TIME ${fmtDuration(took)}'} · BETA', style: mono(11.5, p.ink)),
+          Text('${t('session.old')}$time · ${t('session.beta')}', style: mono(11.5, p.ink)),
         ],
       );
     }
@@ -55,7 +57,7 @@ class SessionPage extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          '${session.legacy ? 'OLD EXERCISE LIST' : '${session.totalSets} SETS'}${took == null ? '' : ' · TIME ${fmtDuration(took)}'} · '
+          '${session.legacy ? t('session.oldList') : tn('sets', session.totalSets)}$time · '
           '${classById(session.classId).name.toUpperCase()} · ${areaById(session.areaId).name.toUpperCase()}',
           style: mono(11.5, p.ink),
         ),
@@ -65,7 +67,7 @@ class SessionPage extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: Text('${exerciseName(e.exerciseId).toUpperCase()}  ${e.sets}',
+                  child: Text('${exerciseLabel(e.exerciseId, exerciseName(e.exerciseId)).toUpperCase()}  ${e.sets}',
                       style: display(15, p.ink)),
                 ),
                 TallyMarks(count: e.sets, height: 14),

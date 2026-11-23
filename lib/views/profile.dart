@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import '../dates.dart';
 import '../game/content.dart';
 import '../game/rules.dart';
+import '../i18n.dart';
 import '../pumplex.dart';
 import '../store.dart';
 import 'carousel.dart';
@@ -60,14 +61,14 @@ class _SessionsCardState extends State<SessionsCard> with SwipeCarousel<Sessions
           children: [
             Row(
               children: [
-                Shout('Past sessions', color: p.violet, size: 14),
+                Shout(t('sessions.title'), color: p.violet, size: 14),
                 const Spacer(),
                 if (sessions.isNotEmpty) Text('${index + 1} / ${sessions.length}', style: mono(11, p.ink)),
               ],
             ),
             const SizedBox(height: 8),
             if (sessions.isEmpty)
-              const Terminal(['NOTHING HERE YET.', 'THE BOOK IS HUNGRY. FEED IT SETS.'])
+              Terminal([t('sessions.empty1'), t('sessions.empty2')])
             else
               swipe(
                 key: const ValueKey('session-card'),
@@ -136,7 +137,7 @@ class LifterTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) => _Tile(
         key: const ValueKey('tile-lifter'),
-        title: 'Lifter',
+        title: t('tile.lifter'),
         color: classColor(Pal.of(context), store.gameClass.id),
         lines: [
           store.gameClass.name.toUpperCase(),
@@ -162,13 +163,13 @@ class SessionTile extends StatelessWidget {
     final s = all.isEmpty ? null : all[index.clamp(0, all.length - 1)];
     return _Tile(
       key: const ValueKey('tile-session'),
-      title: index == 0 ? 'Last session' : 'Session',
+      title: index == 0 ? t('tile.last') : t('tile.session'),
       color: Pal.of(context).violet,
       lines: s == null
-          ? const ['NOTHING YET']
+          ? [t('tile.nothing')]
           : [
               shortDate(parseDateKey(s.date)).toUpperCase(),
-              s.legacy ? 'OLD WORKOUT' : '${s.totalSets} SETS',
+              s.legacy ? t('session.old') : tn('sets', s.totalSets),
               '+${s.legacy && s.classId.isEmpty ? xpPerLegacySession : store.xpOfSession(s)} XP',
             ],
       onTap: onTap,

@@ -23,6 +23,7 @@ flutter:
     - assets/body/body_atlas.png
     - assets/body/looks/
     - assets/exercises/
+    - assets/i18n/
     - assets/icons/
     - assets/outfits/
     - assets/areas/riptide/
