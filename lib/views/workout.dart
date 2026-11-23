@@ -12,13 +12,17 @@
 //   only.
 // - Under them: the exercise carousel over every exercise the filters
 //   show (D50), one at a time, with a star button. Swipe it both ways,
-//   round and round; a counter shows where you are. No targets (D52).
+//   round and round. No targets (D52).
+// - TODAY (D79): the carousel shows the Today cards first, with dots and
+//   no total, then a thin line and SUGGESTED (the rest of the cards). An
+//   empty Today starts with the COPY A PAST DAY card.
 
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../dates.dart';
 import '../game/area_art.dart';
 import '../game/content.dart';
 import '../game/exercises.dart';
@@ -155,33 +159,47 @@ class WorkoutView extends StatefulWidget {
 }
 
 class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutView> {
-  /// The card shown (a group key). Null: the first one (a favorite when there
-  /// is one). Kept in the store, so it is still there after leaving (D75).
+  /// The key of the COPY A PAST DAY card in the carousel (D79).
+  static const _copyKey = '__copy__';
+
+  /// The card shown (a group key, or [_copyKey]). Null: the first one. Kept
+  /// in the store, so it is still there after leaving (D75).
   late String? _currentKey = widget.store.pickedCard;
+
+  /// The store's picked card at the last build: when the store picks another
+  /// one (a CHALK row, COPY, FORGE IT), the carousel goes there.
+  late String? _seenPick = widget.store.pickedCard;
+  bool _started = false;
   String? _burst;
   int _hitRun = 0;
 
-  /// The filtered cards, refreshed on every build.
-  List<ExerciseGroup> _list = const [];
+  /// The carousel (D79), refreshed on every build: the COPY A PAST DAY card
+  /// (null) on an empty Today, the Today cards, then the rest.
+  List<ExerciseGroup?> _items = const [];
+
+  /// How many Today cards: the first ones after the COPY card.
+  int _todayCount = 0;
 
   LogStore get _store => widget.store;
 
   @override
-  int get count => _list.length;
+  int get count => _items.length;
 
   @override
-  int get index => max(0, _list.indexWhere((g) => g.key == _currentKey));
+  int get index => max(0, _items.indexWhere((g) => (g?.key ?? _copyKey) == _currentKey));
 
   @override
-  void select(int i) => setState(() => _keep(_list[i].key));
+  void select(int i) => setState(() => _keep(_items[i]?.key ?? _copyKey));
 
-  /// Shows card [key] and remembers it (D75).
+  /// Shows card [key] and remembers it (D75; not the COPY card).
   void _keep(String key) {
     _currentKey = key;
+    if (key == _copyKey) return;
     _store.setPickedCard(key);
+    _seenPick = key;
   }
 
-  ExerciseGroup? get _current => _list.isEmpty ? null : _list[index];
+  ExerciseGroup? get _current => _items.isEmpty ? null : _items[index];
 
   void _hit() {
     final g = _current;
@@ -223,8 +241,25 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
   Widget build(BuildContext context) {
     final p = Pal.of(context);
     final store = _store;
-    _list = store.cards;
+    final pick = store.pickedCard;
+    if (pick != _seenPick) {
+      _seenPick = pick;
+      _currentKey = pick;
+    }
+    final todayKeys = store.todayCards;
+    // An empty Today starts with COPY A PAST DAY (D79), not in a search.
+    final past = todayKeys.isEmpty && store.chalk.isEmpty ? store.pastDays : const <String>[];
+    _items = [if (past.isNotEmpty) null, ...store.carousel];
+    _todayCount = todayKeys.length;
+    if (!_started) {
+      _started = true;
+      if (past.isNotEmpty) _currentKey = _copyKey; // a new day opens on it
+    }
+    final todayStart = past.isNotEmpty ? 1 : 0;
     final e = _current;
+    final onCopy = _items.isNotEmpty && _items[index] == null;
+    // The first card after Today gets a thin line on top (D79).
+    final firstRest = e != null && _todayCount > 0 && index == todayStart + _todayCount;
     final f = store.filter;
     final today = store.todaySession;
     final area = areaById(today?.areaId ?? store.profile?.areaId);
@@ -326,7 +361,7 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
                   // Under the tags: the exercise carousel. The world adds
                   // sets to the exercise shown here.
                   Flexible(
-                    child: e == null
+                    child: _items.isEmpty
                         ? _Empty(store: store)
                         : swipe(
                             key: const ValueKey('exercise-card'),
@@ -340,9 +375,11 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
                                   duration: const Duration(milliseconds: 240),
                                   curve: Curves.easeOutCubic,
                                   alignment: Alignment.topCenter,
-                                  child: slide(
+                                  child: e == null
+                                      ? slide('copy-day', _CopyDay(store: store, days: past))
+                                      : slide(
                                     'exercise-${e.key}',
-                                    _ExerciseText(
+                                    _TopLine(on: firstRest, child: _ExerciseText(
                                       g: e,
                                       full: exerciseCatalog.byKey[e.key] ?? e,
                                       v: store.variantFor(e),
@@ -352,10 +389,19 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
                                       hard: store.isHard(e, store.variantFor(e)),
                                       onStar: () => _star(e),
                                       onPick: (id) => _pick(e, id),
-                                    ),
+                                    )),
                                 ))),
-                                Text('${index + 1} / $count',
-                                    key: const ValueKey('exercise-counter'), style: mono(12, p.ink)),
+                                // Dots for the Today cards (no total, D79),
+                                // then a thin line and SUGGESTED.
+                                _TodayDots(
+                                  key: const ValueKey('exercise-counter'),
+                                  today: _todayCount,
+                                  current: onCopy ? -1 : index - todayStart,
+                                  onCopy: onCopy,
+                                  hasRest: count - todayStart > _todayCount,
+                                  restLabel: store.chalk.isEmpty ? t('today.suggested') : t('chalk.title'),
+                                  onDot: (i) => jump(todayStart + i),
+                                ),
                                 const SizedBox(height: 6),
                               ],
                             ),
@@ -505,6 +551,190 @@ class _Empty extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// The first card after Today: a thin line on top (D79).
+class _TopLine extends StatelessWidget {
+  const _TopLine({required this.on, required this.child});
+
+  final bool on;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => !on
+      ? child
+      : DecoratedBox(
+          key: const ValueKey('suggested-line'),
+          decoration: BoxDecoration(border: Border(top: BorderSide(color: Pal.of(context).ink.withValues(alpha: 0.35)))),
+          child: child,
+        );
+}
+
+/// Under the carousel (D79): one dot per Today card (the one shown filled),
+/// no total; then a thin line and SUGGESTED (bright on a card after Today).
+/// On the COPY card: SWIPE FOR SUGGESTED.
+class _TodayDots extends StatelessWidget {
+  const _TodayDots({
+    super.key,
+    required this.today,
+    required this.current,
+    required this.onCopy,
+    required this.hasRest,
+    required this.restLabel,
+    required this.onDot,
+  });
+
+  /// How many Today cards, and the one shown (0-based; >= [today]: a card
+  /// after Today; -1: the COPY card).
+  final int today, current;
+  final bool onCopy, hasRest;
+  final String restLabel;
+  final ValueChanged<int> onDot;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Pal.of(context);
+    if (onCopy) return Text(t('today.swipe'), style: mono(11, p.ink.withValues(alpha: 0.6)));
+    final inRest = current >= today;
+    return SizedBox(
+      height: 18,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (var i = 0; i < today; i++)
+              GestureDetector(
+                key: ValueKey('today-dot-$i'),
+                behavior: HitTestBehavior.opaque,
+                onTap: () => onDot(i),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
+                  child: Container(
+                    width: 11,
+                    height: 11,
+                    decoration: BoxDecoration(
+                      color: i == current ? p.lime : p.panel,
+                      border: Border.all(color: p.ink, width: 2),
+                    ),
+                  ),
+                ),
+              ),
+            if (hasRest) ...[
+              if (today > 0) Container(width: 1, height: 14, margin: const EdgeInsets.symmetric(horizontal: 8), color: p.ink.withValues(alpha: 0.5)),
+              Text(restLabel,
+                  key: const ValueKey('suggested-label'),
+                  style: mono(11, inRest ? p.ink : p.ink.withValues(alpha: 0.5)).copyWith(fontWeight: inRest ? FontWeight.bold : null)),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// COPY A PAST DAY (D79): the first card of an empty Today. ◀ ▶ step
+/// through the past days with sessions (newest first); the day's exercises;
+/// COPY puts their cards in Today (no sets).
+class _CopyDay extends StatefulWidget {
+  const _CopyDay({required this.store, required this.days});
+
+  final LogStore store;
+
+  /// Past days with cards, newest first.
+  final List<String> days;
+
+  @override
+  State<_CopyDay> createState() => _CopyDayState();
+}
+
+class _CopyDayState extends State<_CopyDay> {
+  int _i = 0;
+
+  /// The most names shown; the rest are "+ n MORE".
+  static const _names = 4;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Pal.of(context);
+    final days = widget.days;
+    final i = _i.clamp(0, days.length - 1);
+    final day = days[i];
+    final moves = widget.store.dayMoves(day);
+    Widget arrow(String key, String label, String glyph, int to) {
+      final on = to >= 0 && to < days.length;
+      return Semantics(
+        button: true,
+        enabled: on,
+        label: label,
+        child: GestureDetector(
+          key: ValueKey(key),
+          behavior: HitTestBehavior.opaque,
+          onTap: on ? () => setState(() => _i = to) : null,
+          child: Opacity(
+            opacity: on ? 1 : 0.3,
+            child: Container(
+              width: 38,
+              height: 34,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(color: p.sky, border: Border.all(color: p.ink, width: 2)),
+              child: Text(glyph, style: display(16, p.on)),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      key: const ValueKey('copy-day-card'),
+      // Only left / right moves the carousel (D65).
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Shout(t('today.empty'), size: 15, color: p.ink),
+          const SizedBox(height: 2),
+          Text(t('today.emptyHint'), style: mono(11, p.ink.withValues(alpha: 0.75))),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              arrow('copy-older', t('today.olderDay'), '◀', i + 1),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Container(
+                  height: 34,
+                  alignment: Alignment.center,
+                  color: kNight,
+                  child: Text(shortDate(parseDateKey(day)).toUpperCase(), key: const ValueKey('copy-date'), style: display(17, Colors.white)),
+                ),
+              ),
+              const SizedBox(width: 8),
+              arrow('copy-newer', t('today.newerDay'), '▶', i - 1),
+            ],
+          ),
+          const SizedBox(height: 6),
+          for (final m in moves.take(_names))
+            Text('▪ ${(m.nick ?? exerciseLabel(m.id, m.name)).toUpperCase()}',
+                maxLines: 1, overflow: TextOverflow.ellipsis, style: mono(11.5, p.ink)),
+          if (moves.length > _names) Text(t('today.more', {'n': moves.length - _names}), style: mono(11, p.ink.withValues(alpha: 0.6))),
+          const SizedBox(height: 8),
+          BrutalButton(
+            key: const ValueKey('copy-day-button'),
+            small: true,
+            color: p.lime,
+            onTap: () {
+              HapticFeedback.selectionClick();
+              widget.store.copyDay(day);
+            },
+            child: FittedBox(fit: BoxFit.scaleDown, child: Text(tn('today.copyCards', moves.length))),
+          ),
+          const SizedBox(height: 4),
+          Text(t('today.copyNote'), style: mono(9.5, p.ink.withValues(alpha: 0.55))),
+        ],
       ),
     );
   }

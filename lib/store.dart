@@ -249,6 +249,7 @@ class LogStore extends ChangeNotifier {
     exerciseCatalog = catalogWithForged(exerciseCatalog, _forged);
     _filter = null;
     _filterLoaded = false;
+    _loadToday();
     try {
       final raw = _json(pickedVariantsKey, const {});
       if (raw is Map) {
@@ -561,6 +562,7 @@ class LogStore extends ChangeNotifier {
       ..clear()
       ..addAll(ChalkIndex.of(exerciseCatalog).words[move.id] ?? const {});
     setPickedCard(move.id);
+    _addToToday([move.id]); // FORGE IT adds the move to Today (D79)
     notifyListeners();
     return move;
   }
@@ -568,6 +570,113 @@ class LogStore extends ChangeNotifier {
   /// The HARD badge (D70) for exercise [e] of card [g]: only for a card of
   /// your class (a CHALK result for other gear opens with no badge, D72).
   bool isHard(ExerciseGroup g, CatalogExercise e) => g.variants.first.unlock.containsKey(gameClass.id) && filter.isHard(g, e);
+
+  // ---------------------------------------------------------------- today
+
+  /// TODAY (D79): the cards the lifter put in today's list, in order (group
+  /// keys, like the carousel; the star saves exercises, D72). Kept on the
+  /// phone with the day it belongs to: `{"date": "yyyy-MM-dd", "cards":
+  /// [keys]}`. A new day starts empty. UI data, not in the backup: the
+  /// cards with sets are in the day's session.
+  static const todayKey = 'today_v1';
+  String? _todayDate;
+  final List<String> _todaySaved = [];
+
+  void _loadToday() {
+    _todayDate = null;
+    _todaySaved.clear();
+    try {
+      final j = _json(todayKey, const {});
+      if (j is Map && j['date'] is String && j['cards'] is List) {
+        _todayDate = j['date'] as String;
+        _todaySaved.addAll([for (final k in j['cards'] as List) if (k is String) k]);
+      }
+    } on FormatException {
+      // A broken value is only UI data: start with an empty Today.
+    }
+  }
+
+  /// Today's cards, in order: the ones put in today (a set, a CHALK row,
+  /// FORGE IT, COPY), then any card with sets today not in the list. The
+  /// day rule is the sessions' one (D6): the list of another day is gone,
+  /// so a card with 0 sets does not stay past its day. Only cards the
+  /// exercise list has.
+  List<String> get todayCards {
+    final out = <String>[if (_todayDate == _today) ..._todaySaved];
+    for (final e in todaySession?.exercises ?? const <SessionExercise>[]) {
+      final k = exerciseCatalog.groupKeyOf(e.exerciseId);
+      if (e.sets > 0 && !out.contains(k)) out.add(k);
+    }
+    return [for (final k in out) if (exerciseCatalog.byKey.containsKey(k)) k];
+  }
+
+  bool inToday(String key) => todayCards.contains(key);
+
+  /// Puts cards [keys] at the end of Today (a card is there once) and saves
+  /// the list. No notify: the callers do it.
+  void _addToToday(Iterable<String> keys) {
+    final list = todayCards;
+    final add = [for (final k in keys) if (exerciseCatalog.byKey.containsKey(k) && !list.contains(k)) k];
+    if (add.isEmpty && _todayDate == _today) return;
+    final saved = {...list, ...add}.toList();
+    _todayDate = _today;
+    _todaySaved
+      ..clear()
+      ..addAll(saved);
+    _prefs.setString(todayKey, jsonEncode({'date': _today, 'cards': saved}));
+  }
+
+  /// A tap on a CHALK result row: card [key] joins Today and is shown (D79).
+  void addToToday(String key) {
+    _addToToday([key]);
+    setPickedCard(key);
+    notifyListeners();
+  }
+
+  /// The exercises a past day trained, one per card (the first one with
+  /// sets), in the order of the day: its Today list (D79), worked out from
+  /// the saved session. Cards the exercise list no longer has are left out.
+  List<CatalogExercise> dayMoves(String date) {
+    final s = _sessions[date];
+    if (s == null || s.legacy) return const [];
+    final seen = <String>{};
+    return [
+      for (final e in s.exercises)
+        if (e.sets > 0 && exerciseCatalog.byId[e.exerciseId] != null && seen.add(exerciseCatalog.groupKeyOf(e.exerciseId)))
+          exerciseCatalog.byId[e.exerciseId]!,
+    ];
+  }
+
+  /// The days before today with cards to copy, newest first (COPY A PAST
+  /// DAY, D79).
+  List<String> get pastDays => [
+        for (final s in _sessions.values)
+          if (s.date.compareTo(_today) < 0 && dayMoves(s.date).isNotEmpty) s.date,
+      ]..sort((a, b) => b.compareTo(a));
+
+  /// COPY: the cards of day [date] join Today; the sets do not (D79).
+  void copyDay(String date) {
+    final keys = [for (final e in dayMoves(date)) exerciseCatalog.groupKeyOf(e.id)];
+    if (keys.isEmpty) return;
+    _addToToday(keys);
+    setPickedCard(keys.first);
+    notifyListeners();
+  }
+
+  /// The workout carousel (D79): the Today cards first, then the rest of
+  /// [cards] (the catalog in Suggested order, or the CHALK results). The
+  /// filters and the search order only the rest; a Today card always
+  /// shows, once. A Today card the rest has keeps its filtered exercises.
+  List<ExerciseGroup> get carousel {
+    final rest = cards;
+    final today = todayCards;
+    final byKey = {for (final g in rest) g.key: g};
+    final mine = today.toSet();
+    return [
+      for (final k in today) byKey[k] ?? exerciseCatalog.byKey[k]!,
+      for (final g in rest) if (!mine.contains(g.key)) g,
+    ];
+  }
 
   /// The cards the filters show, in carousel order (one per move, D55).
   List<ExerciseGroup> get cards {
@@ -613,8 +722,14 @@ class LogStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Tap on the world: one more working set of exercise [id].
-  void addSet(String id) => _edit((l) {
+  /// Tap on the world: one more working set of exercise [id]. The first
+  /// set on a card puts it in Today (D79).
+  void addSet(String id) {
+    _addToToday([exerciseCatalog.groupKeyOf(id)]);
+    _addSet(id);
+  }
+
+  void _addSet(String id) => _edit((l) {
         final i = l.indexWhere((e) => e.exerciseId == id);
         return i < 0 ? (l..add(SessionExercise(exerciseId: id, sets: 1))) : (l..[i] = l[i].copyWith(sets: l[i].sets + 1));
       });

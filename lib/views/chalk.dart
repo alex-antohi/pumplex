@@ -1,6 +1,7 @@
 // The CHALK sheet (D72, docs/moodboard/chalk/01-chalk-search.html). At the
-// top the chalk line shows the words picked (tap one to wipe it). Under it
-// one row of word tiles per kind: PATTERN, MOVE, TOOL, BODY, ANGLE, GRIP.
+// top the chalk line shows the words picked (tap one to wipe it). Right
+// under it the results (D79): one row per card; a tap adds it to Today and
+// closes the sheet on it. Then one row of word tiles per kind: PATTERN, MOVE, TOOL, BODY, ANGLE, GRIP.
 // Each tile shows how many exercises the chalk line gives with it (its own
 // row's word swapped for it); 0 is greyed. WIPE clears the line; SHOW n
 // EXERCISES closes the sheet. With 0 matches the main button reads NO SUCH
@@ -14,6 +15,7 @@ import '../game/exercises.dart';
 import '../i18n.dart';
 import '../pumplex.dart';
 import '../store.dart';
+import 'filters.dart' show bodyPartLabel;
 import 'forge.dart';
 
 /// Chalk white, for the words on the dark floor.
@@ -71,6 +73,12 @@ class ChalkSheet extends StatelessWidget {
                           empty: line.isNotEmpty && total == 0,
                           onWipe: (w) => store.setChalk(chalkToggle(line, w)),
                         ),
+                        // The results, right under the chalk line (D79):
+                        // one tap on a row adds that card to Today.
+                        if (line.isNotEmpty && total > 0) ...[
+                          const SizedBox(height: 12),
+                          _Results(store: store, cards: index.search(line), index: index),
+                        ],
                         const SizedBox(height: 12),
                         for (final row in chalkRows)
                           Padding(
@@ -203,6 +211,126 @@ class _ChalkLine extends StatelessWidget {
           Text(empty ? t('chalk.none') : t('chalk.tip'),
               key: const ValueKey('chalk-tip'), style: mono(10, empty ? p.pink : kChalk.withValues(alpha: 0.5))),
         ],
+      ),
+    );
+  }
+}
+
+/// The CHALK results (D79): one row per matching card, its exercise's name
+/// in the current language, its body part and tool. A card already in Today
+/// shows TODAY, the others "+". A tap adds the card to Today (one per tap,
+/// no "add all"), closes the sheet and shows the card. The list scrolls on
+/// its own, so the word tiles stay close.
+class _Results extends StatelessWidget {
+  const _Results({required this.store, required this.cards, required this.index});
+
+  final LogStore store;
+  final List<ExerciseGroup> cards;
+  final ChalkIndex index;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Pal.of(context);
+    return Column(
+      key: const ValueKey('chalk-results'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Shout(t('today.results', {'n': cards.length}), size: 13, color: p.ink),
+            const Spacer(),
+            Flexible(
+              child: Text(t('today.tapToAdd'),
+                  textAlign: TextAlign.right, style: mono(10, p.ink.withValues(alpha: 0.6))),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 216),
+          child: ListView.separated(
+            shrinkWrap: true,
+            padding: const EdgeInsets.only(right: 4, bottom: 4),
+            itemCount: cards.length,
+            separatorBuilder: (_, _) => const SizedBox(height: 6),
+            itemBuilder: (context, i) => _ResultRow(store: store, g: cards[i], index: index),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ResultRow extends StatelessWidget {
+  const _ResultRow({required this.store, required this.g, required this.index});
+
+  final LogStore store;
+  final ExerciseGroup g;
+  final ChalkIndex index;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Pal.of(context);
+    final v = store.variantFor(g);
+    final inToday = store.inToday(g.key);
+    final sets = store.groupSetsToday(g.key);
+    final part = bodyParts.where((b) => b.muscles.contains(v.muscle)).firstOrNull;
+    final tool = (index.words[v.id] ?? const <String>{}).where((k) => k.startsWith('tool.')).map(chalkWordByKey).firstOrNull;
+    final info = [
+      if (part != null) bodyPartLabel(part.id),
+      if (tool != null) chalkLabel(tool),
+      if (sets > 0) tn('today.setsToday', sets),
+    ].join(' · ');
+    return Semantics(
+      button: true,
+      selected: inToday,
+      child: GestureDetector(
+        key: ValueKey('chalk-result-${g.key}'),
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          store.addToToday(g.key);
+          Navigator.of(context).pop();
+        },
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(10, 7, 8, 7),
+          decoration: BoxDecoration(
+            color: inToday ? p.panel2 : p.panel,
+            border: Border.all(color: p.ink, width: 3),
+            boxShadow: [BoxShadow(color: p.ink, offset: const Offset(3, 3))],
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text((v.nick ?? exerciseLabel(v.id, v.name)).toUpperCase(), style: display(15, p.ink)),
+                    if (info.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(info.toUpperCase(), style: mono(10, p.ink.withValues(alpha: 0.65))),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (inToday)
+                Container(
+                  key: ValueKey('chalk-result-today-${g.key}'),
+                  padding: const EdgeInsets.fromLTRB(7, 4, 7, 3),
+                  color: kNight,
+                  child: Text(t('today.title'), style: display(12, p.lime)),
+                )
+              else
+                Container(
+                  width: 30,
+                  height: 30,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(color: p.lime, border: Border.all(color: p.ink, width: 2)),
+                  child: Text('+', style: display(18, p.on)),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }

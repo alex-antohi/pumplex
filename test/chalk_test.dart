@@ -105,6 +105,14 @@ void main() {
     // No exercise has all the words: NO SUCH MOVE. FORGE IT?
     await t.tap(find.byKey(const ValueKey('filter-chalk')));
     await _frames(t, 10);
+    // The results list sits under the chalk line (D79), above the tiles.
+    expect(find.byKey(const ValueKey('chalk-results')), findsOneWidget);
+    expect(t.getRect(find.byKey(const ValueKey('chalk-results'))).top,
+        greaterThan(t.getRect(find.byKey(const ValueKey('chalk-line'))).bottom));
+    expect(t.getRect(find.byKey(const ValueKey('chalk-results'))).bottom,
+        lessThan(t.getRect(find.byKey(const ValueKey('chalk-move.plank'))).top));
+    await t.ensureVisible(find.byKey(const ValueKey('chalk-move.plank')));
+    await _frames(t, 4);
     await t.tap(find.byKey(const ValueKey('chalk-move.plank')));
     await _frames(t, 4);
     expect(find.byKey(const ValueKey('chalk-forge')), findsOneWidget);

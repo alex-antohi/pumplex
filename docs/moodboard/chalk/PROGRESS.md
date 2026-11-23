@@ -29,6 +29,16 @@ What is built from `HANDOFF.md` (D70, D72) on branch `design-fixes`, and what is
    - Stored in `custom_exercises_v1` (ids `custom_<n>`, words, muscle, nickname). It joins `exerciseCatalog` at start (`catalogWithForged`) for every class with its gear from Sofa, last in the order; sets and XP work like any exercise (beginner level). The card title shows the nickname (`CatalogExercise.nick`).
 8. **Nickname keyboard** (`ArcadeKeyboard` in `lib/views/forge.dart`): QWERTY, Ă Â Î Ș Ț, DEL, SPACE, OK; no digits; docked at the bottom under the BACK / FORGE IT bar; OK closes it; FORGE IT works before OK; no length limit.
 
+
+9. **D79 TODAY** (mockup `03-today.html`; store in `lib/store.dart`, carousel in `lib/views/workout.dart`, results in `lib/views/chalk.dart`, tests in `test/today_test.dart`).
+   - Today is an ordered list of card keys (group keys, like the carousel), saved in `today_v1` as `{"date", "cards"}`. Another day's list is ignored (the sessions' day rule, D6), so a 0-set card does not stay past its day. Cards with sets today always count. Not in the backup (UI data; the sets are in the session).
+   - Added by: the first set on a card, a tap on a CHALK result row (the sheet closes on that card), FORGE IT, COPY. No remove gesture.
+   - Carousel (`store.carousel`): the Today cards first (dots, no total), then a thin line on the first card after them and SUGGESTED (the rest of `store.cards` in Suggested order, favorites first). The filters and the star order only the rest; a Today card always shows, once. While CHALK has words, the rest is the search results and the label reads CHALK.
+   - COPY A PAST DAY: the first card of an empty Today (not while CHALK has words), and the app opens on it. ◀ ▶ step through the past days with sets (newest first), the day's exercise names, COPY n CARDS (cards only). Past days' lists come from the saved sessions (`store.dayMoves`, `store.pastDays`). The world takes no set on this card.
+   - CHALK results: right under the chalk line, above the word tiles (owner's change to the mockup); one row per card, translated name, body part and tool, TODAY mark or "+". The list scrolls on its own (at most about 3 rows tall), so the tiles stay close.
+   - Texts: `today.*` in en.json and ro.json.
+   - Not built: the lime TODAY tag by the card title (the title row is shared with the chip-area work; the dots show Today instead).
+
 ## Left to do (in this order)
 
 
