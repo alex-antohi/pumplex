@@ -25,30 +25,45 @@ class ChalkWord {
 }
 
 /// The movement patterns (D69) as words: several patterns can share one.
+/// Fly goes with push; rear delt and shrug go with pull. The other isolation
+/// patterns (biceps, triceps, forearms, raise, calves, hamcurl, abductor,
+/// adductor) get no PATTERN word, so the row stays short: a MOVE word
+/// (curl, extension, raise, ...) or the BODY word finds them.
 const _patternWords = <String, List<String>>{
-  'push': ['hpush', 'vpush'],
-  'pull': ['hpull', 'vpull'],
+  'push': ['hpush', 'vpush', 'fly'],
+  'pull': ['hpull', 'vpull', 'rear', 'shrug'],
   'squat': ['squat'],
   'hinge': ['hinge'],
   'single': ['single'],
   'core': ['flex', 'antiext', 'rotation'],
   'jump': ['plyo', 'power'],
+  'carry': ['carry'],
+  'cardio': ['cardio'],
 };
 
 /// The moves, found in the exercise's name (English, from the database).
+/// Leg Curl is CURL + LEGS and Calf Raise is RAISE + LEGS (no tile of their
+/// own). ROW is the strength row only: the Rowing Machine is CARDIO.
 final _moveWords = <String, RegExp>{
   'press': RegExp(r'\bpress', caseSensitive: false),
   'fly': RegExp(r'\bfly|\bflye', caseSensitive: false),
+  'pullover': RegExp(r'pullover', caseSensitive: false),
   'curl': RegExp(r'\bcurl', caseSensitive: false),
+  'wristcurl': RegExp(r'wrist curl', caseSensitive: false),
   'raise': RegExp(r'\braise', caseSensitive: false),
   'row': RegExp(r'\brow\b|\brows\b', caseSensitive: false),
   'squat': RegExp(r'\bsquat', caseSensitive: false),
   'lunge': RegExp(r'\blunge', caseSensitive: false),
   'deadlift': RegExp(r'deadlift', caseSensitive: false),
+  'hipthrust': RegExp(r'hip thrust', caseSensitive: false),
+  'bridge': RegExp(r'\bbridge', caseSensitive: false),
   'pullup': RegExp(r'pull-?up|chin-?up', caseSensitive: false),
   'pushup': RegExp(r'push-?up', caseSensitive: false),
   'dip': RegExp(r'\bdips?\b', caseSensitive: false),
-  'extension': RegExp(r'extension', caseSensitive: false),
+  // A skullcrusher is a lying triceps extension.
+  'extension': RegExp(r'extension|skull ?crusher', caseSensitive: false),
+  'pushdown': RegExp(r'push-?down', caseSensitive: false),
+  'kickback': RegExp(r'kickback', caseSensitive: false),
   'pulldown': RegExp(r'pulldown|pull-down', caseSensitive: false),
   'crunch': RegExp(r'crunch', caseSensitive: false),
   'plank': RegExp(r'plank', caseSensitive: false),
@@ -82,6 +97,9 @@ const _toolOfMod = {
   'Medicine Ball': 'ball',
 };
 
+/// A towel is a second tool on top of Bodyweight (Towel Row, Towel Hang).
+final _towel = RegExp(r'\btowel', caseSensitive: false);
+
 /// Every word tile, row by row, in the order the sheet shows them.
 const chalkWords = <ChalkWord>[
   ChalkWord('pattern', 'push', 'Push'),
@@ -91,18 +109,26 @@ const chalkWords = <ChalkWord>[
   ChalkWord('pattern', 'single', 'Single leg'),
   ChalkWord('pattern', 'core', 'Core'),
   ChalkWord('pattern', 'jump', 'Jump'),
+  ChalkWord('pattern', 'carry', 'Carry'),
+  ChalkWord('pattern', 'cardio', 'Cardio'),
   ChalkWord('move', 'press', 'Press'),
   ChalkWord('move', 'fly', 'Fly'),
+  ChalkWord('move', 'pullover', 'Pullover'),
   ChalkWord('move', 'curl', 'Curl'),
+  ChalkWord('move', 'wristcurl', 'Wrist curl'),
   ChalkWord('move', 'raise', 'Raise'),
   ChalkWord('move', 'row', 'Row'),
   ChalkWord('move', 'squat', 'Squat'),
   ChalkWord('move', 'lunge', 'Lunge'),
   ChalkWord('move', 'deadlift', 'Deadlift'),
+  ChalkWord('move', 'hipthrust', 'Hip thrust'),
+  ChalkWord('move', 'bridge', 'Bridge'),
   ChalkWord('move', 'pullup', 'Pull-up'),
   ChalkWord('move', 'pushup', 'Push-up'),
   ChalkWord('move', 'dip', 'Dip'),
   ChalkWord('move', 'extension', 'Extension'),
+  ChalkWord('move', 'pushdown', 'Pushdown'),
+  ChalkWord('move', 'kickback', 'Kickback'),
   ChalkWord('move', 'pulldown', 'Pulldown'),
   ChalkWord('move', 'crunch', 'Crunch'),
   ChalkWord('move', 'plank', 'Plank'),
@@ -116,6 +142,7 @@ const chalkWords = <ChalkWord>[
   ChalkWord('tool', 'ezbar', 'EZ bar'),
   ChalkWord('tool', 'bands', 'Bands'),
   ChalkWord('tool', 'ball', 'Ball'),
+  ChalkWord('tool', 'towel', 'Towel'),
   ChalkWord('tool', 'bodyweight', 'Bodyweight'),
   ChalkWord('body', 'chest', 'Chest'),
   ChalkWord('body', 'back', 'Back'),
@@ -154,8 +181,11 @@ Set<String> _wordsOf(CatalogExercise e, ExerciseGroup g) {
   for (final MapEntry(:key, :value) in _moveWords.entries) {
     if (value.hasMatch(e.name)) w.add('move.$key');
   }
-  final tool = e.mods['equip'] != null ? _toolOfMod[e.mods['equip']] : _toolOfEquipment[e.equipment];
+  // No equipment in the database (null, or empty) is Bodyweight.
+  final equipment = e.equipment.isEmpty ? 'body only' : e.equipment;
+  final tool = e.mods['equip'] != null ? _toolOfMod[e.mods['equip']] : _toolOfEquipment[equipment];
   if (tool != null) w.add('tool.$tool');
+  if (e.mods['type'] == 'Towel' || _towel.hasMatch(e.name)) w.add('tool.towel');
   for (final b in bodyParts) {
     if (b.muscles.contains(e.muscle)) w.add('body.${b.id}');
   }

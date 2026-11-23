@@ -76,25 +76,79 @@ void main() {
     }
   });
 
+  test('the word index: every card is found by at least one single word', () {
+    final index = ChalkIndex.of(exerciseCatalog);
+    final found = {
+      for (final w in chalkWords)
+        for (final g in index.search({w.key})) g.key,
+    };
+    for (final g in exerciseCatalog.groups) {
+      expect(found, contains(g.key), reason: g.name);
+    }
+    // Every card has a PATTERN or a MOVE word, except the few odd ones
+    // that only BODY (and TOOL) find.
+    final what = {
+      for (final w in chalkWords.where((w) => w.row == 'pattern' || w.row == 'move'))
+        for (final g in index.search({w.key})) g.key,
+    };
+    final odd = [for (final g in exerciseCatalog.groups) if (!what.contains(g.key)) g.name]..sort();
+    // ignore: avoid_print
+    print('Cards with no PATTERN or MOVE word: $odd');
+    expect(odd.length, lessThanOrEqualTo(10), reason: '$odd');
+  });
+
+  test('the word index: the user-test gaps (towel, rowing machine, null gear, isolation moves)', () {
+    final index = ChalkIndex.of(exerciseCatalog);
+    Set<String> cards(Set<String> line) => index.search(line).map((g) => g.key).toSet();
+    Set<String> names(Set<String> line) => {for (final g in index.search(line)) for (final e in g.variants) e.name};
+    // A Scrapper finds the Towel Row (no forged copy).
+    expect(names({'tool.towel', 'move.row'}), {'Towel Row'});
+    // No equipment in the database is Bodyweight.
+    expect(index.words['Inverted_Row'], contains('tool.bodyweight'));
+    // The Rowing Machine is CARDIO, not ROW.
+    expect(names({'pattern.cardio'}), contains('Rowing Machine'));
+    expect(names({'move.row'}), isNot(contains('Rowing Machine')));
+    expect(names({'pattern.carry'}), contains("Dumbbell Farmer's Walk"));
+    // The isolation moves.
+    expect(cards({'move.pushdown'}), {'move:triceps pushdown'});
+    expect(cards({'move.kickback', 'body.arms'}), {'move:triceps kickback'});
+    expect(cards({'move.pullover'}), {'move:pullover'});
+    expect(cards({'move.hipthrust'}), {'move:hip thrust'});
+    expect(cards({'move.bridge'}), {'move:glute bridge'});
+    expect(cards({'move.wristcurl'}), {'move:wrist curl'});
+    expect(cards({'move.curl', 'body.legs'}), {'move:leg curl', 'move:nordic curl'});
+    expect(cards({'move.raise', 'body.legs'}), contains('move:calf raise'));
+    expect(cards({'move.extension'}), contains('move:skullcrusher'));
+    expect(cards({'pattern.push'}), contains('move:fly'));
+    expect(cards({'pattern.pull'}), containsAll(['move:face pull', 'move:shrug']));
+  });
+
   testWidgets('CHALK: tap words, the workout shows all matches (any class); WIPE; FORGE at 0', (t) async {
     final store = await _openApp(t);
     expect(store.cards.any((g) => g.variants.any((e) => e.equipment == 'barbell')), isFalse); // a Scrapper has no barbell
     await t.tap(find.byKey(const ValueKey('filter-chalk')));
     await _frames(t, 10);
     expect(find.byKey(const ValueKey('chalk-line')), findsOneWidget);
-    await t.tap(find.byKey(const ValueKey('chalk-tool.barbell')));
+    // The sheet scrolls: bring a tile into view before the tap.
+    Future<void> tapTile(String key) async {
+      await t.ensureVisible(find.byKey(ValueKey('chalk-$key')));
+      await t.pump();
+      await t.tap(find.byKey(ValueKey('chalk-$key')));
+    }
+
+    await tapTile('tool.barbell');
     await _frames(t, 4);
-    await t.tap(find.byKey(const ValueKey('chalk-move.press')));
+    await tapTile('move.press');
     await _frames(t, 4);
     expect(store.chalk, {'tool.barbell', 'move.press'});
     expect(find.byKey(const ValueKey('chalk-word-tool.barbell')), findsOneWidget);
     final n = ChalkIndex.of(exerciseCatalog).count(store.chalk);
     expect(find.text('SHOW $n EXERCISES'), findsOneWidget);
     // Tap a word in the chalk line to wipe it, then put it back.
-    await t.tap(find.byKey(const ValueKey('chalk-word-move.press')));
+    await tapTile('word-move.press');
     await _frames(t, 4);
     expect(store.chalk, {'tool.barbell'});
-    await t.tap(find.byKey(const ValueKey('chalk-move.press')));
+    await tapTile('move.press');
     await _frames(t, 4);
     await t.tap(find.byKey(const ValueKey('chalk-show')));
     await _frames(t, 20);
@@ -105,7 +159,7 @@ void main() {
     // No exercise has all the words: NO SUCH MOVE. FORGE IT?
     await t.tap(find.byKey(const ValueKey('filter-chalk')));
     await _frames(t, 10);
-    await t.tap(find.byKey(const ValueKey('chalk-move.plank')));
+    await tapTile('move.plank');
     await _frames(t, 4);
     expect(find.byKey(const ValueKey('chalk-forge')), findsOneWidget);
     expect(find.text('NO EXERCISE HAS ALL THESE WORDS'), findsOneWidget);
