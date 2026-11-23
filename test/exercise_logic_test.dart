@@ -47,9 +47,6 @@ void main() {
       expect(again.pickedCard, 'move:bench press');
       again.resetFilter();
       expect(again.variantFor(again.cards.firstWhere((g) => g.key == 'move:bench press')).id, 'Decline_Barbell_Bench_Press');
-      // A pick the filters hide: the one picked before it.
-      again.pickVariant('Bench_Press_with_Chains'); // expert: Sweat does not show it
-      expect(again.variantFor(again.cards.firstWhere((g) => g.key == 'move:bench press')).id, 'Decline_Barbell_Bench_Press');
     });
 
     test('the filters stay after closing the app and the next day; reset clears them', () async {

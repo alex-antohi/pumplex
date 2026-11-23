@@ -378,8 +378,7 @@ void main() {
       var before = <String>{};
       for (var d = 0; d < difficulties.length; d++) {
         final f = ExerciseFilter(classId: c.id, difficulty: d);
-        final cards = f.apply(exerciseCatalog, const {});
-        final keys = cards.map((g) => g.key).toSet();
+        final keys = {for (final g in exerciseCatalog.groups) if (g.shownIn(c.id, d)) g.key};
         expect(keys.length, greaterThan(before.length), reason: '${c.id} $d');
         expect(keys.containsAll(before), isTrue, reason: '${c.id} $d');
         for (final b in bodyParts) {
@@ -561,12 +560,17 @@ void main() {
     expect(list.every((e) => classEquipment['paladin']!.contains(e.equipment)), isTrue);
     expect(list.every((e) => classCategories['paladin']!.contains(e.category)), isTrue);
     expect(list.any((e) => e.equipment == 'other' || e.equipment == 'foam roll'), isFalse);
-    // Difficulty: Sweat sees beginner and intermediate; the most common card first (D67).
+    // Difficulty is not a filter (D70): every card of the class, your mode's
+    // first (the most common first, D67); the rest get the HARD badge.
     expect([for (final d in [0, 1, 2, 3, 4, 5]) topLevelFor(d)], [0, 0, 1, 1, 2, 2]);
-    expect(list.every((e) => e.level <= 1), isTrue);
     expect(cards.first.key, 'move:bench press');
-    expect(f.countDifficulty(exerciseCatalog, const {}, 5), greaterThan(cards.length)); // higher sees lower too
-    expect(f.countDifficulty(exerciseCatalog, const {}, _d), cards.length); // counts are cards
+    expect(cards.length, exerciseCatalog.groups.where((g) => g.shownIn('paladin', 5)).length);
+    final mine = cards.indexWhere((g) => !g.shownIn('paladin', _d));
+    expect(mine, greaterThan(0));
+    expect(cards.skip(mine).every((g) => !g.shownIn('paladin', _d)), isTrue); // your mode's cards first
+    expect(cards.skip(mine).every((g) => f.isHard(g, g.variants.first)), isTrue);
+    expect(cards.take(mine).any((g) => g.variants.any((e) => e.level == 2)), isTrue); // expert exercises show
+    expect(f.isHard(bench, bench.variants.first), bench.variants.first.level > 1);
     // Body part, then a muscle of it.
     store.setFilter(f.withBody('legs'));
     final legs = store.cards;
@@ -575,12 +579,6 @@ void main() {
     store.setFilter(store.filter.withMuscle('quadriceps'));
     expect(flat(store.cards).every((e) => e.muscle == 'quadriceps'), isTrue);
     expect(store.cards.length, lessThan(legs.length));
-    // Cascade: an earlier change that leaves the muscle empty resets it.
-    store.setFilter(const ExerciseFilter(classId: 'paladin', difficulty: 0, body: 'legs', muscle: 'hamstrings'));
-    expect(store.filter.muscle, 'hamstrings'); // Plate Paladin in Sofa Mode has some
-    expect(store.filter.copyWith(classId: 'scrapper').countMuscle(exerciseCatalog, const {}, 'hamstrings'), 0);
-    store.setFilter(store.filter.copyWith(classId: 'scrapper'));
-    expect((store.filter.body, store.filter.muscle), ('legs', null));
     // Favorites: first in the list; the star filter combines with the rest.
     store.resetFilter();
     expect(store.filter, store.defaultFilter);
@@ -1055,13 +1053,14 @@ void main() {
     await _frames(t, 10);
     expect(find.byKey(ValueKey('exercise-${list[0].key}')), findsOneWidget);
     expect(t.getRect(find.byKey(const ValueKey('favorite-star'))), before);
-    // Filter tags with the defaults (D49).
-    expect(find.descendant(of: find.byKey(const ValueKey('filter-class')), matching: find.text('PLATE PALADIN')), findsOneWidget);
-    expect(find.descendant(of: find.byKey(const ValueKey('filter-difficulty')), matching: find.text('SWEAT MODE')), findsOneWidget);
+    // The tag row (D72): the class as a label, no difficulty tag (D70).
+    expect(find.descendant(of: find.byKey(const ValueKey('class-label')), matching: find.text('PLATE PALADIN')), findsOneWidget);
+    expect(find.byKey(const ValueKey('filter-difficulty')), findsNothing);
+    expect(find.byKey(const ValueKey('filter-class')), findsNothing);
     expect(find.descendant(of: find.byKey(const ValueKey('filter-body')), matching: find.text('ALL BODY PARTS')), findsOneWidget);
-    // All four filter tags sit on one row; the card has no muscle / level / equipment line.
+    // The tags sit on one row; the card has no muscle / level / equipment line.
     final ys = [
-      for (final k in ['filter-class', 'filter-difficulty', 'filter-body', 'filter-favorites'])
+      for (final k in ['class-label', 'filter-body', 'filter-favorites'])
         t.getCenter(find.byKey(ValueKey(k))).dy,
     ];
     expect(ys.every((y) => (y - ys.first).abs() < 1), isTrue);
@@ -1201,13 +1200,10 @@ void main() {
     expect(t.takeException(), isNull);
   });
 
-  testWidgets('workout: a filter tag opens only its options; chips cascade and show counts', (t) async {
+  testWidgets('workout: BODY PART opens its chips; they cascade; RESET TO MINE', (t) async {
     final (store, _) = await _openApp(t);
     await t.tap(find.byKey(const ValueKey('filter-body')));
     await _frames(t, 10);
-    // BODY PART shows only body parts (and muscles), no class or difficulty (D73).
-    expect(find.byKey(const ValueKey('class-card')), findsNothing);
-    expect(find.byKey(const ValueKey('difficulty-card')), findsNothing);
     await t.tap(find.byKey(const ValueKey('chip-body-legs')));
     await _frames(t, 4);
     expect(store.filter.body, 'legs');
@@ -1219,37 +1215,14 @@ void main() {
     expect(find.text('SHOW $n EXERCISES'), findsOneWidget);
     await t.tap(find.byKey(const ValueKey('filter-show')));
     await _frames(t, 20);
-    // DIFFICULTY shows only the difficulty card.
-    await t.tap(find.byKey(const ValueKey('filter-difficulty')));
-    await _frames(t, 10);
-    expect(find.byKey(const ValueKey('chip-body-legs')), findsNothing);
-    expect(find.byKey(const ValueKey('class-card')), findsNothing);
-    // Brutal mode: the 5th of the 6 slider stops.
-    t.widget<Slider>(find.byKey(const ValueKey('slider-DIFFICULTY'))).onChanged!(4);
-    await _frames(t, 4);
-    expect(store.filter.difficulty, 4);
-    expect(store.filter.muscle, 'quadriceps'); // still has exercises: kept
-    await t.tap(find.byKey(const ValueKey('filter-show')));
-    await _frames(t, 20);
-    expect(find.byKey(const ValueKey('difficulty-card')), findsNothing);
     expect(find.descendant(of: find.byKey(const ValueKey('filter-body')), matching: find.text('QUADRICEPS')), findsOneWidget);
-    expect(find.descendant(of: find.byKey(const ValueKey('filter-difficulty')), matching: find.text('BRUTAL MODE')), findsOneWidget);
     expect(store.cards.every((g) => g.variants.every((e) => e.muscle == 'quadriceps')), isTrue);
-    // RESET TO MINE resets only that tag: here the body part, not the difficulty.
+    // RESET TO MINE: all body parts again.
     await t.tap(find.byKey(const ValueKey('filter-body')));
     await _frames(t, 10);
     await t.tap(find.byKey(const ValueKey('filter-reset')));
     await _frames(t, 4);
-    expect((store.filter.body, store.filter.muscle, store.filter.difficulty), (store.defaultFilter.body, null, 4));
-    await t.tap(find.byKey(const ValueKey('filter-show')));
-    await _frames(t, 20);
-    // CLASS shows only the class card and its dots.
-    await t.tap(find.byKey(const ValueKey('filter-class')));
-    await _frames(t, 10);
-    expect(find.byKey(const ValueKey('class-card')), findsOneWidget);
-    expect(find.byKey(const ValueKey('class-dot-paladin')), findsOneWidget);
-    expect(find.byKey(const ValueKey('difficulty-card')), findsNothing);
-    expect(find.byKey(const ValueKey('chip-body-legs')), findsNothing);
+    expect(store.filter, store.defaultFilter);
     expect(t.takeException(), isNull);
   });
 

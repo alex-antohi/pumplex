@@ -70,6 +70,7 @@
   "workout.hitLabel": "{hint}: one working set. Hold to take one back.",
   "workout.firstTip": "Only working sets count",
   "workout.noSets": "NO SETS YET",
+  "workout.hard": "HARD",
   "workout.critical": "CRITICAL SET!!! ×{n} XP",
   "workout.favAdd": "Add to favorites",
   "workout.favRemove": "Remove from favorites",

@@ -1,28 +1,16 @@
-// The filter sheet of the workout (D51-D53, D73). A tap on the CLASS,
-// DIFFICULTY or BODY PART tag opens a sheet with only that tag's options.
-// CLASS and DIFFICULTY use the selection cards of the class screen: the
-// class card (your lifter in that class's gear, swipe both ways round and
-// round, dots under it) and the difficulty card (slider). BODY PART shows
-// chips, and the muscles of the part picked; a chip that gives no exercises
-// (counted with the earlier filters only) is greyed out; the chips show no
-// numbers (D74). Changes apply at once and only to the filter, never to the
-// profile; SHOW N EXERCISES closes the sheet, RESET TO MINE puts that tag
-// back to yours (your class, your mode, all body parts).
-
-import 'dart:math';
+// The BODY PART sheet of the workout (D51, D52, D73). A tap on the BODY
+// PART tag opens the body parts, and the muscles of the part picked; a chip
+// that gives no exercises (counted with the earlier filters only) is greyed
+// out; the chips show no numbers (D74). Changes apply at once; SHOW N
+// EXERCISES closes the sheet, RESET TO MINE goes back to all body parts.
+// Class is a label and difficulty is not a filter (D70, D72).
 
 import 'package:flutter/material.dart';
 
-import '../game/content.dart';
 import '../game/exercises.dart';
 import '../i18n.dart';
 import '../pumplex.dart';
 import '../store.dart';
-import 'carousel.dart';
-import 'setup.dart' show ClassCardText, DifficultyCard, classTextHeight;
-import 'sprite.dart' show CharacterSprite, classColor;
-
-enum FilterSection { classes, difficulty, body }
 
 // Exercise labels in the current language (D68). The English names in
 // lib/game/exercises.dart and the exercise list are the fallback.
@@ -42,22 +30,21 @@ String axisNone(ModifierAxis a) => tOr('axis.${a.id}.none', a.none);
 /// A modifier value from the exercise list ("Close Grip"): `mod.<value>`.
 String modLabel(String value) => tOr('mod.$value', value);
 
-Future<void> showFilterSheet(BuildContext context, LogStore store, FilterSection at) {
+Future<void> showFilterSheet(BuildContext context, LogStore store) {
   final p = Pal.of(context);
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     backgroundColor: p.bg,
     shape: Border(top: BorderSide(color: p.ink, width: 4)),
-    builder: (_) => FilterSheet(store: store, at: at),
+    builder: (_) => FilterSheet(store: store),
   );
 }
 
 class FilterSheet extends StatefulWidget {
-  const FilterSheet({super.key, required this.store, required this.at});
+  const FilterSheet({super.key, required this.store});
 
   final LogStore store;
-  final FilterSection at;
 
   @override
   State<FilterSheet> createState() => _FilterSheetState();
@@ -77,14 +64,8 @@ class _FilterSheetState extends State<FilterSheet> {
         final part = bodyPartById(f.body);
         final total = store.cards.length;
         void set(ExerciseFilter n) => store.setFilter(n);
-        final at = widget.at;
-        final mine = store.defaultFilter;
-        // RESET TO MINE: only the tag this sheet is for (D73).
-        void reset() => set(switch (at) {
-          FilterSection.classes => f.copyWith(classId: mine.classId),
-          FilterSection.difficulty => f.copyWith(difficulty: mine.difficulty),
-          FilterSection.body => f.withBody(mine.body),
-        });
+        // RESET TO MINE: all body parts, the star as it is (D73).
+        void reset() => set(f.withBody(null));
         return ConstrainedBox(
           constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.85),
           child: SafeArea(
@@ -99,50 +80,36 @@ class _FilterSheetState extends State<FilterSheet> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Only the options of the tag that was tapped (D73).
-                        if (at == FilterSection.classes) _ClassPicker(store: store),
-                        if (at == FilterSection.difficulty)
-                          Padding(
-                            padding: const EdgeInsets.only(right: 6, bottom: 14),
-                            child: SizedBox(
-                              height: 120,
-                              child: DifficultyCard(
-                                index: f.difficulty,
-                                onChanged: (i) => set(f.copyWith(difficulty: i)),
-                              ),
+                        _Section(
+                          title: t('label.bodyPart'),
+                          children: [
+                            _Chip(
+                              id: 'chip-body-all',
+                              label: t('filter.all'),
+                              count: f.countBody(cat, favs, null),
+                              selected: f.body == null,
+                              color: p.sky,
+                              onTap: () => set(f.withBody(null)),
                             ),
-                          ),
-                        if (at == FilterSection.body)
-                          _Section(
-                            title: t('label.bodyPart'),
-                            children: [
+                            for (final b in bodyParts)
                               _Chip(
-                                id: 'chip-body-all',
-                                label: 'All',
-                                count: f.countBody(cat, favs, null),
-                                selected: f.body == null,
+                                id: 'chip-body-${b.id}',
+                                label: bodyPartLabel(b.id),
+                                count: f.countBody(cat, favs, b.id),
+                                selected: f.body == b.id,
                                 color: p.sky,
-                                onTap: () => set(f.withBody(null)),
+                                onTap: () => set(f.withBody(b.id)),
                               ),
-                              for (final b in bodyParts)
-                                _Chip(
-                                  id: 'chip-body-${b.id}',
-                                  label: b.name,
-                                  count: f.countBody(cat, favs, b.id),
-                                  selected: f.body == b.id,
-                                  color: p.sky,
-                                  onTap: () => set(f.withBody(b.id)),
-                                ),
-                            ],
-                          ),
+                          ],
+                        ),
                         // The muscles of the body part picked.
-                        if (at == FilterSection.body && part != null)
+                        if (part != null)
                           _Section(
                             title: t('label.muscle'),
                             children: [
                               _Chip(
                                 id: 'chip-muscle-all',
-                                label: 'All ${part.name}',
+                                label: t('filter.allOf', {'part': bodyPartLabel(part.id)}),
                                 count: f.countMuscle(cat, favs, null),
                                 selected: f.muscle == null,
                                 color: p.violet,
@@ -151,7 +118,7 @@ class _FilterSheetState extends State<FilterSheet> {
                               for (final m in part.muscles)
                                 _Chip(
                                   id: 'chip-muscle-$m',
-                                  label: m,
+                                  label: muscleLabel(m),
                                   count: f.countMuscle(cat, favs, m),
                                   selected: f.muscle == m,
                                   color: p.violet,
@@ -195,88 +162,6 @@ class _FilterSheetState extends State<FilterSheet> {
   }
 }
 
-/// The class card of the class screen, for the filter: your lifter in the
-/// picked class's gear, the class name and equipment; swipe it (both ways,
-/// round and round) or tap a dot to change the filter's class.
-class _ClassPicker extends StatefulWidget {
-  const _ClassPicker({required this.store});
-
-  final LogStore store;
-
-  @override
-  State<_ClassPicker> createState() => _ClassPickerState();
-}
-
-class _ClassPickerState extends State<_ClassPicker> with SwipeCarousel<_ClassPicker> {
-  /// Room for the lifter on its pedestal (a 3x sprite on a phone).
-  static const _stageHeight = 230.0;
-
-  ExerciseFilter get _f => widget.store.filter;
-
-  @override
-  int get count => gameClasses.length;
-
-  @override
-  int get index => max(0, gameClasses.indexWhere((c) => c.id == _f.classId));
-
-  @override
-  void select(int i) => widget.store.setFilter(_f.copyWith(classId: gameClasses[i].id));
-
-  @override
-  Widget build(BuildContext context) {
-    final p = Pal.of(context);
-    final cls = classById(_f.classId);
-    final color = classColor(p, cls.id);
-    final character = widget.store.profile?.character;
-    return Padding(
-      padding: const EdgeInsets.only(right: 6, bottom: 6),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          swipe(
-            key: const ValueKey('class-card'),
-            child: Brutal(
-              shadow: color,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (character != null)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-                      child: SizedBox(
-                        height: _stageHeight,
-                        child: IgnorePointer(
-                          child: CharacterSprite(
-                            key: const ValueKey('filter-lifter'),
-                            character: character,
-                            classId: cls.id,
-                          ),
-                        ),
-                      ),
-                    ),
-                  SizedBox(
-                    height: classTextHeight,
-                    child: slide(cls.id, ClassCardText(cls: cls, color: color)),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          CarouselDots(
-            prefix: 'class',
-            ids: [for (final c in gameClasses) c.id],
-            names: [for (final c in gameClasses) c.name],
-            current: cls.id,
-            colorOf: (id) => classColor(p, id),
-            onTap: jump,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _Section extends StatelessWidget {
   const _Section({required this.title, required this.children});
 
@@ -285,16 +170,16 @@ class _Section extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Shout(title, color: Pal.of(context).ink),
-            const SizedBox(height: 8),
-            Wrap(spacing: 8, runSpacing: 8, children: children),
-          ],
-        ),
-      );
+    padding: const EdgeInsets.only(bottom: 14),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Shout(title, color: Pal.of(context).ink),
+        const SizedBox(height: 8),
+        Wrap(spacing: 8, runSpacing: 8, children: children),
+      ],
+    ),
+  );
 }
 
 /// One option: its name and how many exercises it gives. Greyed out (and

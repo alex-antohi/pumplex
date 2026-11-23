@@ -28,7 +28,6 @@ import '../store.dart';
 import 'area_scene.dart';
 import 'carousel.dart';
 import 'filters.dart';
-import 'setup.dart' show difficultyColor;
 import 'sprite.dart' show classColor;
 
 /// The least room the exercise part under the world keeps (D75): the filter
@@ -234,7 +233,7 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
     // Old-app days have no class; days frozen by D54 keep theirs and count.
     final firstTime = store.history.where((s) => !s.legacy || s.classId.isNotEmpty).isEmpty;
     final body = f.muscle != null ? muscleLabel(f.muscle!) : f.body != null ? bodyPartLabel(f.body!) : t('filter.allBodyParts');
-    void open(FilterSection at) => showFilterSheet(context, store, at);
+    void openBody() => showFilterSheet(context, store);
     return LayoutBuilder(builder: (context, box) {
       final inset = MediaQuery.paddingOf(context).bottom;
       final world = workoutWorld(box.biggest, inset);
@@ -269,9 +268,10 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const SizedBox(height: 3), // the border
-                  // Filter tags: class, difficulty and body part open the
-                  // sheet; the star shows favorites only. All four sit on
-                  // one row, which shrinks to fit when the names are long.
+                  // The tag row (D72): the class as a label (not a filter),
+                  // BODY PART (opens its sheet) and the star (favorites
+                  // only). Difficulty is not a filter (D70). The row
+                  // shrinks to fit when the names are long.
                   Padding(
                     key: const ValueKey('workout-filters'),
                     padding: const EdgeInsets.fromLTRB(16, 10, 22, 0),
@@ -281,20 +281,10 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
                       child: Row(
                       spacing: 6,
                       children: [
-                        _TapTag(
-                          key: const ValueKey('filter-class'),
-                          onTap: () => open(FilterSection.classes),
-                          child: Tag(cls.name, bg: classColor(p, cls.id), fg: p.on, size: 12, angle: 0),
-                        ),
-                        _TapTag(
-                          key: const ValueKey('filter-difficulty'),
-                          onTap: () => open(FilterSection.difficulty),
-                          child: Tag(difficulties[f.difficulty].name,
-                              bg: difficultyColor(p, f.difficulty), fg: p.on, size: 12, angle: 0),
-                        ),
+                        Tag(cls.name, key: const ValueKey('class-label'), bg: kNight, fg: classColor(p, cls.id), size: 12, angle: 0),
                         _TapTag(
                           key: const ValueKey('filter-body'),
-                          onTap: () => open(FilterSection.body),
+                          onTap: openBody,
                           child: Tag(body, bg: f.body == null ? p.panel2 : p.sky, fg: f.body == null ? p.ink : p.on, size: 12, angle: 0),
                         ),
                         _TapTag(
@@ -340,6 +330,7 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
                                       sets: sets,
                                       xp: store.groupXpToday(e.key),
                                       favorite: store.isFavorite(e.key),
+                                      hard: f.isHard(e, store.variantFor(e)),
                                       onStar: () => _star(e.key),
                                       onPick: (id) => _pick(e, id),
                                     ),
@@ -512,6 +503,7 @@ class _ExerciseText extends StatelessWidget {
     required this.sets,
     required this.xp,
     required this.favorite,
+    this.hard = false,
     required this.onStar,
     required this.onPick,
   });
@@ -526,6 +518,9 @@ class _ExerciseText extends StatelessWidget {
   final CatalogExercise v;
   final int sets, xp;
   final bool favorite;
+
+  /// Above your mode (D70): a HARD badge by the title.
+  final bool hard;
   final VoidCallback onStar;
   final ValueChanged<String> onPick;
 
@@ -553,6 +548,11 @@ class _ExerciseText extends StatelessWidget {
                   ])),
                 ),
               ),
+              if (hard)
+                Padding(
+                  padding: const EdgeInsets.only(left: 6, top: 6),
+                  child: Tag(t('workout.hard'), key: const ValueKey('hard-badge'), bg: p.pink, fg: p.on, size: 11, angle: -3),
+                ),
               Semantics(
                 button: true,
                 selected: favorite,

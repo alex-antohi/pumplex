@@ -191,7 +191,7 @@ owner's rules ([decisions.md](decisions.md)).
 - **Filter tags** between the world and the carousel (D49, D51): CLASS, DIFFICULTY, BODY PART
   (or the muscle picked) and a star tag. Defaults: your class, your mode, ALL BODY PARTS, star off.
   - A tap on CLASS, DIFFICULTY or BODY PART opens a **filter sheet** with only that tag's options
-    (D73). CLASS and DIFFICULTY use the class screen's cards (D76): CLASS the class card (the lifter in
+    (D73). CLASS and DIFFICULTY used the class screen's cards (D76), replaced by D70 and D72: CLASS is a label, DIFFICULTY is gone (the lifter in
     the outfit of the class picked, swipe or tap a dot), DIFFICULTY the difficulty card (description and
     slider); they change the filter only, not the profile. BODY PART shows chips: the body parts and the
     muscles of the part picked. The chips show no numbers (D74); a chip that gives no exercises (counted with the

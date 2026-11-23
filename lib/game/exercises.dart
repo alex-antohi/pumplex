@@ -355,45 +355,49 @@ class ExerciseFilter {
       (classEquipment[classId]?.contains(e.equipment) ?? false) &&
       (classCategories[classId]?.contains(e.category) ?? false);
 
-  bool _level(CatalogExercise e) => e.level <= topLevelFor(difficulty);
-
   bool _body(CatalogExercise e) =>
       muscle != null ? e.muscle == muscle : body == null || (bodyPartById(body)?.muscles.contains(e.muscle) ?? false);
 
-  /// The cards that pass, each with only its exercises that pass, sorted:
-  /// favorites, then the most common first (D67), then by name.
+  /// The cards that pass, each with only its exercises that pass. Difficulty
+  /// is not a filter (D70): every card of the class shows, with all its
+  /// exercises, in the Suggested order: favorites, then the cards of your
+  /// mode (the most common first, D67), then the rest (by the mode that
+  /// brings them in, then the most common), then by name.
   List<ExerciseGroup> apply(ExerciseCatalog catalog, Set<String> favs) {
     final out = <ExerciseGroup>[];
     for (final g in catalog.groups) {
       if (favorites && !favs.contains(g.key)) continue;
       if (!_shown(g)) continue;
-      final keep = [for (final e in g.variants) if (_class(e) && _level(e) && _body(e)) e];
+      final keep = [for (final e in g.variants) if (_class(e) && _body(e)) e];
       if (keep.isNotEmpty) out.add(g.only(keep));
     }
+    int mode(ExerciseGroup g) => g.shownIn(classId, difficulty) ? 0 : g.variants.first.unlock[classId] ?? 99;
     out.sort((a, b) {
       final f = (favs.contains(a.key) ? 0 : 1) - (favs.contains(b.key) ? 0 : 1);
       if (f != 0) return f;
+      final m = mode(a) - mode(b);
+      if (m != 0) return m;
       if (a.rank != b.rank) return a.rank - b.rank;
       return a.name.compareTo(b.name);
     });
     return out;
   }
 
+  /// The HARD badge (D70): exercise [e] of card [g] is above your mode, as
+  /// the card comes in only at a harder mode or the exercise's level is
+  /// above what your mode sees (D51). Nothing is hidden or locked.
+  bool isHard(ExerciseGroup g, CatalogExercise e) => !g.shownIn(classId, difficulty) || e.level > topLevelFor(difficulty);
+
   /// Card counts for the options of each filter (cascade: only earlier
   /// filters). A class counts all its cards, of every mode.
-  int countClass(ExerciseCatalog c, Set<String> favs, String id) => _count(
-      c, favs, (g) => g.shownIn(id, 5), (e) => ExerciseFilter(classId: id, difficulty: difficulty)._class(e));
-
-  int countDifficulty(ExerciseCatalog c, Set<String> favs, int d) =>
-      _count(c, favs, (g) => g.shownIn(classId, d), (e) => _class(e) && e.level <= topLevelFor(d));
-
   int countBody(ExerciseCatalog c, Set<String> favs, String? id) =>
-      _count(c, favs, _shown, (e) => _class(e) && _level(e) && withBody(id)._body(e));
+      _count(c, favs, _shown, (e) => _class(e) && withBody(id)._body(e));
 
   int countMuscle(ExerciseCatalog c, Set<String> favs, String? m) =>
-      _count(c, favs, _shown, (e) => _class(e) && _level(e) && withMuscle(m)._body(e));
+      _count(c, favs, _shown, (e) => _class(e) && withMuscle(m)._body(e));
 
-  bool _shown(ExerciseGroup g) => g.shownIn(classId, difficulty);
+  /// Every card of the class, of every mode (D70).
+  bool _shown(ExerciseGroup g) => g.shownIn(classId, 5);
 
   int _count(ExerciseCatalog c, Set<String> favs, bool Function(ExerciseGroup) shown,
           bool Function(CatalogExercise) test) =>
