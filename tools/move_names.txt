@@ -5,25 +5,25 @@ Ball Pull-In
 Ball Slam
 Band Pull-Apart
 Bench Press
-Bent-Arm Pullover
 Bent-Knee Hip Raise
 Bent-Over Row
+Bent-Over Triceps Extension
 Bicep Curl
 Bicycle Crunch
 Bird Dog
-Body-Up
-Bodyweight Triceps Extension
+Box Jump
 Box Squat
-Bulgarian Split Squat
 Burpee
-Butterfly
+Butt Kick
 Calf Raise
 Calf Raise on a Dumbbell
+Cardio Machine
+Carioca Quick Step
 Chest Press
 Chest-Supported Row
-Chin-Up
 Chin-Up Hold
 Clean
+Clean and Press
 Clock Push-Up
 Close-Grip Dumbbell Push-Up
 Concentration Curl
@@ -31,16 +31,20 @@ Cossack Squat
 Cross-Body Crunch
 Crossover
 Crunch
+Cuban Press
 Dead Bug
 Dead Hang
 Deadlift
+Deficit Deadlift
 Dip
 Doorframe Curl
+Drag Curl
 Dumbbell Swing
 External Rotation
 Face Pull
 Farmer's Walk
-Feet-Elevated Inverted Row
+Fast Skipping
+Finger Curl
 Floor Press
 Flutter Kicks
 Fly
@@ -48,55 +52,63 @@ Front Raise
 Front Squat
 Glute Bridge
 Glute Kickback
-Glute-Ham Raise
 Goblet Squat
 Good Morning
 Hack Squat
+Halo
 Hammer Curl
 Handstand Push-Up
 Hanging Leg Raise
+Heel Touch
+High Cable Curl
+High Pulley Row
 High Row
 Hip Abduction
 Hip Adduction
+Hip Extension
 Hip Thrust
 Hollow Body Hold
 Internal Rotation
 Inverted Row
 Isometric Chest Squeeze
 Jackknife Sit-Up
+JM Press
 Jump Rope
 Jump Squat
 Kettlebell Sumo High Pull
 Kettlebell Swing
+Knee Tuck Jump
 Kneeling Arm Drill
 L-Sit
+Landmine Press
 Lat Pulldown
+Lateral Bound
 Lateral Raise
+Lateral to Front Raise
 Leg Curl
 Leg Extension
 Leg Press
-Leg Press Calf Raise
 Leg Pull-In
-Low Cable Crossover
 Lunge
 Lying Leg Raise
+Medicine Ball Chest Pass
 Monster Walk
 Mountain Climber
+Muscle-Up
 Nordic Curl
 Oblique Crunch
-One-Arm Inverted Row
 One-Arm Row
 Overhead Triceps Extension
+Pallof Press
 Pike Push-Up
 Pistol Squat
 Plank
-Plyo Push-Up
 Pogo Hops
-Power Clean
 Preacher Curl
 Prone Y-T-W Raise
 Pull-Through
 Pull-Up
+Pullover
 Push Press
 Push-Up
 Push-Up to Side Plank
@@ -106,11 +118,15 @@ Renegade Row
 Reverse Crunch
 Reverse Curl
 Reverse Fly
+Reverse Hyperextension
 Reverse Snow Angel
-Rocking Calf Raise
+Rocket Jump
 Romanian Deadlift
+Rope Crunch
 Russian Twist
+Scaption
 Scapular Pull-Up
+Scissors Jump
 Seated Cable Row
 Shoulder Press
 Shrug
@@ -118,27 +134,31 @@ Side Bend
 Side Plank
 Sit-Up
 Skullcrusher
+Spider Curl
 Split Jump
 Split Squat
 Squat
 Standing Long Jump
 Star Jump
 Step-Up
-Stiff-Legged Deadlift
 Straight-Arm Pulldown
-Straight-Arm Pullover
 Sumo Deadlift
-Sumo Squat
 Superman
 T-Bar Row
-Towel Row
+Tate Press
+Thruster
 Towel Triceps Extension
 Triceps Extension
 Triceps Kickback
+Triceps Press
 Triceps Pushdown
+Tuck Crunch
+Turkish Get-Up
 Upright Row
-Walking Lunge
 Wall Handstand Hold
 Wall Sit
 Wall Walk
+Wood Chop
 Wrist Curl
+Zercher Squat
+Zottman Curl

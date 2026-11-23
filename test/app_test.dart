@@ -161,6 +161,9 @@ void main() {
     expect(exerciseLabel('Pushups', 'Pushups'), 'Push-Up');
     expect(groupLabel('move:bench press', 'Bench Press'), 'Bench Press');
     expect(exerciseLabel('No_Such_Exercise', 'No Such'), 'No Such');
+    // A dropped exercise (the variation audit) keeps its name for saved sets.
+    expect(exerciseCatalog.byId['Bodyweight_Flyes'], isNull);
+    expect(exerciseLabel('Bodyweight_Flyes', exerciseName('Bodyweight_Flyes')), 'Bodyweight Fly');
     I18n.instance.useJson(langFiles, lang: 'ro');
     expect(groupLabel('move:bench press', 'Bench Press'), 'Împins la piept');
     expect(exerciseLabel('Incline_Dumbbell_Press', ''), 'Împins înclinat cu gantere');
@@ -324,8 +327,8 @@ void main() {
     final all = exerciseCatalog.all;
     // The common exercises only (D67, D69), with the added bench presses
     // (D57) and bodyweight exercises (D69).
-    expect(all.length, 391);
-    expect(exerciseCatalog.groups.length, 144);
+    expect(all.length, 479);
+    expect(exerciseCatalog.groups.length, 164);
     // The clean-up (D69): every card is a move, with a clean move name.
     expect(exerciseCatalog.groups.where((g) => !g.key.startsWith('move:')), isEmpty);
     expect(exerciseCatalog.groupKeyOf('Plank'), 'move:plank');
@@ -339,6 +342,23 @@ void main() {
     expect(exerciseCatalog.groupKeyOf('move:bent over row'), 'move:bent-over row');
     expect(exerciseCatalog.groupKeyOf('move:rear lateral raise'), 'move:reverse fly');
     expect(exerciseCatalog.groupKeyOf('move:bench press'), 'move:bench press');
+    // Merged moves of the variation audit follow too.
+    expect(exerciseCatalog.groupKeyOf('move:chin-up'), 'move:pull-up');
+    expect(exerciseCatalog.groupKeyOf('move:butterfly'), 'move:fly');
+    expect(exerciseCatalog.groupKeyOf('move:towel row'), 'move:inverted row');
+    expect(exerciseCatalog.groupKeyOf('move:glute-ham raise'), 'move:nordic curl');
+    expect(exerciseCatalog.groupKeyOf('move:walking lunge'), 'move:lunge');
+    for (final k in ExerciseCatalog.movedMoves.keys) {
+      expect(exerciseCatalog.byKey[k], isNull, reason: k);
+      expect(exerciseCatalog.groupKeyOf(k), startsWith('move:'), reason: k);
+      expect(exerciseCatalog.byKey[exerciseCatalog.groupKeyOf(k)], isNotNull, reason: k);
+    }
+    // One cardio machine card; gear `other` that is body only (D50).
+    expect(exerciseCatalog.byKey['move:cardio machine']!.variants.length, 5);
+    for (final id in ['Ring_Dips', 'Weighted_Pull_Ups', 'Ab_Roller', 'Muscle_Up', 'Front_Box_Jump']) {
+      expect(exerciseCatalog.byId[id]?.equipment, 'body only', reason: id);
+    }
+    expect(exerciseCatalog.byId['Trap_Bar_Deadlift']!.mods['type'], 'Trap Bar');
     for (final id in ['Pike_Push-Up', 'Towel_Bicep_Curl', 'Bodyweight_Calf_Raise', 'Dead_Hang', 'Pistol_Squat', 'Burpee',
       'Towel_Row', 'Feet-Elevated_Inverted_Row', 'Chin-Up_Hold', 'Doorframe_Curl', 'Reverse_Snow_Angel']) {
       expect(exerciseCatalog.byId[id]?.equipment, 'body only', reason: id);
@@ -401,13 +421,13 @@ void main() {
     expect(chipTarget(bench, flatBar, 'side', 'One Arm'), isNull);
     // All dips are one move, with a Type row.
     final dip = exerciseCatalog.byKey['move:dip']!;
-    expect(dip.variants.length, 3); // the dips no class can see are gone (D67)
+    expect(dip.variants.length, 7); // dip bars and rings are body only (D50)
     expect(dip.axes.firstWhere((a) => a.$1.id == 'type').$2, containsAll(['Triceps', 'Bench']));
     expect(all.map((e) => e.id).toSet().length, all.length);
     expect(all.every((e) => !e.id.contains('.')), isTrue); // old ids have a dot (D54)
     expect(exerciseCatalog.byId['Pushups']!.equipment, 'body only');
     expect(exerciseName('Leg_Extensions'), 'Leg Extension');
-    expect(exerciseName('Ab_Roller'), 'Ab Roller'); // not in the list (D67), still readable
+    expect(exerciseName('Wrist_Roller'), 'Wrist Roller'); // not in the list (D67), still readable
     // Commonness and modes (D67): every class and mode covers every body
     // part; each mode shows more cards than the one before, and keeps them.
     for (final c in gameClasses) {
@@ -438,7 +458,7 @@ void main() {
       expect(thin.length, lessThanOrEqualTo(3), reason: '${c.id} $thin');
     }
     // The owner's spread (D69): Cablemancer machines from Sofa.
-    for (final k in ['move:leg press', 'move:leg extension', 'move:butterfly', 'move:face pull', 'move:seated cable row']) {
+    for (final k in ['move:leg press', 'move:leg extension', 'move:fly', 'move:face pull', 'move:seated cable row']) {
       expect(exerciseCatalog.byKey[k]!.shownIn('cablemancer', 0), isTrue, reason: k);
     }
     // The class rules of the tool are the app's: a class in `unlock` sees an exercise of the card.

@@ -20,34 +20,52 @@
     "pendlay row",
     "row"
   ],
+  "move.bent-over triceps extension": [
+    "kickback",
+    "triceps"
+  ],
   "move.bicep curl": [
     "curl",
     "biceps curl",
     "bb curl",
     "db curl"
   ],
-  "move.bulgarian split squat": [
-    "bss",
-    "bulgarian",
-    "rear foot elevated split squat",
-    "rfess"
+  "move.box jump": [
+    "box jump",
+    "jump",
+    "plyo"
   ],
-  "move.butterfly": [
-    "pec deck",
-    "pec fly",
-    "machine fly"
+  "move.butt kick": [
+    "butt kicks",
+    "warm-up"
   ],
   "move.calf raise": [
     "calves",
     "calf"
   ],
+  "move.cardio machine": [
+    "treadmill",
+    "running",
+    "stationary bike",
+    "bike",
+    "rower",
+    "rowing machine",
+    "elliptical",
+    "stair climber",
+    "stairmaster",
+    "cardio"
+  ],
+  "move.carioca quick step": [
+    "carioca",
+    "warm-up"
+  ],
   "move.chest press": [
     "machine press",
     "machine bench"
   ],
-  "move.chin-up": [
-    "chin up",
-    "chins"
+  "move.clean and press": [
+    "clean",
+    "press"
   ],
   "move.crossover": [
     "cable fly",
@@ -57,42 +75,108 @@
     "abs",
     "crunches"
   ],
+  "move.cuban press": [
+    "rotator cuff"
+  ],
   "move.deadlift": [
     "dl",
-    "conventional deadlift"
+    "conventional deadlift",
+    "trap bar",
+    "hex bar"
+  ],
+  "move.deficit deadlift": [
+    "deadlift"
   ],
   "move.dip": [
     "dips",
-    "parallel bar dip"
+    "parallel bar dip",
+    "parallel bars",
+    "rings"
+  ],
+  "move.drag curl": [
+    "biceps"
   ],
   "move.farmer's walk": [
     "farmer carry",
     "farmers walk",
     "carry"
   ],
+  "move.fast skipping": [
+    "skipping",
+    "warm-up"
+  ],
+  "move.finger curl": [
+    "forearms",
+    "grip"
+  ],
   "move.fly": [
     "flye",
     "flyes",
     "db fly",
-    "chest fly"
+    "chest fly",
+    "pec deck",
+    "pec fly",
+    "machine fly"
   ],
   "move.glute bridge": [
     "hip bridge",
     "bridge"
   ],
+  "move.halo": [
+    "kettlebell",
+    "shoulders"
+  ],
+  "move.hanging leg raise": [
+    "captain's chair",
+    "knee raise"
+  ],
+  "move.heel touch": [
+    "heel touchers",
+    "obliques"
+  ],
+  "move.high cable curl": [
+    "biceps",
+    "cable"
+  ],
+  "move.high pulley row": [
+    "cable row"
+  ],
+  "move.hip extension": [
+    "glutes",
+    "band"
+  ],
   "move.hip thrust": [
     "ht",
     "barbell hip thrust"
+  ],
+  "move.jm press": [
+    "triceps"
+  ],
+  "move.knee tuck jump": [
+    "tuck jump",
+    "plyo"
+  ],
+  "move.landmine press": [
+    "landmine",
+    "press"
   ],
   "move.lat pulldown": [
     "pulldown",
     "lat pull",
     "lat pulldown"
   ],
+  "move.lateral bound": [
+    "skater",
+    "plyo"
+  ],
   "move.lateral raise": [
     "side raise",
     "side lateral",
     "lat raise"
+  ],
+  "move.lateral to front raise": [
+    "lateral raise",
+    "front raise"
   ],
   "move.leg curl": [
     "hamstring curl",
@@ -103,19 +187,41 @@
     "leg ext"
   ],
   "move.lunge": [
-    "lunges"
+    "lunges",
+    "walking lunges"
+  ],
+  "move.medicine ball chest pass": [
+    "medicine ball",
+    "throw"
+  ],
+  "move.muscle-up": [
+    "muscle up",
+    "bar"
   ],
   "move.overhead triceps extension": [
     "french press",
     "overhead extension",
     "ohte"
   ],
+  "move.pallof press": [
+    "anti-rotation",
+    "pallof"
+  ],
   "move.preacher curl": [
     "scott curl"
   ],
   "move.pull-up": [
     "pull up",
-    "pullups"
+    "pullups",
+    "chin up",
+    "chins",
+    "chin-up",
+    "weighted pull-up",
+    "band-assisted"
+  ],
+  "move.pullover": [
+    "pullover",
+    "lats"
   ],
   "move.push-up": [
     "push up",
@@ -127,9 +233,30 @@
     "reverse pec deck",
     "rear delt raise"
   ],
+  "move.reverse hyperextension": [
+    "reverse hyper"
+  ],
+  "move.rocket jump": [
+    "jump",
+    "plyo"
+  ],
   "move.romanian deadlift": [
     "rdl",
-    "romanian"
+    "romanian",
+    "sldl",
+    "stiff leg deadlift"
+  ],
+  "move.rope crunch": [
+    "cable crunch",
+    "rope",
+    "abs"
+  ],
+  "move.scaption": [
+    "shoulders"
+  ],
+  "move.scissors jump": [
+    "jump",
+    "plyo"
   ],
   "move.seated cable row": [
     "cable row",
@@ -151,14 +278,19 @@
     "lying triceps extension",
     "french press"
   ],
+  "move.spider curl": [
+    "biceps"
+  ],
+  "move.split squat": [
+    "bss",
+    "bulgarian",
+    "rear foot elevated split squat",
+    "rfess"
+  ],
   "move.squat": [
     "back squat",
     "bb squat",
     "atg"
-  ],
-  "move.stiff-legged deadlift": [
-    "sldl",
-    "stiff leg deadlift"
   ],
   "move.sumo deadlift": [
     "sumo dl",
@@ -169,16 +301,44 @@
     "t bar",
     "landmine row"
   ],
+  "move.tate press": [
+    "triceps"
+  ],
+  "move.thruster": [
+    "thruster",
+    "squat press"
+  ],
+  "move.triceps press": [
+    "triceps",
+    "lying"
+  ],
   "move.triceps pushdown": [
     "pushdown",
     "tricep pushdown",
     "rope pushdown",
     "cable pushdown"
   ],
+  "move.tuck crunch": [
+    "abs"
+  ],
+  "move.turkish get-up": [
+    "tgu",
+    "get up",
+    "kettlebell"
+  ],
   "move.upright row": [
     "upright"
   ],
-  "move.walking lunge": [
-    "walking lunges"
+  "move.wood chop": [
+    "woodchopper",
+    "cable chop",
+    "rotation"
+  ],
+  "move.zercher squat": [
+    "squat"
+  ],
+  "move.zottman curl": [
+    "biceps",
+    "forearms"
   ]
 }
