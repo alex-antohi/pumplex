@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:gym_app/i18n.dart';
 import 'package:gym_app/game/content.dart';
 import 'package:gym_app/game/exercises.dart';
 import 'package:gym_app/game/model.dart';
@@ -68,6 +69,8 @@ void _checkClassScreen(WidgetTester t) {
 }
 
 void main() {
+  final langFiles = {for (final l in I18n.languages) l: File(I18n.asset(l)).readAsStringSync()};
+  setUp(() => I18n.instance.useJson(langFiles));
   setUpAll(() {
     exerciseCatalog = ExerciseCatalog.parse(File(ExerciseCatalog.asset).readAsStringSync());
   });

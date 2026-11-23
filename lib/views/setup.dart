@@ -10,6 +10,7 @@ import '../game/area_art.dart';
 import '../game/content.dart';
 import '../game/model.dart';
 import '../game/rules.dart';
+import '../i18n.dart';
 import '../pumplex.dart';
 import 'area_scene.dart';
 import 'carousel.dart';
@@ -31,7 +32,7 @@ class _Nav extends StatelessWidget {
       child: Row(
         children: [
           if (onBack != null) ...[
-            BrutalButton(color: p.sky, onTap: onBack, child: const IconText('back', 'BACK')),
+            BrutalButton(color: p.sky, onTap: onBack, child: IconText('back', t('nav.back'))),
             const SizedBox(width: 14),
           ],
           Expanded(
@@ -101,6 +102,25 @@ class CreateView extends StatelessWidget {
       );
     }
 
+    // The language (D68): EN / RO on the right, like the sex buttons on the left.
+    Widget langButton(String lang) {
+      final on = I18n.instance.language == lang;
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: BrutalButton(
+          key: ValueKey('lang-$lang'),
+          small: true,
+          color: on ? p.lime : p.panel,
+          onTap: () => switchLanguage(lang),
+          child: SizedBox(
+            width: 34,
+            height: 26,
+            child: Center(child: Text(lang.toUpperCase(), style: display(17, on ? p.on : p.ink))),
+          ),
+        ),
+      );
+    }
+
     final head = headRect(spriteGeometry(stage.size, character.height).sprite).shift(stage.topLeft);
     // Inside the card: its border starts at (20, 12) in the view.
     const o = Offset(-20, -12);
@@ -132,6 +152,15 @@ class CreateView extends StatelessWidget {
                 left: 10,
                 top: stage.top - 6,
                 child: Column(children: [sexButton('male', 'male'), sexButton('female', 'female')]),
+              ),
+            if (!headOpen)
+              Positioned(
+                right: 10,
+                top: stage.top - 6,
+                child: Semantics(
+                  label: t('lang.label'),
+                  child: Column(children: [for (final l in I18n.languages) langButton(l)]),
+                ),
               ),
             // An outline box marks the head: tap it for the head looks.
             if (!headOpen)
@@ -171,30 +200,33 @@ class CreateView extends StatelessWidget {
           ),
         ),
         // NEXT names the next screen (D65).
-        if (buttons) _Nav(next: headOpen ? 'DONE' : 'NEXT: CLASS', onNext: headOpen ? () => onHead(false) : onNext),
+        if (buttons) _Nav(next: headOpen ? t('nav.done') : t('nav.nextClass'), onNext: headOpen ? () => onHead(false) : onNext),
       ],
     );
   }
 
   List<Widget> _bodyPanel(Pal p) => [
-        Shout('Build your lifter', size: 14, color: p.pink),
+        Shout(t('body.title'), size: 14, color: p.pink),
         const SizedBox(height: 10),
         _BodySlider(
-          label: 'HEIGHT',
-          shown: '${heightMetres(character.height).toStringAsFixed(2)} M',
+          id: 'HEIGHT',
+          label: t('body.height'),
+          shown: t('body.heightValue', {'m': decimal(heightMetres(character.height), 2)}),
           value: character.height,
           onChanged: (v) => onCharacter(character.copyWith(height: v)),
           onChangeEnd: (_) => onSlideEnd?.call(),
         ),
         _BodySlider(
-          label: 'WEIGHT',
-          shown: '${weightKg(character.fat)} KG',
+          id: 'WEIGHT',
+          label: t('body.weight'),
+          shown: t('body.weightValue', {'kg': weightKg(character.fat)}),
           value: character.fat,
           onChanged: (v) => onCharacter(character.copyWith(fat: v)),
           onChangeEnd: (_) => onSlideEnd?.call(),
         ),
         _BodySlider(
-          label: 'MUSCLE',
+          id: 'MUSCLE',
+          label: t('body.muscle'),
           value: character.muscle,
           onChanged: (v) => onCharacter(character.copyWith(muscle: v)),
           onChangeEnd: (_) => onSlideEnd?.call(),
@@ -226,11 +258,11 @@ class CreateView extends StatelessWidget {
           ),
         );
     return [
-      Shout('Your head', size: 14, color: p.pink),
+      Shout(t('head.title'), size: 14, color: p.pink),
       const SizedBox(height: 10),
-      row('SKIN', 'skin', skinLooks, character.skin, (id) => character.copyWith(skin: id)),
-      row('HAIR', 'hair', hairLooks, character.hair, (id) => character.copyWith(hair: id)),
-      row('FACIAL HAIR', 'facial', facialHairLooks, character.facialHair, (id) => character.copyWith(facialHair: id)),
+      row(t('head.skin'), 'skin', skinLooks, character.skin, (id) => character.copyWith(skin: id)),
+      row(t('head.hair'), 'hair', hairLooks, character.hair, (id) => character.copyWith(hair: id)),
+      row(t('head.facial'), 'facial', facialHairLooks, character.facialHair, (id) => character.copyWith(facialHair: id)),
     ];
   }
 }
@@ -361,7 +393,7 @@ class _ClassViewState extends State<ClassView> with SwipeCarousel<ClassView> {
       return Stack(
         children: [
           // Difficulty (D47): 6 modes, the current one named on the right, who
-          // the mode is for, then the slider. In a card on top (D68).
+          // the mode is for, then the slider. In a card on top (D74).
           Positioned(
             left: 16,
             right: 22,
@@ -412,7 +444,7 @@ class _ClassViewState extends State<ClassView> with SwipeCarousel<ClassView> {
               left: 0,
               right: 0,
               bottom: 0,
-              child: _Nav(onBack: widget.onBack, next: widget.editing ? 'NEXT' : 'NEXT: STARTING AREA', onNext: widget.onNext),
+              child: _Nav(onBack: widget.onBack, next: widget.editing ? t('nav.next') : t('nav.nextArea'), onNext: widget.onNext),
             ),
         ],
       );
@@ -456,7 +488,7 @@ class ClassCardText extends StatelessWidget {
   }
 }
 
-/// The difficulty card (D47, D68): the mode name on the right, who the mode
+/// The difficulty card (D47, D74): the mode name on the right, who the mode
 /// is for, then the slider over the 6 modes. Give it a height (120 on the
 /// class screen). Also in the workout's DIFFICULTY filter sheet.
 class DifficultyCard extends StatelessWidget {
@@ -481,7 +513,7 @@ class DifficultyCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Shout('Difficulty', size: 14),
+                Shout(t('label.difficulty'), size: 14),
                 const SizedBox(width: 10),
                 Expanded(
                   child: FittedBox(
@@ -531,6 +563,7 @@ class DifficultyCard extends StatelessWidget {
 /// on the right.
 class _BodySlider extends StatelessWidget {
   const _BodySlider({
+    required this.id,
     required this.label,
     this.shown,
     required this.value,
@@ -538,6 +571,8 @@ class _BodySlider extends StatelessWidget {
     this.onChangeEnd,
   });
 
+  /// The same in every language (the widget keys use it).
+  final String id;
   final String label;
   final String? shown;
   final int value;
@@ -556,7 +591,7 @@ class _BodySlider extends StatelessWidget {
           children: [
             Shout(label, size: 14),
             const Spacer(),
-            if (shown != null) Text(shown!, key: ValueKey('value-$label'), style: display(16, p.lime)),
+            if (shown != null) Text(shown!, key: ValueKey('value-$id'), style: display(16, p.lime)),
           ],
         ),
         SliderTheme(
@@ -569,7 +604,7 @@ class _BodySlider extends StatelessWidget {
             thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 11),
           ),
           child: Slider(
-            key: ValueKey('slider-$label'),
+            key: ValueKey('slider-$id'),
             value: value.toDouble(),
             max: 100,
             onChanged: (v) => onChanged(v.round()),
@@ -589,7 +624,7 @@ Color difficultyColor(Pal p, int i) =>
     [const Color(0xFFC9B8E8), p.lime, p.sky, p.violet, p.orange, p.pink][i.clamp(0, 5)];
 
 /// Difficulty [i] as a rank, e.g. "3 OF 6" (profile path row).
-String gems(int i) => '${i + 1} OF ${difficulties.length}';
+String gems(int i) => t('difficulty.rank', {'n': i + 1, 'total': difficulties.length});
 
 /// XP gems: a row of gem icons, a picture of the multiplier (no numbers).
 class Gems extends StatelessWidget {
@@ -743,7 +778,7 @@ class _AreaViewState extends State<AreaView> with SwipeCarousel<AreaView> {
               left: 0,
               right: 0,
               bottom: 0,
-              child: _Nav(onBack: widget.onBack, next: widget.editing ? 'NEXT' : 'NEXT: READY?', onNext: widget.onNext),
+              child: _Nav(onBack: widget.onBack, next: widget.editing ? t('nav.next') : t('nav.nextReady'), onNext: widget.onNext),
             ),
         ],
       );
@@ -778,7 +813,7 @@ class _AreaText extends StatelessWidget {
           ),
           if (isDefault) ...[
             const SizedBox(height: 8),
-            Tag('Your path\'s home', bg: accent, fg: p.on, size: 12, angle: 0),
+            Tag(t('area.home'), bg: accent, fg: p.on, size: 12, angle: 0),
           ],
         ],
       ),
@@ -838,7 +873,7 @@ class SummaryView extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 4, 24, 8),
             children: [
-              Center(child: Tag('Step 4 of 4 · ready?', bg: p.lime, fg: p.on, size: 18)),
+              Center(child: Tag(t('summary.tag'), bg: p.lime, fg: p.on, size: 18)),
               const SizedBox(height: 14),
               Brutal(
                 color: kNight,
@@ -847,10 +882,10 @@ class SummaryView extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   child: Column(
                     children: [
-                      row(1, 'Class', cls.name, color),
-                      row(1, 'Gear', cls.equipment, p.sky),
-                      row(1, 'Difficulty', d.name, p.pink),
-                      row(2, 'Area', a.name, p.orange),
+                      row(1, t('label.class'), cls.name, color),
+                      row(1, t('label.gear'), cls.equipment, p.sky),
+                      row(1, t('label.difficulty'), d.name, p.pink),
+                      row(2, t('label.area'), a.name, p.orange),
                     ],
                   ),
                 ),
@@ -858,7 +893,7 @@ class SummaryView extends StatelessWidget {
             ],
           ),
         ),
-        _Nav(onBack: onBack, next: editing ? 'SAVE' : "LET'S GO!!!", onNext: onGo),
+        _Nav(onBack: onBack, next: editing ? t('nav.save') : t('nav.go'), onNext: onGo),
       ],
     );
   }
@@ -892,13 +927,13 @@ class MigrateView extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 4, 24, 8),
             children: [
-              Center(child: Tag('Old save found', bg: p.orange, fg: p.on, size: 20)),
+              Center(child: Tag(t('migrate.found'), bg: p.orange, fg: p.on, size: 20)),
               const SizedBox(height: 16),
               Terminal([
-                '$oldWorkouts OLD WORKOUT DAYS FOUND.',
-                'THEY BECOME XP: +$xpPerLegacySession EACH (BETA).',
-                'THE OLD KG AND REPS DATA GETS DELETED.',
-                'FIRST: SAVE A BACKUP FILE. NO FILE, NO CHANGE.',
+                tn('migrate.days', oldWorkouts),
+                t('migrate.xp', {'xp': xpPerLegacySession}),
+                t('migrate.delete'),
+                t('migrate.first'),
               ]),
             ],
           ),
@@ -907,13 +942,13 @@ class MigrateView extends StatelessWidget {
           padding: EdgeInsets.fromLTRB(16, 8, 22, 14 + MediaQuery.paddingOf(context).bottom),
           child: Row(
             children: [
-              BrutalButton(color: p.sky, onTap: onLater, child: const Text('NOT NOW')),
+              BrutalButton(color: p.sky, onTap: onLater, child: Text(t('migrate.later'))),
               const SizedBox(width: 14),
               Expanded(
                 child: BrutalButton(
                   color: p.pink,
                   onTap: onUpgrade,
-                  child: Text('SAVE BACKUP & UPGRADE', textAlign: TextAlign.center, style: display(19, p.on)),
+                  child: Text(t('migrate.upgrade'), textAlign: TextAlign.center, style: display(19, p.on)),
                 ),
               ),
             ],

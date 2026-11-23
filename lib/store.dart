@@ -483,7 +483,7 @@ class LogStore extends ChangeNotifier {
   }
 
   /// The workout card picked last (a group key), kept on the phone so it is
-  /// still there after leaving the workout or the app (D69). UI state only:
+  /// still there after leaving the workout or the app (D75). UI state only:
   /// not in the backup.
   static const pickedCardKey = 'workout_card_v1';
   String? get pickedCard => _prefs.getString(pickedCardKey);

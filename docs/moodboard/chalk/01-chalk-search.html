@@ -1,0 +1,284 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chalk Search 01</title>
+<style>
+@font-face { font-family: 'Anton'; src: url('../../../assets/fonts/Anton-Regular.ttf'); }
+@font-face { font-family: 'Space Mono'; font-weight: 700; src: url('../../../assets/fonts/SpaceMono-Bold.ttf'); }
+@font-face { font-family: 'Space Mono'; font-weight: 400; src: url('../../../assets/fonts/SpaceMono-Regular.ttf'); }
+
+/* Pal.light from lib/pumplex.dart */
+:root {
+  --bg: #E3FBFF; --ink: #1A0B3B; --pink: #FF2E93; --lime: #B6FF00; --orange: #FF8A00;
+  --violet: #7B2CFF; --sky: #00C2FF; --panel: #FFFFFF; --panel2: #FFF0FA; --dot: rgba(255,46,147,.28);
+  --night: #1A0B3B; --on: #1A0B3B; --chalk: #F4F1FF;
+  --sofa: #C9B8E8; --accent: #FFA033; /* gainsgard accent */
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #2b2440; color: #F6EEFF; font-family: 'Space Mono', monospace; padding: 20px 16px 28px; }
+.anton { font-family: 'Anton', sans-serif; font-weight: 400; }
+h1 { font-family: 'Anton'; font-weight: 400; font-size: 26px; letter-spacing: 1px; }
+.sub { font-size: 12px; opacity: .75; margin: 4px 0 14px; }
+
+/* opener strip */
+.opener { display: flex; align-items: center; gap: 14px; background: var(--bg); color: var(--ink); border: 4px solid var(--ink);
+  box-shadow: 6px 6px 0 var(--accent); padding: 10px 12px; margin-bottom: 18px; max-width: 860px; flex-wrap: wrap; }
+.opener .lbl { font-size: 11px; font-weight: 700; max-width: 300px; }
+.opener .lbl b { font-family: 'Anton'; font-weight: 400; font-size: 15px; letter-spacing: 1px; display: block; }
+
+.row { display: flex; gap: 28px; align-items: flex-start; flex-wrap: wrap; }
+.col { display: flex; flex-direction: column; gap: 10px; }
+.cap { font-size: 11px; max-width: 390px; line-height: 1.4; opacity: .85; }
+.cap b { font-family: 'Anton'; font-weight: 400; letter-spacing: 1px; font-size: 14px; opacity: 1; color: var(--lime); }
+
+/* phone */
+.phone { width: 390px; height: 844px; position: relative; overflow: hidden; border-radius: 34px; border: 8px solid #0c0816;
+  background-color: var(--bg);
+  background-image: radial-gradient(circle at 12px 12px, var(--dot) 2.5px, transparent 3px);
+  background-size: 24px 24px; color: var(--ink); }
+.small { zoom: .8; }
+.status { height: 44px; display: flex; justify-content: space-between; align-items: center; padding: 0 24px; font-size: 12px; font-weight: 700; }
+
+/* workout card (Brutal, shadow = area accent) */
+.card { position: absolute; left: 16px; top: 52px; width: 352px; bottom: 48px; background: var(--panel);
+  border: 4px solid var(--ink); box-shadow: 8px 8px 0 var(--accent); overflow: hidden; }
+.scene { height: 303px; border-bottom: 3px solid var(--ink); position: relative; overflow: hidden; }
+.scene .art { position: absolute; left: 50%; top: 0; width: 350px; height: 300px; margin-left: -175px; }
+.scene img { position: absolute; image-rendering: pixelated; }
+.tag { display: inline-block; padding: 5px 10px; font-family: 'Anton'; font-size: 12px; letter-spacing: 1px; line-height: 1; white-space: nowrap; text-transform: uppercase; }
+.hint { position: absolute; left: 10px; top: 8px; background: var(--night); color: var(--accent); font-size: 13px; transform: rotate(-2deg); }
+.tags { padding: 10px 12px 0; transform-origin: left center; transform: scale(.88); display: flex; gap: 6px; align-items: center; white-space: nowrap; width: 370px; }
+.star { display: inline-flex; padding: 4px 8px; background: var(--panel2); }
+.star img { width: 16px; height: 16px; image-rendering: pixelated; opacity: .4; }
+.chalktag { background: var(--night); color: var(--chalk); text-shadow: 0 0 1px rgba(244,241,255,.8); border-bottom: 2px dashed rgba(244,241,255,.6); }
+.ex { padding: 8px 14px; }
+.ex .name { font-family: 'Anton'; font-size: 34px; line-height: 1; text-shadow: 2px 2px 0 var(--orange); }
+.ex .line { font-size: 13px; font-weight: 700; margin-top: 6px; }
+.counter { position: absolute; bottom: 8px; left: 0; right: 0; text-align: center; font-size: 12px; font-weight: 700; }
+.ring { outline: 3px dashed var(--pink); outline-offset: 3px; }
+
+/* modal barrier (Flutter black54) */
+.barrier { position: absolute; inset: 0; background: rgba(0,0,0,.54); }
+
+/* the sheet: showModalBottomSheet, bg p.bg, top border 4 ink */
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--bg); border-top: 4px solid var(--ink); padding: 14px 0 34px; }
+.pad { padding: 0 16px; }
+
+/* chalk line: chalk on a dark floor */
+.floor { background: var(--night); border: 3px solid var(--ink); box-shadow: 3px 3px 0 var(--ink); padding: 10px 10px 9px; position: relative; overflow: hidden;
+  background-image:
+    radial-gradient(ellipse 80px 18px at 22% 70%, rgba(255,255,255,.06), transparent 70%),
+    radial-gradient(ellipse 120px 14px at 75% 30%, rgba(255,255,255,.05), transparent 70%),
+    radial-gradient(ellipse 60px 10px at 55% 90%, rgba(255,255,255,.04), transparent 70%); }
+.floor .lab { font-size: 10px; font-weight: 700; color: rgba(244,241,255,.55); letter-spacing: 1px; flex-basis: 100%; margin-bottom: -1px; }
+.words { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 7px; }
+.cw { font-family: 'Anton'; font-size: 19px; line-height: 1; color: var(--chalk); letter-spacing: .8px; filter: url(#chalk); display: inline-flex; align-items: center; gap: 5px; }
+.cw.box { border: 2px dashed rgba(244,241,255,.75); padding: 3px 6px 2px; }
+.cw.box:nth-child(2) { transform: rotate(-1.5deg); }
+.cw.box:nth-child(3) { transform: rotate(1deg); }
+.cw .x { font-family: 'Space Mono'; font-size: 11px; font-weight: 700; opacity: .55; }
+.cw.ghost { color: rgba(244,241,255,.28); filter: none; font-size: 18px; }
+.cw.under { border-bottom: 2px solid rgba(244,241,255,.75); padding-bottom: 1px; }
+.floor .tip { font-size: 10px; color: rgba(244,241,255,.5); margin-top: 7px; }
+
+/* _Section + _Chip from lib/views/filters.dart, rows scroll sideways */
+.sec { margin-top: 10px; }
+.shout { font-family: 'Anton'; font-size: 13px; letter-spacing: 1.6px; padding: 0 16px; text-transform: uppercase; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 16px 2px; }
+.chip { flex: none; display: inline-flex; align-items: baseline; gap: 6px; padding: 6px 10px; background: var(--panel); border: 3px solid var(--ink); white-space: nowrap; }
+.chip .l { font-family: 'Anton'; font-size: 14px; line-height: 1; }
+.chip .n { font-size: 11px; font-weight: 700; line-height: 1; }
+.chip.on { box-shadow: 3px 3px 0 var(--ink); }
+.chip.off { opacity: .35; }
+.sep { flex: none; width: 3px; background: var(--ink); opacity: .25; margin: 2px 2px; }
+.m.on { background: var(--pink); } .t.on { background: var(--orange); } .b.on { background: var(--sky); } .a.on { background: var(--violet); color: var(--chalk); }
+.a.on .l, .a.on .n { color: var(--on); }
+
+/* BrutalButton */
+.btns { display: flex; gap: 12px; padding: 14px 24px 0 16px; align-items: center; }
+.bb { border: 4px solid var(--ink); box-shadow: 6px 6px 0 var(--ink); padding: 10px 16px; font-family: 'Anton'; font-size: 18px; letter-spacing: 1px; line-height: 1; text-align: center; color: var(--on); }
+.bb.sm { border-width: 3px; box-shadow: 4px 4px 0 var(--ink); padding: 6px 10px; font-size: 15px; background: var(--sky); }
+.bb.go { flex: 1; background: var(--lime); }
+.bb.forge { flex: 1; background: var(--pink); }
+.bb.forge small { display: block; font-family: 'Space Mono'; font-size: 10px; letter-spacing: 0; margin-top: 3px; font-weight: 700; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <filter id="chalk" x="-5%" y="-20%" width="110%" height="140%">
+    <feTurbulence type="fractalNoise" baseFrequency="2.2" numOctaves="1" seed="7" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="0.9" result="d"/>
+    <feColorMatrix in="n" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 -0.8 1.35" result="holes"/>
+    <feComposite in="d" in2="holes" operator="in"/>
+  </filter>
+</svg>
+
+<h1>CHALK SEARCH · 01</h1>
+<p class="sub">Soapstone-style picker: the lifter never types. Tap words, they appear in chalk. Light theme, real Pal colours, _Chip / _Section / BrutalButton sizes.</p>
+
+<div class="opener">
+  <div class="tags" style="transform:none;padding:0;width:auto">
+    <span class="tag" style="background:var(--lime);color:var(--on)">PLATE PALADIN</span>
+    <span class="tag" style="background:var(--sky);color:var(--on)">SWEAT</span>
+    <span class="tag" style="background:var(--panel2);color:var(--ink)">ALL BODY PARTS</span>
+    <span class="star"><svg width="16" height="16" viewBox="0 0 8 8" shape-rendering="crispEdges"><path fill="rgba(26,11,59,.4)" d="M3 0h2v2h3v2h-1v1h1v3h-2v-1h-2v1h-2v-3h1v-1h-1v-2h3z"/></svg></span>
+    <span class="tag chalktag ring">CHALK</span>
+  </div>
+  <div class="lbl"><b>HOW IT OPENS: A 5TH TAG</b>CHALK, chalk-white on night ink, after the star. When words are picked it reads CHALK · 2. The "12 / 101" counter stays a plain counter.</div>
+</div>
+
+<div class="row">
+<!-- PHONE 1: 3 matches -->
+<div class="col">
+<div class="phone">
+  <div class="status"><span>9:41</span><span>PUMPLEX</span></div>
+  <div class="card">
+    <div class="scene"><div class="art">
+      <img src="../../../assets/areas/gainsgard/background.png" style="left:0;top:0;width:350px;height:300px" alt="">
+      <img src="../../../assets/areas/gainsgard/floor.png" style="left:0;top:228px;width:350px;height:72px" alt="">
+      <img src="../../../assets/areas/gainsgard/shadow.png" style="left:18px;top:270px;width:92px;height:10px" alt="">
+      <img src="../../../assets/areas/gainsgard/object_idle.png" style="left:124px;top:88px;width:150px;height:132px" alt="">
+    </div><span class="tag hint">SCRATCH THE WALL</span></div>
+    <div class="tags">
+      <span class="tag" style="background:var(--lime);color:var(--on)">PLATE PALADIN</span>
+      <span class="tag" style="background:var(--sky);color:var(--on)">SWEAT</span>
+      <span class="tag" style="background:var(--panel2);color:var(--ink)">ALL BODY PARTS</span>
+      <span class="star"><svg width="16" height="16" viewBox="0 0 8 8" shape-rendering="crispEdges"><path fill="rgba(26,11,59,.4)" d="M3 0h2v2h3v2h-1v1h1v3h-2v-1h-2v1h-2v-3h1v-1h-1v-2h3z"/></svg></span>
+      <span class="tag chalktag">CHALK</span>
+    </div>
+    <div class="ex"><div class="name">BENCH PRESS</div><div class="line">NO SETS YET</div></div>
+    <div class="counter">12 / 101</div>
+  </div>
+  <div class="barrier"></div>
+
+  <div class="sheet">
+    <div class="pad"><div class="floor">
+      <div class="words">
+        <span class="lab">CHALK:</span>
+        <span class="cw box">INCLINE <span class="x">×</span></span>
+        <span class="cw box">DUMBBELL <span class="x">×</span></span>
+        <span class="cw under">PRESS <span class="x">×</span></span>
+      </div>
+      <div class="tip">TAP A WORD TO WIPE IT</div>
+    </div></div>
+
+    <div class="sec"><div class="shout">MOVE</div><div class="chips">
+      <span class="chip m on"><span class="l">PRESS</span><span class="n">3</span></span>
+      <span class="chip m"><span class="l">FLY</span><span class="n">2</span></span>
+      <span class="chip m"><span class="l">CURL</span><span class="n">1</span></span>
+      <span class="chip m"><span class="l">RAISE</span><span class="n">1</span></span>
+      <span class="chip m off"><span class="l">ROW</span><span class="n">0</span></span>
+      <span class="chip m off"><span class="l">SQUAT</span><span class="n">0</span></span>
+      <span class="chip m off"><span class="l">PULL-UP</span><span class="n">0</span></span>
+      <span class="chip m off"><span class="l">PUSH-UP</span><span class="n">0</span></span>
+      <span class="chip m off"><span class="l">DIP</span><span class="n">0</span></span>
+    </div></div>
+
+    <div class="sec"><div class="shout">TOOL</div><div class="chips">
+      <span class="chip t on"><span class="l">DUMBBELL</span><span class="n">3</span></span>
+      <span class="chip t"><span class="l">BARBELL</span><span class="n">3</span></span>
+      <span class="chip t"><span class="l">SMITH MACHINE</span><span class="n">1</span></span>
+      <span class="chip t"><span class="l">MACHINE</span><span class="n">1</span></span>
+      <span class="chip t off"><span class="l">CABLE</span><span class="n">0</span></span>
+      <span class="chip t off"><span class="l">KETTLEBELL</span><span class="n">0</span></span>
+    </div></div>
+
+    <div class="sec"><div class="shout">BODY</div><div class="chips">
+      <span class="chip b"><span class="l">CHEST</span><span class="n">3</span></span>
+      <span class="chip b off"><span class="l">SHOULDERS</span><span class="n">0</span></span>
+      <span class="chip b off"><span class="l">ARMS</span><span class="n">0</span></span>
+      <span class="chip b off"><span class="l">BACK</span><span class="n">0</span></span>
+      <span class="chip b off"><span class="l">LEGS</span><span class="n">0</span></span>
+      <span class="chip b off"><span class="l">CORE</span><span class="n">0</span></span>
+    </div></div>
+
+    <div class="sec"><div class="shout">ANGLE</div><div class="chips">
+      <span class="chip a on"><span class="l">INCLINE</span><span class="n">3</span></span>
+      <span class="chip a"><span class="l">FLAT</span><span class="n">4</span></span>
+      <span class="chip a"><span class="l">DECLINE</span><span class="n">1</span></span>
+    </div></div>
+
+    <div class="sec"><div class="shout">GRIP</div><div class="chips">
+      <span class="chip a"><span class="l">NEUTRAL GRIP</span><span class="n">1</span></span>
+      <span class="chip a off"><span class="l">CLOSE GRIP</span><span class="n">0</span></span>
+      <span class="chip a off"><span class="l">WIDE GRIP</span><span class="n">0</span></span>
+    </div></div>
+
+    <div class="btns">
+      <span class="bb sm">WIPE</span>
+      <span class="bb go">SHOW 3 EXERCISES</span>
+    </div>
+  </div>
+</div>
+<p class="cap"><b>3 MATCHES.</b> Each tile shows how many exercises you get with it in the chalk line (the other words stay). The picked tile is filled; 0 is greyed (opacity .35, like D51). Rows wrap, so every tile shows and nothing scrolls. Counts cover ALL exercises: chalk ignores CLASS and DIFFICULTY. WIPE clears the chalk.</p>
+</div>
+
+<!-- PHONE 2: zero matches -->
+<div class="col">
+<div class="phone small">
+  <div class="status"><span>9:41</span><span>PUMPLEX</span></div>
+  <div class="card">
+    <div class="scene"><div class="art">
+      <img src="../../../assets/areas/gainsgard/background.png" style="left:0;top:0;width:350px;height:300px" alt="">
+      <img src="../../../assets/areas/gainsgard/floor.png" style="left:0;top:228px;width:350px;height:72px" alt="">
+      <img src="../../../assets/areas/gainsgard/object_idle.png" style="left:124px;top:88px;width:150px;height:132px" alt="">
+    </div><span class="tag hint">SCRATCH THE WALL</span></div>
+  </div>
+  <div class="barrier"></div>
+
+  <div class="sheet">
+    <div class="pad"><div class="floor">
+      <div class="words">
+        <span class="lab">CHALK:</span>
+        <span class="cw box">DECLINE <span class="x">×</span></span>
+        <span class="cw box">KETTLEBELL <span class="x">×</span></span>
+        <span class="cw under">CURL <span class="x">×</span></span>
+      </div>
+      <div class="tip">NO EXERCISE HAS ALL THESE WORDS</div>
+    </div></div>
+
+    <div class="sec"><div class="shout">MOVE</div><div class="chips">
+      <span class="chip m on"><span class="l">CURL</span><span class="n">0</span></span>
+      <span class="chip m off"><span class="l">PRESS</span><span class="n">0</span></span>
+      <span class="chip m off"><span class="l">ROW</span><span class="n">0</span></span>
+      <span class="chip m off"><span class="l">SQUAT</span><span class="n">0</span></span>
+      <span class="chip m off"><span class="l">RAISE</span><span class="n">0</span></span>
+    </div></div>
+
+    <div class="sec"><div class="shout">TOOL</div><div class="chips">
+      <span class="chip t on"><span class="l">KETTLEBELL</span><span class="n">0</span></span>
+      <span class="chip t off"><span class="l">DUMBBELL</span><span class="n">0</span></span>
+      <span class="chip t off"><span class="l">BARBELL</span><span class="n">0</span></span>
+      <span class="chip t off"><span class="l">CABLE</span><span class="n">0</span></span>
+    </div></div>
+
+    <div class="sec"><div class="shout">BODY</div><div class="chips">
+      <span class="chip b off"><span class="l">CHEST</span><span class="n">0</span></span>
+      <span class="chip b off"><span class="l">ARMS</span><span class="n">0</span></span>
+      <span class="chip b off"><span class="l">BACK</span><span class="n">0</span></span>
+      <span class="chip b off"><span class="l">LEGS</span><span class="n">0</span></span>
+    </div></div>
+
+    <div class="sec"><div class="shout">ANGLE</div><div class="chips">
+      <span class="chip a on"><span class="l">DECLINE</span><span class="n">0</span></span>
+      <span class="chip a off"><span class="l">FLAT</span><span class="n">0</span></span>
+      <span class="chip a off"><span class="l">INCLINE</span><span class="n">0</span></span>
+    </div></div>
+
+    <div class="sec"><div class="shout">GRIP</div><div class="chips">
+      <span class="chip a off"><span class="l">NEUTRAL GRIP</span><span class="n">0</span></span>
+    </div></div>
+
+    <div class="btns">
+      <span class="bb sm">WIPE</span>
+      <span class="bb forge">NO SUCH MOVE. FORGE IT?</span>
+    </div>
+  </div>
+</div>
+<p class="cap" style="max-width:312px"><b>0 MATCHES.</b> The lime SHOW button turns pink: NO SUCH MOVE. FORGE IT? A tap opens the forge screen (next design). Wipe one word to get matches back.</p>
+</div>
+</div>
+</body>
+</html>

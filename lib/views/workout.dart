@@ -22,6 +22,7 @@ import 'package:flutter/services.dart';
 import '../game/area_art.dart';
 import '../game/content.dart';
 import '../game/exercises.dart';
+import '../i18n.dart';
 import '../pumplex.dart';
 import '../store.dart';
 import 'area_scene.dart';
@@ -30,11 +31,11 @@ import 'filters.dart';
 import 'setup.dart' show difficultyColor;
 import 'sprite.dart' show classColor;
 
-/// The least room the exercise part under the world keeps (D69): the filter
+/// The least room the exercise part under the world keeps (D75): the filter
 /// tags, the exercise (title, star, modifier rows) and the counter.
 const _exerciseMin = 240.0;
 
-/// The scene's part of the world in a workout view of [area] (D69): the whole
+/// The scene's part of the world in a workout view of [area] (D75): the whole
 /// width, from the top, just tall enough for the scene at the biggest
 /// whole-number scale for the width. It depends on the size only, so the
 /// scene (and the lifter the shell draws in it) never moves. The exercise
@@ -49,7 +50,7 @@ Rect workoutWorld(Size area, [double bottomInset = 0]) {
 
 /// The scene's rect and whole-number scale in a workout view of [area]: the
 /// biggest scale at which the whole scene fits in [workoutWorld], so no mark
-/// is ever cut off (D69). It stands on the bottom of that rect; the area's
+/// is ever cut off (D75). It stands on the bottom of that rect; the area's
 /// sky and floor colours fill the rest of the world.
 (Rect, int) workoutLayout(Size area, [double bottomInset = 0]) {
   final world = workoutWorld(area, bottomInset);
@@ -155,7 +156,7 @@ class WorkoutView extends StatefulWidget {
 
 class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutView> {
   /// The card shown (a group key). Null: the first one (a favorite when there
-  /// is one). Kept in the store, so it is still there after leaving (D69).
+  /// is one). Kept in the store, so it is still there after leaving (D75).
   late String? _currentKey = widget.store.pickedCard;
   String? _burst;
   int _hitRun = 0;
@@ -174,7 +175,7 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
   @override
   void select(int i) => setState(() => _keep(_list[i].key));
 
-  /// Shows card [key] and remembers it (D69).
+  /// Shows card [key] and remembers it (D75).
   void _keep(String key) {
     _currentKey = key;
     _store.setPickedCard(key);
@@ -191,7 +192,7 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
     HapticFeedback.lightImpact();
     setState(() {
       _keep(g.key);
-      _burst = sets % 5 == 0 ? area.stamp : '+1 SET';
+      _burst = sets % 5 == 0 ? area.stamp : t('workout.plusOne');
       _hitRun++;
     });
   }
@@ -232,7 +233,7 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
     final sets = e == null ? 0 : store.groupSetsToday(e.key);
     // Old-app days have no class; days frozen by D54 keep theirs and count.
     final firstTime = store.history.where((s) => !s.legacy || s.classId.isNotEmpty).isEmpty;
-    final body = f.muscle ?? bodyPartById(f.body)?.name ?? 'All body parts';
+    final body = f.muscle != null ? muscleLabel(f.muscle!) : f.body != null ? bodyPartLabel(f.body!) : t('filter.allBodyParts');
     void open(FilterSection at) => showFilterSheet(context, store, at);
     return LayoutBuilder(builder: (context, box) {
       final inset = MediaQuery.paddingOf(context).bottom;
@@ -242,7 +243,7 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
       return Stack(
         children: [
           // The world fills the width and everything above the exercise part
-          // (D69): the area's sky and floor around the scene (the shell draws
+          // (D75): the area's sky and floor around the scene (the shell draws
           // the lifter in it). The floor goes down to the exercise part.
           Positioned.fill(child: ColoredBox(color: Color(area.sky))),
           Positioned(
@@ -298,7 +299,7 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
                         ),
                         _TapTag(
                           key: const ValueKey('filter-favorites'),
-                          label: f.favorites ? 'Favorites only: on' : 'Favorites only: off',
+                          label: f.favorites ? t('filter.favOn') : t('filter.favOff'),
                           onTap: () {
                             HapticFeedback.selectionClick();
                             store.setFilter(f.copyWith(favorites: !f.favorites));
@@ -321,7 +322,7 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
                         : swipe(
                             key: const ValueKey('exercise-card'),
                             // As tall as the exercise, the counter at the
-                            // bottom: no empty band (D69).
+                            // bottom: no empty band (D75).
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -371,7 +372,7 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
             ),
           ),
           // More sets than mark spots: the number of sets, next to the marks,
-          // in the world and never cut off (D68, D69). The arcade has its own
+          // in the world and never cut off (D74, D75). The arcade has its own
           // counter.
           if (sets > spots && art.ledRect == null)
             Positioned.fill(
@@ -418,7 +419,7 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
                     // First-workout tip (app-flow §4.2), until the first set.
                     if (firstTime && sets == 0) ...[
                       const SizedBox(height: 4),
-                      Tag('Only working sets count', bg: p.lime, fg: p.on, size: 11, angle: 1),
+                      Tag(t('workout.firstTip'), bg: p.lime, fg: p.on, size: 11, angle: 1),
                     ],
                   ],
                 ),
@@ -473,10 +474,10 @@ class _Empty extends StatelessWidget {
     final p = Pal.of(context);
     final f = store.filter;
     final text = !f.favorites
-        ? 'NOTHING MATCHES THESE FILTERS.'
+        ? t('filter.empty')
         : store.favorites.isEmpty
-            ? 'NO FAVORITES YET. TAP THE STAR ON AN EXERCISE.'
-            : 'NO FAVORITES MATCH THESE FILTERS.';
+            ? t('filter.noFavorites')
+            : t('filter.noFavoritesMatch');
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -490,7 +491,7 @@ class _Empty extends StatelessWidget {
               small: true,
               color: p.lime,
               onTap: store.resetFilter,
-              child: const Text('RESET TO MINE'),
+              child: Text(t('filter.reset')),
             ),
           ],
         ),
@@ -546,8 +547,8 @@ class _ExerciseText extends StatelessWidget {
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
-                  // The exercise picked is the title (D69).
-                  child: Text(v.name.toUpperCase(), key: const ValueKey('exercise-title'), style: display(28, p.ink).copyWith(shadows: [
+                  // The exercise picked is the title (D75).
+                  child: Text(exerciseLabel(v.id, v.name).toUpperCase(), key: const ValueKey('exercise-title'), style: display(28, p.ink).copyWith(shadows: [
                     Shadow(offset: const Offset(2, 2), color: p.orange),
                   ])),
                 ),
@@ -555,7 +556,7 @@ class _ExerciseText extends StatelessWidget {
               Semantics(
                 button: true,
                 selected: favorite,
-                label: favorite ? 'Remove from favorites' : 'Add to favorites',
+                label: favorite ? t('workout.favRemove') : t('workout.favAdd'),
                 child: GestureDetector(
                   key: const ValueKey('favorite-star'),
                   behavior: HitTestBehavior.opaque,
@@ -568,12 +569,12 @@ class _ExerciseText extends StatelessWidget {
               ),
             ],
           ),
-          // No subtitle and no sets here (D68): the sets show in the world.
+          // No subtitle and no sets here (D74): the sets show in the world.
           // Modifiers: equipment first, then one row per way the exercises
           // with this equipment differ (D57).
           for (final (axis, values) in full.axesFor(v)) ...[
             const SizedBox(height: 10),
-            Text(axis.label.toUpperCase(), style: mono(10.5, p.ink.withValues(alpha: 0.7))),
+            Text(axisLabel(axis).toUpperCase(), style: mono(10.5, p.ink.withValues(alpha: 0.7))),
             const SizedBox(height: 4),
             Wrap(
               spacing: 6,
@@ -582,7 +583,7 @@ class _ExerciseText extends StatelessWidget {
                 for (final value in values)
                   _ModChip(
                     key: ValueKey('mod-${axis.id}-${value ?? 'none'}'),
-                    label: value ?? axis.none,
+                    label: value == null ? axisNone(axis) : modLabel(value),
                     selected: v.mods[axis.id] == value,
                     target: v.mods[axis.id] == value ? null : chipTarget(g, v, axis.id, value),
                     onPick: onPick,

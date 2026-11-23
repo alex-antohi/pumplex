@@ -122,7 +122,7 @@ class _IntroCardState extends State<IntroCard> with SingleTickerProviderStateMix
                         ),
                       ),
                       const SizedBox(height: 18),
-                      // No strip when there is no subtitle (the level-up card, D68).
+                      // No strip when there is no subtitle (the level-up card, D74).
                       if (s.subtitle.isNotEmpty)
                       Opacity(
                         opacity: slide,

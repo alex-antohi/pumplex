@@ -1,11 +1,11 @@
-// The filter sheet of the workout (D51-D53, D67). A tap on the CLASS,
+// The filter sheet of the workout (D51-D53, D73). A tap on the CLASS,
 // DIFFICULTY or BODY PART tag opens a sheet with only that tag's options.
 // CLASS and DIFFICULTY use the selection cards of the class screen: the
 // class card (your lifter in that class's gear, swipe both ways round and
 // round, dots under it) and the difficulty card (slider). BODY PART shows
 // chips, and the muscles of the part picked; a chip that gives no exercises
 // (counted with the earlier filters only) is greyed out; the chips show no
-// numbers (D68). Changes apply at once and only to the filter, never to the
+// numbers (D74). Changes apply at once and only to the filter, never to the
 // profile; SHOW N EXERCISES closes the sheet, RESET TO MINE puts that tag
 // back to yours (your class, your mode, all body parts).
 
@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 
 import '../game/content.dart';
 import '../game/exercises.dart';
+import '../i18n.dart';
 import '../pumplex.dart';
 import '../store.dart';
 import 'carousel.dart';
@@ -22,6 +23,24 @@ import 'setup.dart' show ClassCardText, DifficultyCard, classTextHeight;
 import 'sprite.dart' show CharacterSprite, classColor;
 
 enum FilterSection { classes, difficulty, body }
+
+// Exercise labels in the current language (D68). The English names in
+// lib/game/exercises.dart and the exercise list are the fallback.
+
+/// A body part's name: `part.<id>`.
+String bodyPartLabel(String id) => tOr('part.$id', bodyPartById(id)?.name ?? id);
+
+/// A database muscle ("middle back"): `muscle.<muscle>`.
+String muscleLabel(String muscle) => tOr('muscle.$muscle', muscle);
+
+/// A modifier row's title: `axis.<id>`.
+String axisLabel(ModifierAxis a) => tOr('axis.${a.id}', a.label);
+
+/// A modifier row's "no value" chip (Flat, Both...): `axis.<id>.none`.
+String axisNone(ModifierAxis a) => tOr('axis.${a.id}.none', a.none);
+
+/// A modifier value from the exercise list ("Close Grip"): `mod.<value>`.
+String modLabel(String value) => tOr('mod.$value', value);
 
 Future<void> showFilterSheet(BuildContext context, LogStore store, FilterSection at) {
   final p = Pal.of(context);
@@ -60,7 +79,7 @@ class _FilterSheetState extends State<FilterSheet> {
         void set(ExerciseFilter n) => store.setFilter(n);
         final at = widget.at;
         final mine = store.defaultFilter;
-        // RESET TO MINE: only the tag this sheet is for (D67).
+        // RESET TO MINE: only the tag this sheet is for (D73).
         void reset() => set(switch (at) {
           FilterSection.classes => f.copyWith(classId: mine.classId),
           FilterSection.difficulty => f.copyWith(difficulty: mine.difficulty),
@@ -80,7 +99,7 @@ class _FilterSheetState extends State<FilterSheet> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Only the options of the tag that was tapped (D67).
+                        // Only the options of the tag that was tapped (D73).
                         if (at == FilterSection.classes) _ClassPicker(store: store),
                         if (at == FilterSection.difficulty)
                           Padding(
@@ -95,7 +114,7 @@ class _FilterSheetState extends State<FilterSheet> {
                           ),
                         if (at == FilterSection.body)
                           _Section(
-                            title: 'Body part',
+                            title: t('label.bodyPart'),
                             children: [
                               _Chip(
                                 id: 'chip-body-all',
@@ -119,7 +138,7 @@ class _FilterSheetState extends State<FilterSheet> {
                         // The muscles of the body part picked.
                         if (at == FilterSection.body && part != null)
                           _Section(
-                            title: 'Muscle',
+                            title: t('label.muscle'),
                             children: [
                               _Chip(
                                 id: 'chip-muscle-all',
@@ -153,7 +172,7 @@ class _FilterSheetState extends State<FilterSheet> {
                         small: true,
                         color: p.sky,
                         onTap: reset,
-                        child: const Text('RESET TO MINE'),
+                        child: Text(t('filter.reset')),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -161,7 +180,7 @@ class _FilterSheetState extends State<FilterSheet> {
                           key: const ValueKey('filter-show'),
                           color: p.lime,
                           onTap: () => Navigator.of(context).pop(),
-                          child: Text('SHOW $total ${total == 1 ? 'EXERCISE' : 'EXERCISES'}'),
+                          child: Text(t('filter.show', {'exercises': tn('exercises', total)})),
                         ),
                       ),
                     ],
@@ -321,7 +340,7 @@ class _Chip extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // No number on the chip (D68); it is still greyed out at 0.
+                // No number on the chip (D74); it is still greyed out at 0.
                 Text(label.toUpperCase(), style: display(14, fg)),
               ],
             ),

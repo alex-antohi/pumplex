@@ -6,10 +6,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:gym_app/dates.dart';
 import 'package:gym_app/game/content.dart';
 import 'package:gym_app/game/exercises.dart';
 import 'package:gym_app/game/model.dart';
 import 'package:gym_app/game/rules.dart';
+import 'package:gym_app/i18n.dart';
 import 'package:gym_app/main.dart';
 import 'package:gym_app/pumplex.dart';
 import 'package:gym_app/store.dart';
@@ -116,7 +118,58 @@ class _PushCounter extends NavigatorObserver {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(() => exerciseCatalog = ExerciseCatalog.parse(File(ExerciseCatalog.asset).readAsStringSync()));
-  setUp(() => _now = DateTime(2026, 11, 21, 10));
+  // The tests read the English texts (D68).
+  final langFiles = {for (final l in I18n.languages) l: File(I18n.asset(l)).readAsStringSync()};
+  setUp(() {
+    _now = DateTime(2026, 11, 21, 10);
+    I18n.instance.useJson(langFiles);
+  });
+
+  test('languages (D68): the same keys in every file, plurals, placeholders, fallbacks', () {
+    final en = I18n.parse(langFiles['en']!);
+    for (final l in I18n.languages) {
+      final keys = I18n.parse(langFiles[l]!).keys.toSet();
+      expect(keys, en.keys.toSet(), reason: l);
+      // Romanian uses ș and ț with a comma below, not ş and ţ with a cedilla.
+      expect(RegExp('[şţŞŢ]').hasMatch(langFiles[l]!), isFalse, reason: l);
+    }
+    // Every content name has a text.
+    for (final c in gameClasses) {
+      expect(en.containsKey('class.${c.id}.name'), isTrue, reason: c.id);
+    }
+    for (final k in [for (final d in difficulties) 'difficulty.${d.id}.name', for (final a in areas) 'area.${a.id}.name']) {
+      expect(en.containsKey(k), isTrue, reason: k);
+    }
+    for (final a in modifierAxes) {
+      expect(en['axis.${a.id}'], a.label);
+      expect(en['axis.${a.id}.none'], a.none);
+    }
+    // Every modifier value of the list has a chip text (D55, D69).
+    for (final v in {for (final e in exerciseCatalog.all) ...e.mods.values}) {
+      expect(en.containsKey('mod.$v'), isTrue, reason: v);
+    }
+    for (final b in bodyParts) {
+      expect(en['part.${b.id}'], b.name);
+      for (final m in b.muscles) {
+        expect(en['muscle.$m'], m);
+      }
+    }
+    expect(t('level.up', {'n': 3}), 'LEVEL 3');
+    expect([tn('sets', 1), tn('sets', 12)], ['1 SET', '12 SETS']);
+    expect(shortDate(DateTime(2026, 11, 23)), 'Mon 23 Nov');
+    // Unknown keys: English, then the fallback (exercise names, later).
+    expect(exerciseLabel('Pushups', 'Pushups'), 'Pushups');
+    expect(groupLabel('move:bench press', 'Bench Press'), 'Bench Press');
+    I18n.instance.useJson(langFiles, lang: 'ro');
+    expect([tn('sets', 1), tn('sets', 12), tn('sets', 20), tn('sets', 101), tn('sets', 0)],
+        ['1 SERIE', '12 SERII', '20 DE SERII', '101 SERII', '0 SERII']);
+    expect(classById('paladin').name, 'Paladin de Discuri');
+    expect(shortDate(DateTime(2026, 11, 23)), 'Lun 23 Noi');
+    expect(decimal(1.75, 2), '1,75');
+    I18n.instance.useJson({'en': '{"a": "A {x}"}', 'ro': '{}'}, lang: 'ro');
+    expect(t('a', {'x': 1}), 'A 1'); // a key Romanian lacks: English
+    expect(t('missing'), 'missing');
+  });
 
   test('class id migration (D31): old ids become design ids once, old text kept', () async {
     const oldProfile = '{"classId":"warrior","difficultyId":"sweat","areaId":"gainsgard","character":{}}';
@@ -246,7 +299,25 @@ void main() {
     expect(difficultyRules.length, difficulties.length);
     expect(gameClasses.map((c) => c.equipment).toSet().length, gameClasses.length);
     final all = exerciseCatalog.all;
-    expect(all.length, 695); // 692 from the database + 3 added bench presses (D57)
+    // The common exercises only (D67, D69), with the added bench presses
+    // (D57) and bodyweight exercises (D69).
+    expect(all.length, 379);
+    expect(exerciseCatalog.groups.length, 166);
+    for (final id in ['Pike_Push-Up', 'Towel_Bicep_Curl', 'Bodyweight_Calf_Raise', 'Dead_Hang', 'Pistol_Squat', 'Burpee',
+      'Towel_Row', 'Feet-Elevated_Inverted_Row', 'Chin-Up_Hold', 'Doorframe_Curl', 'Reverse_Snow_Angel']) {
+      expect(exerciseCatalog.byId[id]?.equipment, 'body only', reason: id);
+    }
+    expect(exerciseCatalog.groupKeyOf('Towel_Bicep_Curl'), 'move:bicep curl'); // a bodyweight chip of the move
+    // Level overrides (D69): pull-ups are not for beginners, face pulls are.
+    expect(exerciseCatalog.byId['Pullups']!.level, 1);
+    expect(exerciseCatalog.byId['Face_Pull']!.level, 0);
+    for (final id in [
+      'Incline_Close-Grip_Barbell_Bench_Press',
+      'Incline_Wide-Grip_Barbell_Bench_Press',
+      'Decline_Close-Grip_Barbell_Bench_Press'
+    ]) {
+      expect(exerciseCatalog.byId[id], isNotNull, reason: id);
+    }
     // No stretching, olympic weightlifting, strongman or neck exercises (D56).
     expect(all.where((e) => {'stretching', 'olympic weightlifting', 'strongman'}.contains(e.category) || e.muscle == 'neck'),
         isEmpty);
@@ -267,9 +338,11 @@ void main() {
     expect(exerciseCatalog.byKey['Leg_Press'], isNull); // Leg Press is a move with variations
     // Bands and chains are their own rows.
     final dead = exerciseCatalog.byKey['move:deadlift']!;
-    expect(dead.axes.firstWhere((a) => a.$1.id == 'bands').$2, [null, 'Bands', 'Reverse Bands']);
+    expect(dead.axes.firstWhere((a) => a.$1.id == 'bands').$2, [null, 'Bands']); // no reverse bands (D67)
     expect(dead.axes.firstWhere((a) => a.$1.id == 'chains').$2, [null, 'Chains']);
-    expect(exerciseCatalog.groupKeyOf('Band_Assisted_Pull-Up'), 'move:pull-up');
+    // A move with one exercise left keeps its move key (D67), so favorites stay.
+    expect(exerciseCatalog.groupKeyOf('Pullups'), 'move:pull-up');
+    expect(exerciseCatalog.byKey['move:pull-up']!.name, 'Pull-Up');
     // Bench press (D57): from any barbell press, Flat, bands and chains are
     // reachable; dumbbells have no grip width row; a barbell has no one-arm row.
     final incline = exerciseCatalog.byId['Barbell_Incline_Bench_Press_-_Medium_Grip']!;
@@ -292,12 +365,57 @@ void main() {
     expect(chipTarget(bench, flatBar, 'side', 'One Arm'), isNull);
     // All dips are one move, with a Type row.
     final dip = exerciseCatalog.byKey['move:dip']!;
-    expect(dip.variants.length, 7);
-    expect(dip.axes.firstWhere((a) => a.$1.id == 'type').$2, containsAll(['Chest', 'Triceps', 'Bench']));
+    expect(dip.variants.length, 3); // the dips no class can see are gone (D67)
+    expect(dip.axes.firstWhere((a) => a.$1.id == 'type').$2, containsAll(['Triceps', 'Bench']));
     expect(all.map((e) => e.id).toSet().length, all.length);
     expect(all.every((e) => !e.id.contains('.')), isTrue); // old ids have a dot (D54)
     expect(exerciseCatalog.byId['Pushups']!.equipment, 'body only');
     expect(exerciseName('Leg_Extensions'), 'Leg Extensions');
+    expect(exerciseName('Ab_Roller'), 'Ab Roller'); // not in the list (D67), still readable
+    // Commonness and modes (D67): every class and mode covers every body
+    // part; each mode shows more cards than the one before, and keeps them.
+    for (final c in gameClasses) {
+      var before = <String>{};
+      for (var d = 0; d < difficulties.length; d++) {
+        final f = ExerciseFilter(classId: c.id, difficulty: d);
+        final cards = f.apply(exerciseCatalog, const {});
+        final keys = cards.map((g) => g.key).toSet();
+        expect(keys.length, greaterThan(before.length), reason: '${c.id} $d');
+        expect(keys.containsAll(before), isTrue, reason: '${c.id} $d');
+        for (final b in bodyParts) {
+          expect(f.countBody(exerciseCatalog, const {}, b.id), greaterThan(0), reason: '${c.id} $d ${b.id}');
+        }
+        before = keys;
+      }
+    }
+    // Movement patterns (D69): every card has one. Every class has the gear
+    // for every core pattern, so each one is there from Sofa on (and so in
+    // every mode, as a mode keeps the easier cards): a real workout.
+    expect(exerciseCatalog.groups.where((g) => g.pattern == null), isEmpty);
+    for (final c in gameClasses) {
+      final sofa = {for (final g in ExerciseFilter(classId: c.id, difficulty: 0).apply(exerciseCatalog, const {})) g.pattern};
+      for (final p in corePatterns) {
+        expect(sofa, contains(p), reason: '${c.id} $p');
+      }
+      // From Sweat on, two cards or more per core pattern where the class has them.
+      final sweat = ExerciseFilter(classId: c.id, difficulty: 2).apply(exerciseCatalog, const {});
+      final thin = [for (final p in corePatterns) if (sweat.where((g) => g.pattern == p).length < 2) p];
+      expect(thin.length, lessThanOrEqualTo(3), reason: '${c.id} $thin');
+    }
+    // The owner's spread (D69): Cablemancer machines from Sofa.
+    for (final k in ['move:leg press', 'move:leg extension', 'Butterfly', 'Face_Pull', 'Seated_Cable_Rows']) {
+      expect(exerciseCatalog.byKey[k]!.shownIn('cablemancer', 0), isTrue, reason: k);
+    }
+    // The class rules of the tool are the app's: a class in `unlock` sees an exercise of the card.
+    for (final g in exerciseCatalog.groups) {
+      for (final c in g.variants.first.unlock.keys) {
+        expect(g.variants.any((e) => classEquipment[c]!.contains(e.equipment) && classCategories[c]!.contains(e.category)),
+            isTrue, reason: '${g.key} $c');
+      }
+    }
+    final ranked = ExerciseFilter(classId: 'paladin', difficulty: 5).apply(exerciseCatalog, const {});
+    expect(ranked.first.key, 'move:bench press'); // the most common card first
+    expect([for (final g in ranked) g.rank], [for (final g in ranked) g.rank]..sort());
     // Every muscle of the list is in exactly one body part (D52).
     for (final m in all.map((e) => e.muscle).toSet()) {
       expect(bodyParts.where((b) => b.muscles.contains(m)).length, 1, reason: m);
@@ -443,10 +561,10 @@ void main() {
     expect(list.every((e) => classEquipment['paladin']!.contains(e.equipment)), isTrue);
     expect(list.every((e) => classCategories['paladin']!.contains(e.category)), isTrue);
     expect(list.any((e) => e.equipment == 'other' || e.equipment == 'foam roll'), isFalse);
-    // Difficulty: Sweat sees beginner and intermediate; harder levels first.
+    // Difficulty: Sweat sees beginner and intermediate; the most common card first (D67).
     expect([for (final d in [0, 1, 2, 3, 4, 5]) topLevelFor(d)], [0, 0, 1, 1, 2, 2]);
     expect(list.every((e) => e.level <= 1), isTrue);
-    expect(cards.first.variants.any((e) => e.level == 1), isTrue);
+    expect(cards.first.key, 'move:bench press');
     expect(f.countDifficulty(exerciseCatalog, const {}, 5), greaterThan(cards.length)); // higher sees lower too
     expect(f.countDifficulty(exerciseCatalog, const {}, _d), cards.length); // counts are cards
     // Body part, then a muscle of it.
@@ -458,10 +576,10 @@ void main() {
     expect(flat(store.cards).every((e) => e.muscle == 'quadriceps'), isTrue);
     expect(store.cards.length, lessThan(legs.length));
     // Cascade: an earlier change that leaves the muscle empty resets it.
-    store.setFilter(const ExerciseFilter(classId: 'scrapper', difficulty: 0, body: 'legs', muscle: 'adductors'));
-    expect(store.filter.muscle, 'adductors'); // Scrapper in Sofa Mode has some
-    expect(store.filter.copyWith(classId: 'paladin').countMuscle(exerciseCatalog, const {}, 'adductors'), 0);
-    store.setFilter(store.filter.copyWith(classId: 'paladin'));
+    store.setFilter(const ExerciseFilter(classId: 'paladin', difficulty: 0, body: 'legs', muscle: 'hamstrings'));
+    expect(store.filter.muscle, 'hamstrings'); // Plate Paladin in Sofa Mode has some
+    expect(store.filter.copyWith(classId: 'scrapper').countMuscle(exerciseCatalog, const {}, 'hamstrings'), 0);
+    store.setFilter(store.filter.copyWith(classId: 'scrapper'));
     expect((store.filter.body, store.filter.muscle), ('legs', null));
     // Favorites: first in the list; the star filter combines with the rest.
     store.resetFilter();
@@ -674,6 +792,33 @@ void main() {
     await t.pump(const Duration(seconds: 5));
   });
 
+  testWidgets('language switch (D68): EN / RO on the body card, saved, every text changes', (t) async {
+    _phone(t);
+    final (store, prefs) = await _store();
+    I18n.instance.useJson(langFiles, prefs: prefs);
+    await t.pumpWidget(GymApp(store: store));
+    await _frames(t);
+    expect(find.text('CHARACTER · STEP 1 OF 4'), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('lang-ro')));
+    await _frames(t);
+    expect(find.text('PERSONAJ · PASUL 1 DIN 4'), findsOneWidget);
+    expect(find.text('ÎNAINTE: CLASA'), findsOneWidget);
+    expect(find.text('CREEAZĂ-ȚI ATLETUL'), findsOneWidget);
+    expect(find.text('1,75 M'), findsOneWidget);
+    expect(prefs.getString(I18n.prefsKey), 'ro');
+    await t.tap(find.text('ÎNAINTE: CLASA'));
+    await _frames(t);
+    expect(find.text('HAIDUC'), findsOneWidget);
+    expect(find.text('MOD CANAPEA'), findsOneWidget);
+    await t.tap(find.text('ÎNAPOI'));
+    await _frames(t);
+    await t.tap(find.byKey(const ValueKey('lang-en')));
+    await _frames(t);
+    expect(find.text('CHARACTER · STEP 1 OF 4'), findsOneWidget);
+    expect(prefs.getString(I18n.prefsKey), 'en');
+    expect(t.takeException(), isNull);
+  });
+
   testWidgets('old data: NOT NOW keeps it and goes to the setup', (t) async {
     _phone(t);
     final (store, prefs) = await _store(old: true);
@@ -825,7 +970,7 @@ void main() {
         const Character(sex: 'female', height: 100, muscle: 100, fat: 0, skin: 'deep', hair: 'blonde', facialHair: 'beard'));
     expect((saved.classId, saved.difficultyId, saved.areaId, saved.schemaVersion), ('paladin', 'sweat', 'gainsgard', 1));
     expect(find.byKey(const ValueKey('world-object')), findsOneWidget); // the workout is home (D49)
-    // The title is the exercise picked (D69).
+    // The title is the exercise picked (D75).
     expect(find.text(store.variantFor(store.cards.first).name.toUpperCase()), findsOneWidget);
     expect(find.textContaining('THIS WEEK'), findsNothing); // no streak (D34)
     expect(pushes.pushes, 1); // only the home route: views never push routes
@@ -839,7 +984,7 @@ void main() {
     expect(find.text('I WORKED 💪'), findsNothing);
     final firstCard = store.cards.first;
     final first = store.variantFor(firstCard).id;
-    expect(find.text('NO SETS YET'), findsNothing); // no sets on the card (D68): they show in the world
+    expect(find.text('NO SETS YET'), findsNothing); // no sets on the card (D74): they show in the world
 
     final card = find.byKey(const ValueKey('world-object'));
     await t.tap(card);
@@ -863,7 +1008,7 @@ void main() {
     await t.longPress(card);
     await _frames(t, 70);
     expect(store.setsToday(first), 5);
-    expect(find.textContaining('SETS · +'), findsNothing); // no set line on the card (D68)
+    expect(find.textContaining('SETS · +'), findsNothing); // no set line on the card (D74)
 
     expect(find.text('KEEP GOING'), findsNothing); // no hub (D49)
     expect(store.todaySession!.totalSets, 5);
@@ -954,8 +1099,8 @@ void main() {
       await _frames(t, 8);
     }
     final bench = store.cards.firstWhere((g) => g.key == 'move:bench press');
-    expect(find.text(store.variantFor(bench).name.toUpperCase()), findsOneWidget); // the title (D69)
-    expect(find.byKey(const ValueKey('exercise-variant')), findsNothing); // no subtitle (D68)
+    expect(find.text(store.variantFor(bench).name.toUpperCase()), findsOneWidget); // the title (D75)
+    expect(find.byKey(const ValueKey('exercise-variant')), findsNothing); // no subtitle (D74)
     // Rows for equipment and angle; no Smith machine for a Paladin (greyed).
     expect(find.text('EQUIPMENT'), findsOneWidget);
     expect(find.text('ANGLE'), findsOneWidget);
@@ -965,7 +1110,7 @@ void main() {
     await _frames(t, 6);
     final picked = store.variantFor(store.cards.firstWhere((g) => g.key == 'move:bench press'));
     expect(picked.mods['angle'], 'Incline');
-    expect(find.text(picked.name.toUpperCase()), findsOneWidget); // the picked exercise is the title (D69)
+    expect(find.text(picked.name.toUpperCase()), findsOneWidget); // the picked exercise is the title (D75)
     // The world adds the set to the exercise picked.
     await t.tap(find.byKey(const ValueKey('world-object')));
     await _frames(t, 70);
@@ -999,7 +1144,7 @@ void main() {
     expect(t.takeException(), isNull);
   });
 
-  test('marks (D68): a spot holds the newest set on it; laps start again at the first spot', () {
+  test('marks (D74): a spot holds the newest set on it; laps start again at the first spot', () {
     // 10 spots: sets 1-10 are lap 0; set 11 lands on spot 0 in lap 1.
     expect([for (var i = 0; i < 3; i++) markLap(i, 10, 10)], [0, 0, 0]);
     expect([for (var i = 0; i < 3; i++) markLap(i, 12, 10)], [1, 1, 0]);
@@ -1007,7 +1152,7 @@ void main() {
     expect(markLap(5, 3, 10), 0); // no set there yet
   });
 
-  testWidgets('D69: no TM; the workout keeps the card picked after leaving', (t) async {
+  testWidgets('D75: no TM; the workout keeps the card picked after leaving', (t) async {
     final (store, prefs) = await _openApp(t);
     expect(find.text('PUMPLEX'), findsWidgets); // drawn in layers
     expect(find.textContaining('™'), findsNothing);
@@ -1023,7 +1168,7 @@ void main() {
     expect(t.takeException(), isNull);
   });
 
-  testWidgets('D68: many sets show their number in the world; chips have no numbers; difficulty card', (t) async {
+  testWidgets('D74: many sets show their number in the world; chips have no numbers; difficulty card', (t) async {
     final (store, _) = await _openApp(t);
     final first = store.variantFor(store.cards.first).id;
     for (var i = 0; i < 25; i++) {
@@ -1034,7 +1179,7 @@ void main() {
     if (store.profile!.areaId != 'arcade') {
       expect(spots, findsOneWidget);
       expect(find.descendant(of: spots, matching: find.text('25 SETS')), findsOneWidget);
-      // Inside the screen, never cut off (D69).
+      // Inside the screen, never cut off (D75).
       final r = t.getRect(spots);
       expect(r.left, greaterThanOrEqualTo(0));
       expect(r.right, lessThanOrEqualTo(t.view.physicalSize.width / t.view.devicePixelRatio));
@@ -1060,7 +1205,7 @@ void main() {
     final (store, _) = await _openApp(t);
     await t.tap(find.byKey(const ValueKey('filter-body')));
     await _frames(t, 10);
-    // BODY PART shows only body parts (and muscles), no class or difficulty (D67).
+    // BODY PART shows only body parts (and muscles), no class or difficulty (D73).
     expect(find.byKey(const ValueKey('class-card')), findsNothing);
     expect(find.byKey(const ValueKey('difficulty-card')), findsNothing);
     await t.tap(find.byKey(const ValueKey('chip-body-legs')));
@@ -1179,7 +1324,7 @@ void main() {
     expect(find.byKey(const ValueKey('intro-card')), findsOneWidget);
     expect(find.text('LEVEL $level'), findsOneWidget);
     for (final line in levelUpLines) {
-      expect(find.text(line.toUpperCase()), findsNothing); // no joke line (D68)
+      expect(find.text(line.toUpperCase()), findsNothing); // no joke line (D74)
     }
     await _frames(t, 70);
     expect(find.byKey(const ValueKey('intro-card')), findsNothing);
@@ -1204,9 +1349,10 @@ void main() {
     await t.pump(const Duration(seconds: 5));
   });
 
-  for (final b in Brightness.values) {
-    testWidgets('every scene renders on a phone ($b)', (t) async {
+  for (final (b, lang) in [for (final b in Brightness.values) for (final l in I18n.languages) (b, l)]) {
+    testWidgets('every scene renders on a phone ($b, $lang)', (t) async {
       _phone(t);
+      I18n.instance.useJson(langFiles, lang: lang);
       final (store, _) = await _store(setUp: true);
       store.addSet(_squat);
       await t.pumpWidget(MaterialApp(theme: pumplexTheme(b), home: GameShell(store: store)));
@@ -1233,8 +1379,15 @@ void main() {
       await tapAndSettle(find.byKey(const ValueKey('area-dot-arcade')));
       await t.fling(find.byKey(const ValueKey('lifter-editor')), const Offset(0, -300), 1000);
       await _frames(t);
-      expect(find.text('BUILD YOUR LIFTER'), findsOneWidget);
+      expect(find.byKey(const ValueKey('body-card')), findsOneWidget);
+      // The filter sheet, with its longest texts.
       await tapAndSettle(find.byKey(const ValueKey('mini-workout')));
+      await tapAndSettle(find.byKey(const ValueKey('filter-body')));
+      await tapAndSettle(find.byKey(const ValueKey('chip-body-back')));
+      await tapAndSettle(find.byKey(const ValueKey('filter-show')));
+      store.resetFilter();
+      await _frames(t);
+      await tapAndSettle(find.byKey(const ValueKey('top-level')));
       expect((store.profile!.classId, store.profile!.areaId), ('bruiser', 'arcade'));
       expect(find.byKey(const ValueKey('world-object')), findsOneWidget); // the workout is home (D49)
       await t.pumpWidget(const SizedBox());

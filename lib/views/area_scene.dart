@@ -24,10 +24,10 @@ const markLadder = [
   Color(0xFFFF5FB0),
 ];
 
-/// The colour of every mark in the first round (D69): one colour for all.
+/// The colour of every mark in the first round (D75): one colour for all.
 const markFirst = Color(0xFFC6FF3D);
 
-/// Mark colours once every mark spot is used (D68): the marks start again
+/// Mark colours once every mark spot is used (D74): the marks start again
 /// at the first spot, one colour per lap, so the new sets stand out.
 const markLaps = [
   Color(0xFF3FD2FF),
@@ -199,7 +199,7 @@ class _AreaSceneState extends State<AreaScene> with SingleTickerProviderStateMix
         final shakeStep = ms < 320 ? (ms / (320 / 6)).floor() : -1;
         final shake = shakeStep < 0 ? 0.0 : (shakeStep.isEven ? 2.0 : -2.0) * s;
 
-        // Every spot holds the newest set that landed on it (D68).
+        // Every spot holds the newest set that landed on it (D74).
         final spots = a.markPositions.length;
         final n = min(widget.count, spots);
         final newest = _played && ms < 220 && widget.count > 0 ? (widget.count - 1) % spots : -1;
@@ -291,7 +291,7 @@ class _AreaSceneState extends State<AreaScene> with SingleTickerProviderStateMix
     final p = a.markPositions[i];
     final isFifth = a.markFifth != null && i % 5 == 4;
     final sprite = isFifth ? a.markFifth! : a.mark;
-    // The first round: one colour (D69); each later lap: a new colour (D68).
+    // The first round: one colour (D75); each later lap: a new colour (D74).
     final color = lap == 0 ? markFirst : markLaps[(lap - 1) % markLaps.length];
     Widget m = Stack(
       children: [

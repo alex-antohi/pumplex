@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:gym_app/i18n.dart';
 import 'package:gym_app/game/exercises.dart';
 import 'package:gym_app/game/model.dart';
 import 'package:gym_app/store.dart';
@@ -27,6 +28,8 @@ Future<(LogStore, SharedPreferences)> _store([Map<String, Object> extra = const 
 }
 
 void main() {
+  final langFiles = {for (final l in I18n.languages) l: File(I18n.asset(l)).readAsStringSync()};
+  setUp(() => I18n.instance.useJson(langFiles));
   setUpAll(() => exerciseCatalog = ExerciseCatalog.parse(File(ExerciseCatalog.asset).readAsStringSync()));
 
   group('kept on the phone', () {
@@ -87,10 +90,8 @@ void main() {
       expect(await load('not json'), def);
       expect(await load(const ['x']), def);
       expect(await load({'class': 'paladin', 'difficulty': 2, 'body': 'wings'}), def);
-      // A muscle of another body part, or one with nothing left, goes back to all.
+      // A muscle of another body part goes back to all.
       expect(await load({'class': 'paladin', 'difficulty': 2, 'body': 'legs', 'muscle': 'chest'}),
-          const ExerciseFilter(classId: 'paladin', difficulty: 2, body: 'legs'));
-      expect(await load({'class': 'paladin', 'difficulty': 2, 'body': 'legs', 'muscle': 'adductors'}), // none for a Paladin
           const ExerciseFilter(classId: 'paladin', difficulty: 2, body: 'legs'));
       expect(await load({'class': 'cablemancer', 'difficulty': 5, 'favorites': true}),
           const ExerciseFilter(classId: 'cablemancer', difficulty: 5, favorites: true));
