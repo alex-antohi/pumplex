@@ -34,10 +34,13 @@ import 'sprite.dart' show classColor;
 /// tags, the exercise (title, star, modifier rows) and the counter.
 const _exerciseMin = 240.0;
 
-/// The world in a workout view of [area] (D69): the whole width, from the top,
-/// just tall enough for the scene at the biggest whole-number scale for the
-/// width; the exercise part gets all the rest. The workout is no card (only
-/// when minimised).
+/// The scene's part of the world in a workout view of [area] (D69): the whole
+/// width, from the top, just tall enough for the scene at the biggest
+/// whole-number scale for the width. It depends on the size only, so the
+/// scene (and the lifter the shell draws in it) never moves. The exercise
+/// part is only as tall as its content, at the bottom; the world's floor
+/// colour fills the space between them. The workout is no card (only when
+/// minimised).
 Rect workoutWorld(Size area, [double bottomInset = 0]) {
   final byWidth = max(1, (area.width / sceneSize.width).floor());
   final h = min(sceneSize.height * byWidth + 8, area.height - bottomInset - _exerciseMin);
@@ -45,9 +48,9 @@ Rect workoutWorld(Size area, [double bottomInset = 0]) {
 }
 
 /// The scene's rect and whole-number scale in a workout view of [area]: the
-/// biggest scale at which the whole scene fits in the world, so no mark is
-/// ever cut off (D69). It stands on the bottom of the world; the area's sky
-/// and floor colours fill the rest.
+/// biggest scale at which the whole scene fits in [workoutWorld], so no mark
+/// is ever cut off (D69). It stands on the bottom of that rect; the area's
+/// sky and floor colours fill the rest of the world.
 (Rect, int) workoutLayout(Size area, [double bottomInset = 0]) {
   final world = workoutWorld(area, bottomInset);
   final scale = max(1, min(world.width / sceneSize.width, world.height / sceneSize.height).floor());
@@ -68,6 +71,63 @@ Rect workoutArena(Size area, [double bottomInset = 0]) {
 Rect workoutStage(Size area, [double bottomInset = 0]) {
   final (scene, scale) = workoutLayout(area, bottomInset);
   return sceneLifterRect(areaArt.values.first, scene, scale);
+}
+
+/// Where the set-count badge goes (size [badge]) for a scene at [scene],
+/// scale [scale], in a view whose free world is [bounds]: next to the marks'
+/// box (above it first), inside [bounds], off the object to hit, the marks
+/// and [avoid] (the hint over the sky). The least covering spot when none is
+/// free.
+Offset sceneCountPos(AreaArt art, Rect scene, int scale, Size badge, Rect bounds, {Rect avoid = Rect.zero}) {
+  final s = scale.toDouble();
+  final marks = markBox(art, scene, scale);
+  final object = Rect.fromLTWH(
+      scene.left + art.hitBox.left * s, scene.top + art.hitBox.top * s, art.hitBox.width * s, art.hitBox.height * s);
+  // Marks on the object (the Gainsgard wall): go round both.
+  final m = marks.overlaps(object) ? marks.expandToInclude(object) : marks;
+  const gap = 6.0;
+  final w = badge.width, h = badge.height;
+  final above = m.top - gap - h, below = m.bottom + gap;
+  final candidates = [
+    Offset(m.right - w, above),
+    Offset(m.center.dx - w / 2, above),
+    Offset(m.left, above),
+    Offset(m.right + gap, m.top),
+    Offset(m.left - gap - w, m.top),
+    Offset(m.right - w, below),
+    Offset(m.left, below),
+  ];
+  double cover(Rect r, Rect o) {
+    final i = r.intersect(o);
+    return i.width > 0 && i.height > 0 ? i.width * i.height : 0;
+  }
+
+  var best = Offset.zero;
+  var least = double.infinity;
+  for (final c in candidates) {
+    final x = c.dx.clamp(bounds.left, max(bounds.left, bounds.right - w)).toDouble();
+    final y = c.dy.clamp(bounds.top, max(bounds.top, bounds.bottom - h)).toDouble();
+    final r = Rect.fromLTWH(x, y, w, h);
+    final k = cover(r, object) + cover(r, marks) + cover(r, avoid);
+    if (k < least) {
+      least = k;
+      best = Offset(x, y);
+      if (k == 0) break;
+    }
+  }
+  return best;
+}
+
+/// The box around every mark spot of [art] for a scene at [scene], scale [scale].
+Rect markBox(AreaArt art, Rect scene, int scale) {
+  final s = scale.toDouble();
+  var box = Rect.zero;
+  for (final (i, p) in art.markPositions.indexed) {
+    final size = art.markFifth != null && i % 5 == 4 ? art.markFifth!.size : art.mark.size;
+    final r = Rect.fromLTWH(scene.left + p.dx * s, scene.top + p.dy * s, size.width * s, size.height * s);
+    box = i == 0 ? r : box.expandToInclude(r);
+  }
+  return box;
 }
 
 class WorkoutView extends StatefulWidget {
@@ -181,26 +241,33 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
       final spots = art.markPositions.length;
       return Stack(
         children: [
-          // The world fills the width (D69): the area's sky and floor around
-          // the scene (the shell draws the lifter in it).
-          Positioned.fromRect(rect: world, child: ColoredBox(color: Color(area.sky))),
+          // The world fills the width and everything above the exercise part
+          // (D69): the area's sky and floor around the scene (the shell draws
+          // the lifter in it). The floor goes down to the exercise part.
+          Positioned.fill(child: ColoredBox(color: Color(area.sky))),
           Positioned(
             left: 0,
             right: 0,
             top: scene.top + art.floorPos.dy * scale,
-            height: world.bottom - scene.top - art.floorPos.dy * scale,
+            bottom: 0,
             child: ColoredBox(color: Color(area.floor)),
           ),
+          // The exercise part: at the bottom, only as tall as its content, at
+          // most the room under the scene (a taller card is cut off there).
           Positioned(
             left: 0,
             right: 0,
-            top: world.bottom,
             bottom: 0,
-            child: DecoratedBox(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: max(0.0, box.maxHeight - world.bottom)),
+              child: DecoratedBox(
+              key: const ValueKey('exercise-part'),
               decoration: BoxDecoration(color: p.bg, border: Border(top: BorderSide(color: p.ink, width: 3))),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  const SizedBox(height: 3), // the border
                   // Filter tags: class, difficulty and body part open the
                   // sheet; the star shows favorites only. All four sit on
                   // one row, which shrinks to fit when the names are long.
@@ -248,21 +315,22 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
                   ),
                   // Under the tags: the exercise carousel. The world adds
                   // sets to the exercise shown here.
-                  Expanded(
+                  Flexible(
                     child: e == null
                         ? _Empty(store: store)
                         : swipe(
                             key: const ValueKey('exercise-card'),
-                            // Top-aligned, the counter right under it: no
-                            // empty band in the middle (D69).
-                            child: SizedBox.expand(
-                              child: Align(
-                                alignment: Alignment.topCenter,
-                                child: Column(
+                            // As tall as the exercise, the counter at the
+                            // bottom: no empty band (D69).
+                            child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 // Bounded, so a tall card is cut off, not overflowing.
-                                Flexible(child: slide(
+                                Flexible(child: AnimatedSize(
+                                  duration: const Duration(milliseconds: 240),
+                                  curve: Curves.easeOutCubic,
+                                  alignment: Alignment.topCenter,
+                                  child: slide(
                                     'exercise-${e.key}',
                                     _ExerciseText(
                                       g: e,
@@ -274,17 +342,18 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
                                       onStar: () => _star(e.key),
                                       onPick: (id) => _pick(e, id),
                                     ),
-                                )),
+                                ))),
                                 Text('${index + 1} / $count',
                                     key: const ValueKey('exercise-counter'), style: mono(12, p.ink)),
+                                const SizedBox(height: 6),
                               ],
-                            ),
-                              ),
                             ),
                           ),
                   ),
+                  SizedBox(height: inset),
                 ],
               ),
+            ),
             ),
           ),
           // The scene. TAP THE OBJECT = one working set, HOLD IT = take one back.
@@ -301,18 +370,29 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
               onUndo: e == null ? null : _undo,
             ),
           ),
-          // More sets than mark spots: the number of sets, in the world's top
-          // corner, never cut off (D68, D69). The arcade has its own counter.
+          // More sets than mark spots: the number of sets, next to the marks,
+          // in the world and never cut off (D68, D69). The arcade has its own
+          // counter.
           if (sets > spots && art.ledRect == null)
-            Positioned(
-              right: 12,
-              top: world.top + 8,
+            Positioned.fill(
               child: IgnorePointer(
-                child: Container(
+                child: CustomSingleChildLayout(
+                  delegate: _CountLayout(
+                    (badge) => sceneCountPos(
+                      art,
+                      scene,
+                      scale,
+                      badge,
+                      Rect.fromLTRB(world.left + 6, world.top + 6, world.right - 6, world.bottom - 6),
+                      avoid: Rect.fromLTWH(world.left + 8, world.top + 4, 230, firstTime && sets == 0 ? 64 : 38),
+                    ),
+                  ),
+                  child: Container(
                   key: const ValueKey('scene-count'),
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   color: kNight,
                   child: Text('$sets SETS', style: display(15, markLaps[(markLap(0, sets, spots) - 1) % markLaps.length])),
+                ),
                 ),
               ),
             ),
@@ -348,6 +428,22 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
       );
     });
   }
+}
+
+/// Puts the set-count badge where [pos] says for its size.
+class _CountLayout extends SingleChildLayoutDelegate {
+  _CountLayout(this.pos);
+
+  final Offset Function(Size badge) pos;
+
+  @override
+  BoxConstraints getConstraintsForChild(BoxConstraints constraints) => constraints.loosen();
+
+  @override
+  Offset getPositionForChild(Size size, Size childSize) => pos(childSize);
+
+  @override
+  bool shouldRelayout(_CountLayout old) => true;
 }
 
 /// A filter tag you can tap.
