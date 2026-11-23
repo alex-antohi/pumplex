@@ -78,6 +78,8 @@ const _toolOfMod = {
   'Kettlebell': 'kettlebell',
   'Bands': 'bands',
   'EZ Bar': 'ezbar',
+  'Exercise Ball': 'ball',
+  'Medicine Ball': 'ball',
 };
 
 /// Every word tile, row by row, in the order the sheet shows them.
