@@ -67,18 +67,18 @@ const _boxNote = "Box height by your height: up to 5'6\" → 12\" · "
 /// ("Lounges" → Lunges, "Font" → Front, "Dumbell" → Dumbbell).
 const ancaProgram = <int, Workout>{
   1: Workout('Light Upper', [
-    Exercise('lu1', '5x5', name: 'Bench Press'),
-    Exercise('lu2', '3x6', name: 'Close Grip Bench'),
-    Exercise('lu3', '3x8', name: 'Barbell Rows'),
-    Exercise('lu4', '3x8', name: 'Lat Pulldowns'),
-    Exercise('lu5', '3x10', name: 'Side Delt Raises'),
-    Exercise('lu6', '3x10', name: 'Bicep Curls'),
-    Exercise('lu7', '3x12', name: 'Rear Delt Fly'),
+    Exercise('lu1', '5x5', name: 'Bench Press', hint: 'Overhead or Bench Press'),
+    Exercise('lu2', '3x6', name: 'Close Grip Bench', hint: 'Tricep Dominant Movement'),
+    Exercise('lu3', '3x8', name: 'Barbell Rows', hint: 'Horizontal Pull'),
+    Exercise('lu4', '3x8', name: 'Lat Pulldowns', hint: 'Vertical Pull'),
+    Exercise('lu5', '3x10', name: 'Side Delt Raises', hint: 'Shoulder or Pec Fly'),
+    Exercise('lu6', '3x10', name: 'Bicep Curls', hint: 'Arm Isolation Movement'),
+    Exercise('lu7', '3x12', name: 'Rear Delt Fly', hint: 'Rear Delt Movement'),
   ]),
   2: Workout('Heavy Lower', [
-    Exercise('hl1', '3-5 Rep Max', name: 'Front Squat'),
-    Exercise('hl2', '-25% Rep Out', name: 'Front Squat', percentOf: 'hl1'),
-    Exercise('hl3', '4x6', name: 'Stiffies'),
+    Exercise('hl1', '3-5 Rep Max', name: 'Front Squat', hint: 'Squat, DL or Good Morning Variation'),
+    Exercise('hl2', '-25% Rep Out', name: 'Front Squat', hint: 'Same Movement', percentOf: 'hl1'),
+    Exercise('hl3', '4x6', name: 'Stiffies', hint: 'Hard Posterior Chain Movement'),
     Exercise('hl4', '3x8', name: 'Lunges', hint: 'Unilateral Movement'),
     Exercise('hl5', '3x8', name: 'Leg Curls', hint: 'Moderate Posterior Chain Movement'),
     Exercise('hl6', 'WORK', name: 'Abs', hint: 'Heavy Abs'),
@@ -95,28 +95,28 @@ const ancaProgram = <int, Workout>{
     Exercise('hu9', '3x12', name: 'High Rows', hint: 'Rear Delt Movement'),
   ]),
   6: Workout('Light Lower', [
-    Exercise('ll1', '5x5', name: 'Box Squat', note: _boxNote),
+    Exercise('ll1', '5x5', name: 'Box Squat', hint: 'Box Squat', note: _boxNote),
     Exercise('ll2', '4x6', name: 'Stiffies', hint: 'Hard Posterior Chain Movement'),
     Exercise('ll3', '3x8', name: 'Bulgarian Split Squats', hint: 'Unilateral Movement'),
     Exercise('ll4', '3x8', name: 'Leg Raises', hint: 'Moderate Posterior Chain Movement'),
-    Exercise('ll5', 'WORK', name: 'Abs'),
+    Exercise('ll5', 'WORK', name: 'Abs', hint: 'Heavy Abs'),
   ]),
 };
 
 const alexProgram = <int, Workout>{
   1: Workout('Light Upper', [
-    Exercise('lu1', '5x5', name: 'Bench'),
-    Exercise('lu2', '3x6', name: 'Close Bench'),
-    Exercise('lu3', '3x8', name: 'BB Row'),
-    Exercise('lu4', '3x8', name: 'Pull up'),
-    Exercise('lu5', '3x10', name: 'Side Raise'),
-    Exercise('lu6', '3x10', name: 'Bicep Curl'),
-    Exercise('lu7', '3x12', name: 'Rear Delt Fly'),
+    Exercise('lu1', '5x5', name: 'Bench', hint: 'Overhead or Bench Press'),
+    Exercise('lu2', '3x6', name: 'Close Bench', hint: 'Tricep Dominant Movement'),
+    Exercise('lu3', '3x8', name: 'BB Row', hint: 'Horizontal Pull'),
+    Exercise('lu4', '3x8', name: 'Pull up', hint: 'Vertical Pull'),
+    Exercise('lu5', '3x10', name: 'Side Raise', hint: 'Shoulder or Pec Fly'),
+    Exercise('lu6', '3x10', name: 'Bicep Curl', hint: 'Arm Isolation Movement'),
+    Exercise('lu7', '3x12', name: 'Rear Delt Fly', hint: 'Rear Delt Movement'),
   ]),
   2: Workout('Heavy Lower', [
-    Exercise('hl1', '3-5 Rep Max', name: 'LB Squat'),
-    Exercise('hl2', '-25% Rep Out', name: 'LB Squat', percentOf: 'hl1'),
-    Exercise('hl3', '4x6', name: 'Good Morning'),
+    Exercise('hl1', '3-5 Rep Max', name: 'LB Squat', hint: 'Squat, DL or Good Morning Variation'),
+    Exercise('hl2', '-25% Rep Out', name: 'LB Squat', hint: 'Same Movement', percentOf: 'hl1'),
+    Exercise('hl3', '4x6', name: 'Good Morning', hint: 'Hard Posterior Chain Movement'),
     Exercise('hl4', '3x8', name: 'Lunges', hint: 'Unilateral Movement'),
     Exercise('hl5', '3x8', name: 'Leg curl', hint: 'Moderate Posterior Chain Movement'),
     Exercise('hl6', 'WORK', name: 'Cable Ab Curls', hint: 'Heavy Abs'),
@@ -133,11 +133,11 @@ const alexProgram = <int, Workout>{
     Exercise('hu9', '3x12', name: 'Band Pull Apart', hint: 'Rear Delt Movement'),
   ]),
   6: Workout('Light Lower', [
-    Exercise('ll1', '5x5', name: 'Box Squat', note: _boxNote),
+    Exercise('ll1', '5x5', name: 'Box Squat', hint: 'Box Squat', note: _boxNote),
     Exercise('ll2', '4x6', name: 'Stiff Leg DL', hint: 'Hard Posterior Chain Movement'),
     Exercise('ll3', '3x8', name: 'Bulgarian Split Squats', hint: 'Unilateral Movement'),
     Exercise('ll4', '3x8', name: 'Leg Raise', hint: 'Moderate Posterior Chain Movement'),
-    Exercise('ll5', 'WORK', name: 'Heavy Abs'),
+    Exercise('ll5', 'WORK', name: 'Heavy Abs', hint: 'Heavy Abs'),
   ]),
 };
 

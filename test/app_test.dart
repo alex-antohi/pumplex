@@ -148,8 +148,8 @@ void main() {
     expect(out.csv.startsWith(bom), isTrue);
     final lines = out.csv.substring(1).trim().split('\r\n');
     expect(lines.first, 'date,session,program_day,workout,exercise,slot,scheme,set,kg,reps');
-    expect(lines[1], '2026-11-02,1,1,Light Upper,Bench,,5x5,1,100,5');
-    expect(lines.last, '2026-11-02,1,1,Light Upper,BB Row,,3x8,1,60,8');
+    expect(lines[1], '2026-11-02,1,1,Light Upper,Bench,Overhead or Bench Press,5x5,1,100,5');
+    expect(lines.last, '2026-11-02,1,1,Light Upper,BB Row,Horizontal Pull,3x8,1,60,8');
     expect(buildCsv(store, DateTime(2026, 11, 2), DateTime(2026, 11, 3)).sets, 7);
     expect(buildCsv(store, DateTime(2026, 11, 4), DateTime(2026, 11, 8)).sets, 0);
   });
@@ -176,21 +176,40 @@ void main() {
     expect(inThings(s.totalKg), startsWith('≈ 2.3 CARS'));
   });
 
-  test('max-effort lower: heads-up in week 4, swap due after 4 weeks', () async {
+  test('first exercise: heads-up in week 2, swap due in week 3', () async {
     final store = await _store(); // LB Squat in session 2
-    for (final n in [9, 16, 23]) {
-      store.edit(k(n), 'hl1', 'LB Squat').sets.add(SetEntry(kg: 140, reps: 3));
-    }
-    expect(_reminder(store, 2, 'hl1', 16), isNull);
-    expect(_reminder(store, 2, 'hl1', 23)!.due, isFalse);
-    expect(_reminder(store, 2, 'hl1', 30)!.due, isTrue);
+    expect(_reminder(store, 2, 'hl1', 9)!.due, isFalse);
+    store.edit(k(9), 'hl1', 'LB Squat').sets.add(SetEntry(kg: 150, reps: 3));
+    expect(_reminder(store, 2, 'hl1', 16)!.due, isTrue);
 
-    store.setSwap('hl1', k(30), 'SSB Squat');
+    store.setSwap('hl1', k(16), 'SSB Squat');
     final w = program[2]!;
-    expect(movementOn(store, w, w.byId('hl1')!, k(30)).name, 'SSB Squat');
-    expect(movementOn(store, w, w.byId('hl2')!, k(30)).name, 'SSB Squat'); // rep-out follows
-    expect(movementOn(store, w, w.byId('hl1')!, k(23)).name, 'LB Squat'); // history untouched
-    expect(_reminder(store, 2, 'hl1', 30), isNull);
+    expect(movementOn(store, w, w.byId('hl1')!, k(16)).name, 'SSB Squat');
+    expect(movementOn(store, w, w.byId('hl2')!, k(16)).name, 'SSB Squat'); // rep-out follows
+    expect(movementOn(store, w, w.byId('hl1')!, k(9)).name, 'LB Squat'); // history untouched
+    expect(_reminder(store, 2, 'hl1', 16), isNull);
+  });
+
+  test('second movement: heads-up in week 4, swap due in week 5', () async {
+    final store = await _store();
+    for (final n in [2, 9, 16]) {
+      store.edit(k(n), 'hl3', 'Good Morning').sets.add(SetEntry(kg: 60.0 + n, reps: 6));
+    }
+    expect(_reminder(store, 2, 'hl3', 23)!.due, isFalse);
+    store.edit(k(23), 'hl3', 'Good Morning').sets.add(SetEntry(kg: 90, reps: 6));
+    expect(_reminder(store, 2, 'hl3', 30)!.due, isTrue);
+  });
+
+  test('box squat does not rotate: only no progress swaps it', () async {
+    final store = await _store();
+    for (final n in [6, 13, 20, 27]) {
+      store.edit(k(n), 'll1', 'Box Squat').sets.add(SetEntry(kg: 100.0 + n, reps: 5));
+    }
+    expect(_reminder(store, 6, 'll1', 34), isNull);
+    for (final n in [34, 41]) {
+      store.edit(k(n), 'll1', 'Box Squat').sets.add(SetEntry(kg: 100, reps: 5));
+    }
+    expect(_reminder(store, 6, 'll1', 48)!.due, isTrue);
   });
 
   test('max-effort upper: swap due after 2 weeks, snooze hides it', () async {
@@ -546,6 +565,9 @@ void main() {
     await t.tap(find.text('SWAP'));
     await t.pump(const Duration(milliseconds: 500));
     expect(store.swapOn('lu1', k(8)), 'Floor Press');
+    // Week 2 of Bench showed a heads-up box, so scroll back up to the title.
+    await t.drag(find.byType(ListView), const Offset(0, 2000));
+    await t.pump(const Duration(milliseconds: 300));
     expect(find.text('FLOOR PRESS'), findsOneWidget);
     expect(find.textContaining('NO HISTORY FOR FLOOR PRESS'), findsOneWidget);
     await t.pump(const Duration(seconds: 5)); // snackbar goes away

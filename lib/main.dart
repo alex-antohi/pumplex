@@ -58,7 +58,6 @@ class _SessionPagerState extends State<SessionPager> with WidgetsBindingObserver
   late PageController _controller = PageController(initialPage: _store.currentN - 1);
   late int _page = _store.currentN - 1;
   int _generation = 0; // bumped after a restore to rebuild all pages
-  bool _loaded = false;
 
   int get _n => _page + 1;
 
@@ -219,7 +218,7 @@ class _SessionPagerState extends State<SessionPager> with WidgetsBindingObserver
                 children: [
                   Container(
                     color: kNight,
-                    child: const SafeArea(bottom: false, child: Ticker(items: tickerItems)),
+                    child: const SafeArea(bottom: false, child: SizedBox(width: double.infinity)),
                   ),
                   _TopBar(
                     info: info,
@@ -272,8 +271,6 @@ class _SessionPagerState extends State<SessionPager> with WidgetsBindingObserver
                   ),
                 ),
               ),
-              if (!_loaded)
-                Positioned.fill(child: Preloader(onDone: () => setState(() => _loaded = true))),
             ],
           ),
         ),

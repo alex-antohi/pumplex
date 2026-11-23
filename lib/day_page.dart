@@ -519,6 +519,8 @@ class ExerciseCard extends StatelessWidget {
         l.sets.add(SetEntry());
       }
       l.sets[i].done = done;
+      // The first ticked set starts the clock if START TRAINING wasn't pressed.
+      if (done && n == store.currentN && store.startedAt == null) store.startTraining();
       store.changed();
       if (done) commit();
     }

@@ -12,8 +12,8 @@ Personal Android gym tracker for the conjugate program in
   of the page. A snackbar offers UNDO for a few seconds.
 - Opens on the current session; swipe right to look back at earlier sessions
   and left to preview the rest of the week. The floating "↩ NOW" jumps back.
-- **START TRAINING ▶** at the top of a workout starts a clock; I WORKED stops
-  it. Past sessions show how long they took, rest days show the average.
+- **START TRAINING ▶** at the top of a workout starts a clock (or the first ✔ set
+  starts it); I WORKED stops it. Past sessions show how long they took, rest days show the average.
 - ✔ on a set needs a weight and reps (0 kg for bodyweight); typing alone
   never ticks. A weight typed in one set is offered to the sets below it.
 - Rest days (Day 3, 5, 7) show **THE STATS™**: total kg moved (in elephants),
@@ -31,9 +31,11 @@ Personal Android gym tracker for the conjugate program in
   names. Last week, PRs and rep-out weights follow the movement.
 - **Swap reminders** (in the app, on the card and in the day header). A "week"
   is one time round the 7-day program:
-  - Heavy Lower #1: after 4 weeks on one movement (heads-up in week 4).
-  - Heavy Upper #1: after 2 weeks on one movement (heads-up in week 2).
-  - Everything else: after 2 weeks in a row with no progress
+  - First exercise of Light Upper, Heavy Lower and Heavy Upper: every 2 weeks
+    (heads-up in week 2, swap due from week 3).
+  - Second movement (Tricep Dominant / Hard Posterior Chain): every 4 weeks
+    (heads-up in week 4, swap due from week 5).
+  - Everything else, the Box Squat too: after 2 weeks in a row with no progress
     (no new best estimated 1RM and no new best volume).
   - "NOT YET" hides a reminder until that workout comes round again.
   - Rules live at the top of `lib/movements.dart`.

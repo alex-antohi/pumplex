@@ -5,11 +5,19 @@ import 'dart:math';
 import 'program.dart';
 import 'store.dart';
 
-/// Max-effort slots rotate: slot id -> weeks (= sessions of that workout,
-/// one per program week) per movement.
+/// Slots that rotate on a fixed schedule: slot id -> weeks (= sessions of
+/// that workout, one per program week) per movement. Heads-up in the last
+/// week, swap due after it. The Box Squat (ll1) does not rotate.
 const rotateEvery = {
-  'hl1': 4, // Heavy Lower, first exercise
-  'hu1': 2, // Heavy Upper, first exercise
+  // First exercise: every 2 weeks.
+  'lu1': 2, // Light Upper: Overhead or Bench Press
+  'hl1': 2, // Heavy Lower: Squat, DL or Good Morning Variation
+  'hu1': 2, // Heavy Upper: Pressing Movement
+  // Second movement: every 4 weeks.
+  'lu2': 4, // Light Upper: Tricep Dominant Movement
+  'hl3': 4, // Heavy Lower: Hard Posterior Chain Movement
+  'hu4': 4, // Heavy Upper: Tricep Dominant Movement
+  'll2': 4, // Light Lower: Hard Posterior Chain Movement
 };
 
 /// Every other slot: swap after this many sessions in a row without progress
@@ -85,7 +93,7 @@ Reminder? reminderFor(LogStore store, Exercise e, String key, Movement m) {
     }
     if (run >= every) {
       return Reminder(
-          '$run WEEKS OF $name. MAX EFFORT GETS A NEW MOVEMENT EVERY $every WEEKS. SWAP IT.',
+          '$run WEEKS OF $name. THIS SLOT GETS A NEW MOVEMENT EVERY $every WEEKS. SWAP IT.',
           due: true);
     }
     if (run > 0 && run == every - 1) {
