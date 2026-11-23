@@ -195,6 +195,11 @@ const PIN = {
     Tricep_Dumbbell_Kickback: M.pain, Vertical_Swing: M.pain, Ball_Leg_Curl: M.pain, Dumbbell_Step_Ups: M.pain,
     Mountain_Climbers: M.pain, Kettlebell_Thruster: M.pain,
     Kettlebell_Pistol_Squat: M.brutal, Alternating_Renegade_Row: M.brutal,
+    // The rare moves the keep rule brought back, placed by gear (D50) in late modes.
+    'Hip Extension': M.sweat, Halo: M.pain,
+    Scaption: M.brutal, 'Lateral to Front Raise': M.brutal, 'Kettlebell Sumo High Pull': M.brutal,
+    'Bent-Over Triceps Extension': M.brutal,
+    'Zottman Curl': M.nightmare, 'Cuban Press': M.nightmare,
   },
   paladin: {
     Reverse_Flyes: M.sofa,
@@ -206,6 +211,10 @@ const PIN = {
     Barbell_Ab_Rollout: M.pain, Barbell_Step_Ups: M.pain, Kettlebell_Thruster: M.pain,
     Power_Clean: M.brutal, Box_Squat: M.brutal, Landmine_Linear_Jammer: M.brutal,
     Kettlebell_Pistol_Squat: M.nightmare, 'Kettlebell_Turkish_Get-Up_Squat_style': M.nightmare,
+    // The rare moves the keep rule brought back, placed by gear (D50) in late modes.
+    'Spider Curl': M.sweat, 'JM Press': M.pain,
+    'Drag Curl': M.brutal, 'Deficit Deadlift': M.brutal, 'Tate Press': M.brutal,
+    'Triceps Press': M.nightmare, 'Clean and Press': M.nightmare, 'Finger Curl': M.nightmare,
   },
   cablemancer: {
     Leg_Press: M.sofa, Leg_Extensions: M.sofa, Butterfly: M.sofa, Face_Pull: M.sofa, Reverse_Machine_Flyes: M.sofa,
@@ -215,6 +224,9 @@ const PIN = {
     Thigh_Abductor: M.sweat, Thigh_Adductor: M.sweat, 'Cable_Hammer_Curls_-_Rope_Attachment': M.sweat,
     Pull_Through: M.pain, Pallof_Press: M.pain, Rope_Crunch: M.pain,
     Standing_Cable_Wood_Chop: M.brutal,
+    // The rare moves the keep rule brought back, placed by gear (D50) in late modes.
+    'Triceps Extension': M.pain, 'High Pulley Row': M.brutal, 'High Cable Curl': M.brutal,
+    'Reverse Hyperextension': M.nightmare,
   },
 };
 
