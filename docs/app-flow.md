@@ -94,8 +94,8 @@ screen. There they have no BACK / NEXT and every change saves at once. BACK / NE
 2. **Class select and difficulty** (design: `docs/moodboard/README.md` "Class select", D46, D47).
    - No step kicker, title or subtitle in the view: the PUMPLEX bar says "CLASS · STEP 2 OF 4".
    - One big card fills the top (D46): the user's lifter (from step 1), standing on the class info at
-     the bottom of the card (D64): the class name in its colour, the equipment, the loadout and 3 tags
-     (no description, D63). No stat table. The
+     the bottom of the card (D64): only the class name in its colour and the equipment, in big type
+     (D70; no loadout, tags or description). No stat table. The
      card's hard shadow takes the class colour. The lifter gets the biggest whole-number scale that
      leaves room for the texts; the texts scroll on a short phone.
    - Swipe the card left for the next class, right for the one before, round and round. Dots under
@@ -110,7 +110,7 @@ screen. There they have no BACK / NEXT and every change saves at once. BACK / NE
      | Lots of free weights | Plate Paladin | `paladin` | lime |
      | Lots of machines | Cablemancer | `cablemancer` | violet |
 
-   - **Difficulty** (D47, D68): a card under the dots with a slider (6 stops), who the mode is for under it, and the mode name above it on the right in
+   - **Difficulty** (D47, D68, D70): a card above the class card with the mode name on the right, who the mode is for, then the slider (6 stops). The mode name is in
      its rarity colour. No ladder and no freeze-frame card. Names in `lib/game/content.dart`:
      Sofa, Warm-up, Sweat, Pain, Brutal, Nightmare Mode (D28). Ids: `sofa`, `warmup`, `sweat`,
      `pain`, `brutal`, `nightmare`. The numbers per mode are in `lib/game/rules.dart` (XP) and `lib/game/exercises.dart` (levels):
@@ -146,8 +146,8 @@ screen. There they have no BACK / NEXT and every change saves at once. BACK / NE
      today's workout only before its first set.
    - One swipe card like the class card: the arena fills the card (D63) at the biggest whole-number
      scale for its height (the sides may be cut, never stretched; the sky colour fills any room above)
-     with the lifter standing in it; the name, the line, what you hit (e.g. SCRATCH THE WALL) and
-     "YOUR PATH'S HOME" on the default area sit at the bottom.
+     with the lifter standing in it; only the name and "YOUR PATH'S HOME" on the default area sit
+     at the bottom (D70: no line, no what you hit).
      Swipe both ways, round and round; dots under the card.
    - The scenes are the design team's PNG layers (`assets/areas/<area id>/`). `tools/app/area_art.mjs`
      turns their `anim.json` files into `lib/game/area_art.dart`.
@@ -190,13 +190,16 @@ owner's rules ([decisions.md](decisions.md)).
 - **Filter tags** between the world and the carousel (D49, D51): CLASS, DIFFICULTY, BODY PART
   (or the muscle picked) and a star tag. Defaults: your class, your mode, ALL BODY PARTS, star off.
   - A tap on CLASS, DIFFICULTY or BODY PART opens a **filter sheet** with only that tag's options
-    (D67): CLASS the classes, DIFFICULTY the modes, BODY PART the body parts and the muscles of the
-    part picked. The chips show no numbers (D68); a chip that gives no exercises (counted with the
+    (D67). CLASS and DIFFICULTY use the class screen's cards (D70): CLASS the class card (the lifter in
+    the outfit of the class picked, swipe or tap a dot), DIFFICULTY the difficulty card (description and
+    slider); they change the filter only, not the profile. BODY PART shows chips: the body parts and the
+    muscles of the part picked. The chips show no numbers (D68); a chip that gives no exercises (counted with the
     earlier filters only) is greyed out. Changes apply at once. RESET TO MINE puts back only that tag (your
     class, your mode, all body parts); SHOW n EXERCISES closes it.
   - When an earlier filter leaves the body part or muscle with no exercises, it goes back to all.
   - The star tag shows favorites only (D53), combined with the other filters.
-  - A new day starts from the defaults; in the same day the last choice stays.
+  - The last choice is kept on the phone (D70), also the next day and after closing the app, until
+    RESET TO MINE or a new class or mode. The exercise picked on each card is kept too.
   - Rules in `lib/game/exercises.dart`: the class uses equipment, then category (D50); the mode
     shows levels up to its own (Sofa, Warm-up: beginner; Sweat, Pain: + intermediate; Brutal,
     Nightmare: + expert); body parts group the 17 muscles in 6 (D52).
@@ -204,7 +207,7 @@ owner's rules ([decisions.md](decisions.md)).
   card. Under the name, the card shows the exercise picked (its database name) and one chip row per way
   the move's exercises differ (EQUIPMENT, ANGLE, GRIP WIDTH, GRIP, STANCE, ARMS / LEGS, POSITION,
   ATTACHMENT, BANDS, CHAINS, TYPE). The card has no muscle, level or equipment line, and the four filter tags sit on one row that shrinks to fit. A tap on a chip picks that exercise; chips the filters hide are greyed out. The
-  card starts on the exercise picked today, else the one used last today, else the simplest. Sets,
+  card starts on the exercise picked last on it (kept on the phone, D70), else the one used last today, else the simplest. Sets,
   the set marks and the 10-set XP cap count per card.
 - **Exercise carousel** under them: one card at a time from the filtered list, sorted:
   favorites, then the hardest level first, compound before isolation, then by name. So the first
