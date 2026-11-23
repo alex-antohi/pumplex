@@ -1,0 +1,470 @@
+{
+  "move.ab rollout": [
+    "roata abdomene",
+    "roată",
+    "ab wheel",
+    "rollout"
+  ],
+  "move.arnold press": [
+    "arnold"
+  ],
+  "move.back extension": [
+    "extensii spate",
+    "lombari",
+    "hiperextensie"
+  ],
+  "move.ball slam": [
+    "slam",
+    "minge medicinală"
+  ],
+  "move.bench press": [
+    "împins orizontal",
+    "piept",
+    "bench",
+    "împins cu halteră",
+    "împins cu gantere"
+  ],
+  "move.bent-over row": [
+    "ramat",
+    "ramat cu halteră",
+    "rameu",
+    "spate"
+  ],
+  "move.bicep curl": [
+    "biceps",
+    "flexii",
+    "curl",
+    "bicepși"
+  ],
+  "move.bicycle crunch": [
+    "bicicleta",
+    "abdomene"
+  ],
+  "move.box squat": [
+    "genuflexiuni",
+    "ladă",
+    "box"
+  ],
+  "move.bulgarian split squat": [
+    "fandare bulgărească",
+    "bulgarian",
+    "fandări",
+    "genuflexiuni bulgărești"
+  ],
+  "move.burpee": [
+    "burpees",
+    "flotare cu săritură"
+  ],
+  "move.butterfly": [
+    "fluturări",
+    "pec deck",
+    "fluture",
+    "piept"
+  ],
+  "move.calf raise": [
+    "gambe",
+    "pulpe",
+    "vârfuri"
+  ],
+  "move.calf raise on a dumbbell": [
+    "gambe",
+    "pulpe"
+  ],
+  "move.chest press": [
+    "aparat piept",
+    "împins la aparat",
+    "piept"
+  ],
+  "move.chest-supported row": [
+    "ramat",
+    "ramat pe bancă"
+  ],
+  "move.chin-up": [
+    "tracțiuni",
+    "bară",
+    "priză inversă",
+    "chin up"
+  ],
+  "move.chin-up hold": [
+    "bară",
+    "izometrie"
+  ],
+  "move.clean": [
+    "smuls",
+    "aruncat"
+  ],
+  "move.concentration curl": [
+    "biceps",
+    "flexii",
+    "curl"
+  ],
+  "move.crossover": [
+    "fluturări",
+    "cabluri",
+    "crossover",
+    "piept"
+  ],
+  "move.crunch": [
+    "abdomene",
+    "abdomen",
+    "abs",
+    "crunch"
+  ],
+  "move.dead hang": [
+    "atârnat",
+    "bară"
+  ],
+  "move.deadlift": [
+    "deadlift",
+    "îndreptare",
+    "îndreptări clasice"
+  ],
+  "move.dip": [
+    "paralele",
+    "flotări la paralele",
+    "flotări triceps",
+    "dips"
+  ],
+  "move.external rotation": [
+    "rotatori",
+    "manșon rotator"
+  ],
+  "move.face pull": [
+    "tragere la față",
+    "deltoid posterior"
+  ],
+  "move.farmer's walk": [
+    "mers fermierului",
+    "plimbarea fermierului",
+    "cărat"
+  ],
+  "move.floor press": [
+    "împins la podea"
+  ],
+  "move.flutter kicks": [
+    "forfecuțe",
+    "abdomene"
+  ],
+  "move.fly": [
+    "fluturări",
+    "fluturări cu gantere",
+    "fluture",
+    "piept"
+  ],
+  "move.front raise": [
+    "ridicări în față",
+    "umeri"
+  ],
+  "move.front squat": [
+    "genuflexiuni",
+    "genuflexiuni în față"
+  ],
+  "move.glute bridge": [
+    "fesieri",
+    "pod",
+    "bridge"
+  ],
+  "move.glute kickback": [
+    "fesieri",
+    "kickback"
+  ],
+  "move.goblet squat": [
+    "genuflexiuni",
+    "goblet"
+  ],
+  "move.good morning": [
+    "bună dimineața",
+    "lombari"
+  ],
+  "move.hack squat": [
+    "genuflexiuni hack",
+    "aparat hack"
+  ],
+  "move.hammer curl": [
+    "biceps",
+    "ciocan",
+    "hammer"
+  ],
+  "move.handstand push-up": [
+    "flotări",
+    "stând pe mâini"
+  ],
+  "move.hanging leg raise": [
+    "abdomene la bară",
+    "ridicări picioare",
+    "bară"
+  ],
+  "move.hip abduction": [
+    "abductori",
+    "aparat abductori",
+    "fesieri"
+  ],
+  "move.hip adduction": [
+    "adductori",
+    "aparat adductori",
+    "interior coapsă"
+  ],
+  "move.hip thrust": [
+    "fesieri",
+    "împins din șold",
+    "hip thrust"
+  ],
+  "move.inverted row": [
+    "tracțiuni australiene",
+    "ramat inversat"
+  ],
+  "move.jump rope": [
+    "coarda",
+    "sărit coarda"
+  ],
+  "move.jump squat": [
+    "genuflexiuni",
+    "sărituri"
+  ],
+  "move.kettlebell swing": [
+    "swing",
+    "balans"
+  ],
+  "move.lat pulldown": [
+    "helcometru",
+    "scripete",
+    "tracțiuni",
+    "lat pulldown",
+    "pulldown",
+    "spate"
+  ],
+  "move.lateral raise": [
+    "umeri",
+    "laterale",
+    "fluturări laterale",
+    "ridicări"
+  ],
+  "move.leg curl": [
+    "femurali",
+    "biceps femural",
+    "flexii femurale",
+    "aparat femurali"
+  ],
+  "move.leg extension": [
+    "cvadricepși",
+    "aparat extensii"
+  ],
+  "move.leg press": [
+    "presă",
+    "presa",
+    "aparat picioare"
+  ],
+  "move.leg press calf raise": [
+    "gambe",
+    "pulpe",
+    "presă"
+  ],
+  "move.lunge": [
+    "fandări",
+    "fandare",
+    "lunges"
+  ],
+  "move.lying leg raise": [
+    "abdomene",
+    "ridicări picioare"
+  ],
+  "move.mountain climber": [
+    "cățărătorul",
+    "alpinistul"
+  ],
+  "move.nordic curl": [
+    "femurali",
+    "nordic"
+  ],
+  "move.oblique crunch": [
+    "oblici",
+    "abdomene laterale"
+  ],
+  "move.one-arm row": [
+    "ramat",
+    "ramat cu ganteră",
+    "spate"
+  ],
+  "move.overhead triceps extension": [
+    "triceps",
+    "extensii",
+    "franceze"
+  ],
+  "move.pike push-up": [
+    "flotări",
+    "umeri"
+  ],
+  "move.pistol squat": [
+    "genuflexiuni pe un picior",
+    "pistol"
+  ],
+  "move.plank": [
+    "planșă",
+    "scândură",
+    "plank"
+  ],
+  "move.plyo push-up": [
+    "flotări cu bătaie",
+    "flotări explozive"
+  ],
+  "move.power clean": [
+    "smuls",
+    "clean"
+  ],
+  "move.preacher curl": [
+    "scott",
+    "pupitru",
+    "biceps",
+    "bancă scott"
+  ],
+  "move.pull-up": [
+    "bară",
+    "tracțiuni la bară",
+    "tracțiuni pronate",
+    "pull up"
+  ],
+  "move.push press": [
+    "împins cu impuls"
+  ],
+  "move.push-up": [
+    "flotare",
+    "flotări",
+    "push up"
+  ],
+  "move.rack pull": [
+    "îndreptări parțiale",
+    "îndreptări"
+  ],
+  "move.rear delt row": [
+    "deltoid posterior",
+    "ramat"
+  ],
+  "move.renegade row": [
+    "ramat",
+    "ramat renegat"
+  ],
+  "move.reverse crunch": [
+    "abdomene inferioare",
+    "abdomene"
+  ],
+  "move.reverse curl": [
+    "antebraț",
+    "priză pronată"
+  ],
+  "move.reverse fly": [
+    "deltoid posterior",
+    "fluturări aplecat",
+    "fluturări spate"
+  ],
+  "move.romanian deadlift": [
+    "rdl",
+    "îndreptări",
+    "deadlift românesc",
+    "femurali"
+  ],
+  "move.russian twist": [
+    "răsuciri rusești",
+    "oblici"
+  ],
+  "move.seated cable row": [
+    "ramat",
+    "ramat la scripete",
+    "ramat șezând"
+  ],
+  "move.shoulder press": [
+    "împins deasupra capului",
+    "presă militară",
+    "umeri",
+    "împins umeri"
+  ],
+  "move.shrug": [
+    "trapez",
+    "shrugs",
+    "ridicări din umeri"
+  ],
+  "move.side plank": [
+    "planșă laterală"
+  ],
+  "move.sit-up": [
+    "abdomene",
+    "abdomene complete"
+  ],
+  "move.skullcrusher": [
+    "franceze",
+    "extensii franceze",
+    "french press",
+    "extensii triceps culcat",
+    "triceps"
+  ],
+  "move.split squat": [
+    "fandări",
+    "fandare statică"
+  ],
+  "move.squat": [
+    "genuflexiuni",
+    "kniebeugen",
+    "genoflexiuni",
+    "ghemuiri",
+    "squat"
+  ],
+  "move.step-up": [
+    "urcări",
+    "step"
+  ],
+  "move.stiff-legged deadlift": [
+    "îndreptări",
+    "femurali",
+    "deadlift"
+  ],
+  "move.straight-arm pulldown": [
+    "pulldown",
+    "helcometru",
+    "spate"
+  ],
+  "move.sumo deadlift": [
+    "îndreptări",
+    "deadlift",
+    "sumo"
+  ],
+  "move.sumo squat": [
+    "genuflexiuni",
+    "plie",
+    "sumo"
+  ],
+  "move.t-bar row": [
+    "ramat",
+    "ramat la T",
+    "bara T"
+  ],
+  "move.triceps extension": [
+    "triceps",
+    "extensii"
+  ],
+  "move.triceps kickback": [
+    "triceps",
+    "kickback"
+  ],
+  "move.triceps pushdown": [
+    "triceps",
+    "extensii triceps la scripete",
+    "helcometru triceps",
+    "extensii triceps la cablu"
+  ],
+  "move.upright row": [
+    "ramat la bărbie",
+    "tracțiuni la bărbie",
+    "umeri"
+  ],
+  "move.walking lunge": [
+    "fandări",
+    "fandări mers"
+  ],
+  "move.wall sit": [
+    "scăunel",
+    "scaunul"
+  ],
+  "move.wrist curl": [
+    "antebraț",
+    "încheietură"
+  ]
+}

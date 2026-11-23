@@ -156,10 +156,13 @@ void main() {
     expect(t('level.up', {'n': 3}), 'LEVEL 3');
     expect([tn('sets', 1), tn('sets', 12)], ['1 SET', '12 SETS']);
     expect(shortDate(DateTime(2026, 11, 23)), 'Mon 23 Nov');
-    // Unknown keys: English, then the fallback (exercise names, later).
-    expect(exerciseLabel('Pushups', 'Pushups'), 'Pushups');
+    // Exercise and move names (D68); unknown ones fall back to the English name.
+    expect(exerciseLabel('Pushups', 'Pushups'), 'Push-Up');
     expect(groupLabel('move:bench press', 'Bench Press'), 'Bench Press');
+    expect(exerciseLabel('No_Such_Exercise', 'No Such'), 'No Such');
     I18n.instance.useJson(langFiles, lang: 'ro');
+    expect(groupLabel('move:bench press', 'Bench Press'), 'Împins la piept');
+    expect(exerciseLabel('Incline_Dumbbell_Press', ''), 'Împins înclinat cu gantere');
     expect([tn('sets', 1), tn('sets', 12), tn('sets', 20), tn('sets', 101), tn('sets', 0)],
         ['1 SERIE', '12 SERII', '20 DE SERII', '101 SERII', '0 SERII']);
     expect(classById('paladin').name, 'Paladin de Discuri');
@@ -168,6 +171,26 @@ void main() {
     I18n.instance.useJson({'en': '{"a": "A {x}"}', 'ro': '{}'}, lang: 'ro');
     expect(t('a', {'x': 1}), 'A 1'); // a key Romanian lacks: English
     expect(t('missing'), 'missing');
+  });
+
+  test('exercise names (D68): every exercise and move has a name key, search words are lists', () {
+    final en = I18n.parse(langFiles['en']!);
+    for (final e in exerciseCatalog.all) {
+      expect(en['exercise.${e.id}'], e.name, reason: e.id);
+      expect(en.containsKey('move.${e.base.toLowerCase()}'), isTrue, reason: e.base);
+    }
+    for (final g in exerciseCatalog.groups.where((g) => g.key.startsWith('move:'))) {
+      expect(en.containsKey('move.${g.key.substring(5)}'), isTrue, reason: g.key);
+    }
+    // CHALK search words (D72): move keys only, a list of words each.
+    for (final l in I18n.languages) {
+      final words = jsonDecode(File('assets/i18n/search_$l.json').readAsStringSync()) as Map<String, dynamic>;
+      for (final w in words.entries) {
+        expect(en.containsKey(w.key), isTrue, reason: '$l ${w.key}');
+        expect(w.value, isA<List<dynamic>>());
+      }
+      expect(RegExp('[şţŞŢ]').hasMatch(File('assets/i18n/search_$l.json').readAsStringSync()), isFalse);
+    }
   });
 
   test('class id migration (D31): old ids become design ids once, old text kept', () async {
