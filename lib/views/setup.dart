@@ -272,25 +272,30 @@ class _LookButton extends StatelessWidget {
 
 // ------------------------------------------------------------ class select
 
-/// Room under the class card: the dots row, the difficulty slider and the
-/// BACK / NEXT row.
+/// The class screen, top to bottom: the difficulty card, the class card,
+/// the dots row and the BACK / NEXT row.
 const _classDotsHeight = 30.0, _classDifficultyHeight = 128.0, _classNavHeight = 92.0;
 
 /// Top of the setup cards (class, area): no title block above them.
 const _setupCardTop = 8.0;
 
-/// Height of the class info at the bottom of the class card (name to tags).
-const _classTextMin = 150.0;
+/// Gap between the difficulty card (with its shadow) and the class card.
+const _classCardGap = 6.0;
+
+/// Height of the class info at the bottom of the class card (name and
+/// equipment, with room around them).
+const _classTextMin = 112.0;
 
 /// The class card and, inside it, where the shell draws the lifter, in a
 /// view of [area] with [bottomInset] (the phone's navigation bar).
+/// The card starts under the difficulty card; the dots sit under it.
 /// The lifter gets the biggest whole-number scale that leaves
 /// [_classTextMin] for the texts, and the stage is cut to that size, so
 /// there is no empty band above the head.
 /// [buttons] false: no BACK / NEXT row under it (the lifter editor, D60).
 ({Rect card, Rect stage}) classLayout(Size area, double bottomInset, {bool buttons = true}) {
-  final card = Rect.fromLTRB(16, _setupCardTop, area.width - 22,
-      area.height - bottomInset - (buttons ? _classNavHeight : 8) - _classDifficultyHeight - _classDotsHeight);
+  final card = Rect.fromLTRB(16, _setupCardTop + _classDifficultyHeight + _classCardGap, area.width - 22,
+      area.height - bottomInset - (buttons ? _classNavHeight : 8) - _classDotsHeight);
   // CharacterSprite: pedestal = 10% of the box, the sprite gets the rest
   // minus half of it, at most spriteHeight × maxHeightScale × scale.
   const perScale = spriteHeight * maxHeightScale / 0.945;
@@ -303,11 +308,11 @@ const _classTextMin = 150.0;
   return (card: card, stage: stage);
 }
 
-/// Setup step 2 (docs/moodboard/README.md "Class select", D46, D47): one
-/// big card with the lifter, the class name, the equipment, the loadout,
-/// 3 tags and the description. Swipe the card to change the class, both
-/// ways, round and round. Dots show where you are. Under them, the
-/// DIFFICULTY slider (6 modes) with the mode name on the right.
+/// Setup step 2 (docs/moodboard/README.md "Class select", D46, D47): on
+/// top, the DIFFICULTY card (6 modes): the mode name on the right, who it
+/// is for, the slider. Under it one big card with the lifter, the class
+/// name and the equipment. Swipe the card to change the class, both ways,
+/// round and round. Dots under it show where you are.
 class ClassView extends StatefulWidget {
   const ClassView({
     super.key,
@@ -356,6 +361,67 @@ class _ClassViewState extends State<ClassView> with SwipeCarousel<ClassView> {
       final card = classLayout(box.biggest, MediaQuery.paddingOf(context).bottom, buttons: widget.buttons).card;
       return Stack(
         children: [
+          // Difficulty (D47): 6 modes, the current one named on the right, who
+          // the mode is for, then the slider. In a card on top (D68).
+          Positioned(
+            left: 16,
+            right: 22,
+            top: _setupCardTop,
+            height: _classDifficultyHeight - 8,
+            child: Brutal(
+              key: const ValueKey('difficulty-card'),
+              shadow: dColor,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 2),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Shout('Difficulty', size: 14),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerRight,
+                            child: Text(difficulties[di].name.toUpperCase(),
+                                key: const ValueKey('value-DIFFICULTY'), style: display(16, dColor)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      difficulties[di].line,
+                      key: const ValueKey('difficulty-line'),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: mono(11.5, p.ink),
+                    ),
+                    const Spacer(),
+                    SliderTheme(
+                      data: SliderTheme.of(context).copyWith(
+                        trackHeight: 10,
+                        activeTrackColor: dColor,
+                        inactiveTrackColor: p.panel2,
+                        thumbColor: p.lime,
+                        overlayColor: dColor.withValues(alpha: 0.2),
+                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 11),
+                        tickMarkShape: SliderTickMarkShape.noTickMark,
+                      ),
+                      child: Slider(
+                        key: const ValueKey('slider-DIFFICULTY'),
+                        value: di.toDouble(),
+                        max: difficulties.length - 1.0,
+                        divisions: difficulties.length - 1,
+                        onChanged: (v) => widget.onDifficulty(difficulties[v.round()].id),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
           // The card: the shell draws the lifter at [stage], at its top.
           Positioned.fromRect(
             rect: card,
@@ -370,7 +436,7 @@ class _ClassViewState extends State<ClassView> with SwipeCarousel<ClassView> {
                     const Spacer(),
                     SizedBox(
                       height: _classTextMin,
-                      child: slide(cls.id, _ClassText(cls: cls, color: color, scroll: widget.buttons)),
+                      child: slide(cls.id, _ClassText(cls: cls, color: color)),
                     ),
                   ],
                 ),
@@ -391,65 +457,6 @@ class _ClassViewState extends State<ClassView> with SwipeCarousel<ClassView> {
               onTap: jump,
             ),
           ),
-          // Difficulty (D47): 6 modes, the current one named on the right. In a
-          // card, with who the mode is for under the slider (D68).
-          Positioned(
-            left: 16,
-            right: 22,
-            top: card.bottom + _classDotsHeight,
-            height: _classDifficultyHeight - 8,
-            child: Brutal(
-              key: const ValueKey('difficulty-card'),
-              shadow: dColor,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-                child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Shout('Difficulty', size: 14),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerRight,
-                        child: Text(difficulties[di].name.toUpperCase(),
-                            key: const ValueKey('value-DIFFICULTY'), style: display(16, dColor)),
-                      ),
-                    ),
-                  ],
-                ),
-                SliderTheme(
-                  data: SliderTheme.of(context).copyWith(
-                    trackHeight: 10,
-                    activeTrackColor: dColor,
-                    inactiveTrackColor: p.panel2,
-                    thumbColor: p.lime,
-                    overlayColor: dColor.withValues(alpha: 0.2),
-                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 11),
-                    tickMarkShape: SliderTickMarkShape.noTickMark,
-                  ),
-                  child: Slider(
-                    key: const ValueKey('slider-DIFFICULTY'),
-                    value: di.toDouble(),
-                    max: difficulties.length - 1.0,
-                    divisions: difficulties.length - 1,
-                    onChanged: (v) => widget.onDifficulty(difficulties[v.round()].id),
-                  ),
-                ),
-                Text(
-                  difficulties[di].line,
-                  key: const ValueKey('difficulty-line'),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: mono(11.5, p.ink),
-                ),
-              ],
-            ),
-              ),
-            ),
-          ),
           if (widget.buttons)
             Positioned(
               left: 0,
@@ -463,41 +470,35 @@ class _ClassViewState extends State<ClassView> with SwipeCarousel<ClassView> {
   }
 }
 
-/// The texts of one class in the card: name, equipment, loadout, tags,
-/// description. Scrolls if the phone is short.
+/// The texts of one class in the card: the name and the equipment, big,
+/// with room around them.
 class _ClassText extends StatelessWidget {
-  const _ClassText({required this.cls, required this.color, this.scroll = true});
+  const _ClassText({required this.cls, required this.color});
 
   final GameClass cls;
   final Color color;
 
-  /// False in the lifter editor: the vertical drag is the carousel's (D63).
-  final bool scroll;
-
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
-    return SingleChildScrollView(
-      physics: scroll ? null : const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(14, 4, 14, 12),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 12, 18, 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           FittedBox(
             fit: BoxFit.scaleDown,
-            child: Text(cls.name.toUpperCase(), style: display(30, p.ink).copyWith(shadows: [
+            alignment: Alignment.centerLeft,
+            child: Text(cls.name.toUpperCase(), style: display(38, p.ink).copyWith(shadows: [
               Shadow(offset: const Offset(2, 2), color: color),
             ])),
           ),
-          const SizedBox(height: 2),
-          Text(cls.equipment.toUpperCase(), style: display(15, color).copyWith(letterSpacing: 1.2)),
           const SizedBox(height: 8),
-          Text(cls.loadout, style: mono(11.5, p.ink)),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [for (final t in cls.tags) Tag(t, bg: color, fg: p.on, size: 11, angle: 0)],
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(cls.equipment.toUpperCase(), style: display(20, color).copyWith(letterSpacing: 1.4)),
           ),
         ],
       ),
@@ -592,8 +593,8 @@ class Gems extends StatelessWidget {
 /// Room under the area card: the dots row and the BACK / NEXT row.
 const _areaDotsHeight = 30.0;
 
-/// Height of the texts at the bottom of the area card (name, line, tags).
-const _areaTextHeight = 132.0;
+/// Height of the texts at the bottom of the area card (name, home tag).
+const _areaTextHeight = 92.0;
 
 /// The area card, the scene in it (whole-number scale) and where the shell
 /// draws the lifter (standing in the scene, like on the hub). The arena
@@ -613,7 +614,7 @@ const _areaTextHeight = 132.0;
 
 /// Setup step 3 (docs/moodboard/README.md "Starting areas", D47): one big
 /// card like the class card: the area's scene with the lifter in it, then
-/// the name, the line, what you hit and the default-path tag. Swipe the
+/// the name and the default-path tag. Swipe the
 /// card to change the area, both ways, round and round. Dots show where
 /// you are. The class picks the default; the player can choose any area.
 class AreaView extends StatefulWidget {
@@ -694,7 +695,7 @@ class _AreaViewState extends State<AreaView> with SwipeCarousel<AreaView> {
                       // The title and the subtext at the bottom.
                       SizedBox(
                         height: _areaTextHeight - 3,
-                        child: _AreaText(area: a, isDefault: a.defaultFor == widget.classId, scroll: widget.buttons),
+                        child: _AreaText(area: a, isDefault: a.defaultFor == widget.classId),
                       ),
                     ],
                   ),
@@ -729,44 +730,35 @@ class _AreaViewState extends State<AreaView> with SwipeCarousel<AreaView> {
   }
 }
 
-/// The texts of one area in the card: name, line, what you hit, and the
-/// default-path tag. Scrolls if the phone is short.
+/// The texts of one area in the card: the name and, on the class's own
+/// area, the default-path tag.
 class _AreaText extends StatelessWidget {
-  const _AreaText({required this.area, required this.isDefault, this.scroll = true});
+  const _AreaText({required this.area, required this.isDefault});
 
   final Area area;
   final bool isDefault;
-
-  /// False in the lifter editor: the vertical drag is the carousel's (D63).
-  final bool scroll;
 
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
     final accent = Color(area.accent);
-    return SingleChildScrollView(
-      physics: scroll ? null : const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           FittedBox(
             fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
             child: Text(area.name.toUpperCase(), style: display(30, p.ink).copyWith(shadows: [
               Shadow(offset: const Offset(2, 2), color: accent),
             ])),
           ),
-          const SizedBox(height: 6),
-          Text(area.line, style: mono(12, p.ink)),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              Tag(area.hint, bg: kNight, fg: accent, size: 12, angle: 0),
-              if (isDefault) Tag('Your path\'s home', bg: accent, fg: p.on, size: 12, angle: 0),
-            ],
-          ),
+          if (isDefault) ...[
+            const SizedBox(height: 8),
+            Tag('Your path\'s home', bg: accent, fg: p.on, size: 12, angle: 0),
+          ],
         ],
       ),
     );

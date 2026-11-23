@@ -779,8 +779,8 @@ void main() {
     await _frames(t, 10);
     expect(shown(), 'PLATE PALADIN');
     expect(find.text('LOTS OF FREE WEIGHTS'), findsOneWidget);
-    expect(find.text('A barbell, a rack and a wall of plates.'), findsOneWidget); // loadout
-    expect(find.text('STRONGMAN'), findsOneWidget); // tags
+    expect(find.text('A barbell, a rack and a wall of plates.'), findsNothing); // no loadout
+    expect(find.text('STRONGMAN'), findsNothing); // no tags
     expect(find.byKey(const ValueKey('intro-card')), findsNothing);
     // Difficulty (D47): a slider on the class step, the mode name on the right.
     // No titles in the view, no freeze-frame card.
@@ -798,7 +798,8 @@ void main() {
     final areaCard = find.byKey(const ValueKey('area-card'));
     expect(find.text('GAINSGARD KEEP'), findsOneWidget);
     expect(find.text("YOUR PATH'S HOME"), findsOneWidget);
-    expect(find.text('SCRATCH THE WALL'), findsOneWidget);
+    expect(find.text('SCRATCH THE WALL'), findsNothing); // no hint on the area card
+    expect(find.text(areaById('gainsgard').line), findsNothing); // and no line
     await t.fling(areaCard, const Offset(-300, 0), 1000);
     await _frames(t, 10);
     expect(find.text('RUSTBELT FLATS'), findsOneWidget);
