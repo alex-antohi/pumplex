@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'dates.dart';
 import 'game/content.dart';
+import 'game/chalk.dart';
 import 'game/exercises.dart';
 import 'game/model.dart';
 import 'game/rules.dart';
@@ -493,12 +494,32 @@ class LogStore extends ChangeNotifier {
 
   void resetFilter() {
     _clearFilter();
+    _chalk.clear();
     notifyListeners();
   }
+
+  /// The CHALK line (D72): the words picked in the search, one per row
+  /// (`<row>.<id>`, lib/game/chalk.dart). While it has words, the cards are
+  /// the search results over ALL exercises (no class, no filters). In
+  /// memory only.
+  final Set<String> _chalk = {};
+  Set<String> get chalk => Set.unmodifiable(_chalk);
+
+  void setChalk(Set<String> line) {
+    _chalk
+      ..clear()
+      ..addAll(line);
+    notifyListeners();
+  }
+
+  /// The HARD badge (D70) for exercise [e] of card [g]: only for a card of
+  /// your class (a CHALK result for other gear opens with no badge, D72).
+  bool isHard(ExerciseGroup g, CatalogExercise e) => g.variants.first.unlock.containsKey(gameClass.id) && filter.isHard(g, e);
 
   /// The cards the filters show, in carousel order (one per move, D55).
   List<ExerciseGroup> get cards {
     _favoritesToMoves();
+    if (_chalk.isNotEmpty) return ChalkIndex.of(exerciseCatalog).search(_chalk);
     return filter.apply(exerciseCatalog, _favorites);
   }
 

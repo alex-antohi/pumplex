@@ -27,6 +27,7 @@ import '../pumplex.dart';
 import '../store.dart';
 import 'area_scene.dart';
 import 'carousel.dart';
+import 'chalk.dart';
 import 'filters.dart';
 import 'sprite.dart' show classColor;
 
@@ -300,6 +301,23 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
                             child: PxIcon('star', size: 16, color: f.favorites ? p.on : p.ink.withValues(alpha: 0.4)),
                           ),
                         ),
+                        // CHALK, the search over all exercises (D72): chalk
+                        // white on night ink; CHALK · n with n words picked.
+                        _TapTag(
+                          key: const ValueKey('filter-chalk'),
+                          onTap: () => showChalkSheet(context, store),
+                          child: Container(
+                            padding: const EdgeInsets.fromLTRB(10, 5, 10, 3),
+                            decoration: BoxDecoration(
+                              color: kNight,
+                              border: Border(bottom: BorderSide(color: kChalk.withValues(alpha: 0.6), width: 2)),
+                            ),
+                            child: Text(
+                              store.chalk.isEmpty ? t('chalk.title') : '${t('chalk.title')} · ${store.chalk.length}',
+                              style: display(12, kChalk),
+                            ),
+                          ),
+                        ),
                       ],
                       ),
                     ),
@@ -330,7 +348,7 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
                                       sets: sets,
                                       xp: store.groupXpToday(e.key),
                                       favorite: store.isFavorite(e.key),
-                                      hard: f.isHard(e, store.variantFor(e)),
+                                      hard: store.isHard(e, store.variantFor(e)),
                                       onStar: () => _star(e.key),
                                       onPick: (id) => _pick(e, id),
                                     ),
