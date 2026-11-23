@@ -6,7 +6,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'dates.dart';
 import 'game/content.dart';
+import 'game/chalk.dart';
 import 'game/exercises.dart';
+import 'game/forge.dart';
 import 'game/model.dart';
 import 'game/rules.dart';
 
@@ -63,6 +65,16 @@ class LogStore extends ChangeNotifier {
   dynamic _json(String key, Object fallback) {
     final raw = _prefs.getString(key);
     return raw == null ? fallback : jsonDecode(raw);
+  }
+
+  /// A list of UI data: a broken value is an empty list.
+  List<Object?> _uiList(String key) {
+    try {
+      final v = _json(key, const []);
+      return v is List ? v : const [];
+    } on FormatException {
+      return const [];
+    }
   }
 
   /// One-time: saved data with old class ids (speedy, rogue, warrior, mage;
@@ -227,7 +239,26 @@ class LogStore extends ChangeNotifier {
     _favorites
       ..clear()
       ..addAll([for (final id in _json(_favoritesKey, const []) as List) if (id is String) id]);
+    _picked.clear();
+    _forged
+      ..clear()
+      ..addAll([
+        for (final j in _uiList(forgedKey))
+          if (j is Map && j['id'] is String) ForgedMove.fromJson(Map<String, dynamic>.from(j)),
+      ]);
+    exerciseCatalog = catalogWithForged(exerciseCatalog, _forged);
     _filter = null;
+    _filterLoaded = false;
+    try {
+      final raw = _json(pickedVariantsKey, const {});
+      if (raw is Map) {
+        for (final e in raw.entries) {
+          if (e.key is String && e.value is List) _picked[e.key as String] = [for (final id in e.value as List) if (id is String) id];
+        }
+      }
+    } on FormatException {
+      // A broken value is only UI state: start without picks.
+    }
   }
 
   String get _now => isoNow(_clock());
@@ -352,27 +383,34 @@ class LogStore extends ChangeNotifier {
       _sessions[_today] = t.copyWith(areaId: p.areaId);
       _saveSessions();
     }
-    _filter = null; // the filters go back to the new class and mode
+    _clearFilter(); // the filters go back to the new class and mode
     notifyListeners();
   }
 
   // ------------------------------------------------- favorites and filters
 
-  /// Favorite cards (D53): group keys (`move:<name>`, or an exercise id
-  /// for an exercise with no variations, D55).
+  /// Favorite exercises (D53, D72): the star saves the exact exercise (the
+  /// variant), not the card.
   Set<String> get favorites => Set.unmodifiable(_favorites);
 
-  bool isFavorite(String key) => _favorites.contains(key);
+  bool isFavorite(String exerciseId) => _favorites.contains(exerciseId);
 
-  void toggleFavorite(String key) {
-    if (!_favorites.remove(key)) _favorites.add(key);
+  void toggleFavorite(String exerciseId) {
+    if (!_favorites.remove(exerciseId)) _favorites.add(exerciseId);
     _prefs.setString(_favoritesKey, jsonEncode(_favorites.toList()));
     notifyListeners();
   }
 
-  /// A favorite saved as an exercise id of a move (before D55) points to its move.
-  void _favoritesToMoves() {
-    final moved = {for (final f in _favorites) exerciseCatalog.groupKeyOf(f)};
+  /// A favorite saved as a card (`move:<name>`, D55, before D72) becomes the
+  /// exercise picked on that card last, else its simplest exercise.
+  void _favoritesToVariants() {
+    final moved = {
+      for (final f in _favorites)
+        if (exerciseCatalog.byId.containsKey(f) || exerciseCatalog.byKey[f] == null)
+          f
+        else
+          (_picked[f]?.firstOrNull ?? exerciseCatalog.byKey[f]!.variants.first.id),
+    };
     if (moved.length == _favorites.length && moved.containsAll(_favorites)) return;
     _favorites
       ..clear()
@@ -380,15 +418,25 @@ class LogStore extends ChangeNotifier {
     _prefs.setString(_favoritesKey, jsonEncode(_favorites.toList()));
   }
 
-  /// The exercise picked on each card today (in memory): group key -> id.
-  final Map<String, String> _picked = {};
+  /// The exercises picked on each card, the last one first: group key ->
+  /// ids. Kept on the phone, so the exercise picked is still there after
+  /// leaving the workout or the app. UI state only: not in the backup.
+  static const pickedVariantsKey = 'workout_variants_v1';
+  final Map<String, List<String>> _picked = {};
+
+  /// How many picks a card remembers.
+  static const _pickedPerCard = 8;
 
   /// The exercise to show for card [g] (one of its exercises that pass the
-  /// filters): the one picked, else the one used last today, else the simplest.
+  /// filters): the one picked last that passes, else the one used last
+  /// today, else the simplest.
   CatalogExercise variantFor(ExerciseGroup g) {
     final ids = {for (final v in g.variants) v.id};
-    final picked = _picked[g.key];
-    if (picked != null && ids.contains(picked)) return exerciseCatalog.byId[picked]!;
+    final picked = _picked[g.key]?.where(ids.contains).firstOrNull;
+    if (picked != null) return exerciseCatalog.byId[picked]!;
+    // A favorite exercise of the card (D72), when nothing was picked.
+    final fav = g.variants.where((v) => _favorites.contains(v.id)).firstOrNull;
+    if (fav != null) return fav;
     final used = todaySession?.exercises.lastWhere((e) => ids.contains(e.exerciseId) && e.sets > 0,
         orElse: () => const SessionExercise(exerciseId: ''));
     if (used != null && used.exerciseId.isNotEmpty) return exerciseCatalog.byId[used.exerciseId]!;
@@ -397,35 +445,134 @@ class LogStore extends ChangeNotifier {
 
   /// A modifier chip picked exercise [id] on its card.
   void pickVariant(String id) {
-    _picked[exerciseCatalog.groupKeyOf(id)] = id;
+    final key = exerciseCatalog.groupKeyOf(id);
+    _picked[key] = [id, ...?_picked[key]?.where((p) => p != id)].take(_pickedPerCard).toList();
+    _prefs.setString(pickedVariantsKey, jsonEncode(_picked));
     notifyListeners();
   }
 
+  /// The last filter choice, kept on the phone (also the next day and after
+  /// closing the app) until RESET TO MINE or a new class or mode. UI state
+  /// only: not in the backup.
+  static const filterKey = 'workout_filter_v1';
   ExerciseFilter? _filter;
-  String? _filterDay;
+  bool _filterLoaded = false;
 
   /// Your class, your mode, all body parts, not only favorites.
   ExerciseFilter get defaultFilter => ExerciseFilter(classId: gameClass.id, difficulty: difficulty);
 
-  /// The workout filters. Each new day starts from [defaultFilter]; in the
-  /// same day the last choice stays (in memory only).
-  ExerciseFilter get filter => (_filterDay == _today ? _filter : null) ?? defaultFilter;
+  /// The workout filters: the last choice, else [defaultFilter].
+  ExerciseFilter get filter {
+    if (!_filterLoaded) {
+      _filterLoaded = true;
+      _filter = _savedFilter();
+    }
+    return _filter ?? defaultFilter;
+  }
+
+  /// The saved choice, checked against the list as it is now: an unknown
+  /// class or difficulty means the defaults; an unknown body part or
+  /// muscle, or one with nothing left, goes back to all.
+  ExerciseFilter? _savedFilter() {
+    final Object? j;
+    try {
+      j = _json(filterKey, const {});
+    } on FormatException {
+      return null;
+    }
+    if (j is! Map) return null;
+    final cls = j['class'], d = j['difficulty'];
+    if (cls is! String || !classEquipment.containsKey(cls) || d is! int || d < 0 || d >= difficulties.length) return null;
+    final body = bodyPartById(j['body'] is String ? j['body'] as String : null);
+    final m = j['muscle'];
+    final muscle = body != null && m is String && body.muscles.contains(m) ? m : null;
+    return ExerciseFilter(classId: cls, difficulty: d, body: body?.id, muscle: muscle, favorites: j['favorites'] == true)
+        .settle(exerciseCatalog, _favorites);
+  }
 
   /// A new choice; a body part or muscle with nothing left goes back to all.
   void setFilter(ExerciseFilter f) {
-    _filter = f.settle(exerciseCatalog, _favorites);
-    _filterDay = _today;
+    final s = _filter = f.settle(exerciseCatalog, _favorites);
+    _filterLoaded = true;
+    _prefs.setString(filterKey, jsonEncode({
+      'class': s.classId,
+      'difficulty': s.difficulty,
+      'body': s.body,
+      'muscle': s.muscle,
+      'favorites': s.favorites,
+    }));
     notifyListeners();
+  }
+
+  /// Back to [defaultFilter], and the saved choice is gone.
+  void _clearFilter() {
+    _filter = null;
+    _filterLoaded = true;
+    _prefs.remove(filterKey);
+  }
+
+  /// The workout card picked last (a group key), kept on the phone so it is
+  /// still there after leaving the workout or the app (D75). UI state only:
+  /// not in the backup.
+  static const pickedCardKey = 'workout_card_v1';
+  String? get pickedCard => _prefs.getString(pickedCardKey);
+  void setPickedCard(String key) {
+    if (_prefs.getString(pickedCardKey) != key) _prefs.setString(pickedCardKey, key);
   }
 
   void resetFilter() {
-    _filter = null;
+    _clearFilter();
+    _chalk.clear();
     notifyListeners();
   }
 
+  /// The CHALK line (D72): the words picked in the search, one per row
+  /// (`<row>.<id>`, lib/game/chalk.dart). While it has words, the cards are
+  /// the search results over ALL exercises (no class, no filters). In
+  /// memory only.
+  final Set<String> _chalk = {};
+  Set<String> get chalk => Set.unmodifiable(_chalk);
+
+  void setChalk(Set<String> line) {
+    _chalk
+      ..clear()
+      ..addAll(line);
+    notifyListeners();
+  }
+
+  /// The forged moves (D72, lib/game/forge.dart), kept on the phone. UI
+  /// data: not in the backup file yet (still open, HANDOFF.md).
+  static const forgedKey = 'custom_exercises_v1';
+  final List<ForgedMove> _forged = [];
+  List<ForgedMove> get forged => List.unmodifiable(_forged);
+
+  /// Forge a move from the chalk [words]: it joins the exercise list, and
+  /// the workout shows it (the chalk line becomes its words).
+  ForgedMove forge(Set<String> words, String muscle, String? nickname) {
+    var n = _forged.length + 1;
+    while (exerciseCatalog.byId.containsKey('custom_$n')) {
+      n++;
+    }
+    final move = ForgedMove(id: 'custom_$n', words: words, muscle: muscle, nickname: nickname);
+    _forged.add(move);
+    _prefs.setString(forgedKey, jsonEncode([for (final f in _forged) f.toJson()]));
+    exerciseCatalog = catalogWithForged(exerciseCatalog, _forged);
+    _chalk
+      ..clear()
+      ..addAll(ChalkIndex.of(exerciseCatalog).words[move.id] ?? const {});
+    setPickedCard(move.id);
+    notifyListeners();
+    return move;
+  }
+
+  /// The HARD badge (D70) for exercise [e] of card [g]: only for a card of
+  /// your class (a CHALK result for other gear opens with no badge, D72).
+  bool isHard(ExerciseGroup g, CatalogExercise e) => g.variants.first.unlock.containsKey(gameClass.id) && filter.isHard(g, e);
+
   /// The cards the filters show, in carousel order (one per move, D55).
   List<ExerciseGroup> get cards {
-    _favoritesToMoves();
+    _favoritesToVariants();
+    if (_chalk.isNotEmpty) return ChalkIndex.of(exerciseCatalog).search(_chalk);
     return filter.apply(exerciseCatalog, _favorites);
   }
 

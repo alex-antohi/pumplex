@@ -1,21 +1,16 @@
-// The filter sheet of the workout (D51-D53). A tap on the CLASS,
-// DIFFICULTY or BODY PART tag opens it at that section. The sections
-// cascade: each chip shows how many exercises it gives, counted with the
-// filters before it only; a chip with 0 is greyed out. Changes apply at
-// once; SHOW N EXERCISES closes the sheet, RESET TO MINE goes back to your
-// class, your mode and all body parts.
+// The BODY PART sheet of the workout (D51, D52, D73). A tap on the BODY
+// PART tag opens the body parts, and the muscles of the part picked; a chip
+// that gives no exercises (counted with the earlier filters only) is greyed
+// out; the chips show no numbers (D74). Changes apply at once; SHOW N
+// EXERCISES closes the sheet, RESET TO MINE goes back to all body parts.
+// Class is a label and difficulty is not a filter (D70, D72).
 
 import 'package:flutter/material.dart';
 
-import '../game/content.dart';
 import '../game/exercises.dart';
 import '../i18n.dart';
 import '../pumplex.dart';
 import '../store.dart';
-import 'setup.dart' show difficultyColor;
-import 'sprite.dart' show classColor;
-
-enum FilterSection { classes, difficulty, body }
 
 // Exercise labels in the current language (D68). The English names in
 // lib/game/exercises.dart and the exercise list are the fallback.
@@ -35,40 +30,27 @@ String axisNone(ModifierAxis a) => tOr('axis.${a.id}.none', a.none);
 /// A modifier value from the exercise list ("Close Grip"): `mod.<value>`.
 String modLabel(String value) => tOr('mod.$value', value);
 
-Future<void> showFilterSheet(BuildContext context, LogStore store, FilterSection at) {
+Future<void> showFilterSheet(BuildContext context, LogStore store) {
   final p = Pal.of(context);
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     backgroundColor: p.bg,
     shape: Border(top: BorderSide(color: p.ink, width: 4)),
-    builder: (_) => FilterSheet(store: store, at: at),
+    builder: (_) => FilterSheet(store: store),
   );
 }
 
 class FilterSheet extends StatefulWidget {
-  const FilterSheet({super.key, required this.store, required this.at});
+  const FilterSheet({super.key, required this.store});
 
   final LogStore store;
-  final FilterSection at;
 
   @override
   State<FilterSheet> createState() => _FilterSheetState();
 }
 
 class _FilterSheetState extends State<FilterSheet> {
-  final _keys = {for (final s in FilterSection.values) s: GlobalKey()};
-
-  @override
-  void initState() {
-    super.initState();
-    // Open at the section of the tag that was tapped.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final c = _keys[widget.at]!.currentContext;
-      if (c != null && c.mounted) Scrollable.ensureVisible(c, duration: const Duration(milliseconds: 200));
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
@@ -82,6 +64,8 @@ class _FilterSheetState extends State<FilterSheet> {
         final part = bodyPartById(f.body);
         final total = store.cards.length;
         void set(ExerciseFilter n) => store.setFilter(n);
+        // RESET TO MINE: all body parts, the star as it is (D73).
+        void reset() => set(f.withBody(null));
         return ConstrainedBox(
           constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.85),
           child: SafeArea(
@@ -96,68 +80,52 @@ class _FilterSheetState extends State<FilterSheet> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _Section(key: _keys[FilterSection.classes], title: t('label.class'), children: [
-                          for (final c in gameClasses)
+                        _Section(
+                          title: t('label.bodyPart'),
+                          children: [
                             _Chip(
-                              id: 'chip-class-${c.id}',
-                              label: c.name,
-                              count: f.countClass(cat, favs, c.id),
-                              selected: f.classId == c.id,
-                              color: classColor(p, c.id),
-                              onTap: () => set(f.copyWith(classId: c.id)),
-                            ),
-                        ]),
-                        _Section(key: _keys[FilterSection.difficulty], title: t('label.difficulty'), children: [
-                          for (final (i, d) in difficulties.indexed)
-                            _Chip(
-                              id: 'chip-difficulty-${d.id}',
-                              label: d.name,
-                              count: f.countDifficulty(cat, favs, i),
-                              selected: f.difficulty == i,
-                              color: difficultyColor(p, i),
-                              onTap: () => set(f.copyWith(difficulty: i)),
-                            ),
-                        ]),
-                        _Section(key: _keys[FilterSection.body], title: t('label.bodyPart'), children: [
-                          _Chip(
-                            id: 'chip-body-all',
-                            label: t('filter.all'),
-                            count: f.countBody(cat, favs, null),
-                            selected: f.body == null,
-                            color: p.sky,
-                            onTap: () => set(f.withBody(null)),
-                          ),
-                          for (final b in bodyParts)
-                            _Chip(
-                              id: 'chip-body-${b.id}',
-                              label: bodyPartLabel(b.id),
-                              count: f.countBody(cat, favs, b.id),
-                              selected: f.body == b.id,
+                              id: 'chip-body-all',
+                              label: t('filter.all'),
+                              count: f.countBody(cat, favs, null),
+                              selected: f.body == null,
                               color: p.sky,
-                              onTap: () => set(f.withBody(b.id)),
+                              onTap: () => set(f.withBody(null)),
                             ),
-                        ]),
+                            for (final b in bodyParts)
+                              _Chip(
+                                id: 'chip-body-${b.id}',
+                                label: bodyPartLabel(b.id),
+                                count: f.countBody(cat, favs, b.id),
+                                selected: f.body == b.id,
+                                color: p.sky,
+                                onTap: () => set(f.withBody(b.id)),
+                              ),
+                          ],
+                        ),
                         // The muscles of the body part picked.
                         if (part != null)
-                          _Section(title: t('label.muscle'), children: [
-                            _Chip(
-                              id: 'chip-muscle-all',
-                              label: t('filter.allOf', {'part': bodyPartLabel(part.id)}),
-                              count: f.countMuscle(cat, favs, null),
-                              selected: f.muscle == null,
-                              color: p.violet,
-                              onTap: () => set(f.withMuscle(null)),
-                            ),
-                            for (final m in part.muscles)
+                          _Section(
+                            title: t('label.muscle'),
+                            children: [
                               _Chip(
-                                id: 'chip-muscle-$m',
-                                label: muscleLabel(m),
-                                count: f.countMuscle(cat, favs, m),
-                                selected: f.muscle == m,
+                                id: 'chip-muscle-all',
+                                label: t('filter.allOf', {'part': bodyPartLabel(part.id)}),
+                                count: f.countMuscle(cat, favs, null),
+                                selected: f.muscle == null,
                                 color: p.violet,
-                                onTap: () => set(f.withMuscle(m)),
+                                onTap: () => set(f.withMuscle(null)),
                               ),
-                          ]),
+                              for (final m in part.muscles)
+                                _Chip(
+                                  id: 'chip-muscle-$m',
+                                  label: muscleLabel(m),
+                                  count: f.countMuscle(cat, favs, m),
+                                  selected: f.muscle == m,
+                                  color: p.violet,
+                                  onTap: () => set(f.withMuscle(m)),
+                                ),
+                            ],
+                          ),
                       ],
                     ),
                   ),
@@ -170,7 +138,7 @@ class _FilterSheetState extends State<FilterSheet> {
                         key: const ValueKey('filter-reset'),
                         small: true,
                         color: p.sky,
-                        onTap: store.resetFilter,
+                        onTap: reset,
                         child: Text(t('filter.reset')),
                       ),
                       const SizedBox(width: 12),
@@ -195,23 +163,23 @@ class _FilterSheetState extends State<FilterSheet> {
 }
 
 class _Section extends StatelessWidget {
-  const _Section({super.key, required this.title, required this.children});
+  const _Section({required this.title, required this.children});
 
   final String title;
   final List<Widget> children;
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Shout(title, color: Pal.of(context).ink),
-            const SizedBox(height: 8),
-            Wrap(spacing: 8, runSpacing: 8, children: children),
-          ],
-        ),
-      );
+    padding: const EdgeInsets.only(bottom: 14),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Shout(title, color: Pal.of(context).ink),
+        const SizedBox(height: 8),
+        Wrap(spacing: 8, runSpacing: 8, children: children),
+      ],
+    ),
+  );
 }
 
 /// One option: its name and how many exercises it gives. Greyed out (and
@@ -257,9 +225,8 @@ class _Chip extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // No number on the chip (D74); it is still greyed out at 0.
                 Text(label.toUpperCase(), style: display(14, fg)),
-                const SizedBox(width: 6),
-                Text('$count', style: mono(11, fg)),
               ],
             ),
           ),

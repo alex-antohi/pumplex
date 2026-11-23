@@ -15,6 +15,7 @@ import 'package:gym_app/i18n.dart';
 import 'package:gym_app/main.dart';
 import 'package:gym_app/pumplex.dart';
 import 'package:gym_app/store.dart';
+import 'package:gym_app/views/area_scene.dart';
 import 'package:gym_app/views/scene.dart';
 import 'package:gym_app/views/sprite.dart';
 import 'package:gym_app/views/workout.dart';
@@ -413,8 +414,7 @@ void main() {
       var before = <String>{};
       for (var d = 0; d < difficulties.length; d++) {
         final f = ExerciseFilter(classId: c.id, difficulty: d);
-        final cards = f.apply(exerciseCatalog, const {});
-        final keys = cards.map((g) => g.key).toSet();
+        final keys = {for (final g in exerciseCatalog.groups) if (g.shownIn(c.id, d)) g.key};
         expect(keys.length, greaterThan(before.length), reason: '${c.id} $d');
         expect(keys.containsAll(before), isTrue, reason: '${c.id} $d');
         for (final b in bodyParts) {
@@ -596,12 +596,17 @@ void main() {
     expect(list.every((e) => classEquipment['paladin']!.contains(e.equipment)), isTrue);
     expect(list.every((e) => classCategories['paladin']!.contains(e.category)), isTrue);
     expect(list.any((e) => e.equipment == 'other' || e.equipment == 'foam roll'), isFalse);
-    // Difficulty: Sweat sees beginner and intermediate; the most common card first (D67).
+    // Difficulty is not a filter (D70): every card of the class, your mode's
+    // first (the most common first, D67); the rest get the HARD badge.
     expect([for (final d in [0, 1, 2, 3, 4, 5]) topLevelFor(d)], [0, 0, 1, 1, 2, 2]);
-    expect(list.every((e) => e.level <= 1), isTrue);
     expect(cards.first.key, 'move:bench press');
-    expect(f.countDifficulty(exerciseCatalog, const {}, 5), greaterThan(cards.length)); // higher sees lower too
-    expect(f.countDifficulty(exerciseCatalog, const {}, _d), cards.length); // counts are cards
+    expect(cards.length, exerciseCatalog.groups.where((g) => g.shownIn('paladin', 5)).length);
+    final mine = cards.indexWhere((g) => !g.shownIn('paladin', _d));
+    expect(mine, greaterThan(0));
+    expect(cards.skip(mine).every((g) => !g.shownIn('paladin', _d)), isTrue); // your mode's cards first
+    expect(cards.skip(mine).every((g) => f.isHard(g, g.variants.first)), isTrue);
+    expect(cards.take(mine).any((g) => g.variants.any((e) => e.level == 2)), isTrue); // expert exercises show
+    expect(f.isHard(bench, bench.variants.first), bench.variants.first.level > 1);
     // Body part, then a muscle of it.
     store.setFilter(f.withBody('legs'));
     final legs = store.cards;
@@ -610,21 +615,17 @@ void main() {
     store.setFilter(store.filter.withMuscle('quadriceps'));
     expect(flat(store.cards).every((e) => e.muscle == 'quadriceps'), isTrue);
     expect(store.cards.length, lessThan(legs.length));
-    // Cascade: an earlier change that leaves the muscle empty resets it.
-    store.setFilter(const ExerciseFilter(classId: 'paladin', difficulty: 0, body: 'legs', muscle: 'hamstrings'));
-    expect(store.filter.muscle, 'hamstrings'); // Plate Paladin in Sofa Mode has some
-    expect(store.filter.copyWith(classId: 'scrapper').countMuscle(exerciseCatalog, const {}, 'hamstrings'), 0);
-    store.setFilter(store.filter.copyWith(classId: 'scrapper'));
-    expect((store.filter.body, store.filter.muscle), ('legs', null));
     // Favorites: first in the list; the star filter combines with the rest.
     store.resetFilter();
     expect(store.filter, store.defaultFilter);
     final favCard = store.cards.last;
-    final fav = favCard.key;
+    final fav = favCard.variants.last.id; // the star saves the exercise (D72)
     store.toggleFavorite(fav);
-    expect(store.cards.first.key, fav); // the first card is a favorite
+    expect(store.cards.first.key, favCard.key); // the first card has a favorite
+    expect(store.variantFor(store.cards.first).id, fav); // and opens on it
     store.setFilter(store.filter.copyWith(favorites: true));
-    expect(store.cards.map((g) => g.key), [fav]);
+    expect(store.cards.map((g) => g.key), [favCard.key]);
+    expect(store.cards.single.variants.map((e) => e.id), [fav]); // only that exercise
     final parts = {for (final e in favCard.variants) bodyPartOf(e.muscle)!.id};
     final other = bodyParts.firstWhere((b) => !parts.contains(b.id)).id;
     store.setFilter(store.filter.withBody(other));
@@ -632,15 +633,16 @@ void main() {
     store.toggleFavorite(fav);
     expect(store.favorites, isEmpty);
     expect(store.cards, isEmpty); // favorites only, and none left
-    // A favorite saved as an exercise id (before D55) moves to its move.
-    store.toggleFavorite('Decline_Push-Up');
-    expect(store.cards.map((g) => g.key), ['move:push-up']); // the favorite moved to its move
-    expect(store.favorites, {'move:push-up'});
+    // A favorite saved as a card (D55, before D72) becomes its simplest exercise.
     store.toggleFavorite('move:push-up');
-    // A new day starts from the defaults again.
-    store.setFilter(store.filter.withBody('arms'));
+    final simplest = exerciseCatalog.byKey['move:push-up']!.variants.first.id;
+    expect(store.cards.map((g) => g.key), ['move:push-up']);
+    expect(store.favorites, {simplest});
+    store.toggleFavorite(simplest);
+    // The last choice stays the next day too (kept on the phone).
+    store.setFilter(store.filter.copyWith(favorites: false).withBody('arms'));
     _now = _now.add(const Duration(days: 1));
-    expect(store.filter, store.defaultFilter);
+    expect(store.filter.body, 'arms');
   });
 
   test('class, difficulty and area can change; each session keeps its own', () async {
@@ -765,7 +767,7 @@ void main() {
     store.addSet(_squat);
     _now = _now.add(const Duration(days: 1));
     store.addSet(_bench);
-    store.toggleFavorite('move:bench press');
+    store.toggleFavorite(_bench);
     final backup = store.backupJson();
     final data = jsonDecode(backup) as Map;
     expect(data['version'], 6);
@@ -777,7 +779,7 @@ void main() {
     expect(other.sessions.length, 2);
     expect(other.bodyHistory.length, 1);
     expect(other.setsToday(_bench), 1);
-    expect(other.favorites, {'move:bench press'});
+    expect(other.favorites, {_bench});
     expect(other.backupJson(), backup);
     expect(otherPrefs.getString('logs_v2'), _oldLogs); // only the migration deletes old keys
     await expectLater(other.importBackup('not json'), throwsA(anything));
@@ -959,8 +961,8 @@ void main() {
     await _frames(t, 10);
     expect(shown(), 'PLATE PALADIN');
     expect(find.text('LOTS OF FREE WEIGHTS'), findsOneWidget);
-    expect(find.text('A barbell, a rack and a wall of plates.'), findsOneWidget); // loadout
-    expect(find.text('STRONGMAN'), findsOneWidget); // tags
+    expect(find.text('A barbell, a rack and a wall of plates.'), findsNothing); // no loadout
+    expect(find.text('STRONGMAN'), findsNothing); // no tags
     expect(find.byKey(const ValueKey('intro-card')), findsNothing);
     // Difficulty (D47): a slider on the class step, the mode name on the right.
     // No titles in the view, no freeze-frame card.
@@ -978,7 +980,8 @@ void main() {
     final areaCard = find.byKey(const ValueKey('area-card'));
     expect(find.text('GAINSGARD KEEP'), findsOneWidget);
     expect(find.text("YOUR PATH'S HOME"), findsOneWidget);
-    expect(find.text('SCRATCH THE WALL'), findsOneWidget);
+    expect(find.text('SCRATCH THE WALL'), findsNothing); // no hint on the area card
+    expect(find.text(areaById('gainsgard').line), findsNothing); // and no line
     await t.fling(areaCard, const Offset(-300, 0), 1000);
     await _frames(t, 10);
     expect(find.text('RUSTBELT FLATS'), findsOneWidget);
@@ -1004,7 +1007,8 @@ void main() {
         const Character(sex: 'female', height: 100, muscle: 100, fat: 0, skin: 'deep', hair: 'blonde', facialHair: 'beard'));
     expect((saved.classId, saved.difficultyId, saved.areaId, saved.schemaVersion), ('paladin', 'sweat', 'gainsgard', 1));
     expect(find.byKey(const ValueKey('world-object')), findsOneWidget); // the workout is home (D49)
-    expect(find.text(store.cards.first.name.toUpperCase()), findsOneWidget);
+    // The title is the exercise picked (D75).
+    expect(find.text(store.variantFor(store.cards.first).name.toUpperCase()), findsOneWidget);
     expect(find.textContaining('THIS WEEK'), findsNothing); // no streak (D34)
     expect(pushes.pushes, 1); // only the home route: views never push routes
   });
@@ -1017,7 +1021,7 @@ void main() {
     expect(find.text('I WORKED 💪'), findsNothing);
     final firstCard = store.cards.first;
     final first = store.variantFor(firstCard).id;
-    expect(find.text('NO SETS YET'), findsOneWidget);
+    expect(find.text('NO SETS YET'), findsNothing); // no sets on the card (D74): they show in the world
 
     final card = find.byKey(const ValueKey('world-object'));
     await t.tap(card);
@@ -1041,7 +1045,7 @@ void main() {
     await t.longPress(card);
     await _frames(t, 70);
     expect(store.setsToday(first), 5);
-    expect(find.textContaining('5 SETS · +${store.groupXpToday(firstCard.key)} XP'), findsOneWidget);
+    expect(find.textContaining('SETS · +'), findsNothing); // no set line on the card (D74)
 
     expect(find.text('KEEP GOING'), findsNothing); // no hub (D49)
     expect(store.todaySession!.totalSets, 5);
@@ -1079,7 +1083,7 @@ void main() {
     expect(find.text('1 / ${list.length}'), findsOneWidget); // a counter, not dots
     expect(find.byKey(const ValueKey('exercise-dot-0')), findsNothing);
     // Up / down does nothing to the exercise carousel (D65).
-    final before = t.getRect(find.byKey(const ValueKey('workout-line')));
+    final before = t.getRect(find.byKey(const ValueKey('favorite-star')));
     await t.drag(find.byKey(const ValueKey('exercise-card')), const Offset(0, -200));
     await _frames(t, 10);
     expect(find.byKey(ValueKey('exercise-${list[0].key}')), findsOneWidget);
@@ -1087,14 +1091,15 @@ void main() {
     await t.fling(find.byKey(const ValueKey('exercise-card')), const Offset(-60, -260), 1200);
     await _frames(t, 10);
     expect(find.byKey(ValueKey('exercise-${list[0].key}')), findsOneWidget);
-    expect(t.getRect(find.byKey(const ValueKey('workout-line'))), before);
-    // Filter tags with the defaults (D49).
-    expect(find.descendant(of: find.byKey(const ValueKey('filter-class')), matching: find.text('PLATE PALADIN')), findsOneWidget);
-    expect(find.descendant(of: find.byKey(const ValueKey('filter-difficulty')), matching: find.text('SWEAT MODE')), findsOneWidget);
+    expect(t.getRect(find.byKey(const ValueKey('favorite-star'))), before);
+    // The tag row (D72): the class as a label, no difficulty tag (D70).
+    expect(find.descendant(of: find.byKey(const ValueKey('class-label')), matching: find.text('PLATE PALADIN')), findsOneWidget);
+    expect(find.byKey(const ValueKey('filter-difficulty')), findsNothing);
+    expect(find.byKey(const ValueKey('filter-class')), findsNothing);
     expect(find.descendant(of: find.byKey(const ValueKey('filter-body')), matching: find.text('ALL BODY PARTS')), findsOneWidget);
-    // All four filter tags sit on one row; the card has no muscle / level / equipment line.
+    // The tags sit on one row; the card has no muscle / level / equipment line.
     final ys = [
-      for (final k in ['filter-class', 'filter-difficulty', 'filter-body', 'filter-favorites'])
+      for (final k in ['class-label', 'filter-body', 'filter-favorites'])
         t.getCenter(find.byKey(ValueKey(k))).dy,
     ];
     expect(ys.every((y) => (y - ys.first).abs() < 1), isTrue);
@@ -1131,8 +1136,9 @@ void main() {
       await t.fling(carousel, const Offset(-300, 0), 1000);
       await _frames(t, 8);
     }
-    expect(find.text('BENCH PRESS'), findsOneWidget);
-    expect(find.byKey(const ValueKey('exercise-variant')), findsOneWidget);
+    final bench = store.cards.firstWhere((g) => g.key == 'move:bench press');
+    expect(find.text(store.variantFor(bench).name.toUpperCase()), findsOneWidget); // the title (D75)
+    expect(find.byKey(const ValueKey('exercise-variant')), findsNothing); // no subtitle (D74)
     // Rows for equipment and angle; no Smith machine for a Paladin (greyed).
     expect(find.text('EQUIPMENT'), findsOneWidget);
     expect(find.text('ANGLE'), findsOneWidget);
@@ -1142,7 +1148,7 @@ void main() {
     await _frames(t, 6);
     final picked = store.variantFor(store.cards.firstWhere((g) => g.key == 'move:bench press'));
     expect(picked.mods['angle'], 'Incline');
-    expect(find.text(picked.name.toUpperCase()), findsOneWidget);
+    expect(find.text(picked.name.toUpperCase()), findsOneWidget); // the picked exercise is the title (D75)
     // The world adds the set to the exercise picked.
     await t.tap(find.byKey(const ValueKey('world-object')));
     await _frames(t, 70);
@@ -1157,9 +1163,10 @@ void main() {
     await t.fling(carousel, const Offset(-300, 0), 1000);
     await _frames(t, 10);
     final second = store.cards[1].key;
+    final shown = store.variantFor(store.cards[1]).id;
     await t.tap(find.byKey(const ValueKey('favorite-star')));
     await _frames(t, 10);
-    expect(store.favorites, {second});
+    expect(store.favorites, {shown}); // the exercise shown (D72)
     expect(find.byKey(ValueKey('exercise-$second')), findsOneWidget); // the card stays
     // The star tag: favorites only.
     await t.tap(find.byKey(const ValueKey('filter-favorites')));
@@ -1176,11 +1183,67 @@ void main() {
     expect(t.takeException(), isNull);
   });
 
-  testWidgets('workout: a filter tag opens the sheet; chips cascade and show counts', (t) async {
+  test('marks (D74): a spot holds the newest set on it; laps start again at the first spot', () {
+    // 10 spots: sets 1-10 are lap 0; set 11 lands on spot 0 in lap 1.
+    expect([for (var i = 0; i < 3; i++) markLap(i, 10, 10)], [0, 0, 0]);
+    expect([for (var i = 0; i < 3; i++) markLap(i, 12, 10)], [1, 1, 0]);
+    expect(markLap(0, 21, 10), 2);
+    expect(markLap(5, 3, 10), 0); // no set there yet
+  });
+
+  testWidgets('D75: no TM; the workout keeps the card picked after leaving', (t) async {
+    final (store, prefs) = await _openApp(t);
+    expect(find.text('PUMPLEX'), findsWidgets); // drawn in layers
+    expect(find.textContaining('™'), findsNothing);
+    await t.fling(find.byKey(const ValueKey('exercise-card')), const Offset(-300, 0), 1000);
+    await _frames(t, 10);
+    final second = store.cards[1].key;
+    expect(prefs.getString(LogStore.pickedCardKey), second);
+    // Leave and come back: a new app on the same data opens on that card.
+    await t.pumpWidget(const SizedBox());
+    await t.pumpWidget(GymApp(store: store));
+    await _frames(t);
+    expect(find.byKey(ValueKey('exercise-$second')), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('D74: many sets show their number in the world; chips have no numbers; difficulty card', (t) async {
+    final (store, _) = await _openApp(t);
+    final first = store.variantFor(store.cards.first).id;
+    for (var i = 0; i < 25; i++) {
+      store.addSet(first);
+    }
+    await _frames(t, 10);
+    final spots = find.byKey(const ValueKey('scene-count'));
+    if (store.profile!.areaId != 'arcade') {
+      expect(spots, findsOneWidget);
+      expect(find.descendant(of: spots, matching: find.text('25 SETS')), findsOneWidget);
+      // Inside the screen, never cut off (D75).
+      final r = t.getRect(spots);
+      expect(r.left, greaterThanOrEqualTo(0));
+      expect(r.right, lessThanOrEqualTo(t.view.physicalSize.width / t.view.devicePixelRatio));
+    }
+    // The filter chips show no numbers.
+    await t.tap(find.byKey(const ValueKey('filter-body')));
+    await _frames(t, 10);
+    final chip = find.byKey(const ValueKey('chip-body-legs'));
+    expect(find.descendant(of: chip, matching: find.byWidgetPredicate((w) => w is Text && RegExp(r'^\d+$').hasMatch(w.data ?? ''))), findsNothing);
+    await t.tap(find.byKey(const ValueKey('filter-show')));
+    await _frames(t, 20);
+    // The class screen: the difficulty in a card with who it is for.
+    await t.tap(find.byKey(const ValueKey('workout-character')));
+    await _frames(t, 20);
+    await t.fling(find.byKey(const ValueKey('lifter-editor')), const Offset(0, -300), 1000);
+    await _frames(t, 20);
+    expect(find.byKey(const ValueKey('difficulty-card')), findsOneWidget);
+    expect(find.text(difficulties[store.difficulty].line), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('workout: BODY PART opens its chips; they cascade; RESET TO MINE', (t) async {
     final (store, _) = await _openApp(t);
     await t.tap(find.byKey(const ValueKey('filter-body')));
     await _frames(t, 10);
-    expect(find.byKey(const ValueKey('chip-class-paladin')), findsOneWidget);
     await t.tap(find.byKey(const ValueKey('chip-body-legs')));
     await _frames(t, 4);
     expect(store.filter.body, 'legs');
@@ -1190,19 +1253,12 @@ void main() {
     expect(store.filter.muscle, 'quadriceps');
     final n = store.cards.length;
     expect(find.text('SHOW $n EXERCISES'), findsOneWidget);
-    await t.ensureVisible(find.byKey(const ValueKey('chip-difficulty-brutal')));
-    await t.tap(find.byKey(const ValueKey('chip-difficulty-brutal')));
-    await _frames(t, 4);
-    expect(store.filter.difficulty, 4);
-    expect(store.filter.muscle, 'quadriceps'); // still has exercises: kept
     await t.tap(find.byKey(const ValueKey('filter-show')));
     await _frames(t, 20);
-    expect(find.byKey(const ValueKey('chip-class-paladin')), findsNothing);
     expect(find.descendant(of: find.byKey(const ValueKey('filter-body')), matching: find.text('QUADRICEPS')), findsOneWidget);
-    expect(find.descendant(of: find.byKey(const ValueKey('filter-difficulty')), matching: find.text('BRUTAL MODE')), findsOneWidget);
     expect(store.cards.every((g) => g.variants.every((e) => e.muscle == 'quadriceps')), isTrue);
-    // RESET TO MINE in the sheet.
-    await t.tap(find.byKey(const ValueKey('filter-class')));
+    // RESET TO MINE: all body parts again.
+    await t.tap(find.byKey(const ValueKey('filter-body')));
     await _frames(t, 10);
     await t.tap(find.byKey(const ValueKey('filter-reset')));
     await _frames(t, 4);
@@ -1280,6 +1336,9 @@ void main() {
     expect(level, greaterThan(1));
     expect(find.byKey(const ValueKey('intro-card')), findsOneWidget);
     expect(find.text('LEVEL $level'), findsOneWidget);
+    for (final line in levelUpLines) {
+      expect(find.text(line.toUpperCase()), findsNothing); // no joke line (D74)
+    }
     await _frames(t, 70);
     expect(find.byKey(const ValueKey('intro-card')), findsNothing);
     expect(find.byKey(const ValueKey('hub-gear')), findsNothing); // no gear (D38)

@@ -413,10 +413,9 @@ class _GameShellState extends State<GameShell> {
     final after = levelFor(_store.totalXp).level;
     if (after > before) {
       HapticFeedback.heavyImpact();
-      final lines = levelUpLines;
       _showIntro((
         title: t('level.up', {'n': after}),
-        subtitle: lines[after % lines.length],
+        subtitle: '', // only LEVEL n
         color: Pal.of(context).pink,
       ));
     }
@@ -615,6 +614,13 @@ class _GameShellState extends State<GameShell> {
                                   ),
                                 ),
                               ),
+                            // The minimised workout is a card (D75): its hard
+                            // shadow, behind the window.
+                            if (t > 0)
+                              Positioned.fromRect(
+                                rect: window.inflate(2).shift(const Offset(5, 5)),
+                                child: ColoredBox(color: p.pink.withValues(alpha: t)),
+                              ),
                             Positioned.fill(
                               child: ClipRect(
                                 clipper: _WindowClip(window),
@@ -691,6 +697,7 @@ class _GameShellState extends State<GameShell> {
                                   key: const ValueKey('mini-workout'),
                                   behavior: HitTestBehavior.opaque,
                                   onTap: _lifter ? _closeLifter : null,
+                                  // A card only while minimised (D75).
                                   child: DecoratedBox(
                                     decoration: BoxDecoration(
                                       border: Border.all(color: p.ink.withValues(alpha: t), width: 3),
@@ -737,7 +744,7 @@ class _TopBar extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const MegaText('PUMPLEX™', size: 30),
+                const MegaText('PUMPLEX', size: 30), // no ™ (D75)
                 const SizedBox(height: 5),
                 // Always one line (shrinks instead of wrapping), cross-fades
                 // when the scene changes.
