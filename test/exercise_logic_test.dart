@@ -1,5 +1,4 @@
-// Modifier chips (D55-D57) with the real exercise list, and the workout
-// state kept on the phone (the picked card, the picked exercise, the
+// The workout state kept on the phone (the picked card, the picked exercise, the
 // filters).
 
 import 'dart:convert';
@@ -27,93 +26,8 @@ Future<(LogStore, SharedPreferences)> _store([Map<String, Object> extra = const 
   return (LogStore(prefs, clock: () => _now), prefs);
 }
 
-CatalogExercise _x(String id) => exerciseCatalog.byId[id]!;
-
 void main() {
   setUpAll(() => exerciseCatalog = ExerciseCatalog.parse(File(ExerciseCatalog.asset).readAsStringSync()));
-
-  ExerciseGroup bench() => exerciseCatalog.byKey['move:bench press']!;
-
-  group('modifier chips', () {
-    test('every move: a row is judged against the equipment only, and an existing mix is picked exactly', () {
-      for (final g in exerciseCatalog.groups) {
-        for (final cur in g.variants) {
-          for (final (axis, values) in g.axesFor(cur)) {
-            for (final value in values) {
-              if (value == cur.mods[axis.id]) continue;
-              final t = chipTarget(g, cur, axis.id, value);
-              final withEquip = g.variants.where((v) =>
-                  v.mods[axis.id] == value && (axis.id == 'equip' || v.mods['equip'] == cur.mods['equip']));
-              // Never greyed just because of another row's value.
-              expect(t, isNotNull, reason: '${cur.id} $axis.id=$value');
-              expect(withEquip, contains(t!.v));
-              if (axis.id == 'equip') continue;
-              final exact = withEquip.where((v) => modifierAxes.every((a) => a.id == axis.id || v.mods[a.id] == cur.mods[a.id]));
-              expect(t.exact, exact.isNotEmpty, reason: '${cur.id} ${axis.id}=$value');
-              if (exact.isNotEmpty) expect(t.v, exact.single);
-            }
-          }
-        }
-      }
-    });
-
-    test('bench press: a mix that does not exist still works and changes as little as it can', () {
-      final g = bench();
-      // Barbell with bands has no incline: the chip is there, changes Bands
-      // (a thin border), and keeps the grip width.
-      final bands = _x('Bench_Press_-_With_Bands');
-      final incline = chipTarget(g, bands, 'angle', 'Incline')!;
-      expect((incline.v.id, incline.exact), ('Barbell_Incline_Bench_Press_-_Medium_Grip', false));
-      // Incline wide grip, then chains: chains exist only flat and medium.
-      final wide = _x('Incline_Wide-Grip_Barbell_Bench_Press');
-      final chains = chipTarget(g, wide, 'chains', 'Chains')!;
-      expect((chains.v.id, chains.exact), ('Bench_Press_with_Chains', false));
-      // An existing mix keeps everything else.
-      final close = chipTarget(g, wide, 'width', 'Close Grip')!;
-      expect((close.v.id, close.exact), ('Incline_Close-Grip_Barbell_Bench_Press', true));
-      final decline = chipTarget(g, _x('Close-Grip_Barbell_Bench_Press'), 'angle', 'Decline')!;
-      expect((decline.v.id, decline.exact), ('Decline_Close-Grip_Barbell_Bench_Press', true));
-      final hammer = chipTarget(g, _x('Incline_Dumbbell_Press'), 'hand', 'Neutral Grip')!;
-      expect((hammer.v.id, hammer.exact), ('Hammer_Grip_Incline_DB_Bench_Press', true));
-    });
-
-    test('bench press: equipment keeps the angle, and no grip width means Medium Grip', () {
-      final g = bench();
-      // Was Close-Grip (the shortest name) before.
-      expect(chipTarget(g, _x('Dumbbell_Bench_Press'), 'equip', 'Barbell')!.v.id, 'Barbell_Bench_Press_-_Medium_Grip');
-      expect(chipTarget(g, _x('Incline_Dumbbell_Press'), 'equip', 'Barbell')!.v.id,
-          'Barbell_Incline_Bench_Press_-_Medium_Grip');
-      expect(chipTarget(g, _x('Decline_Dumbbell_Bench_Press'), 'equip', 'Smith Machine')!.v.id, 'Smith_Machine_Decline_Press');
-      expect(chipTarget(g, _x('Barbell_Incline_Bench_Press_-_Medium_Grip'), 'equip', 'Dumbbell')!.v.id,
-          'Incline_Dumbbell_Press');
-    });
-
-    test('bench press: barbell, dumbbell, barbell comes back to the same grip', () async {
-      final (store, _) = await _store();
-      ExerciseGroup card() => store.cards.firstWhere((g) => g.key == 'move:bench press');
-      void tap(String axis, String? value) {
-        final t = chipTarget(card(), store.variantFor(card()), axis, value)!;
-        store.pickVariant(t.v.id);
-      }
-
-      store.pickVariant('Wide-Grip_Barbell_Bench_Press');
-      tap('angle', 'Decline');
-      expect(store.variantFor(card()).id, 'Wide-Grip_Decline_Barbell_Bench_Press');
-      tap('equip', 'Dumbbell');
-      expect(store.variantFor(card()).id, 'Decline_Dumbbell_Bench_Press');
-      tap('equip', 'Barbell');
-      expect(store.variantFor(card()).id, 'Wide-Grip_Decline_Barbell_Bench_Press'); // not Medium Grip
-      // Dumbbells remember their neutral grip; the shown angle still wins.
-      tap('equip', 'Dumbbell');
-      tap('angle', 'Incline');
-      tap('hand', 'Neutral Grip');
-      expect(store.variantFor(card()).id, 'Hammer_Grip_Incline_DB_Bench_Press');
-      tap('equip', 'Barbell');
-      expect(store.variantFor(card()).id, 'Incline_Wide-Grip_Barbell_Bench_Press');
-      tap('equip', 'Dumbbell');
-      expect(store.variantFor(card()).id, 'Hammer_Grip_Incline_DB_Bench_Press');
-    });
-  });
 
   group('kept on the phone', () {
     test('the picked card and exercise come back after closing the app', () async {

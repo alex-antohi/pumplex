@@ -622,9 +622,7 @@ class _ModChip extends StatelessWidget {
         behavior: HitTestBehavior.opaque,
         onTap: target == null ? null : () => onPick(target!.v.id),
         child: Opacity(
-          // Only a chip with no exercise is greyed: one that also changes
-          // another row is fully there, with a thin border (D57).
-          opacity: off ? 0.3 : 1,
+          opacity: off ? 0.3 : jump ? 0.7 : 1,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
             decoration: BoxDecoration(

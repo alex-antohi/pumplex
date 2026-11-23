@@ -398,13 +398,8 @@ class LogStore extends ChangeNotifier {
   static const pickedVariantsKey = 'workout_variants_v1';
   final Map<String, List<String>> _picked = {};
 
-  /// How many picks a card remembers (enough for one per equipment).
+  /// How many picks a card remembers.
   static const _pickedPerCard = 8;
-
-  /// The exercises picked lately on card [key], the last one first (for
-  /// the modifier chips, [ExerciseGroup.recent]).
-  List<CatalogExercise> recentPicks(String key) =>
-      [for (final id in _picked[key] ?? const <String>[]) if (exerciseCatalog.byId[id] case final e?) e];
 
   /// The exercise to show for card [g] (one of its exercises that pass the
   /// filters): the one picked last that passes, else the one used last
@@ -501,11 +496,10 @@ class LogStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// The cards the filters show, in carousel order (one per move, D55),
-  /// each with the exercises picked on it lately.
+  /// The cards the filters show, in carousel order (one per move, D55).
   List<ExerciseGroup> get cards {
     _favoritesToMoves();
-    return [for (final g in filter.apply(exerciseCatalog, _favorites)) g.withRecent(recentPicks(g.key))];
+    return filter.apply(exerciseCatalog, _favorites);
   }
 
   // ------------------------------------------------------------- sessions
