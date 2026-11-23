@@ -92,8 +92,6 @@ void main() {
         for (final g in index.search({w.key})) g.key,
     };
     final odd = [for (final g in exerciseCatalog.groups) if (!what.contains(g.key)) g.name]..sort();
-    // ignore: avoid_print
-    print('Cards with no PATTERN or MOVE word: $odd');
     expect(odd.length, lessThanOrEqualTo(10), reason: '$odd');
   });
 
