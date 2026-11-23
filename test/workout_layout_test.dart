@@ -137,6 +137,94 @@ void main() {
     expect(t.takeException(), isNull);
   });
 
+  test('workout layout: the fixed chip area fits the card with the most chip rows (D79)', () {
+    var most = 0;
+    for (final g in exerciseCatalog.groups) {
+      for (final v in g.variants) {
+        most = max(most, g.axesFor(v).length);
+      }
+    }
+    expect(most, lessThanOrEqualTo(chipAreaRows));
+  });
+
+  testWidgets('workout layout: the card stays put whatever its number of chip rows (D79)', (t) async {
+    final store = await _openApp(t);
+    final title = <int, Rect>{}, counter = <int, Rect>{};
+    for (var i = 0; i < 40 && i < store.cards.length; i++) {
+      final g = store.cards.firstWhere((c) => c.key == store.pickedCard, orElse: () => store.cards.first);
+      final full = exerciseCatalog.byKey[g.key] ?? g;
+      final rows = full.axesFor(store.variantFor(g)).length;
+      title[rows] = t.getRect(find.byKey(const ValueKey('exercise-title')));
+      counter[rows] = t.getRect(find.byKey(const ValueKey('exercise-counter')));
+      await _swipe(t);
+    }
+    expect(title.length, greaterThanOrEqualTo(3), reason: 'cards with different numbers of chip rows');
+    final few = title.keys.reduce(min), many = title.keys.reduce(max);
+    expect(title[many]!.top, moreOrLessEquals(title[few]!.top), reason: '$few rows vs $many rows');
+    for (final r in title.keys) {
+      expect(title[r]!.top, moreOrLessEquals(title[few]!.top), reason: '$r rows');
+      expect(counter[r]!.top, moreOrLessEquals(counter[few]!.top), reason: '$r rows');
+    }
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('workout layout: a long chip row scrolls sideways; the carousel stays (D79)', (t) async {
+    _phone(t);
+    SharedPreferences.setMockInitialValues({'profile_v1': jsonEncode(_profile('gainsgard').toJson())});
+    final prefs = await SharedPreferences.getInstance();
+    final store = LogStore(prefs, clock: () => _now);
+    // The shown card with the longest chip row.
+    final g = store.cards.reduce((a, b) {
+      int longest(ExerciseGroup c) =>
+          (exerciseCatalog.byKey[c.key] ?? c).axesFor(store.variantFor(c)).fold(0, (m, a) => max(m, a.$2.length));
+      return longest(b) > longest(a) ? b : a;
+    });
+    store.setPickedCard(g.key);
+    await t.pumpWidget(GymApp(store: store));
+    await _frames(t);
+    final full = exerciseCatalog.byKey[g.key] ?? g;
+    final axis = full.axesFor(store.variantFor(g)).reduce((a, b) => b.$2.length > a.$2.length ? b : a).$1;
+    final row = find.byKey(ValueKey('mod-row-${axis.id}'));
+    expect(row, findsOneWidget);
+    ScrollPosition pos() => t.state<ScrollableState>(find.descendant(of: row, matching: find.byType(Scrollable)).first).position;
+    expect(pos().maxScrollExtent, greaterThan(0), reason: 'the row is wider than the screen');
+    final counter = t.widget<Text>(find.byKey(const ValueKey('exercise-counter'))).data;
+    await t.drag(row, const Offset(-200, 0));
+    await _frames(t, 10);
+    expect(pos().pixels, greaterThan(0), reason: 'the row scrolled');
+    expect(store.pickedCard, g.key, reason: 'the carousel did not move');
+    expect(t.widget<Text>(find.byKey(const ValueKey('exercise-counter'))).data, counter);
+    // A swipe on the title still moves the carousel.
+    await t.fling(find.byKey(const ValueKey('exercise-title')), const Offset(-300, 0), 1000);
+    await _frames(t, 10);
+    expect(store.pickedCard, isNot(g.key));
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('workout layout: on a short screen the chip area scrolls up and down', (t) async {
+    _phone(t);
+    t.view.physicalSize = const Size(1080, 1700);
+    SharedPreferences.setMockInitialValues({'profile_v1': jsonEncode(_profile('gainsgard').toJson())});
+    final prefs = await SharedPreferences.getInstance();
+    final store = LogStore(prefs, clock: () => _now);
+    final g = store.cards.reduce((a, b) {
+      int rows(ExerciseGroup c) => (exerciseCatalog.byKey[c.key] ?? c).axesFor(store.variantFor(c)).length;
+      return rows(b) > rows(a) ? b : a;
+    });
+    store.setPickedCard(g.key);
+    await t.pumpWidget(GymApp(store: store));
+    await _frames(t);
+    final area = find.byKey(const ValueKey('mod-area'));
+    expect(area, findsOneWidget);
+    ScrollPosition pos() => t.state<ScrollableState>(find.descendant(of: area, matching: find.byType(Scrollable)).first).position;
+    expect(pos().maxScrollExtent, greaterThan(0), reason: 'the chips do not fit this short screen');
+    await t.drag(find.byKey(const ValueKey('mod-area')), const Offset(0, -200));
+    await _frames(t, 10);
+    expect(pos().pixels, greaterThan(0));
+    expect(store.pickedCard, g.key);
+    expect(t.takeException(), isNull);
+  });
+
   testWidgets('workout layout: a card taller than the room is cut off cleanly', (t) async {
     _phone(t);
     t.view.physicalSize = const Size(1080, 1500); // a short screen

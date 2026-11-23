@@ -510,6 +510,13 @@ class _Empty extends StatelessWidget {
   }
 }
 
+/// The chip rows the fixed chip area holds (D79): the most any card of the
+/// catalog has (Bench Press, Pull-Up, Lat Pulldown). A test checks it.
+const chipAreaRows = 5;
+
+/// One chip row: the gap, the row name and the chips.
+const _chipRowHeight = 57.0;
+
 /// The card shown under the world: the move's name and the star, the
 /// exercise picked (its database name and what it trains), today's set
 /// marks for the move (in rarity colours), the XP so far, and the modifier
@@ -547,14 +554,15 @@ class _ExerciseText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
-    return SingleChildScrollView(
-      // Only left / right moves the exercise carousel (D65): no vertical scroll.
-      physics: const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(14, 10, 14, 4),
+    return Padding(
+      padding: const EdgeInsets.only(top: 10, bottom: 4),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
@@ -588,28 +596,54 @@ class _ExerciseText extends StatelessWidget {
               ),
             ],
           ),
+          ),
           // No subtitle and no sets here (D74): the sets show in the world.
           // Modifiers: equipment first, then one row per way the exercises
-          // with this equipment differ (D57).
-          for (final (axis, values) in full.axesFor(v)) ...[
-            const SizedBox(height: 10),
-            Text(axisLabel(axis).toUpperCase(), style: mono(10.5, p.ink.withValues(alpha: 0.7))),
-            const SizedBox(height: 4),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                for (final value in values)
-                  _ModChip(
-                    key: ValueKey('mod-${axis.id}-${value ?? 'none'}'),
-                    label: value == null ? axisNone(axis) : modLabel(value),
-                    selected: v.mods[axis.id] == value,
-                    target: v.mods[axis.id] == value ? null : chipTarget(g, v, axis.id, value),
-                    onPick: onPick,
-                  ),
-              ],
+          // with this equipment differ (D57). The area has a fixed height for
+          // the most rows a card has (D79), so the card does not move with
+          // its number of rows; on a short screen it shrinks and scrolls up
+          // and down. Each row scrolls sideways: a drag on a long row scrolls
+          // it, a drag elsewhere swipes the carousel.
+          Flexible(
+            child: SizedBox(
+              key: const ValueKey('mod-area'),
+              height: chipAreaRows * _chipRowHeight,
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (final (axis, values) in full.axesFor(v)) ...[
+                      const SizedBox(height: 10),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        child: Text(axisLabel(axis).toUpperCase(), style: mono(10.5, p.ink.withValues(alpha: 0.7))),
+                      ),
+                      const SizedBox(height: 4),
+                      SingleChildScrollView(
+                        key: ValueKey('mod-row-${axis.id}'),
+                        scrollDirection: Axis.horizontal,
+                        // Room for the selected chip's shadow.
+                        padding: const EdgeInsets.fromLTRB(14, 0, 14, 2),
+                        child: Row(
+                          spacing: 6,
+                          children: [
+                            for (final value in values)
+                              _ModChip(
+                                key: ValueKey('mod-${axis.id}-${value ?? 'none'}'),
+                                label: value == null ? axisNone(axis) : modLabel(value),
+                                selected: v.mods[axis.id] == value,
+                                target: v.mods[axis.id] == value ? null : chipTarget(g, v, axis.id, value),
+                                onPick: onPick,
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
             ),
-          ],
+          ),
         ],
       ),
     );
