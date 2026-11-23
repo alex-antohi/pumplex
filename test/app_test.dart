@@ -1040,9 +1040,9 @@ void main() {
       expect(r.right, lessThanOrEqualTo(t.view.physicalSize.width / t.view.devicePixelRatio));
     }
     // The filter chips show no numbers.
-    await t.tap(find.byKey(const ValueKey('filter-class')));
+    await t.tap(find.byKey(const ValueKey('filter-body')));
     await _frames(t, 10);
-    final chip = find.byKey(const ValueKey('chip-class-paladin'));
+    final chip = find.byKey(const ValueKey('chip-body-legs'));
     expect(find.descendant(of: chip, matching: find.byWidgetPredicate((w) => w is Text && RegExp(r'^\d+$').hasMatch(w.data ?? ''))), findsNothing);
     await t.tap(find.byKey(const ValueKey('filter-show')));
     await _frames(t, 20);
@@ -1061,8 +1061,8 @@ void main() {
     await t.tap(find.byKey(const ValueKey('filter-body')));
     await _frames(t, 10);
     // BODY PART shows only body parts (and muscles), no class or difficulty (D67).
-    expect(find.byKey(const ValueKey('chip-class-paladin')), findsNothing);
-    expect(find.byKey(const ValueKey('chip-difficulty-brutal')), findsNothing);
+    expect(find.byKey(const ValueKey('class-card')), findsNothing);
+    expect(find.byKey(const ValueKey('difficulty-card')), findsNothing);
     await t.tap(find.byKey(const ValueKey('chip-body-legs')));
     await _frames(t, 4);
     expect(store.filter.body, 'legs');
@@ -1074,18 +1074,19 @@ void main() {
     expect(find.text('SHOW $n EXERCISES'), findsOneWidget);
     await t.tap(find.byKey(const ValueKey('filter-show')));
     await _frames(t, 20);
-    // DIFFICULTY shows only the modes.
+    // DIFFICULTY shows only the difficulty card.
     await t.tap(find.byKey(const ValueKey('filter-difficulty')));
     await _frames(t, 10);
     expect(find.byKey(const ValueKey('chip-body-legs')), findsNothing);
-    expect(find.byKey(const ValueKey('chip-class-paladin')), findsNothing);
-    await t.tap(find.byKey(const ValueKey('chip-difficulty-brutal')));
+    expect(find.byKey(const ValueKey('class-card')), findsNothing);
+    // Brutal mode: the 5th of the 6 slider stops.
+    t.widget<Slider>(find.byKey(const ValueKey('slider-DIFFICULTY'))).onChanged!(4);
     await _frames(t, 4);
     expect(store.filter.difficulty, 4);
     expect(store.filter.muscle, 'quadriceps'); // still has exercises: kept
     await t.tap(find.byKey(const ValueKey('filter-show')));
     await _frames(t, 20);
-    expect(find.byKey(const ValueKey('chip-class-paladin')), findsNothing);
+    expect(find.byKey(const ValueKey('difficulty-card')), findsNothing);
     expect(find.descendant(of: find.byKey(const ValueKey('filter-body')), matching: find.text('QUADRICEPS')), findsOneWidget);
     expect(find.descendant(of: find.byKey(const ValueKey('filter-difficulty')), matching: find.text('BRUTAL MODE')), findsOneWidget);
     expect(store.cards.every((g) => g.variants.every((e) => e.muscle == 'quadriceps')), isTrue);
@@ -1097,11 +1098,13 @@ void main() {
     expect((store.filter.body, store.filter.muscle, store.filter.difficulty), (store.defaultFilter.body, null, 4));
     await t.tap(find.byKey(const ValueKey('filter-show')));
     await _frames(t, 20);
-    // CLASS shows only the classes.
+    // CLASS shows only the class card and its dots.
     await t.tap(find.byKey(const ValueKey('filter-class')));
     await _frames(t, 10);
-    expect(find.byKey(const ValueKey('chip-class-paladin')), findsOneWidget);
-    expect(find.byKey(const ValueKey('chip-difficulty-brutal')), findsNothing);
+    expect(find.byKey(const ValueKey('class-card')), findsOneWidget);
+    expect(find.byKey(const ValueKey('class-dot-paladin')), findsOneWidget);
+    expect(find.byKey(const ValueKey('difficulty-card')), findsNothing);
+    expect(find.byKey(const ValueKey('chip-body-legs')), findsNothing);
     expect(t.takeException(), isNull);
   });
 

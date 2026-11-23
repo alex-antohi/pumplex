@@ -284,13 +284,13 @@ const _classCardGap = 6.0;
 
 /// Height of the class info at the bottom of the class card (name and
 /// equipment, with room around them).
-const _classTextMin = 112.0;
+const classTextHeight = 112.0;
 
 /// The class card and, inside it, where the shell draws the lifter, in a
 /// view of [area] with [bottomInset] (the phone's navigation bar).
 /// The card starts under the difficulty card; the dots sit under it.
 /// The lifter gets the biggest whole-number scale that leaves
-/// [_classTextMin] for the texts, and the stage is cut to that size, so
+/// [classTextHeight] for the texts, and the stage is cut to that size, so
 /// there is no empty band above the head.
 /// [buttons] false: no BACK / NEXT row under it (the lifter editor, D60).
 ({Rect card, Rect stage}) classLayout(Size area, double bottomInset, {bool buttons = true}) {
@@ -299,7 +299,7 @@ const _classTextMin = 112.0;
   // CharacterSprite: pedestal = 10% of the box, the sprite gets the rest
   // minus half of it, at most spriteHeight × maxHeightScale × scale.
   const perScale = spriteHeight * maxHeightScale / 0.945;
-  final avail = card.height - 12 - _classTextMin;
+  final avail = card.height - 12 - classTextHeight;
   final byWidth = (card.width - 24) / spriteWidth;
   final scale = max(2, min(byWidth, avail / perScale).floor());
   // The lifter stands right on the class info at the bottom (D64).
@@ -356,7 +356,6 @@ class _ClassViewState extends State<ClassView> with SwipeCarousel<ClassView> {
     final cls = classById(widget.classId);
     final color = classColor(p, cls.id);
     final di = difficultyIndex(widget.difficultyId);
-    final dColor = difficultyColor(p, di);
     return LayoutBuilder(builder: (context, box) {
       final card = classLayout(box.biggest, MediaQuery.paddingOf(context).bottom, buttons: widget.buttons).card;
       return Stack(
@@ -368,58 +367,9 @@ class _ClassViewState extends State<ClassView> with SwipeCarousel<ClassView> {
             right: 22,
             top: _setupCardTop,
             height: _classDifficultyHeight - 8,
-            child: Brutal(
-              key: const ValueKey('difficulty-card'),
-              shadow: dColor,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 2),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Shout('Difficulty', size: 14),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            alignment: Alignment.centerRight,
-                            child: Text(difficulties[di].name.toUpperCase(),
-                                key: const ValueKey('value-DIFFICULTY'), style: display(16, dColor)),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      difficulties[di].line,
-                      key: const ValueKey('difficulty-line'),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: mono(11.5, p.ink),
-                    ),
-                    const Spacer(),
-                    SliderTheme(
-                      data: SliderTheme.of(context).copyWith(
-                        trackHeight: 10,
-                        activeTrackColor: dColor,
-                        inactiveTrackColor: p.panel2,
-                        thumbColor: p.lime,
-                        overlayColor: dColor.withValues(alpha: 0.2),
-                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 11),
-                        tickMarkShape: SliderTickMarkShape.noTickMark,
-                      ),
-                      child: Slider(
-                        key: const ValueKey('slider-DIFFICULTY'),
-                        value: di.toDouble(),
-                        max: difficulties.length - 1.0,
-                        divisions: difficulties.length - 1,
-                        onChanged: (v) => widget.onDifficulty(difficulties[v.round()].id),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+            child: DifficultyCard(
+              index: di,
+              onChanged: (i) => widget.onDifficulty(difficulties[i].id),
             ),
           ),
           // The card: the shell draws the lifter at [stage], at its top.
@@ -435,8 +385,8 @@ class _ClassViewState extends State<ClassView> with SwipeCarousel<ClassView> {
                     // The lifter fills the top; the class info sits at the bottom (D64).
                     const Spacer(),
                     SizedBox(
-                      height: _classTextMin,
-                      child: slide(cls.id, _ClassText(cls: cls, color: color)),
+                      height: classTextHeight,
+                      child: slide(cls.id, ClassCardText(cls: cls, color: color)),
                     ),
                   ],
                 ),
@@ -471,9 +421,9 @@ class _ClassViewState extends State<ClassView> with SwipeCarousel<ClassView> {
 }
 
 /// The texts of one class in the card: the name and the equipment, big,
-/// with room around them.
-class _ClassText extends StatelessWidget {
-  const _ClassText({required this.cls, required this.color});
+/// with room around them. Also in the workout's CLASS filter sheet.
+class ClassCardText extends StatelessWidget {
+  const ClassCardText({super.key, required this.cls, required this.color});
 
   final GameClass cls;
   final Color color;
@@ -501,6 +451,77 @@ class _ClassText extends StatelessWidget {
             child: Text(cls.equipment.toUpperCase(), style: display(20, color).copyWith(letterSpacing: 1.4)),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The difficulty card (D47, D68): the mode name on the right, who the mode
+/// is for, then the slider over the 6 modes. Give it a height (120 on the
+/// class screen). Also in the workout's DIFFICULTY filter sheet.
+class DifficultyCard extends StatelessWidget {
+  const DifficultyCard({super.key, required this.index, required this.onChanged});
+
+  /// The difficulty shown (0..5).
+  final int index;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Pal.of(context);
+    final di = index;
+    final dColor = difficultyColor(p, di);
+    return Brutal(
+      key: const ValueKey('difficulty-card'),
+      shadow: dColor,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 2),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Shout('Difficulty', size: 14),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
+                    child: Text(difficulties[di].name.toUpperCase(),
+                        key: const ValueKey('value-DIFFICULTY'), style: display(16, dColor)),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              difficulties[di].line,
+              key: const ValueKey('difficulty-line'),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: mono(11.5, p.ink),
+            ),
+            const Spacer(),
+            SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                trackHeight: 10,
+                activeTrackColor: dColor,
+                inactiveTrackColor: p.panel2,
+                thumbColor: p.lime,
+                overlayColor: dColor.withValues(alpha: 0.2),
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 11),
+                tickMarkShape: SliderTickMarkShape.noTickMark,
+              ),
+              child: Slider(
+                key: const ValueKey('slider-DIFFICULTY'),
+                value: di.toDouble(),
+                max: difficulties.length - 1.0,
+                divisions: difficulties.length - 1,
+                onChanged: (v) => onChanged(v.round()),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
