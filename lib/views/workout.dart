@@ -22,6 +22,7 @@ import 'package:flutter/services.dart';
 import '../game/area_art.dart';
 import '../game/content.dart';
 import '../game/exercises.dart';
+import '../i18n.dart';
 import '../pumplex.dart';
 import '../store.dart';
 import 'area_scene.dart';
@@ -117,7 +118,7 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
     HapticFeedback.lightImpact();
     setState(() {
       _currentKey = g.key;
-      _burst = sets % 5 == 0 ? area.stamp : '+1 SET';
+      _burst = sets % 5 == 0 ? area.stamp : t('workout.plusOne');
       _hitRun++;
     });
   }
@@ -158,7 +159,7 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
     final sets = e == null ? 0 : store.groupSetsToday(e.key);
     // Old-app days have no class; days frozen by D54 keep theirs and count.
     final firstTime = store.history.where((s) => !s.legacy || s.classId.isNotEmpty).isEmpty;
-    final body = f.muscle ?? bodyPartById(f.body)?.name ?? 'All body parts';
+    final body = f.muscle != null ? muscleLabel(f.muscle!) : f.body != null ? bodyPartLabel(f.body!) : t('filter.allBodyParts');
     void open(FilterSection at) => showFilterSheet(context, store, at);
     return LayoutBuilder(builder: (context, box) {
       final inset = MediaQuery.paddingOf(context).bottom;
@@ -190,7 +191,7 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
                           count: sets,
                           hitRun: _hitRun,
                           burstText: _burst,
-                          hitLabel: '${area.hint}: one working set. Hold to take one back.',
+                          hitLabel: t('workout.hitLabel', {'hint': area.hint}),
                           onHit: e == null ? null : _hit,
                           onUndo: e == null ? null : _undo,
                         ),
@@ -227,7 +228,7 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
                         ),
                         _TapTag(
                           key: const ValueKey('filter-favorites'),
-                          label: f.favorites ? 'Favorites only: on' : 'Favorites only: off',
+                          label: f.favorites ? t('filter.favOn') : t('filter.favOff'),
                           onTap: () {
                             HapticFeedback.selectionClick();
                             store.setFilter(f.copyWith(favorites: !f.favorites));
@@ -299,7 +300,7 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
                     // First-workout tip (app-flow §4.2), until the first set.
                     if (firstTime && sets == 0) ...[
                       const SizedBox(height: 4),
-                      Tag('Only working sets count', bg: p.lime, fg: p.on, size: 11, angle: 1),
+                      Tag(t('workout.firstTip'), bg: p.lime, fg: p.on, size: 11, angle: 1),
                     ],
                   ],
                 ),
@@ -338,10 +339,10 @@ class _Empty extends StatelessWidget {
     final p = Pal.of(context);
     final f = store.filter;
     final text = !f.favorites
-        ? 'NOTHING MATCHES THESE FILTERS.'
+        ? t('filter.empty')
         : store.favorites.isEmpty
-            ? 'NO FAVORITES YET. TAP THE STAR ON AN EXERCISE.'
-            : 'NO FAVORITES MATCH THESE FILTERS.';
+            ? t('filter.noFavorites')
+            : t('filter.noFavoritesMatch');
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -355,7 +356,7 @@ class _Empty extends StatelessWidget {
               small: true,
               color: p.lime,
               onTap: store.resetFilter,
-              child: const Text('RESET TO MINE'),
+              child: Text(t('filter.reset')),
             ),
           ],
         ),
@@ -413,7 +414,7 @@ class _ExerciseText extends StatelessWidget {
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
-                  child: Text(g.name.toUpperCase(), style: display(34, p.ink).copyWith(shadows: [
+                  child: Text(groupLabel(g.key, g.name).toUpperCase(), style: display(34, p.ink).copyWith(shadows: [
                     Shadow(offset: const Offset(2, 2), color: p.orange),
                   ])),
                 ),
@@ -421,7 +422,7 @@ class _ExerciseText extends StatelessWidget {
               Semantics(
                 button: true,
                 selected: favorite,
-                label: favorite ? 'Remove from favorites' : 'Add to favorites',
+                label: favorite ? t('workout.favRemove') : t('workout.favAdd'),
                 child: GestureDetector(
                   key: const ValueKey('favorite-star'),
                   behavior: HitTestBehavior.opaque,
@@ -435,7 +436,7 @@ class _ExerciseText extends StatelessWidget {
             ],
           ),
           if (full.variants.length > 1)
-            Text(v.name.toUpperCase(), key: const ValueKey('exercise-variant'), style: display(15, p.orange)),
+            Text(exerciseLabel(v.id, v.name).toUpperCase(), key: const ValueKey('exercise-variant'), style: display(15, p.orange)),
           const SizedBox(height: 6),
           if (sets > 0)
             Wrap(
@@ -450,7 +451,7 @@ class _ExerciseText extends StatelessWidget {
             ),
           const SizedBox(height: 4),
           Text(
-            sets == 0 ? 'NO SETS YET' : '$sets ${sets == 1 ? 'SET' : 'SETS'} · +$xp XP',
+            sets == 0 ? t('workout.noSets') : '${tn('sets', sets)} · +$xp XP',
             key: const ValueKey('workout-line'),
             style: mono(13, p.ink),
           ),
@@ -458,7 +459,7 @@ class _ExerciseText extends StatelessWidget {
           // with this equipment differ (D57).
           for (final (axis, values) in full.axesFor(v)) ...[
             const SizedBox(height: 10),
-            Text(axis.label.toUpperCase(), style: mono(10.5, p.ink.withValues(alpha: 0.7))),
+            Text(axisLabel(axis).toUpperCase(), style: mono(10.5, p.ink.withValues(alpha: 0.7))),
             const SizedBox(height: 4),
             Wrap(
               spacing: 6,
@@ -467,7 +468,7 @@ class _ExerciseText extends StatelessWidget {
                 for (final value in values)
                   _ModChip(
                     key: ValueKey('mod-${axis.id}-${value ?? 'none'}'),
-                    label: value ?? axis.none,
+                    label: value == null ? axisNone(axis) : modLabel(value),
                     selected: v.mods[axis.id] == value,
                     target: v.mods[axis.id] == value ? null : chipTarget(g, v, axis.id, value),
                     onPick: onPick,

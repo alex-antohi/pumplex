@@ -8,6 +8,7 @@ import 'game/content.dart';
 import 'game/exercises.dart';
 import 'game/model.dart';
 import 'game/rules.dart';
+import 'i18n.dart';
 import 'pumplex.dart';
 import 'store.dart';
 import 'views/carousel.dart';
@@ -21,6 +22,7 @@ import 'views/workout.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
+  await I18n.instance.load(prefs);
   exerciseCatalog = await ExerciseCatalog.load();
   runApp(GymApp(store: LogStore(prefs)));
 }
@@ -149,12 +151,12 @@ class _GameShellState extends State<GameShell> {
         content: _store.oldBackupJson(),
       );
     } on PlatformException catch (e) {
-      if (mounted) _snack('COULD NOT SAVE: ${e.message}. YOUR OLD DATA IS SAFE.');
+      if (mounted) _snack(t('migrate.saveFailed', {'error': e.message}));
       return;
     }
     if (!mounted) return;
     if (!saved) {
-      _snack('NO BACKUP, NO UPGRADE. YOUR OLD DATA IS SAFE.');
+      _snack(t('migrate.noBackup'));
       return;
     }
     await _store.migrateOld();
@@ -377,7 +379,7 @@ class _GameShellState extends State<GameShell> {
       celebratePr(
         context,
         id: 'welcome-${DateTime.now().microsecondsSinceEpoch}',
-        title: "LET'S\nGO!!!",
+        title: t('burst.go'),
       );
     }
   }
@@ -406,14 +408,15 @@ class _GameShellState extends State<GameShell> {
     final crit = _store.lastSetCritical(id);
     if (crit) {
       HapticFeedback.heavyImpact();
-      _snack('CRITICAL SET!!! ×$critMultiplier XP');
+      _snack(t('workout.critical', {'n': critMultiplier}));
     }
     final after = levelFor(_store.totalXp).level;
     if (after > before) {
       HapticFeedback.heavyImpact();
+      final lines = levelUpLines;
       _showIntro((
-        title: 'LEVEL $after',
-        subtitle: levelUpLines[after % levelUpLines.length],
+        title: t('level.up', {'n': after}),
+        subtitle: lines[after % lines.length],
         color: Pal.of(context).pink,
       ));
     }
@@ -443,12 +446,12 @@ class _GameShellState extends State<GameShell> {
   String get _info {
     final l = levelFor(_store.totalXp).level;
     return switch (_scene) {
-      Scene.migrate => 'OLD SAVE · ONE-TIME UPGRADE',
-      Scene.create => 'CHARACTER · STEP 1 OF 4',
-      Scene.classSelect => 'CLASS · STEP 2 OF 4',
-      Scene.area => 'STARTING AREA · STEP 3 OF 4',
-      Scene.summary => 'READY? · STEP 4 OF 4',
-      Scene.workout => 'WORKOUT · ${_store.todaySession?.totalSets ?? 0} SETS · LVL $l',
+      Scene.migrate => t('bar.migrate'),
+      Scene.create => t('bar.create'),
+      Scene.classSelect => t('bar.class'),
+      Scene.area => t('bar.area'),
+      Scene.summary => t('bar.summary'),
+      Scene.workout => t('bar.workout', {'sets': tn('sets', _store.todaySession?.totalSets ?? 0), 'level': l}),
     };
   }
 
@@ -783,7 +786,7 @@ class _TopLevel extends StatelessWidget {
       onTap: onTap,
       child: Row(
         children: [
-          Text('LVL ${l.level}', style: display(16, p.pink)),
+          Text(t('level.short', {'n': l.level}), style: display(16, p.pink)),
           const SizedBox(width: 8),
           Expanded(
             child: Container(
