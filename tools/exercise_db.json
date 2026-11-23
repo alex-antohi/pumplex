@@ -716,5 +716,12 @@
 {"id":"Bird_Dog","name":"Bird Dog","category":"strength","equipment":"body only","level":"beginner","force":"static","mechanic":"compound","primaryMuscles":["abdominals"],"custom":true},
 {"id":"L-Sit","name":"L-Sit","category":"strength","equipment":"body only","level":"expert","force":"static","mechanic":"compound","primaryMuscles":["abdominals"],"custom":true},
 {"id":"Hanging_Knee_Raise","name":"Hanging Knee Raise","category":"strength","equipment":"body only","level":"beginner","force":"pull","mechanic":"isolation","primaryMuscles":["abdominals"],"custom":true,"base":"Hanging Leg Raise","mods":{"equip":"Bodyweight","type":"Knee"}},
-{"id":"Burpee","name":"Burpee","category":"plyometrics","equipment":"body only","level":"intermediate","force":"push","mechanic":"compound","primaryMuscles":["quadriceps"],"custom":true}
+{"id":"Burpee","name":"Burpee","category":"plyometrics","equipment":"body only","level":"intermediate","force":"push","mechanic":"compound","primaryMuscles":["quadriceps"],"custom":true},
+{"id":"Towel_Row","name":"Towel Row","category":"strength","equipment":"body only","level":"beginner","force":"pull","mechanic":"compound","primaryMuscles":["middle back"],"custom":true},
+{"id":"Feet-Elevated_Inverted_Row","name":"Feet-Elevated Inverted Row","category":"strength","equipment":"body only","level":"intermediate","force":"pull","mechanic":"compound","primaryMuscles":["middle back"],"custom":true},
+{"id":"One-Arm_Inverted_Row","name":"One-Arm Inverted Row","category":"strength","equipment":"body only","level":"expert","force":"pull","mechanic":"compound","primaryMuscles":["middle back"],"custom":true},
+{"id":"Chin-Up_Hold","name":"Chin-Up Hold","category":"strength","equipment":"body only","level":"beginner","force":"static","mechanic":"isolation","primaryMuscles":["biceps"],"custom":true},
+{"id":"Doorframe_Curl","name":"Doorframe Curl","category":"strength","equipment":"body only","level":"beginner","force":"pull","mechanic":"isolation","primaryMuscles":["biceps"],"custom":true},
+{"id":"Reverse_Snow_Angel","name":"Reverse Snow Angel","category":"strength","equipment":"body only","level":"beginner","force":"pull","mechanic":"isolation","primaryMuscles":["shoulders"],"custom":true},
+{"id":"Bodyweight_Rear_Delt_Row","name":"Bodyweight Rear Delt Row","category":"strength","equipment":"body only","level":"intermediate","force":"pull","mechanic":"compound","primaryMuscles":["shoulders"],"custom":true}
 ]

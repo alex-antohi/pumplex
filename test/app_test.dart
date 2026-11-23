@@ -300,9 +300,10 @@ void main() {
     final all = exerciseCatalog.all;
     // The common exercises only (D67, D69), with the added bench presses
     // (D57) and bodyweight exercises (D69).
-    expect(all.length, 370);
-    expect(exerciseCatalog.groups.length, 157);
-    for (final id in ['Pike_Push-Up', 'Towel_Bicep_Curl', 'Bodyweight_Calf_Raise', 'Dead_Hang', 'Pistol_Squat', 'Burpee']) {
+    expect(all.length, 379);
+    expect(exerciseCatalog.groups.length, 166);
+    for (final id in ['Pike_Push-Up', 'Towel_Bicep_Curl', 'Bodyweight_Calf_Raise', 'Dead_Hang', 'Pistol_Squat', 'Burpee',
+      'Towel_Row', 'Feet-Elevated_Inverted_Row', 'Chin-Up_Hold', 'Doorframe_Curl', 'Reverse_Snow_Angel']) {
       expect(exerciseCatalog.byId[id]?.equipment, 'body only', reason: id);
     }
     expect(exerciseCatalog.groupKeyOf('Towel_Bicep_Curl'), 'move:bicep curl'); // a bodyweight chip of the move

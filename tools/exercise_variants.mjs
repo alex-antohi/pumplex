@@ -138,6 +138,19 @@ const EXTRA = [
   ['Hanging_Knee_Raise', 'Hanging Knee Raise', bw('strength', 'beginner', 'pull', 'isolation', 'abdominals'),
     'Hanging Leg Raise', { type: 'Knee' }],
   ['Burpee', 'Burpee', bw('plyometrics', 'intermediate', 'push', 'compound', 'quadriceps'), 'Burpee', {}],
+  // More bodyweight cards for the thin Scrapper slots (D69): horizontal
+  // pull, biceps and rear delt. Each one is its own card, so the slot has
+  // two cards or more from Sweat on.
+  ['Towel_Row', 'Towel Row', bw('strength', 'beginner', 'pull', 'compound', 'middle back'), 'Towel Row', {}],
+  ['Feet-Elevated_Inverted_Row', 'Feet-Elevated Inverted Row', bw('strength', 'intermediate', 'pull', 'compound', 'middle back'),
+    'Feet-Elevated Inverted Row', {}],
+  ['One-Arm_Inverted_Row', 'One-Arm Inverted Row', bw('strength', 'expert', 'pull', 'compound', 'middle back'),
+    'One-Arm Inverted Row', {}],
+  ['Chin-Up_Hold', 'Chin-Up Hold', bw('strength', 'beginner', 'static', 'isolation', 'biceps'), 'Chin-Up Hold', {}],
+  ['Doorframe_Curl', 'Doorframe Curl', bw('strength', 'beginner', 'pull', 'isolation', 'biceps'), 'Doorframe Curl', {}],
+  ['Reverse_Snow_Angel', 'Reverse Snow Angel', bw('strength', 'beginner', 'pull', 'isolation', 'shoulders'), 'Reverse Snow Angel', {}],
+  ['Bodyweight_Rear_Delt_Row', 'Bodyweight Rear Delt Row', bw('strength', 'intermediate', 'pull', 'compound', 'shoulders'),
+    'Bodyweight Rear Delt Row', {}],
 ];
 for (const [id, name, from, base, mods] of EXTRA) {
   EXPLICIT[name] = [base, mods];
