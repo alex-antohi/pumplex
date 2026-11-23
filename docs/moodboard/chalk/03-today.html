@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Today List 03</title>
+<style>
+@font-face { font-family: 'Anton'; src: url('../../../assets/fonts/Anton-Regular.ttf'); }
+@font-face { font-family: 'Space Mono'; font-weight: 700; src: url('../../../assets/fonts/SpaceMono-Bold.ttf'); }
+
+/* Pal.light (lib/pumplex.dart), Gainsgard sky / floor (lib/game/content.dart), kChalk (lib/views/chalk.dart) */
+:root {
+  --bg: #E3FBFF; --ink: #1A0B3B; --pink: #FF2E93; --lime: #B6FF00; --orange: #FF8A00;
+  --violet: #7B2CFF; --sky: #00C2FF; --panel: #FFFFFF; --panel2: #FFF0FA; --dot: rgba(255,46,147,.28);
+  --night: #1A0B3B; --on: #1A0B3B; --chalk: #F4F1FF;
+  --gsky: #3A2A52; --gfloor: #8672A5; --accent: #FFA033;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #2b2440; color: #F6EEFF; font-family: 'Space Mono', monospace; font-weight: 700; padding: 20px 16px 28px; }
+h1 { font-family: 'Anton'; font-weight: 400; font-size: 26px; letter-spacing: 1px; }
+.sub { font-size: 12px; opacity: .75; margin: 4px 0 16px; max-width: 1200px; font-weight: 400; }
+.row { display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap; }
+.col { display: flex; flex-direction: column; gap: 10px; }
+.cap { font-size: 11px; max-width: 406px; line-height: 1.4; opacity: .85; font-weight: 400; }
+.cap b { font-family: 'Anton'; font-weight: 400; letter-spacing: 1px; font-size: 14px; color: var(--lime); }
+
+.phone { box-sizing: content-box; width: 390px; height: 844px; position: relative; overflow: hidden; border-radius: 34px; border: 8px solid #0c0816;
+  background: var(--bg); color: var(--ink); display: flex; flex-direction: column; }
+.status { height: 44px; background: var(--night); color: var(--chalk); display: flex; justify-content: space-between; align-items: center; padding: 0 26px; font-size: 12px; flex: none; }
+
+/* _TopBar + MegaText + _TopLevel (lib/main.dart) */
+.top { background: var(--panel); border-bottom: 5px solid var(--ink); padding: 10px 14px 10px; flex: none; }
+.mega { font-family: 'Anton'; font-size: 30px; line-height: .92; letter-spacing: .8px;
+  background: linear-gradient(90deg, var(--pink), var(--orange), var(--lime), var(--sky), var(--violet), var(--pink));
+  -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-stroke: 1.4px var(--ink);
+  filter: drop-shadow(2.4px 2.4px 0 var(--ink)); display: inline-block; }
+.lvl { display: flex; align-items: center; gap: 8px; margin-top: 5px; height: 18px; }
+.lvl .n { font-family: 'Anton'; font-size: 16px; color: var(--pink); }
+.lvl .bar { flex: 1; height: 12px; border: 2px solid var(--ink); background: var(--panel2); margin-right: 12px; }
+.lvl .bar i { display: block; height: 100%; width: 62%; background: var(--lime); }
+.violet { height: 6px; background: var(--violet); flex: none; }
+
+/* the workout (D75): world full width on top, exercise part at the bottom */
+.work { position: relative; flex: 1; background: var(--gsky); }
+.floor { position: absolute; left: 0; right: 0; top: 236px; bottom: 0; background: var(--gfloor); }
+.scene { position: absolute; left: 20px; top: 8px; width: 350px; height: 300px; }
+.scene img { position: absolute; image-rendering: pixelated; }
+.tag { display: inline-block; padding: 5px 10px; font-family: 'Anton'; font-size: 12px; letter-spacing: 1px; line-height: 1; white-space: nowrap; }
+.hint { position: absolute; left: 28px; top: 12px; background: var(--night); color: var(--accent); font-size: 13px; transform: rotate(-2deg); }
+.part { position: absolute; left: 0; right: 0; bottom: 0; background: var(--bg); border-top: 3px solid var(--ink); padding-bottom: 24px; }
+.tags { display: flex; gap: 6px; align-items: center; padding: 10px 22px 0 16px; }
+.star { display: inline-flex; padding: 4px 8px; background: var(--panel2); }
+.chalktag { background: var(--night); color: var(--chalk); padding: 5px 10px 3px; border-bottom: 2px solid rgba(244,241,255,.6); }
+.ex { padding: 10px 14px 4px; }
+.title { display: flex; align-items: flex-start; gap: 6px; }
+.title .t { font-family: 'Anton'; font-size: 28px; line-height: 1; text-shadow: 2px 2px 0 var(--orange); flex: 1; }
+.axis { font-size: 10.5px; color: rgba(26,11,59,.7); margin-top: 10px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.mc { padding: 5px 9px; background: var(--panel); border: 2px solid var(--ink); font-family: 'Anton'; font-size: 13px; line-height: 1; }
+.mc.on { background: var(--lime); box-shadow: 2px 2px 0 var(--ink); }
+.mc.off { opacity: .3; }
+.todaytag { background: var(--lime); color: var(--on); font-size: 11px; transform: rotate(-3deg); margin-top: 6px; border: 2px solid var(--ink); padding: 3px 7px; }
+
+/* NEW: the dots, Today cards only, no total */
+.dots { display: flex; justify-content: center; align-items: center; gap: 7px; padding: 8px 0 2px; }
+.dot { width: 10px; height: 10px; border: 2px solid var(--ink); background: var(--panel); }
+.dot.on { background: var(--lime); box-shadow: 2px 2px 0 var(--ink); }
+.dots .div { width: 2px; height: 14px; background: rgba(26,11,59,.3); margin: 0 4px; }
+.dots .then { font-size: 10px; color: rgba(26,11,59,.5); letter-spacing: 1px; }
+
+/* NEW: the COPY A PAST DAY offer card */
+.offer { margin: 10px 14px 0; background: var(--panel); border: 3px solid var(--ink); box-shadow: 4px 4px 0 var(--pink); padding: 10px 12px 12px; }
+.offer .shout { font-family: 'Anton'; font-size: 13px; letter-spacing: 1.6px; }
+.offer .say { font-size: 11px; font-weight: 400; margin-top: 3px; }
+.step { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.step .d { flex: 1; text-align: center; background: var(--night); color: var(--chalk); font-family: 'Anton'; font-size: 18px; letter-spacing: 1px; padding: 6px 0 5px; }
+.names { margin-top: 8px; font-size: 12px; line-height: 1.55; }
+.names li { list-style: none; }
+.names li::before { content: "X "; font-family: 'Anton'; color: var(--orange); }
+.fine { font-size: 10px; color: rgba(26,11,59,.6); margin-top: 6px; }
+
+/* BrutalButton */
+.bb { border: 4px solid var(--ink); box-shadow: 6px 6px 0 var(--ink); padding: 10px 16px; font-family: 'Anton'; font-size: 18px; letter-spacing: 1px; line-height: 1; text-align: center; color: var(--on); }
+.bb.sm { border-width: 3px; box-shadow: 4px 4px 0 var(--ink); padding: 6px 10px; font-size: 15px; background: var(--sky); }
+.bb.go { background: var(--lime); }
+.bb.off { opacity: .5; }
+
+/* CHALK sheet (lib/views/chalk.dart) */
+.barrier { position: absolute; inset: 0; background: rgba(0,0,0,.54); z-index: 5; }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; top: 66px; background: var(--bg); border-top: 4px solid var(--ink); z-index: 6; display: flex; flex-direction: column; }
+.pin { padding: 14px 16px 8px; background: var(--bg); border-bottom: 2px dashed rgba(26,11,59,.25); }
+.cline { background: var(--night); border: 3px solid var(--ink); box-shadow: 3px 3px 0 var(--ink); padding: 8px 10px; }
+.cline .l { font-size: 10px; color: rgba(244,241,255,.55); }
+.cwords { display: flex; flex-wrap: wrap; gap: 6px 7px; margin-top: 4px; }
+.cw { border: 2px solid rgba(244,241,255,.75); padding: 3px 6px 2px; font-family: 'Anton'; font-size: 19px; line-height: 1; color: var(--chalk); display: inline-flex; gap: 5px; align-items: center; }
+.cw:nth-child(odd) { transform: rotate(-1.5deg); } .cw:nth-child(even) { transform: rotate(1deg); }
+.cw i { font-style: normal; font-family: 'Space Mono'; font-size: 11px; opacity: .55; }
+.cline .tip { font-size: 10px; color: rgba(244,241,255,.5); margin-top: 6px; }
+.scroll { flex: 1; overflow: hidden; padding: 0 16px; position: relative; }
+.more { font-size: 10px; color: rgba(26,11,59,.5); text-align: center; padding: 4px 0 2px; letter-spacing: 1px; }
+.shout { font-family: 'Anton'; font-size: 13px; letter-spacing: 1.6px; text-transform: uppercase; }
+.rowt { margin-top: 10px; }
+.tiles { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.tile { padding: 5px 9px; background: var(--panel); border: 3px solid var(--ink); display: inline-flex; gap: 5px; align-items: baseline; }
+.tile b { font-family: 'Anton'; font-weight: 400; font-size: 13px; line-height: 1; }
+.tile span { font-size: 11px; line-height: 1; }
+.tile.on { background: var(--night); color: var(--chalk); box-shadow: 3px 3px 0 var(--ink); }
+.tile.off { opacity: .35; }
+.results { margin-top: 14px; border-top: 3px solid var(--ink); padding-top: 10px; }
+.results .hd { display: flex; justify-content: space-between; align-items: baseline; }
+.results .hd i { font-style: normal; font-size: 10px; color: rgba(26,11,59,.6); }
+.res { display: flex; align-items: center; gap: 10px; background: var(--panel); border: 3px solid var(--ink); padding: 8px 8px 8px 10px; margin-top: 8px; }
+.res .nm { flex: 1; min-width: 0; }
+.res .nm b { display: block; font-family: 'Anton'; font-weight: 400; font-size: 16px; line-height: 1.05; }
+.res .nm span { font-size: 10px; color: rgba(26,11,59,.65); }
+.res.in { background: var(--panel2); }
+.plus { width: 34px; height: 34px; border: 3px solid var(--ink); box-shadow: 3px 3px 0 var(--ink); background: var(--lime); font-family: 'Anton'; font-size: 22px; display: flex; align-items: center; justify-content: center; line-height: 1; flex: none; }
+.intoday { background: var(--night); color: var(--lime); font-family: 'Anton'; font-size: 12px; letter-spacing: 1px; padding: 5px 8px; flex: none; }
+.sbtns { display: flex; gap: 12px; padding: 10px 24px 30px 16px; align-items: center; border-top: 2px dashed rgba(26,11,59,.25); }
+</style>
+</head>
+<body>
+<h1>TODAY · 03</h1>
+<p class="sub">A list for one day, made by the lifter. The app picks nothing. The first set on a card adds it to Today; a tap on a CHALK result adds it; FORGE IT adds the new move. The carousel shows Today first (dots, no total), then the catalog in Suggested order. Today ends with the day. Built look: full-width world (D75), CLASS label + BODY PART + star + CHALK tags, CHALK sheet from lib/views/chalk.dart.</p>
+
+<div class="row">
+
+<!-- PHONE 1: new day, empty Today -->
+<div class="col">
+<div class="phone">
+  <div class="status"><span>9:41</span><span>MON 23 NOV</span></div>
+  <div class="top"><span class="mega">PUMPLEX</span><div class="lvl"><span class="n">LV 7</span><span class="bar"><i></i></span></div></div>
+  <div class="violet"></div>
+  <div class="work">
+    <div class="floor"></div>
+    <div class="scene">
+      <img src="../../../assets/areas/gainsgard/background.png" style="left:0;top:0;width:350px;height:300px" alt="">
+      <img src="../../../assets/areas/gainsgard/floor.png" style="left:0;top:228px;width:350px;height:72px" alt="">
+      <img src="../../../assets/areas/gainsgard/shadow.png" style="left:18px;top:270px;width:92px;height:10px" alt="">
+      <img src="../../../assets/areas/gainsgard/object_idle.png" style="left:124px;top:88px;width:150px;height:132px" alt="">
+    </div>
+    <span class="tag hint">SCRATCH THE WALL</span>
+    <div class="part">
+      <div class="tags">
+        <span class="tag" style="background:var(--night);color:var(--lime)">PLATE PALADIN</span>
+        <span class="tag" style="background:var(--panel2);color:var(--ink)">ALL BODY PARTS</span>
+        <span class="star"><svg width="16" height="16" viewBox="0 0 8 8" shape-rendering="crispEdges"><path fill="rgba(26,11,59,.4)" d="M3 0h2v2h3v2h-1v1h1v3h-2v-1h-2v1h-2v-3h1v-1h-1v-2h3z"/></svg></span>
+        <span class="tag chalktag">CHALK</span>
+      </div>
+      <div class="offer">
+        <div class="shout">TODAY IS EMPTY</div>
+        <div class="say">Hit the wall to start, or copy a past day.</div>
+        <div class="step">
+          <span class="bb sm">&#9664;</span>
+          <span class="d">TUE 17 NOV</span>
+          <span class="bb sm">&#9654;</span>
+        </div>
+        <ul class="names">
+          <li>BARBELL BENCH PRESS</li>
+          <li>INCLINE DUMBBELL PRESS</li>
+          <li>CABLE CROSSOVER</li>
+          <li>TRICEPS PUSHDOWN</li>
+        </ul>
+        <div class="step" style="margin-top:10px">
+          <span class="bb go" style="flex:1">COPY 4 CARDS</span>
+        </div>
+        <div class="fine">CARDS ONLY, NOT THE SETS.</div>
+      </div>
+      <div class="dots"><span class="then">SWIPE FOR SUGGESTED &#8250;</span></div>
+    </div>
+  </div>
+</div>
+<p class="cap"><b>1 · NEW DAY.</b> Today is empty, so the carousel opens on one offer card. ◀ ▶ step back through past training days only. COPY puts those cards in Today (no sets). Swipe past it for the catalog in Suggested order.</p>
+</div>
+
+<!-- PHONE 2: mid-workout, a Today card -->
+<div class="col">
+<div class="phone">
+  <div class="status"><span>10:12</span><span>MON 23 NOV</span></div>
+  <div class="top"><span class="mega">PUMPLEX</span><div class="lvl"><span class="n">LV 7</span><span class="bar"><i style="width:68%"></i></span></div></div>
+  <div class="violet"></div>
+  <div class="work">
+    <div class="floor"></div>
+    <div class="scene">
+      <img src="../../../assets/areas/gainsgard/background.png" style="left:0;top:0;width:350px;height:300px" alt="">
+      <img src="../../../assets/areas/gainsgard/floor.png" style="left:0;top:228px;width:350px;height:72px" alt="">
+      <img src="../../../assets/areas/gainsgard/shadow.png" style="left:18px;top:270px;width:92px;height:10px" alt="">
+      <img src="../../../assets/areas/gainsgard/object_idle.png" style="left:124px;top:88px;width:150px;height:132px" alt="">
+      <img src="../../../assets/areas/gainsgard/mark.png" style="left:136px;top:100px;width:8px;height:44px" alt="">
+      <img src="../../../assets/areas/gainsgard/mark.png" style="left:148px;top:100px;width:8px;height:44px" alt="">
+      <img src="../../../assets/areas/gainsgard/mark.png" style="left:160px;top:100px;width:8px;height:44px" alt="">
+    </div>
+    <span class="tag hint">SCRATCH THE WALL</span>
+    <div class="part">
+      <div class="tags">
+        <span class="tag" style="background:var(--night);color:var(--lime)">PLATE PALADIN</span>
+        <span class="tag" style="background:var(--panel2);color:var(--ink)">ALL BODY PARTS</span>
+        <span class="star"><svg width="16" height="16" viewBox="0 0 8 8" shape-rendering="crispEdges"><path fill="rgba(26,11,59,.4)" d="M3 0h2v2h3v2h-1v1h1v3h-2v-1h-2v1h-2v-3h1v-1h-1v-2h3z"/></svg></span>
+        <span class="tag chalktag">CHALK</span>
+      </div>
+      <div class="ex">
+        <div class="title">
+          <span class="t">INCLINE DUMBBELL PRESS</span>
+          <span class="tag todaytag">TODAY</span>
+          <svg width="30" height="30" viewBox="0 0 8 8" shape-rendering="crispEdges" style="margin:0 0 0 2px"><path fill="rgba(26,11,59,.25)" d="M3 0h2v2h3v2h-1v1h1v3h-2v-1h-2v1h-2v-3h1v-1h-1v-2h3z"/></svg>
+        </div>
+        <div class="axis">EQUIPMENT</div>
+        <div class="chips"><span class="mc">BARBELL</span><span class="mc on">DUMBBELL</span><span class="mc">SMITH MACHINE</span><span class="mc">MACHINE</span></div>
+        <div class="axis">ANGLE</div>
+        <div class="chips"><span class="mc">FLAT</span><span class="mc on">INCLINE</span><span class="mc">DECLINE</span></div>
+      </div>
+      <div class="dots">
+        <span class="dot"></span><span class="dot on"></span><span class="dot"></span>
+        <span class="div"></span><span class="then">SUGGESTED</span>
+      </div>
+    </div>
+  </div>
+</div>
+<p class="cap"><b>2 · MID-WORKOUT.</b> 3 sets on the wall. The card is in Today: a lime TODAY tag by the title. Dots replace "12 / 101": one dot per Today card, no total. After the last dot the carousel runs on into the catalog (the first catalog card gets a thin top line).</p>
+</div>
+
+<!-- PHONE 3: CHALK sheet with results -->
+<div class="col">
+<div class="phone">
+  <div class="status"><span>10:14</span><span>MON 23 NOV</span></div>
+  <div class="top"><span class="mega">PUMPLEX</span><div class="lvl"><span class="n">LV 7</span><span class="bar"><i style="width:68%"></i></span></div></div>
+  <div class="violet"></div>
+  <div class="work"><div class="floor"></div></div>
+  <div class="barrier"></div>
+  <div class="sheet">
+    <div class="pin">
+      <div class="cline">
+        <div class="l">CHALK:</div>
+        <div class="cwords"><span class="cw">PRESS <i>×</i></span><span class="cw">DUMBBELL <i>×</i></span><span class="cw">INCLINE <i>×</i></span></div>
+        <div class="tip">TAP A WORD TO WIPE IT</div>
+      </div>
+    </div>
+    <div class="scroll">
+      <div class="more">&#9650; PATTERN · MOVE · TOOL</div>
+      <div class="rowt shout" style="margin-top:4px">BODY</div>
+      <div class="tiles">
+        <div class="tile"><b>CHEST</b><span>3</span></div><div class="tile off"><b>BACK</b><span>0</span></div>
+        <div class="tile off"><b>SHOULDERS</b><span>0</span></div><div class="tile off"><b>ARMS</b><span>0</span></div>
+        <div class="tile off"><b>LEGS</b><span>0</span></div><div class="tile off"><b>CORE</b><span>0</span></div>
+      </div>
+      <div class="rowt shout">ANGLE</div>
+      <div class="tiles"><div class="tile on"><b>INCLINE</b><span>3</span></div><div class="tile"><b>FLAT</b><span>4</span></div><div class="tile"><b>DECLINE</b><span>1</span></div></div>
+      <div class="rowt shout">GRIP</div>
+      <div class="tiles">
+        <div class="tile off"><b>CLOSE GRIP</b><span>0</span></div><div class="tile off"><b>MEDIUM GRIP</b><span>0</span></div>
+        <div class="tile off"><b>WIDE GRIP</b><span>0</span></div><div class="tile"><b>NEUTRAL GRIP</b><span>1</span></div>
+        <div class="tile off"><b>OVERHAND GRIP</b><span>0</span></div><div class="tile off"><b>REVERSE GRIP</b><span>0</span></div>
+      </div>
+
+      <div class="results">
+        <div class="hd"><span class="shout">RESULTS · 3</span><i>TAP ONE = ADD TO TODAY</i></div>
+        <div class="res in">
+          <div class="nm"><b>INCLINE DUMBBELL PRESS</b><span>CHEST · DUMBBELL · 3 SETS TODAY</span></div>
+          <span class="intoday">TODAY</span>
+        </div>
+        <div class="res">
+          <div class="nm"><b>INCLINE DUMBBELL PRESS, NEUTRAL GRIP</b><span>CHEST · DUMBBELL</span></div>
+          <span class="plus">+</span>
+        </div>
+        <div class="res">
+          <div class="nm"><b>ONE-ARM INCLINE DUMBBELL PRESS</b><span>CHEST · DUMBBELL</span></div>
+          <span class="plus">+</span>
+        </div>
+      </div>
+    </div>
+    <div class="sbtns">
+      <span class="bb sm">WIPE</span>
+      <span class="bb go" style="flex:1">SHOW 3 EXERCISES</span>
+    </div>
+  </div>
+</div>
+<p class="cap"><b>3 · CHALK RESULTS.</b> The results list sits under the word tiles. The chalk line is pinned at the top and the tiles scroll under it. A tap on a + row adds that card to Today, closes the sheet and shows the card. A card already in Today shows TODAY and goes straight to the card. There is no "add all".</p>
+</div>
+
+</div>
+</body>
+</html>
