@@ -10,7 +10,8 @@
 // Commonness (D67): each card has a `rank` (1 = the most common) and, per
 // class, the first difficulty mode that shows it (`unlock`). The tool sets
 // both, so every class and mode covers the whole body and each mode has
-// more cards than the one before.
+// more cards than the one before. Since D69 the tool fills movement
+// patterns first (`pattern`: a push, a pull, a squat, a hinge and so on).
 //
 // Moves (D55): exercises that are one move with different equipment,
 // angle, grip, stance and so on share a `base` name and list their
@@ -41,6 +42,7 @@ class CatalogExercise {
     String? base,
     this.mods = const {},
     this.rank = 1 << 20,
+    this.pattern,
     this.unlock = const {},
   })  : isMove = base != null,
         base = base ?? name;
@@ -76,6 +78,11 @@ class CatalogExercise {
   /// all exercises of a move.
   final int rank;
 
+  /// The movement pattern of the card (D69), for example `hpush`
+  /// (horizontal push); see [corePatterns]. The same for all exercises of
+  /// a move.
+  final String? pattern;
+
   /// Class id -> the first difficulty mode (0-5) that shows the card (D67).
   /// A class that is not here does not show it.
   final Map<String, int> unlock;
@@ -92,6 +99,7 @@ class CatalogExercise {
         base: j['base'] as String?,
         mods: Map<String, String>.from(j['mods'] as Map? ?? const {}),
         rank: j['rank'] as int? ?? 1 << 20,
+        pattern: j['pattern'] as String?,
         unlock: Map<String, int>.from(j['unlock'] as Map? ?? const {}),
       );
 }
@@ -136,6 +144,9 @@ class ExerciseGroup {
   /// Commonness (D67): 1 = the most common card.
   int get rank => variants.first.rank;
 
+  /// The movement pattern (D69).
+  String? get pattern => variants.first.pattern;
+
   /// Whether [classId] in difficulty mode [difficulty] shows this card (D67).
   bool shownIn(String classId, int difficulty) => (variants.first.unlock[classId] ?? 99) <= difficulty;
 
@@ -159,6 +170,13 @@ class ExerciseGroup {
 }
 
 int _noneFirst(String? a, String? b) => a == null ? -1 : b == null ? 1 : a.compareTo(b);
+
+/// The movement patterns that every class and mode shows from Sofa on,
+/// where the class has the gear (D69): pushes, pulls, legs, arms, rear
+/// delts and core. tools/exercise_select.mjs fills them first.
+const corePatterns = [
+  'hpush', 'vpush', 'hpull', 'vpull', 'squat', 'hinge', 'single', 'calves', 'biceps', 'triceps', 'rear', 'flex', 'antiext',
+];
 
 /// The database levels, easiest first.
 const levels = ['beginner', 'intermediate', 'expert'];

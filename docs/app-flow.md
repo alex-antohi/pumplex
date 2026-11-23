@@ -182,8 +182,8 @@ There is no hub screen (D49), no bottom bar and no menu (D59). The app opens on 
 Design: `docs/moodboard/README.md` "Workout screen", with the
 owner's rules ([decisions.md](decisions.md)).
 
-- The exercises come from free-exercise-db (D50). The app keeps only the common ones (D67): 292
-  exercises in 101 cards, in `assets/exercises/exercises.json`. There is no daily list and there are
+- The exercises come from free-exercise-db (D50). The app keeps only the common ones (D67, D69):
+  370 exercises in 157 cards, in `assets/exercises/exercises.json`. There is no daily list and there are
   no targets (D52).
 - **One card** (D48), like the starting-area card. No header.
 - **The world** on top of the card: see "World scene" below. It adds sets to the exercise shown
@@ -198,8 +198,9 @@ owner's rules ([decisions.md](decisions.md)).
   - The star tag shows favorites only (D53), combined with the other filters.
   - A new day starts from the defaults; in the same day the last choice stays.
   - Rules in `lib/game/exercises.dart`: the class uses equipment, then category (D50); each mode
-    shows more cards than the one before, and every mode has every body part (D67: 15 or 16 cards in
-    Sofa, up to 42-59 in Nightmare); inside a card, the mode shows levels up to its own (Sofa,
+    shows more cards than the one before, and every mode has every body part (D67) and every
+    movement pattern: push, pull, squat, hinge, single leg, calves, biceps, triceps, rear delts,
+    core (D69: 17-23 cards in Sofa, 67-82 in Nightmare); inside a card, the mode shows levels up to its own (Sofa,
     Warm-up: beginner; Sweat, Pain: + intermediate; Brutal, Nightmare: + expert); body parts group
     the muscles in 6 (D52).
 - **Moves** (D55): exercises that are one move with different equipment, angle, grip and so on share one

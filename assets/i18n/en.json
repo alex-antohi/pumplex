@@ -295,5 +295,10 @@
   "mod.Bench": "Bench",
   "mod.Weighted Bench": "Weighted Bench",
   "mod.Parallel Bar": "Parallel Bar",
-  "mod.Rings": "Rings"
+  "mod.Rings": "Rings",
+  "mod.Elevated": "Elevated",
+  "mod.Inverted": "Inverted",
+  "mod.Towel": "Towel",
+  "mod.Reverse": "Reverse",
+  "mod.Knee": "Knee"
 }

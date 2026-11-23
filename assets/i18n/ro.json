@@ -295,5 +295,10 @@
   "mod.Bench": "Bancă",
   "mod.Weighted Bench": "Bancă cu greutate",
   "mod.Parallel Bar": "Paralele",
-  "mod.Rings": "Inele"
+  "mod.Rings": "Inele",
+  "mod.Elevated": "Picioare ridicate",
+  "mod.Inverted": "Sub bară",
+  "mod.Towel": "Prosop",
+  "mod.Reverse": "Înapoi",
+  "mod.Knee": "Genunchi"
 }

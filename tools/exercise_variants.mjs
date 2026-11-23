@@ -93,7 +93,12 @@ const FIX = {
   'Bench Press - With Bands': { equipment: 'barbell' }, // a barbell bench press with bands
 };
 
-// Exercises the database lacks but a gym has (D57): [id, name, copy fields from, move, modifiers].
+// Exercises the database lacks but a gym has (D57, D69): [id, name, fields,
+// move, modifiers]. Fields: the id of an exercise to copy them from, or a
+// bodyweight exercise as [category, level, force, mechanic, muscle].
+const bw = (category, level, force, mechanic, muscle) => ({
+  category, equipment: 'body only', level, force, mechanic, primaryMuscles: [muscle],
+});
 const EXTRA = [
   ['Incline_Close-Grip_Barbell_Bench_Press', 'Incline Close-Grip Barbell Bench Press', 'Barbell_Incline_Bench_Press_-_Medium_Grip',
     'Bench Press', { angle: 'Incline', width: 'Close Grip' }],
@@ -101,14 +106,50 @@ const EXTRA = [
     'Bench Press', { angle: 'Incline', width: 'Wide Grip' }],
   ['Decline_Close-Grip_Barbell_Bench_Press', 'Decline Close-Grip Barbell Bench Press', 'Decline_Barbell_Bench_Press',
     'Bench Press', { angle: 'Decline', width: 'Close Grip' }],
+  // Bodyweight exercises for the Scrapper (D69). The database has no
+  // copies of them (side plank = Side_Bridge, nordic curl =
+  // Natural_Glute_Ham_Raise, australian pull-up = Inverted_Row).
+  ['Pike_Push-Up', 'Pike Push-Up', bw('strength', 'beginner', 'push', 'compound', 'shoulders'), 'Pike Push-Up', {}],
+  ['Elevated_Pike_Push-Up', 'Elevated Pike Push-Up', bw('strength', 'intermediate', 'push', 'compound', 'shoulders'),
+    'Pike Push-Up', { type: 'Elevated' }],
+  ['Wall_Walk', 'Wall Walk', bw('strength', 'intermediate', 'push', 'compound', 'shoulders'), 'Wall Walk', {}],
+  ['Wall_Handstand_Hold', 'Wall Handstand Hold', bw('strength', 'intermediate', 'static', 'compound', 'shoulders'),
+    'Wall Handstand Hold', {}],
+  ['Prone_Y-T-W_Raise', 'Prone Y-T-W Raise', bw('strength', 'beginner', 'pull', 'isolation', 'shoulders'), 'Prone Y-T-W Raise', {}],
+  ['Bodyweight_Calf_Raise', 'Bodyweight Calf Raise', bw('strength', 'beginner', 'push', 'isolation', 'calves'), 'Calf Raise', {}],
+  ['Single-Leg_Calf_Raise', 'Single-Leg Calf Raise', bw('strength', 'intermediate', 'push', 'isolation', 'calves'),
+    'Calf Raise', { side: 'One Leg' }],
+  ['Pogo_Hops', 'Pogo Hops', bw('plyometrics', 'beginner', 'push', 'compound', 'calves'), 'Pogo Hops', {}],
+  ['Towel_Bicep_Curl', 'Towel Bicep Curl', bw('strength', 'beginner', 'pull', 'isolation', 'biceps'), 'Bicep Curl', { type: 'Towel' }],
+  ['Inverted_Bicep_Curl', 'Inverted Bicep Curl', bw('strength', 'intermediate', 'pull', 'isolation', 'biceps'),
+    'Bicep Curl', { type: 'Inverted' }],
+  ['Dead_Hang', 'Dead Hang', bw('strength', 'beginner', 'static', 'isolation', 'forearms'), 'Dead Hang', {}],
+  ['Towel_Hang', 'Towel Hang', bw('strength', 'intermediate', 'static', 'isolation', 'forearms'), 'Dead Hang', { type: 'Towel' }],
+  ['Superman', 'Superman', bw('strength', 'beginner', 'static', 'isolation', 'lower back'), 'Superman', {}],
+  ['Bodyweight_Bulgarian_Split_Squat', 'Bodyweight Bulgarian Split Squat', bw('strength', 'intermediate', 'push', 'compound', 'quadriceps'),
+    'Bodyweight Bulgarian Split Squat', {}],
+  ['Pistol_Squat', 'Pistol Squat', bw('strength', 'expert', 'push', 'compound', 'quadriceps'), 'Pistol Squat', {}],
+  ['Wall_Sit', 'Wall Sit', bw('strength', 'beginner', 'static', 'compound', 'quadriceps'), 'Wall Sit', {}],
+  ['Cossack_Squat', 'Cossack Squat', bw('strength', 'intermediate', 'push', 'compound', 'adductors'), 'Cossack Squat', {}],
+  ['Reverse_Lunge', 'Reverse Lunge', bw('strength', 'beginner', 'push', 'compound', 'quadriceps'), 'Lunge', { type: 'Reverse' }],
+  ['Hollow_Body_Hold', 'Hollow Body Hold', bw('strength', 'beginner', 'static', 'compound', 'abdominals'), 'Hollow Body Hold', {}],
+  ['Bird_Dog', 'Bird Dog', bw('strength', 'beginner', 'static', 'compound', 'abdominals'), 'Bird Dog', {}],
+  ['L-Sit', 'L-Sit', bw('strength', 'expert', 'static', 'compound', 'abdominals'), 'L-Sit', {}],
+  ['Hanging_Knee_Raise', 'Hanging Knee Raise', bw('strength', 'beginner', 'pull', 'isolation', 'abdominals'),
+    'Hanging Leg Raise', { type: 'Knee' }],
+  ['Burpee', 'Burpee', bw('plyometrics', 'intermediate', 'push', 'compound', 'quadriceps'), 'Burpee', {}],
 ];
 for (const [id, name, from, base, mods] of EXTRA) {
   EXPLICIT[name] = [base, mods];
   if (all.some((e) => e.id === id)) continue;
-  const src = all.find((e) => e.id === from);
-  if (!src) throw new Error(`EXTRA ${id}: no source ${from}`);
-  const { base: _b, mods: _m, ...fields } = src;
-  all.push({ ...fields, id, name, custom: true });
+  let fields = from;
+  if (typeof from === 'string') {
+    const src = all.find((e) => e.id === from);
+    if (!src) throw new Error(`EXTRA ${id}: no source ${from}`);
+    const { id: _i, name: _n, base: _b, mods: _m, ...f } = src;
+    fields = f;
+  }
+  all.push({ id, name, ...fields, custom: true });
 }
 
 // Grip width exists for bars, cables, machines and the body; not for
