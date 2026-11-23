@@ -133,8 +133,9 @@ const modifierAxes = <ModifierAxis>[
 class ExerciseGroup {
   const ExerciseGroup(this.key, this.name, this.variants);
 
-  /// `move:<name>` for a move with variations, else the exercise id.
-  /// Favorites point to it.
+  /// `move:<name>`; every exercise of the list has a move (D69 clean-up).
+  /// An exercise with no `base` (an old list) has its id. Favorites point
+  /// to it.
   final String key;
   final String name;
 
@@ -220,8 +221,21 @@ class ExerciseCatalog {
   /// The move an exercise belongs to.
   ExerciseGroup? groupOf(String id) => _groupOf[id];
 
-  /// The group key of an exercise id (the id itself if it is unknown).
-  String groupKeyOf(String id) => _groupOf[id]?.key ?? id;
+  /// The group key of an exercise id (the id itself if it is unknown). An
+  /// old move key whose move was renamed or split (D69 clean-up) points to
+  /// the move of its main exercise, so saved favorites follow.
+  String groupKeyOf(String id) =>
+      _groupOf[id]?.key ?? (byKey.containsKey(id) ? id : _groupOf[movedMoves[id]]?.key ?? id);
+
+  /// Old move keys -> the exercise whose move now holds them (D69 clean-up).
+  /// Cards that were one exercise had the exercise id as key, so they
+  /// follow without an entry here.
+  static const movedMoves = {
+    'move:row': 'One-Arm_Dumbbell_Row',
+    'move:bent over row': 'Bent_Over_Barbell_Row',
+    'move:bent over long bar row': 'Bent_Over_Two-Arm_Long_Bar_Row',
+    'move:rear lateral raise': 'Dumbbell_Lying_Rear_Lateral_Raise',
+  };
 
   static const asset = 'assets/exercises/exercises.json';
 

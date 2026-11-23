@@ -183,7 +183,7 @@ Design: `docs/moodboard/README.md` "Workout screen", with the
 owner's rules ([decisions.md](decisions.md)).
 
 - The exercises come from free-exercise-db (D50). The app keeps only the common ones (D67, D69):
-  379 exercises in 166 cards, in `assets/exercises/exercises.json`. There is no daily list and there are
+  391 exercises in 144 cards, in `assets/exercises/exercises.json`. There is no daily list and there are
   no targets (D52).
 - **One card** (D48), like the starting-area card. No header.
 - **The world** on top of the card: see "World scene" below. It adds sets to the exercise shown
