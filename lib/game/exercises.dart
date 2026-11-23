@@ -98,7 +98,7 @@ const modifierAxes = <ModifierAxis>[
 /// One card of the workout: a move and its exercises (one, for an
 /// exercise with no variations).
 class ExerciseGroup {
-  const ExerciseGroup(this.key, this.name, this.variants);
+  const ExerciseGroup(this.key, this.name, this.variants, {this.recent = const []});
 
   /// `move:<name>` for a move with variations, else the exercise id.
   /// Favorites point to it.
@@ -107,6 +107,11 @@ class ExerciseGroup {
 
   /// Simplest first: fewest modifiers, then the shortest name.
   final List<CatalogExercise> variants;
+
+  /// The exercises picked on this card lately, the last one first (filled
+  /// in by the store; also ones the filters now hide). A modifier chip that
+  /// has a choice goes back to how this card was set up with that equipment.
+  final List<CatalogExercise> recent;
 
   /// The axes where the variants differ, with the values in order of use.
   List<(ModifierAxis, List<String?>)> get axes => _axes(variants, modifierAxes);
@@ -124,7 +129,9 @@ class ExerciseGroup {
           if ({for (final v in vs) v.mods[a.id]}.length > 1) (a, {for (final v in vs) v.mods[a.id]}.toList()..sort(_noneFirst)),
       ];
 
-  ExerciseGroup only(List<CatalogExercise> keep) => ExerciseGroup(key, name, keep);
+  ExerciseGroup only(List<CatalogExercise> keep) => ExerciseGroup(key, name, keep, recent: recent);
+
+  ExerciseGroup withRecent(List<CatalogExercise> recent) => ExerciseGroup(key, name, variants, recent: recent);
 }
 
 int _noneFirst(String? a, String? b) => a == null ? -1 : b == null ? 1 : a.compareTo(b);
@@ -190,7 +197,12 @@ String exerciseName(String id) => exerciseCatalog.byId[id]?.name ?? id;
 /// What a modifier chip picks (D57): the exercise, and whether it keeps
 /// all of [current]'s other modifiers (`exact`). The equipment row may
 /// change the others; every other row stays within [current]'s equipment.
-/// Null: no exercise of [g] has that value there.
+/// Null: no exercise of [g] has that value there (with that equipment).
+///
+/// So a chip is judged against the equipment only, never against the
+/// other rows: when the exact mix does not exist (a barbell bench press
+/// with bands and incline), the chip still works and changes as few other
+/// rows as it can (`exact` false, and the chip shows it).
 ({CatalogExercise v, bool exact})? chipTarget(ExerciseGroup g, CatalogExercise current, String axis, String? value) {
   final v = pickVariant(g, current, axis, value, sameEquip: axis != 'equip');
   if (v == null) return null;
@@ -198,25 +210,53 @@ String exerciseName(String id) => exerciseCatalog.byId[id]?.name ?? id;
   return (v: v, exact: exact);
 }
 
+/// What "no value" stands for on an axis when a move's other equipment
+/// has that row (D57: no grip width means Medium Grip).
+const _noneMeans = {'width': 'Medium Grip'};
+
 /// The exercise of [g] to show for the chosen [value] on [axis], keeping as
 /// many of [current]'s other modifiers as it can (and its equipment, with
 /// [sameEquip]). Null: no such variant.
+///
+/// Among the exercises with that value, in order:
+/// 1. the most rows the card shows for [current] kept as they are (a tap
+///    never changes a shown row it does not have to);
+/// 2. the most modifiers like the exercise picked last with that
+///    equipment ([ExerciseGroup.recent]), so barbell, dumbbell, barbell
+///    comes back to the same grip width;
+/// 3. no value read as its meaning ([_noneMeans]: from dumbbells, a
+///    barbell press is Medium Grip, not Close Grip);
+/// 4. the most of all [current]'s modifiers kept, then the simplest.
 CatalogExercise? pickVariant(ExerciseGroup g, CatalogExercise current, String axis, String? value, {bool sameEquip = false}) {
+  final shown = {for (final (a, _) in g.axesFor(current)) a.id};
+  final all = [for (final a in modifierAxes) a.id];
+  int same(CatalogExercise v, CatalogExercise? to, Iterable<String> axes) =>
+      to == null ? 0 : axes.where((a) => a != axis && v.mods[a] == to.mods[a]).length;
+  List<int> score(CatalogExercise v) => [
+        same(v, current, shown),
+        same(v, g.recent.where((r) => r.mods['equip'] == v.mods['equip']).firstOrNull, all),
+        _noneMeans.entries.where((e) => current.mods[e.key] == null && v.mods[e.key] == e.value).length,
+        same(v, current, all),
+      ];
   CatalogExercise? best;
-  var bestScore = -1;
+  List<int>? bestScore;
   for (final v in g.variants) {
     if (v.mods[axis] != value) continue;
     if (sameEquip && v.mods['equip'] != current.mods['equip']) continue;
-    var score = 0;
-    for (final a in modifierAxes) {
-      if (a.id != axis && v.mods[a.id] == current.mods[a.id]) score++;
-    }
-    if (score > bestScore) {
+    final s = score(v);
+    if (bestScore == null || _greater(s, bestScore)) {
       best = v;
-      bestScore = score;
+      bestScore = s;
     }
   }
   return best;
+}
+
+bool _greater(List<int> a, List<int> b) {
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return a[i] > b[i];
+  }
+  return false;
 }
 
 // ---------------------------------------------------------------- class

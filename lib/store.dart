@@ -227,7 +227,19 @@ class LogStore extends ChangeNotifier {
     _favorites
       ..clear()
       ..addAll([for (final id in _json(_favoritesKey, const []) as List) if (id is String) id]);
+    _picked.clear();
     _filter = null;
+    _filterLoaded = false;
+    try {
+      final raw = _json(pickedVariantsKey, const {});
+      if (raw is Map) {
+        for (final e in raw.entries) {
+          if (e.key is String && e.value is List) _picked[e.key as String] = [for (final id in e.value as List) if (id is String) id];
+        }
+      }
+    } on FormatException {
+      // A broken value is only UI state: start without picks.
+    }
   }
 
   String get _now => isoNow(_clock());
@@ -352,7 +364,7 @@ class LogStore extends ChangeNotifier {
       _sessions[_today] = t.copyWith(areaId: p.areaId);
       _saveSessions();
     }
-    _filter = null; // the filters go back to the new class and mode
+    _clearFilter(); // the filters go back to the new class and mode
     notifyListeners();
   }
 
@@ -380,15 +392,27 @@ class LogStore extends ChangeNotifier {
     _prefs.setString(_favoritesKey, jsonEncode(_favorites.toList()));
   }
 
-  /// The exercise picked on each card today (in memory): group key -> id.
-  final Map<String, String> _picked = {};
+  /// The exercises picked on each card, the last one first: group key ->
+  /// ids. Kept on the phone, so the exercise picked is still there after
+  /// leaving the workout or the app. UI state only: not in the backup.
+  static const pickedVariantsKey = 'workout_variants_v1';
+  final Map<String, List<String>> _picked = {};
+
+  /// How many picks a card remembers (enough for one per equipment).
+  static const _pickedPerCard = 8;
+
+  /// The exercises picked lately on card [key], the last one first (for
+  /// the modifier chips, [ExerciseGroup.recent]).
+  List<CatalogExercise> recentPicks(String key) =>
+      [for (final id in _picked[key] ?? const <String>[]) if (exerciseCatalog.byId[id] case final e?) e];
 
   /// The exercise to show for card [g] (one of its exercises that pass the
-  /// filters): the one picked, else the one used last today, else the simplest.
+  /// filters): the one picked last that passes, else the one used last
+  /// today, else the simplest.
   CatalogExercise variantFor(ExerciseGroup g) {
     final ids = {for (final v in g.variants) v.id};
-    final picked = _picked[g.key];
-    if (picked != null && ids.contains(picked)) return exerciseCatalog.byId[picked]!;
+    final picked = _picked[g.key]?.where(ids.contains).firstOrNull;
+    if (picked != null) return exerciseCatalog.byId[picked]!;
     final used = todaySession?.exercises.lastWhere((e) => ids.contains(e.exerciseId) && e.sets > 0,
         orElse: () => const SessionExercise(exerciseId: ''));
     if (used != null && used.exerciseId.isNotEmpty) return exerciseCatalog.byId[used.exerciseId]!;
@@ -397,25 +421,70 @@ class LogStore extends ChangeNotifier {
 
   /// A modifier chip picked exercise [id] on its card.
   void pickVariant(String id) {
-    _picked[exerciseCatalog.groupKeyOf(id)] = id;
+    final key = exerciseCatalog.groupKeyOf(id);
+    _picked[key] = [id, ...?_picked[key]?.where((p) => p != id)].take(_pickedPerCard).toList();
+    _prefs.setString(pickedVariantsKey, jsonEncode(_picked));
     notifyListeners();
   }
 
+  /// The last filter choice, kept on the phone (also the next day and after
+  /// closing the app) until RESET TO MINE or a new class or mode. UI state
+  /// only: not in the backup.
+  static const filterKey = 'workout_filter_v1';
   ExerciseFilter? _filter;
-  String? _filterDay;
+  bool _filterLoaded = false;
 
   /// Your class, your mode, all body parts, not only favorites.
   ExerciseFilter get defaultFilter => ExerciseFilter(classId: gameClass.id, difficulty: difficulty);
 
-  /// The workout filters. Each new day starts from [defaultFilter]; in the
-  /// same day the last choice stays (in memory only).
-  ExerciseFilter get filter => (_filterDay == _today ? _filter : null) ?? defaultFilter;
+  /// The workout filters: the last choice, else [defaultFilter].
+  ExerciseFilter get filter {
+    if (!_filterLoaded) {
+      _filterLoaded = true;
+      _filter = _savedFilter();
+    }
+    return _filter ?? defaultFilter;
+  }
+
+  /// The saved choice, checked against the list as it is now: an unknown
+  /// class or difficulty means the defaults; an unknown body part or
+  /// muscle, or one with nothing left, goes back to all.
+  ExerciseFilter? _savedFilter() {
+    final Object? j;
+    try {
+      j = _json(filterKey, const {});
+    } on FormatException {
+      return null;
+    }
+    if (j is! Map) return null;
+    final cls = j['class'], d = j['difficulty'];
+    if (cls is! String || !classEquipment.containsKey(cls) || d is! int || d < 0 || d >= difficulties.length) return null;
+    final body = bodyPartById(j['body'] is String ? j['body'] as String : null);
+    final m = j['muscle'];
+    final muscle = body != null && m is String && body.muscles.contains(m) ? m : null;
+    return ExerciseFilter(classId: cls, difficulty: d, body: body?.id, muscle: muscle, favorites: j['favorites'] == true)
+        .settle(exerciseCatalog, _favorites);
+  }
 
   /// A new choice; a body part or muscle with nothing left goes back to all.
   void setFilter(ExerciseFilter f) {
-    _filter = f.settle(exerciseCatalog, _favorites);
-    _filterDay = _today;
+    final s = _filter = f.settle(exerciseCatalog, _favorites);
+    _filterLoaded = true;
+    _prefs.setString(filterKey, jsonEncode({
+      'class': s.classId,
+      'difficulty': s.difficulty,
+      'body': s.body,
+      'muscle': s.muscle,
+      'favorites': s.favorites,
+    }));
     notifyListeners();
+  }
+
+  /// Back to [defaultFilter], and the saved choice is gone.
+  void _clearFilter() {
+    _filter = null;
+    _filterLoaded = true;
+    _prefs.remove(filterKey);
   }
 
   /// The workout card picked last (a group key), kept on the phone so it is
@@ -428,14 +497,15 @@ class LogStore extends ChangeNotifier {
   }
 
   void resetFilter() {
-    _filter = null;
+    _clearFilter();
     notifyListeners();
   }
 
-  /// The cards the filters show, in carousel order (one per move, D55).
+  /// The cards the filters show, in carousel order (one per move, D55),
+  /// each with the exercises picked on it lately.
   List<ExerciseGroup> get cards {
     _favoritesToMoves();
-    return filter.apply(exerciseCatalog, _favorites);
+    return [for (final g in filter.apply(exerciseCatalog, _favorites)) g.withRecent(recentPicks(g.key))];
   }
 
   // ------------------------------------------------------------- sessions

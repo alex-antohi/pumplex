@@ -484,10 +484,10 @@ void main() {
     expect(store.cards.map((g) => g.key), ['move:push-up']); // the favorite moved to its move
     expect(store.favorites, {'move:push-up'});
     store.toggleFavorite('move:push-up');
-    // A new day starts from the defaults again.
-    store.setFilter(store.filter.withBody('arms'));
+    // The last choice stays the next day too (kept on the phone).
+    store.setFilter(store.filter.copyWith(favorites: false).withBody('arms'));
     _now = _now.add(const Duration(days: 1));
-    expect(store.filter, store.defaultFilter);
+    expect(store.filter.body, 'arms');
   });
 
   test('class, difficulty and area can change; each session keeps its own', () async {
