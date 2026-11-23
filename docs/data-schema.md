@@ -113,9 +113,9 @@ ignores them, and §5.6 drops those old lists.
 | Table | Fields | Notes |
 |---|---|---|
 | Class | `id`, `name`, `equipment` (none / home / free weights / machines); the filter equipment and categories in `lib/game/exercises.dart` (D50) | One class per equipment type. Ids (D31): `scrapper`, `bruiser`, `paladin`, `cablemancer`. Names are working names (D9). |
-| Difficulty | `id`, `name`, `order`, `xpMultiplier`; the hardest exercise level it shows (D51) | 6 levels (D28). Ids: `sofa`, `warmup`, `sweat`, `pain`, `brutal`, `nightmare`. Names are design proposals. No `streakN` (D34). |
+| Difficulty | `id`, `name`, `order`, `xpMultiplier`; the hardest exercise level it shows (D51); which cards it shows is in the exercise list (`unlock`, D67) | 6 levels (D28). Ids: `sofa`, `warmup`, `sweat`, `pain`, `brutal`, `nightmare`. Names are design proposals. No `streakN` (D34). |
 | Area | `id`, `name`, `palette`, `markStyle` (shells, wall marks…) | From the mood board. Ids (D36): `riptide`, `gainsgard`, `rustbelt`, `arcade`, `frostbite`. The id is also the design folder name for the art. |
-| Exercise | `id`, `name`, `category`, `equipment`, `level`, `force`, `mechanic`, `primaryMuscles`; for a move with variations also `base` (the move name) and `mods` (axis → value, D55) | From free-exercise-db (Unlicense), in `assets/exercises/exercises.json` (D50). Id = the database id, for example `Barbell_Squat`. Null equipment = `body only`. |
+| Exercise | `id`, `name`, `category`, `equipment`, `level`, `force`, `mechanic`, `primaryMuscles`; for a move with variations also `base` (the move name) and `mods` (axis → value, D55); `rank` (commonness of the card, 1 = most common) and `unlock` (class id → first difficulty mode 0-5 that shows the card, D67) | From free-exercise-db (Unlicense), in `assets/exercises/exercises.json` (D50): the 292 common exercises (D67). `tools/exercise_select.mjs` writes it from the full list `tools/exercise_db.json` (695). Id = the database id, for example `Barbell_Squat`. Null equipment = `body only`. |
 
 Rule: never reuse or rename an `id`. Saved data points to it.
 The two exceptions are the class id change in D31 and the area id change in D36 (owner decisions).

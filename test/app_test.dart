@@ -245,7 +245,15 @@ void main() {
     expect(difficultyRules.length, difficulties.length);
     expect(gameClasses.map((c) => c.equipment).toSet().length, gameClasses.length);
     final all = exerciseCatalog.all;
-    expect(all.length, 695); // 692 from the database + 3 added bench presses (D57)
+    // The common exercises only (D67), with the 3 added bench presses (D57).
+    expect(all.length, 292);
+    for (final id in [
+      'Incline_Close-Grip_Barbell_Bench_Press',
+      'Incline_Wide-Grip_Barbell_Bench_Press',
+      'Decline_Close-Grip_Barbell_Bench_Press'
+    ]) {
+      expect(exerciseCatalog.byId[id], isNotNull, reason: id);
+    }
     // No stretching, olympic weightlifting, strongman or neck exercises (D56).
     expect(all.where((e) => {'stretching', 'olympic weightlifting', 'strongman'}.contains(e.category) || e.muscle == 'neck'),
         isEmpty);
@@ -266,9 +274,11 @@ void main() {
     expect(exerciseCatalog.byKey['Leg_Press'], isNull); // Leg Press is a move with variations
     // Bands and chains are their own rows.
     final dead = exerciseCatalog.byKey['move:deadlift']!;
-    expect(dead.axes.firstWhere((a) => a.$1.id == 'bands').$2, [null, 'Bands', 'Reverse Bands']);
+    expect(dead.axes.firstWhere((a) => a.$1.id == 'bands').$2, [null, 'Bands']); // no reverse bands (D67)
     expect(dead.axes.firstWhere((a) => a.$1.id == 'chains').$2, [null, 'Chains']);
-    expect(exerciseCatalog.groupKeyOf('Band_Assisted_Pull-Up'), 'move:pull-up');
+    // A move with one exercise left keeps its move key (D67), so favorites stay.
+    expect(exerciseCatalog.groupKeyOf('Pullups'), 'move:pull-up');
+    expect(exerciseCatalog.byKey['move:pull-up']!.name, 'Pull-Up');
     // Bench press (D57): from any barbell press, Flat, bands and chains are
     // reachable; dumbbells have no grip width row; a barbell has no one-arm row.
     final incline = exerciseCatalog.byId['Barbell_Incline_Bench_Press_-_Medium_Grip']!;
@@ -291,12 +301,39 @@ void main() {
     expect(chipTarget(bench, flatBar, 'side', 'One Arm'), isNull);
     // All dips are one move, with a Type row.
     final dip = exerciseCatalog.byKey['move:dip']!;
-    expect(dip.variants.length, 7);
-    expect(dip.axes.firstWhere((a) => a.$1.id == 'type').$2, containsAll(['Chest', 'Triceps', 'Bench']));
+    expect(dip.variants.length, 3); // the dips no class can see are gone (D67)
+    expect(dip.axes.firstWhere((a) => a.$1.id == 'type').$2, containsAll(['Triceps', 'Bench']));
     expect(all.map((e) => e.id).toSet().length, all.length);
     expect(all.every((e) => !e.id.contains('.')), isTrue); // old ids have a dot (D54)
     expect(exerciseCatalog.byId['Pushups']!.equipment, 'body only');
     expect(exerciseName('Leg_Extensions'), 'Leg Extensions');
+    expect(exerciseName('Barbell_Ab_Rollout'), 'Barbell Ab Rollout'); // dropped by D67, still readable
+    // Commonness and modes (D67): every class and mode covers every body
+    // part; each mode shows more cards than the one before, and keeps them.
+    for (final c in gameClasses) {
+      var before = <String>{};
+      for (var d = 0; d < difficulties.length; d++) {
+        final f = ExerciseFilter(classId: c.id, difficulty: d);
+        final cards = f.apply(exerciseCatalog, const {});
+        final keys = cards.map((g) => g.key).toSet();
+        expect(keys.length, greaterThan(before.length), reason: '${c.id} $d');
+        expect(keys.containsAll(before), isTrue, reason: '${c.id} $d');
+        for (final b in bodyParts) {
+          expect(f.countBody(exerciseCatalog, const {}, b.id), greaterThan(0), reason: '${c.id} $d ${b.id}');
+        }
+        before = keys;
+      }
+    }
+    // The class rules of the tool are the app's: a class in `unlock` sees an exercise of the card.
+    for (final g in exerciseCatalog.groups) {
+      for (final c in g.variants.first.unlock.keys) {
+        expect(g.variants.any((e) => classEquipment[c]!.contains(e.equipment) && classCategories[c]!.contains(e.category)),
+            isTrue, reason: '${g.key} $c');
+      }
+    }
+    final ranked = ExerciseFilter(classId: 'paladin', difficulty: 5).apply(exerciseCatalog, const {});
+    expect(ranked.first.key, 'move:bench press'); // the most common card first
+    expect([for (final g in ranked) g.rank], [for (final g in ranked) g.rank]..sort());
     // Every muscle of the list is in exactly one body part (D52).
     for (final m in all.map((e) => e.muscle).toSet()) {
       expect(bodyParts.where((b) => b.muscles.contains(m)).length, 1, reason: m);
@@ -442,10 +479,10 @@ void main() {
     expect(list.every((e) => classEquipment['paladin']!.contains(e.equipment)), isTrue);
     expect(list.every((e) => classCategories['paladin']!.contains(e.category)), isTrue);
     expect(list.any((e) => e.equipment == 'other' || e.equipment == 'foam roll'), isFalse);
-    // Difficulty: Sweat sees beginner and intermediate; harder levels first.
+    // Difficulty: Sweat sees beginner and intermediate; the most common card first (D67).
     expect([for (final d in [0, 1, 2, 3, 4, 5]) topLevelFor(d)], [0, 0, 1, 1, 2, 2]);
     expect(list.every((e) => e.level <= 1), isTrue);
-    expect(cards.first.variants.any((e) => e.level == 1), isTrue);
+    expect(cards.first.key, 'move:bench press');
     expect(f.countDifficulty(exerciseCatalog, const {}, 5), greaterThan(cards.length)); // higher sees lower too
     expect(f.countDifficulty(exerciseCatalog, const {}, _d), cards.length); // counts are cards
     // Body part, then a muscle of it.
@@ -457,10 +494,10 @@ void main() {
     expect(flat(store.cards).every((e) => e.muscle == 'quadriceps'), isTrue);
     expect(store.cards.length, lessThan(legs.length));
     // Cascade: an earlier change that leaves the muscle empty resets it.
-    store.setFilter(const ExerciseFilter(classId: 'scrapper', difficulty: 0, body: 'legs', muscle: 'adductors'));
-    expect(store.filter.muscle, 'adductors'); // Scrapper in Sofa Mode has some
-    expect(store.filter.copyWith(classId: 'paladin').countMuscle(exerciseCatalog, const {}, 'adductors'), 0);
-    store.setFilter(store.filter.copyWith(classId: 'paladin'));
+    store.setFilter(const ExerciseFilter(classId: 'paladin', difficulty: 0, body: 'legs', muscle: 'calves'));
+    expect(store.filter.muscle, 'calves'); // Plate Paladin in Sofa Mode has some
+    expect(store.filter.copyWith(classId: 'scrapper').countMuscle(exerciseCatalog, const {}, 'calves'), 0);
+    store.setFilter(store.filter.copyWith(classId: 'scrapper'));
     expect((store.filter.body, store.filter.muscle), ('legs', null));
     // Favorites: first in the list; the star filter combines with the rest.
     store.resetFilter();

@@ -1,6 +1,8 @@
 // Splits each exercise name into a base move and normalized modifiers (D55)
 // and writes them into assets/exercises/exercises.json. Run it again after
 // editing the list: node tools/exercise_variants.mjs <in.json> --write <out.json> [--report]
+// The full list is tools/exercise_db.json; tools/exercise_select.mjs then cuts
+// it down into assets/exercises/exercises.json (D67).
 import fs from 'node:fs';
 
 const args = process.argv.slice(2);

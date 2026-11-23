@@ -182,8 +182,9 @@ There is no hub screen (D49), no bottom bar and no menu (D59). The app opens on 
 Design: `docs/moodboard/README.md` "Workout screen", with the
 owner's rules ([decisions.md](decisions.md)).
 
-- The exercises come from free-exercise-db (D50): 876 exercises in
-  `assets/exercises/exercises.json`. There is no daily list and there are no targets (D52).
+- The exercises come from free-exercise-db (D50). The app keeps only the common ones (D67): 292
+  exercises in 101 cards, in `assets/exercises/exercises.json`. There is no daily list and there are
+  no targets (D52).
 - **One card** (D48), like the starting-area card. No header.
 - **The world** on top of the card: see "World scene" below. It adds sets to the exercise shown
   under it.
@@ -196,9 +197,11 @@ owner's rules ([decisions.md](decisions.md)).
   - When an earlier filter leaves the body part or muscle with no exercises, it goes back to all.
   - The star tag shows favorites only (D53), combined with the other filters.
   - A new day starts from the defaults; in the same day the last choice stays.
-  - Rules in `lib/game/exercises.dart`: the class uses equipment, then category (D50); the mode
-    shows levels up to its own (Sofa, Warm-up: beginner; Sweat, Pain: + intermediate; Brutal,
-    Nightmare: + expert); body parts group the 17 muscles in 6 (D52).
+  - Rules in `lib/game/exercises.dart`: the class uses equipment, then category (D50); each mode
+    shows more cards than the one before, and every mode has every body part (D67: 15 or 16 cards in
+    Sofa, up to 42-59 in Nightmare); inside a card, the mode shows levels up to its own (Sofa,
+    Warm-up: beginner; Sweat, Pain: + intermediate; Brutal, Nightmare: + expert); body parts group
+    the muscles in 6 (D52).
 - **Moves** (D55): exercises that are one move with different equipment, angle, grip and so on share one
   card. Under the name, the card shows the exercise picked (its database name) and one chip row per way
   the move's exercises differ (EQUIPMENT, ANGLE, GRIP WIDTH, GRIP, STANCE, ARMS / LEGS, POSITION,
@@ -206,11 +209,11 @@ owner's rules ([decisions.md](decisions.md)).
   card starts on the exercise picked today, else the one used last today, else the simplest. Sets,
   the set marks and the 10-set XP cap count per card.
 - **Exercise carousel** under them: one card at a time from the filtered list, sorted:
-  favorites, then the hardest level first, compound before isolation, then by name. So the first
-  card is a favorite (D53). The card shows the name, a **star button** (favorite on / off), the
+  favorites, then the most common first (D67), then by name. So the first card is a favorite
+  (D53). The card shows the name, a **star button** (favorite on / off), the
   muscle, level and equipment, today's sets as Xs (rarity colours, +n after 10) and "n SETS · +XP"
   (or NO SETS YET). Swipe left for the next exercise, right for the one before, round and round.
-  A counter (`12 / 437`) shows where you are.
+  A counter (`12 / 44`) shows where you are.
 - If nothing passes the filters, the card says so and offers RESET TO MINE.
 - **No tools:** no swap, skip, remove or add. To skip an exercise, swipe past it.
 - **World scene:** the area's scene from the design PNG layers, with the lifter and the area's object.
