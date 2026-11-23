@@ -227,14 +227,34 @@ class ExerciseCatalog {
   String groupKeyOf(String id) =>
       _groupOf[id]?.key ?? (byKey.containsKey(id) ? id : _groupOf[movedMoves[id]]?.key ?? id);
 
-  /// Old move keys -> the exercise whose move now holds them (D69 clean-up).
-  /// Cards that were one exercise had the exercise id as key, so they
-  /// follow without an entry here.
+  /// Old move keys -> the exercise whose move now holds them (D69 clean-up
+  /// and the variation audit). Cards that were one exercise had the
+  /// exercise id as key, so they follow without an entry here. Favorites
+  /// are per card; D72 makes them per variant later (not built yet).
   static const movedMoves = {
     'move:row': 'One-Arm_Dumbbell_Row',
     'move:bent over row': 'Bent_Over_Barbell_Row',
     'move:bent over long bar row': 'Bent_Over_Two-Arm_Long_Bar_Row',
     'move:rear lateral raise': 'Dumbbell_Lying_Rear_Lateral_Raise',
+    // The variation audit: merged moves.
+    'move:chin-up': 'Chin-Up',
+    'move:butterfly': 'Butterfly',
+    'move:low cable crossover': 'Low_Cable_Crossover',
+    'move:sumo squat': 'Plie_Dumbbell_Squat',
+    'move:power clean': 'Power_Clean',
+    'move:leg press calf raise': 'Calf_Press_On_The_Leg_Press_Machine',
+    'move:rocking calf raise': 'Rocking_Standing_Calf_Raise',
+    'move:walking lunge': 'Barbell_Walking_Lunge',
+    'move:stiff-legged deadlift': 'Stiff-Legged_Barbell_Deadlift',
+    'move:bulgarian split squat': 'Bodyweight_Bulgarian_Split_Squat',
+    'move:straight-arm pullover': 'Straight-Arm_Dumbbell_Pullover',
+    'move:bent-arm pullover': 'Bent-Arm_Barbell_Pullover',
+    'move:plyo push-up': 'Plyo_Push-up',
+    'move:bodyweight triceps extension': 'Body_Tricep_Press',
+    'move:towel row': 'Towel_Row',
+    'move:feet-elevated inverted row': 'Feet-Elevated_Inverted_Row',
+    'move:one-arm inverted row': 'One-Arm_Inverted_Row',
+    'move:glute-ham raise': 'Floor_Glute-Ham_Raise',
   };
 
   static const asset = 'assets/exercises/exercises.json';
