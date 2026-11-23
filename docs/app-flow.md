@@ -189,10 +189,11 @@ owner's rules ([decisions.md](decisions.md)).
   under it.
 - **Filter tags** between the world and the carousel (D49, D51): CLASS, DIFFICULTY, BODY PART
   (or the muscle picked) and a star tag. Defaults: your class, your mode, ALL BODY PARTS, star off.
-  - A tap on CLASS, DIFFICULTY or BODY PART opens the **filter sheet** at that section. Sections:
-    Class, Difficulty, Body part, and Muscle (only when a body part is picked). Each chip shows how
-    many exercises it gives, counted with the earlier filters only. A chip with 0 is greyed out.
-    Changes apply at once. RESET TO MINE goes back to the defaults; SHOW n EXERCISES closes it.
+  - A tap on CLASS, DIFFICULTY or BODY PART opens a **filter sheet** with only that tag's options
+    (D67): CLASS the classes, DIFFICULTY the modes, BODY PART the body parts and the muscles of the
+    part picked. Each chip shows how many exercises it gives, counted with the earlier filters only.
+    A chip with 0 is greyed out. Changes apply at once. RESET TO MINE puts back only that tag (your
+    class, your mode, all body parts); SHOW n EXERCISES closes it.
   - When an earlier filter leaves the body part or muscle with no exercises, it goes back to all.
   - The star tag shows favorites only (D53), combined with the other filters.
   - A new day starts from the defaults; in the same day the last choice stays.

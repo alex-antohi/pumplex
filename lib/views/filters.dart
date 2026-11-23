@@ -1,9 +1,10 @@
-// The filter sheet of the workout (D51-D53). A tap on the CLASS,
-// DIFFICULTY or BODY PART tag opens it at that section. The sections
-// cascade: each chip shows how many exercises it gives, counted with the
-// filters before it only; a chip with 0 is greyed out. Changes apply at
-// once; SHOW N EXERCISES closes the sheet, RESET TO MINE goes back to your
-// class, your mode and all body parts.
+// The filter sheet of the workout (D51-D53, D67). A tap on the CLASS,
+// DIFFICULTY or BODY PART tag opens a sheet with only that tag's options
+// (BODY PART also shows the muscles of the part picked). Each chip shows
+// how many exercises it gives, counted with the earlier filters only; a
+// chip with 0 is greyed out. Changes apply at once; SHOW N EXERCISES
+// closes the sheet, RESET TO MINE puts that tag back to yours (your class,
+// your mode, all body parts).
 
 import 'package:flutter/material.dart';
 
@@ -38,18 +39,6 @@ class FilterSheet extends StatefulWidget {
 }
 
 class _FilterSheetState extends State<FilterSheet> {
-  final _keys = {for (final s in FilterSection.values) s: GlobalKey()};
-
-  @override
-  void initState() {
-    super.initState();
-    // Open at the section of the tag that was tapped.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final c = _keys[widget.at]!.currentContext;
-      if (c != null && c.mounted) Scrollable.ensureVisible(c, duration: const Duration(milliseconds: 200));
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
@@ -63,6 +52,14 @@ class _FilterSheetState extends State<FilterSheet> {
         final part = bodyPartById(f.body);
         final total = store.cards.length;
         void set(ExerciseFilter n) => store.setFilter(n);
+        final at = widget.at;
+        final mine = store.defaultFilter;
+        // RESET TO MINE: only the tag this sheet is for (D67).
+        void reset() => set(switch (at) {
+          FilterSection.classes => f.copyWith(classId: mine.classId),
+          FilterSection.difficulty => f.copyWith(difficulty: mine.difficulty),
+          FilterSection.body => f.withBody(mine.body),
+        });
         return ConstrainedBox(
           constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.85),
           child: SafeArea(
@@ -77,68 +74,84 @@ class _FilterSheetState extends State<FilterSheet> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _Section(key: _keys[FilterSection.classes], title: 'Class', children: [
-                          for (final c in gameClasses)
-                            _Chip(
-                              id: 'chip-class-${c.id}',
-                              label: c.name,
-                              count: f.countClass(cat, favs, c.id),
-                              selected: f.classId == c.id,
-                              color: classColor(p, c.id),
-                              onTap: () => set(f.copyWith(classId: c.id)),
-                            ),
-                        ]),
-                        _Section(key: _keys[FilterSection.difficulty], title: 'Difficulty', children: [
-                          for (final (i, d) in difficulties.indexed)
-                            _Chip(
-                              id: 'chip-difficulty-${d.id}',
-                              label: d.name,
-                              count: f.countDifficulty(cat, favs, i),
-                              selected: f.difficulty == i,
-                              color: difficultyColor(p, i),
-                              onTap: () => set(f.copyWith(difficulty: i)),
-                            ),
-                        ]),
-                        _Section(key: _keys[FilterSection.body], title: 'Body part', children: [
-                          _Chip(
-                            id: 'chip-body-all',
-                            label: 'All',
-                            count: f.countBody(cat, favs, null),
-                            selected: f.body == null,
-                            color: p.sky,
-                            onTap: () => set(f.withBody(null)),
+                        // Only the options of the tag that was tapped (D67).
+                        if (at == FilterSection.classes)
+                          _Section(
+                            title: 'Class',
+                            children: [
+                              for (final c in gameClasses)
+                                _Chip(
+                                  id: 'chip-class-${c.id}',
+                                  label: c.name,
+                                  count: f.countClass(cat, favs, c.id),
+                                  selected: f.classId == c.id,
+                                  color: classColor(p, c.id),
+                                  onTap: () => set(f.copyWith(classId: c.id)),
+                                ),
+                            ],
                           ),
-                          for (final b in bodyParts)
-                            _Chip(
-                              id: 'chip-body-${b.id}',
-                              label: b.name,
-                              count: f.countBody(cat, favs, b.id),
-                              selected: f.body == b.id,
-                              color: p.sky,
-                              onTap: () => set(f.withBody(b.id)),
-                            ),
-                        ]),
-                        // The muscles of the body part picked.
-                        if (part != null)
-                          _Section(title: 'Muscle', children: [
-                            _Chip(
-                              id: 'chip-muscle-all',
-                              label: 'All ${part.name}',
-                              count: f.countMuscle(cat, favs, null),
-                              selected: f.muscle == null,
-                              color: p.violet,
-                              onTap: () => set(f.withMuscle(null)),
-                            ),
-                            for (final m in part.muscles)
+                        if (at == FilterSection.difficulty)
+                          _Section(
+                            title: 'Difficulty',
+                            children: [
+                              for (final (i, d) in difficulties.indexed)
+                                _Chip(
+                                  id: 'chip-difficulty-${d.id}',
+                                  label: d.name,
+                                  count: f.countDifficulty(cat, favs, i),
+                                  selected: f.difficulty == i,
+                                  color: difficultyColor(p, i),
+                                  onTap: () => set(f.copyWith(difficulty: i)),
+                                ),
+                            ],
+                          ),
+                        if (at == FilterSection.body)
+                          _Section(
+                            title: 'Body part',
+                            children: [
                               _Chip(
-                                id: 'chip-muscle-$m',
-                                label: m,
-                                count: f.countMuscle(cat, favs, m),
-                                selected: f.muscle == m,
-                                color: p.violet,
-                                onTap: () => set(f.withMuscle(m)),
+                                id: 'chip-body-all',
+                                label: 'All',
+                                count: f.countBody(cat, favs, null),
+                                selected: f.body == null,
+                                color: p.sky,
+                                onTap: () => set(f.withBody(null)),
                               ),
-                          ]),
+                              for (final b in bodyParts)
+                                _Chip(
+                                  id: 'chip-body-${b.id}',
+                                  label: b.name,
+                                  count: f.countBody(cat, favs, b.id),
+                                  selected: f.body == b.id,
+                                  color: p.sky,
+                                  onTap: () => set(f.withBody(b.id)),
+                                ),
+                            ],
+                          ),
+                        // The muscles of the body part picked.
+                        if (at == FilterSection.body && part != null)
+                          _Section(
+                            title: 'Muscle',
+                            children: [
+                              _Chip(
+                                id: 'chip-muscle-all',
+                                label: 'All ${part.name}',
+                                count: f.countMuscle(cat, favs, null),
+                                selected: f.muscle == null,
+                                color: p.violet,
+                                onTap: () => set(f.withMuscle(null)),
+                              ),
+                              for (final m in part.muscles)
+                                _Chip(
+                                  id: 'chip-muscle-$m',
+                                  label: m,
+                                  count: f.countMuscle(cat, favs, m),
+                                  selected: f.muscle == m,
+                                  color: p.violet,
+                                  onTap: () => set(f.withMuscle(m)),
+                                ),
+                            ],
+                          ),
                       ],
                     ),
                   ),
@@ -151,7 +164,7 @@ class _FilterSheetState extends State<FilterSheet> {
                         key: const ValueKey('filter-reset'),
                         small: true,
                         color: p.sky,
-                        onTap: store.resetFilter,
+                        onTap: reset,
                         child: const Text('RESET TO MINE'),
                       ),
                       const SizedBox(width: 12),
@@ -176,7 +189,7 @@ class _FilterSheetState extends State<FilterSheet> {
 }
 
 class _Section extends StatelessWidget {
-  const _Section({super.key, required this.title, required this.children});
+  const _Section({required this.title, required this.children});
 
   final String title;
   final List<Widget> children;

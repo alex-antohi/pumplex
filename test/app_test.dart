@@ -995,11 +995,13 @@ void main() {
     expect(t.takeException(), isNull);
   });
 
-  testWidgets('workout: a filter tag opens the sheet; chips cascade and show counts', (t) async {
+  testWidgets('workout: a filter tag opens only its options; chips cascade and show counts', (t) async {
     final (store, _) = await _openApp(t);
     await t.tap(find.byKey(const ValueKey('filter-body')));
     await _frames(t, 10);
-    expect(find.byKey(const ValueKey('chip-class-paladin')), findsOneWidget);
+    // BODY PART shows only body parts (and muscles), no class or difficulty (D67).
+    expect(find.byKey(const ValueKey('chip-class-paladin')), findsNothing);
+    expect(find.byKey(const ValueKey('chip-difficulty-brutal')), findsNothing);
     await t.tap(find.byKey(const ValueKey('chip-body-legs')));
     await _frames(t, 4);
     expect(store.filter.body, 'legs');
@@ -1009,7 +1011,13 @@ void main() {
     expect(store.filter.muscle, 'quadriceps');
     final n = store.cards.length;
     expect(find.text('SHOW $n EXERCISES'), findsOneWidget);
-    await t.ensureVisible(find.byKey(const ValueKey('chip-difficulty-brutal')));
+    await t.tap(find.byKey(const ValueKey('filter-show')));
+    await _frames(t, 20);
+    // DIFFICULTY shows only the modes.
+    await t.tap(find.byKey(const ValueKey('filter-difficulty')));
+    await _frames(t, 10);
+    expect(find.byKey(const ValueKey('chip-body-legs')), findsNothing);
+    expect(find.byKey(const ValueKey('chip-class-paladin')), findsNothing);
     await t.tap(find.byKey(const ValueKey('chip-difficulty-brutal')));
     await _frames(t, 4);
     expect(store.filter.difficulty, 4);
@@ -1020,12 +1028,19 @@ void main() {
     expect(find.descendant(of: find.byKey(const ValueKey('filter-body')), matching: find.text('QUADRICEPS')), findsOneWidget);
     expect(find.descendant(of: find.byKey(const ValueKey('filter-difficulty')), matching: find.text('BRUTAL MODE')), findsOneWidget);
     expect(store.cards.every((g) => g.variants.every((e) => e.muscle == 'quadriceps')), isTrue);
-    // RESET TO MINE in the sheet.
-    await t.tap(find.byKey(const ValueKey('filter-class')));
+    // RESET TO MINE resets only that tag: here the body part, not the difficulty.
+    await t.tap(find.byKey(const ValueKey('filter-body')));
     await _frames(t, 10);
     await t.tap(find.byKey(const ValueKey('filter-reset')));
     await _frames(t, 4);
-    expect(store.filter, store.defaultFilter);
+    expect((store.filter.body, store.filter.muscle, store.filter.difficulty), (store.defaultFilter.body, null, 4));
+    await t.tap(find.byKey(const ValueKey('filter-show')));
+    await _frames(t, 20);
+    // CLASS shows only the classes.
+    await t.tap(find.byKey(const ValueKey('filter-class')));
+    await _frames(t, 10);
+    expect(find.byKey(const ValueKey('chip-class-paladin')), findsOneWidget);
+    expect(find.byKey(const ValueKey('chip-difficulty-brutal')), findsNothing);
     expect(t.takeException(), isNull);
   });
 
