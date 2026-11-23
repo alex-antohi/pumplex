@@ -413,7 +413,7 @@ class _GameShellState extends State<GameShell> {
       HapticFeedback.heavyImpact();
       _showIntro((
         title: 'LEVEL $after',
-        subtitle: levelUpLines[after % levelUpLines.length],
+        subtitle: '', // only LEVEL n (D68)
         color: Pal.of(context).pink,
       ));
     }

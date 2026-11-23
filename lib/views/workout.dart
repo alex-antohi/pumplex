@@ -393,8 +393,6 @@ class _ExerciseText extends StatelessWidget {
   final VoidCallback onStar;
   final ValueChanged<String> onPick;
 
-  /// Marks drawn before "+n".
-  static const _maxMarks = 10;
 
   @override
   Widget build(BuildContext context) {
@@ -434,26 +432,7 @@ class _ExerciseText extends StatelessWidget {
               ),
             ],
           ),
-          if (full.variants.length > 1)
-            Text(v.name.toUpperCase(), key: const ValueKey('exercise-variant'), style: display(15, p.orange)),
-          const SizedBox(height: 6),
-          if (sets > 0)
-            Wrap(
-              spacing: 4,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                for (var k = 0; k < min(sets, _maxMarks); k++)
-                  Text('X',
-                      style: display(30, rarity(p, k)).copyWith(shadows: [Shadow(offset: const Offset(2, 2), color: p.ink)])),
-                if (sets > _maxMarks) Text('+${sets - _maxMarks}', style: display(26, p.ink)),
-              ],
-            ),
-          const SizedBox(height: 4),
-          Text(
-            sets == 0 ? 'NO SETS YET' : '$sets ${sets == 1 ? 'SET' : 'SETS'} · +$xp XP',
-            key: const ValueKey('workout-line'),
-            style: mono(13, p.ink),
-          ),
+          // No subtitle and no sets here (D68): the sets show in the world.
           // Modifiers: equipment first, then one row per way the exercises
           // with this equipment differ (D57).
           for (final (axis, values) in full.axesFor(v)) ...[

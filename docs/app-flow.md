@@ -110,7 +110,7 @@ screen. There they have no BACK / NEXT and every change saves at once. BACK / NE
      | Lots of free weights | Plate Paladin | `paladin` | lime |
      | Lots of machines | Cablemancer | `cablemancer` | violet |
 
-   - **Difficulty** (D47): a slider under the dots, 6 stops, the mode name above it on the right in
+   - **Difficulty** (D47, D68): a card under the dots with a slider (6 stops), who the mode is for under it, and the mode name above it on the right in
      its rarity colour. No ladder and no freeze-frame card. Names in `lib/game/content.dart`:
      Sofa, Warm-up, Sweat, Pain, Brutal, Nightmare Mode (D28). Ids: `sofa`, `warmup`, `sweat`,
      `pain`, `brutal`, `nightmare`. The numbers per mode are in `lib/game/rules.dart` (XP) and `lib/game/exercises.dart` (levels):
@@ -191,8 +191,8 @@ owner's rules ([decisions.md](decisions.md)).
   (or the muscle picked) and a star tag. Defaults: your class, your mode, ALL BODY PARTS, star off.
   - A tap on CLASS, DIFFICULTY or BODY PART opens a **filter sheet** with only that tag's options
     (D67): CLASS the classes, DIFFICULTY the modes, BODY PART the body parts and the muscles of the
-    part picked. Each chip shows how many exercises it gives, counted with the earlier filters only.
-    A chip with 0 is greyed out. Changes apply at once. RESET TO MINE puts back only that tag (your
+    part picked. The chips show no numbers (D68); a chip that gives no exercises (counted with the
+    earlier filters only) is greyed out. Changes apply at once. RESET TO MINE puts back only that tag (your
     class, your mode, all body parts); SHOW n EXERCISES closes it.
   - When an earlier filter leaves the body part or muscle with no exercises, it goes back to all.
   - The star tag shows favorites only (D53), combined with the other filters.
@@ -208,9 +208,8 @@ owner's rules ([decisions.md](decisions.md)).
   the set marks and the 10-set XP cap count per card.
 - **Exercise carousel** under them: one card at a time from the filtered list, sorted:
   favorites, then the hardest level first, compound before isolation, then by name. So the first
-  card is a favorite (D53). The card shows the name, a **star button** (favorite on / off), the
-  muscle, level and equipment, today's sets as Xs (rarity colours, +n after 10) and "n SETS · +XP"
-  (or NO SETS YET). Swipe left for the next exercise, right for the one before, round and round.
+  card is a favorite (D53). The card shows the name, a **star button** (favorite on / off) and the
+  modifier chips. No subtitle and no sets on the card (D68): the sets show in the world. Swipe left for the next exercise, right for the one before, round and round.
   A counter (`12 / 437`) shows where you are.
 - If nothing passes the filters, the card says so and offers RESET TO MINE.
 - **No tools:** no swap, skip, remove or add. To skip an exercise, swipe past it.
@@ -219,7 +218,9 @@ owner's rules ([decisions.md](decisions.md)).
   - HOLD THE OBJECT: take the last set back.
   - Each set plays the object's hit frames and shakes the scene in hard steps (320 ms). A starburst
     says "+1 SET", or the area's stamp on every 5th set. There is no CRUSHED (D52).
-  - The marks stay in the world, in the area's mark style, in groups of five.
+  - The marks stay in the world, in the area's mark style, in groups of five. Once every mark spot is
+    used, the marks start again at the first spot in a new colour per lap (sky, lime, orange, violet),
+    and the number of sets shows in the top corner of the world (D68).
   - The carousel never moves on by itself.
 - **Over the sky:** the area's tap hint.
 - **Tip:** on the first workout, until the first set, a tag says "Only working sets count".
@@ -247,7 +248,7 @@ The numbers come from [rules.md](rules.md) (draft v1). They are all in `lib/game
   Legacy XP and the old streak and achievement XP are saved XP events.
 - Level curve (Habitica): 25 × L for levels 1–4, 150 at level 5, then
   round((0.25 L² + 10 L + 139.75) / 10) × 10. Level 30 needs 660 (D19: the formula wins).
-- A level-up shows the freeze-frame intro card ("LEVEL n" and a joke line).
+- A level-up shows the freeze-frame intro card with only "LEVEL n" (no joke line, D68).
 - A level gives only the level and its title. There is no gear (D38) and there are no achievements (D35).
 - Not built yet (later in rules.md): mastery stars, the difficulty climb, character stats,
   bounties, new game+. Embers are part of the streak, so they are gone (D34).

@@ -1,8 +1,8 @@
 // The filter sheet of the workout (D51-D53, D67). A tap on the CLASS,
 // DIFFICULTY or BODY PART tag opens a sheet with only that tag's options
-// (BODY PART also shows the muscles of the part picked). Each chip shows
-// how many exercises it gives, counted with the earlier filters only; a
-// chip with 0 is greyed out. Changes apply at once; SHOW N EXERCISES
+// (BODY PART also shows the muscles of the part picked). A chip that gives
+// no exercises (counted with the earlier filters only) is greyed out; the
+// chips show no numbers (D68). Changes apply at once; SHOW N EXERCISES
 // closes the sheet, RESET TO MINE puts that tag back to yours (your class,
 // your mode, all body parts).
 
@@ -251,9 +251,8 @@ class _Chip extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // No number on the chip (D68); it is still greyed out at 0.
                 Text(label.toUpperCase(), style: display(14, fg)),
-                const SizedBox(width: 6),
-                Text('$count', style: mono(11, fg)),
               ],
             ),
           ),

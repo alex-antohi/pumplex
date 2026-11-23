@@ -13,6 +13,7 @@ import 'package:gym_app/game/rules.dart';
 import 'package:gym_app/main.dart';
 import 'package:gym_app/pumplex.dart';
 import 'package:gym_app/store.dart';
+import 'package:gym_app/views/area_scene.dart';
 import 'package:gym_app/views/scene.dart';
 import 'package:gym_app/views/sprite.dart';
 import 'package:gym_app/views/workout.dart';
@@ -836,7 +837,7 @@ void main() {
     expect(find.text('I WORKED 💪'), findsNothing);
     final firstCard = store.cards.first;
     final first = store.variantFor(firstCard).id;
-    expect(find.text('NO SETS YET'), findsOneWidget);
+    expect(find.text('NO SETS YET'), findsNothing); // no sets on the card (D68): they show in the world
 
     final card = find.byKey(const ValueKey('world-object'));
     await t.tap(card);
@@ -860,7 +861,7 @@ void main() {
     await t.longPress(card);
     await _frames(t, 70);
     expect(store.setsToday(first), 5);
-    expect(find.textContaining('5 SETS · +${store.groupXpToday(firstCard.key)} XP'), findsOneWidget);
+    expect(find.textContaining('SETS · +'), findsNothing); // no set line on the card (D68)
 
     expect(find.text('KEEP GOING'), findsNothing); // no hub (D49)
     expect(store.todaySession!.totalSets, 5);
@@ -898,7 +899,7 @@ void main() {
     expect(find.text('1 / ${list.length}'), findsOneWidget); // a counter, not dots
     expect(find.byKey(const ValueKey('exercise-dot-0')), findsNothing);
     // Up / down does nothing to the exercise carousel (D65).
-    final before = t.getRect(find.byKey(const ValueKey('workout-line')));
+    final before = t.getRect(find.byKey(const ValueKey('favorite-star')));
     await t.drag(find.byKey(const ValueKey('exercise-card')), const Offset(0, -200));
     await _frames(t, 10);
     expect(find.byKey(ValueKey('exercise-${list[0].key}')), findsOneWidget);
@@ -906,7 +907,7 @@ void main() {
     await t.fling(find.byKey(const ValueKey('exercise-card')), const Offset(-60, -260), 1200);
     await _frames(t, 10);
     expect(find.byKey(ValueKey('exercise-${list[0].key}')), findsOneWidget);
-    expect(t.getRect(find.byKey(const ValueKey('workout-line'))), before);
+    expect(t.getRect(find.byKey(const ValueKey('favorite-star'))), before);
     // Filter tags with the defaults (D49).
     expect(find.descendant(of: find.byKey(const ValueKey('filter-class')), matching: find.text('PLATE PALADIN')), findsOneWidget);
     expect(find.descendant(of: find.byKey(const ValueKey('filter-difficulty')), matching: find.text('SWEAT MODE')), findsOneWidget);
@@ -951,7 +952,7 @@ void main() {
       await _frames(t, 8);
     }
     expect(find.text('BENCH PRESS'), findsOneWidget);
-    expect(find.byKey(const ValueKey('exercise-variant')), findsOneWidget);
+    expect(find.byKey(const ValueKey('exercise-variant')), findsNothing); // no subtitle (D68)
     // Rows for equipment and angle; no Smith machine for a Paladin (greyed).
     expect(find.text('EQUIPMENT'), findsOneWidget);
     expect(find.text('ANGLE'), findsOneWidget);
@@ -961,7 +962,7 @@ void main() {
     await _frames(t, 6);
     final picked = store.variantFor(store.cards.firstWhere((g) => g.key == 'move:bench press'));
     expect(picked.mods['angle'], 'Incline');
-    expect(find.text(picked.name.toUpperCase()), findsOneWidget);
+    expect(find.text(picked.name.toUpperCase()), findsNothing); // no variant subtitle (D68): the chips show it
     // The world adds the set to the exercise picked.
     await t.tap(find.byKey(const ValueKey('world-object')));
     await _frames(t, 70);
@@ -992,6 +993,43 @@ void main() {
     await t.tap(find.byKey(const ValueKey('filter-reset-empty')));
     await _frames(t, 10);
     expect(store.filter, store.defaultFilter);
+    expect(t.takeException(), isNull);
+  });
+
+  test('marks (D68): a spot holds the newest set on it; laps start again at the first spot', () {
+    // 10 spots: sets 1-10 are lap 0; set 11 lands on spot 0 in lap 1.
+    expect([for (var i = 0; i < 3; i++) markLap(i, 10, 10)], [0, 0, 0]);
+    expect([for (var i = 0; i < 3; i++) markLap(i, 12, 10)], [1, 1, 0]);
+    expect(markLap(0, 21, 10), 2);
+    expect(markLap(5, 3, 10), 0); // no set there yet
+  });
+
+  testWidgets('D68: many sets show their number in the world; chips have no numbers; difficulty card', (t) async {
+    final (store, _) = await _openApp(t);
+    final first = store.variantFor(store.cards.first).id;
+    for (var i = 0; i < 25; i++) {
+      store.addSet(first);
+    }
+    await _frames(t, 10);
+    final spots = find.byKey(const ValueKey('scene-count'));
+    if (store.profile!.areaId != 'arcade') {
+      expect(spots, findsOneWidget);
+      expect(find.descendant(of: spots, matching: find.text('25 SETS')), findsOneWidget);
+    }
+    // The filter chips show no numbers.
+    await t.tap(find.byKey(const ValueKey('filter-class')));
+    await _frames(t, 10);
+    final chip = find.byKey(const ValueKey('chip-class-paladin'));
+    expect(find.descendant(of: chip, matching: find.byWidgetPredicate((w) => w is Text && RegExp(r'^\d+$').hasMatch(w.data ?? ''))), findsNothing);
+    await t.tap(find.byKey(const ValueKey('filter-show')));
+    await _frames(t, 20);
+    // The class screen: the difficulty in a card with who it is for.
+    await t.tap(find.byKey(const ValueKey('workout-character')));
+    await _frames(t, 20);
+    await t.fling(find.byKey(const ValueKey('lifter-editor')), const Offset(0, -300), 1000);
+    await _frames(t, 20);
+    expect(find.byKey(const ValueKey('difficulty-card')), findsOneWidget);
+    expect(find.text(difficulties[store.difficulty].line), findsOneWidget);
     expect(t.takeException(), isNull);
   });
 
@@ -1114,6 +1152,9 @@ void main() {
     expect(level, greaterThan(1));
     expect(find.byKey(const ValueKey('intro-card')), findsOneWidget);
     expect(find.text('LEVEL $level'), findsOneWidget);
+    for (final line in levelUpLines) {
+      expect(find.text(line.toUpperCase()), findsNothing); // no joke line (D68)
+    }
     await _frames(t, 70);
     expect(find.byKey(const ValueKey('intro-card')), findsNothing);
     expect(find.byKey(const ValueKey('hub-gear')), findsNothing); // no gear (D38)

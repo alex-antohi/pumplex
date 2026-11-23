@@ -274,7 +274,7 @@ class _LookButton extends StatelessWidget {
 
 /// Room under the class card: the dots row, the difficulty slider and the
 /// BACK / NEXT row.
-const _classDotsHeight = 30.0, _classDifficultyHeight = 74.0, _classNavHeight = 92.0;
+const _classDotsHeight = 30.0, _classDifficultyHeight = 128.0, _classNavHeight = 92.0;
 
 /// Top of the setup cards (class, area): no title block above them.
 const _setupCardTop = 8.0;
@@ -391,13 +391,19 @@ class _ClassViewState extends State<ClassView> with SwipeCarousel<ClassView> {
               onTap: jump,
             ),
           ),
-          // Difficulty (D47): 6 modes, the current one named on the right.
+          // Difficulty (D47): 6 modes, the current one named on the right. In a
+          // card, with who the mode is for under the slider (D68).
           Positioned(
             left: 16,
             right: 22,
             top: card.bottom + _classDotsHeight,
-            height: _classDifficultyHeight,
-            child: Column(
+            height: _classDifficultyHeight - 8,
+            child: Brutal(
+              key: const ValueKey('difficulty-card'),
+              shadow: dColor,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+                child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
@@ -432,7 +438,16 @@ class _ClassViewState extends State<ClassView> with SwipeCarousel<ClassView> {
                     onChanged: (v) => widget.onDifficulty(difficulties[v.round()].id),
                   ),
                 ),
+                Text(
+                  difficulties[di].line,
+                  key: const ValueKey('difficulty-line'),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: mono(11.5, p.ink),
+                ),
               ],
+            ),
+              ),
             ),
           ),
           if (widget.buttons)

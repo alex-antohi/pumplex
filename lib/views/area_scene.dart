@@ -24,6 +24,19 @@ const markLadder = [
   Color(0xFFFF5FB0),
 ];
 
+/// Mark colours once every mark spot is used (D68): the marks start again
+/// at the first spot, one colour per lap, so the new sets stand out.
+const markLaps = [
+  Color(0xFF3FD2FF),
+  Color(0xFFC6FF3D),
+  Color(0xFFFFA033),
+  Color(0xFFA77BFF),
+];
+
+/// The lap of the set shown at mark spot [i] with [count] sets and [spots]
+/// spots: 0 for the first round, 1 once the marks start again, and so on.
+int markLap(int i, int count, int spots) => count <= i ? 0 : (count - 1 - i) ~/ spots;
+
 /// The biggest whole-number scale at which the scene fits in [box] (min 1).
 int sceneScale(Size box) => max(1, min(box.width / sceneSize.width, box.height / sceneSize.height).floor());
 
@@ -183,10 +196,12 @@ class _AreaSceneState extends State<AreaScene> with SingleTickerProviderStateMix
         final shakeStep = ms < 320 ? (ms / (320 / 6)).floor() : -1;
         final shake = shakeStep < 0 ? 0.0 : (shakeStep.isEven ? 2.0 : -2.0) * s;
 
-        final n = min(widget.count, a.markPositions.length);
-        final newest = _played && ms < 220 ? n - 1 : -1;
+        // Every spot holds the newest set that landed on it (D68).
+        final spots = a.markPositions.length;
+        final n = min(widget.count, spots);
+        final newest = _played && ms < 220 && widget.count > 0 ? (widget.count - 1) % spots : -1;
         final marks = <Widget>[
-          for (var i = 0; i < n; i++) _mark(i, newest == i ? ms : null),
+          for (var i = 0; i < n; i++) _mark(i, newest == i ? ms : null, markLap(i, widget.count, spots)),
         ];
         final fifth = widget.count > 0 && widget.count % 5 == 0;
         final fx = _frameAt(fifth && a.fx5.isNotEmpty ? a.fx5 : a.fx, ms);
@@ -237,6 +252,18 @@ class _AreaSceneState extends State<AreaScene> with SingleTickerProviderStateMix
                       ),
                     ),
                   if (a.marksOverObject) ...marks,
+                  // More sets than mark spots: the number of sets (D68).
+                  if (widget.count > spots && a.ledRect == null)
+                    Positioned(
+                      right: 4 * s,
+                      top: 4 * s,
+                      child: Container(
+                        key: const ValueKey('scene-count'),
+                        padding: EdgeInsets.symmetric(horizontal: 3 * s, vertical: 1 * s),
+                        color: kNight,
+                        child: Text('${widget.count} SETS', style: display(7 * s, markLaps[(markLap(0, widget.count, spots) - 1) % markLaps.length])),
+                      ),
+                    ),
                   if (fx != null) _img(fx.file, Offset.zero, sceneSize),
                   if (burst != null) ...[
                     _img(burst.file, a.burstPos, const Size(50, 50)),
@@ -268,15 +295,16 @@ class _AreaSceneState extends State<AreaScene> with SingleTickerProviderStateMix
     );
   }
 
-  Widget _mark(int i, double? popMs) {
+  Widget _mark(int i, double? popMs, int lap) {
     final a = widget.art;
     final p = a.markPositions[i];
     final isFifth = a.markFifth != null && i % 5 == 4;
     final sprite = isFifth ? a.markFifth! : a.mark;
-    final color = markLadder[min(i, markLadder.length - 1)];
+    // The first round uses the rarity ladder; each later lap one colour (D68).
+    final color = lap == 0 ? markLadder[min(i, markLadder.length - 1)] : markLaps[(lap - 1) % markLaps.length];
     Widget m = Stack(
       children: [
-        _img(sprite.file, Offset.zero, sprite.size, tint: a.tintMarks ? color : null),
+        _img(sprite.file, Offset.zero, sprite.size, tint: a.tintMarks || lap > 0 ? color : null),
         if (a.markTint != null && !isFifth) _img(a.markTint!.file, Offset.zero, a.markTint!.size, tint: color),
       ],
     );
