@@ -4,7 +4,7 @@
 // Each tile shows how many exercises the chalk line gives with it (its own
 // row's word swapped for it); 0 is greyed. WIPE clears the line; SHOW n
 // EXERCISES closes the sheet. With 0 matches the main button reads NO SUCH
-// MOVE. FORGE IT? (the FORGE card is not built yet: it only closes).
+// MOVE. FORGE IT?, which opens the FORGE card (lib/views/forge.dart).
 // CHALK searches ALL exercises and ignores the class and the filters.
 
 import 'package:flutter/material.dart';
@@ -14,6 +14,7 @@ import '../game/exercises.dart';
 import '../i18n.dart';
 import '../pumplex.dart';
 import '../store.dart';
+import 'forge.dart';
 
 /// Chalk white, for the words on the dark floor.
 const kChalk = Color(0xFFF4F1FF);
@@ -116,8 +117,11 @@ class ChalkSheet extends StatelessWidget {
                             ? BrutalButton(
                                 key: const ValueKey('chalk-forge'),
                                 color: p.pink,
-                                // The FORGE card is not built yet.
-                                onTap: () => Navigator.of(context).pop(),
+                                // The FORGE card, from these words.
+                                onTap: () {
+                                  final nav = Navigator.of(context)..pop();
+                                  showForge(nav, store, line);
+                                },
                                 child: FittedBox(fit: BoxFit.scaleDown, child: Text(t('chalk.forge'))),
                               )
                             : BrutalButton(

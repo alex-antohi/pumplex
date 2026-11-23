@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:gym_app/i18n.dart';
 import 'package:gym_app/game/chalk.dart';
 import 'package:gym_app/game/exercises.dart';
+import 'package:gym_app/game/forge.dart';
 import 'package:gym_app/game/model.dart';
 import 'package:gym_app/main.dart';
 import 'package:gym_app/store.dart';
@@ -115,6 +116,64 @@ void main() {
     await t.tap(find.byKey(const ValueKey('chalk-show')));
     await _frames(t, 20);
     expect(find.text('CHALK'), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
+
+  test('FORGE: the name and body from the words; a forged move is found and kept', () async {
+    final line = {'angle.decline', 'tool.kettlebell', 'move.curl'};
+    expect(forgeName(line), 'Decline Kettlebell Curl');
+    expect(forgeBody(line), ('arms', 'biceps'));
+    expect(forgeBody({'body.legs', 'move.curl'}), ('legs', 'quadriceps'));
+    expect(forgeName({'pattern.hinge', 'tool.bodyweight'}), 'Hinge');
+    SharedPreferences.setMockInitialValues({'profile_v1': jsonEncode(_profile.toJson())});
+    final prefs = await SharedPreferences.getInstance();
+    final store = LogStore(prefs, clock: () => DateTime(2026, 11, 21, 10));
+    final before = exerciseCatalog.all.length;
+    final move = store.forge(line, 'biceps', 'Benchy McPressface');
+    expect(exerciseCatalog.all.length, before + 1);
+    final e = exerciseCatalog.byId[move.id]!;
+    expect((e.name, e.nick, e.equipment, e.muscle, e.mods['angle']), ('Decline Kettlebell Curl', 'Benchy McPressface', 'kettlebells', 'biceps', 'Decline'));
+    // CHALK finds it with the words it came from; the workout shows it.
+    expect(ChalkIndex.of(exerciseCatalog).search(line).map((g) => g.key), [move.id]);
+    expect(store.cards.map((g) => g.key), contains(move.id));
+    expect(store.pickedCard, move.id);
+    store.addSet(move.id);
+    expect(store.groupSetsToday(move.id), 1);
+    // Kept on the phone: a new start has it again (once).
+    final again = LogStore(prefs, clock: () => DateTime(2026, 11, 21, 11));
+    expect(again.forged.map((f) => f.id), [move.id]);
+    expect(exerciseCatalog.all.where((x) => x.id == move.id).length, 1);
+  });
+
+  testWidgets('FORGE card: from NO SUCH MOVE, a nickname on the arcade keyboard, FORGE IT', (t) async {
+    final store = await _openApp(t);
+    store.setChalk({'angle.decline', 'tool.kettlebell', 'move.curl'});
+    await t.pump();
+    await t.tap(find.byKey(const ValueKey('filter-chalk')));
+    await _frames(t, 10);
+    await t.tap(find.byKey(const ValueKey('chalk-forge')));
+    await _frames(t, 20);
+    expect(find.byKey(const ValueKey('forge-card')), findsOneWidget);
+    expect(find.text('DECLINE KETTLEBELL CURL'), findsOneWidget);
+    expect(find.byKey(const ValueKey('forge-muscle-biceps')), findsOneWidget);
+    await t.ensureVisible(find.byKey(const ValueKey('forge-nickname')));
+    await t.tap(find.byKey(const ValueKey('forge-nickname')));
+    await _frames(t, 4);
+    expect(find.byKey(const ValueKey('arcade-keyboard')), findsOneWidget);
+    expect(find.byKey(const ValueKey('key-1')), findsNothing); // no digits
+    for (final k in ['B', 'E', 'N', 'C', 'H', 'Ș']) {
+      await t.tap(find.byKey(ValueKey('key-$k')));
+    }
+    await t.tap(find.byKey(const ValueKey('key-del')));
+    await t.pump();
+    expect(find.text('BENCH_'), findsOneWidget);
+    // FORGE IT works before OK.
+    await t.tap(find.byKey(const ValueKey('forge-it')));
+    await _frames(t, 30);
+    final f = store.forged.single;
+    expect((f.nickname, f.muscle), ('BENCH', 'biceps'));
+    expect(find.byKey(const ValueKey('forge-card')), findsNothing);
+    expect(find.text('BENCH'), findsOneWidget); // the nickname is the card's title
     expect(t.takeException(), isNull);
   });
 }

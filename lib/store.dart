@@ -8,6 +8,7 @@ import 'dates.dart';
 import 'game/content.dart';
 import 'game/chalk.dart';
 import 'game/exercises.dart';
+import 'game/forge.dart';
 import 'game/model.dart';
 import 'game/rules.dart';
 
@@ -64,6 +65,16 @@ class LogStore extends ChangeNotifier {
   dynamic _json(String key, Object fallback) {
     final raw = _prefs.getString(key);
     return raw == null ? fallback : jsonDecode(raw);
+  }
+
+  /// A list of UI data: a broken value is an empty list.
+  List<Object?> _uiList(String key) {
+    try {
+      final v = _json(key, const []);
+      return v is List ? v : const [];
+    } on FormatException {
+      return const [];
+    }
   }
 
   /// One-time: saved data with old class ids (speedy, rogue, warrior, mage;
@@ -229,6 +240,13 @@ class LogStore extends ChangeNotifier {
       ..clear()
       ..addAll([for (final id in _json(_favoritesKey, const []) as List) if (id is String) id]);
     _picked.clear();
+    _forged
+      ..clear()
+      ..addAll([
+        for (final j in _uiList(forgedKey))
+          if (j is Map && j['id'] is String) ForgedMove.fromJson(Map<String, dynamic>.from(j)),
+      ]);
+    exerciseCatalog = catalogWithForged(exerciseCatalog, _forged);
     _filter = null;
     _filterLoaded = false;
     try {
@@ -520,6 +538,31 @@ class LogStore extends ChangeNotifier {
       ..clear()
       ..addAll(line);
     notifyListeners();
+  }
+
+  /// The forged moves (D72, lib/game/forge.dart), kept on the phone. UI
+  /// data: not in the backup file yet (still open, HANDOFF.md).
+  static const forgedKey = 'custom_exercises_v1';
+  final List<ForgedMove> _forged = [];
+  List<ForgedMove> get forged => List.unmodifiable(_forged);
+
+  /// Forge a move from the chalk [words]: it joins the exercise list, and
+  /// the workout shows it (the chalk line becomes its words).
+  ForgedMove forge(Set<String> words, String muscle, String? nickname) {
+    var n = _forged.length + 1;
+    while (exerciseCatalog.byId.containsKey('custom_$n')) {
+      n++;
+    }
+    final move = ForgedMove(id: 'custom_$n', words: words, muscle: muscle, nickname: nickname);
+    _forged.add(move);
+    _prefs.setString(forgedKey, jsonEncode([for (final f in _forged) f.toJson()]));
+    exerciseCatalog = catalogWithForged(exerciseCatalog, _forged);
+    _chalk
+      ..clear()
+      ..addAll(ChalkIndex.of(exerciseCatalog).words[move.id] ?? const {});
+    setPickedCard(move.id);
+    notifyListeners();
+    return move;
   }
 
   /// The HARD badge (D70) for exercise [e] of card [g]: only for a card of

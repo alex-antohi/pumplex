@@ -562,7 +562,7 @@ class _ExerciseText extends StatelessWidget {
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
                   // The exercise picked is the title (D75).
-                  child: Text(exerciseLabel(v.id, v.name).toUpperCase(), key: const ValueKey('exercise-title'), style: display(28, p.ink).copyWith(shadows: [
+                  child: Text((v.nick ?? exerciseLabel(v.id, v.name)).toUpperCase(), key: const ValueKey('exercise-title'), style: display(28, p.ink).copyWith(shadows: [
                     Shadow(offset: const Offset(2, 2), color: p.orange),
                   ])),
                 ),

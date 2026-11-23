@@ -130,6 +130,8 @@ The app migrates each one once (§5.2, §5.3).
 | `sessions_v3` | Map date → SESSION with its SESSION_EXERCISE list. |
 | `xp_events_v1` | List of the saved XP_EVENTs: `legacy`, and the old `streak`, `achievement` and `workout` XP. |
 | `favorites_v1` | List of favorite exercises (D53, D72): exercise ids, the exact variant starred. An old favorite card (`move:<move name>`, D55) is changed to the exercise last picked on that card, else its simplest exercise. |
+| `custom_exercises_v1` | List of forged moves (D72, `lib/game/forge.dart`): `{id: "custom_<n>", words: ["<row>.<id>", ...], muscle, nickname?}`. They join the exercise list at start. UI data: not in the backup file yet. |
+| `workout_filter_v1`, `workout_variants_v1`, `workout_card_v1` | UI state of the workout (D75, D76): the last filter, the exercises picked per card, the card picked. Not in the backup. |
 | `old_exercises_v0_backup` | Written once by §5.6: the old `sessions_v3` text. |
 | `gear_v1`, `chaos`, `cel`, `sound` | **Removed** (D38–D41). The app deletes these keys on every start. |
 | `class_ids_v0_backup` | Written once by the class id migration (§5.2): the old `profile_v1` and `sessions_v3` text. |

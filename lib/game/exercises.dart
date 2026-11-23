@@ -44,6 +44,7 @@ class CatalogExercise {
     this.rank = 1 << 20,
     this.pattern,
     this.unlock = const {},
+    this.nick,
   })  : isMove = base != null,
         base = base ?? name;
 
@@ -86,6 +87,9 @@ class CatalogExercise {
   /// Class id -> the first difficulty mode (0-5) that shows the card (D67).
   /// A class that is not here does not show it.
   final Map<String, int> unlock;
+
+  /// A forged move's nickname (D72, lib/game/forge.dart): the big name.
+  final String? nick;
 
   factory CatalogExercise.fromJson(Map<String, dynamic> j) => CatalogExercise(
         id: j['id'] as String,

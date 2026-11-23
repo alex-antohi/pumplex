@@ -347,5 +347,14 @@
   "chalk.grip.wide": "Wide grip",
   "chalk.grip.neutral": "Neutral grip",
   "chalk.grip.overhand": "Overhand grip",
-  "chalk.grip.reverse": "Reverse grip"
+  "chalk.grip.reverse": "Reverse grip",
+  "forge.title": "FORGE A MOVE",
+  "forge.showsFor": "SHOWS FOR: {classes}",
+  "forge.noClass": "NO CLASS HAS THIS GEAR: CHALK STILL FINDS IT",
+  "forge.nickname": "NICKNAME (OPTIONAL)",
+  "forge.carve": "TAP TO CARVE",
+  "forge.go": "FORGE IT",
+  "kb.del": "DEL",
+  "kb.space": "SPACE",
+  "kb.ok": "OK"
 }
