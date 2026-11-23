@@ -371,21 +371,28 @@ class LogStore extends ChangeNotifier {
 
   // ------------------------------------------------- favorites and filters
 
-  /// Favorite cards (D53): group keys (`move:<name>`, or an exercise id
-  /// for an exercise with no variations, D55).
+  /// Favorite exercises (D53, D72): the star saves the exact exercise (the
+  /// variant), not the card.
   Set<String> get favorites => Set.unmodifiable(_favorites);
 
-  bool isFavorite(String key) => _favorites.contains(key);
+  bool isFavorite(String exerciseId) => _favorites.contains(exerciseId);
 
-  void toggleFavorite(String key) {
-    if (!_favorites.remove(key)) _favorites.add(key);
+  void toggleFavorite(String exerciseId) {
+    if (!_favorites.remove(exerciseId)) _favorites.add(exerciseId);
     _prefs.setString(_favoritesKey, jsonEncode(_favorites.toList()));
     notifyListeners();
   }
 
-  /// A favorite saved as an exercise id of a move (before D55) points to its move.
-  void _favoritesToMoves() {
-    final moved = {for (final f in _favorites) exerciseCatalog.groupKeyOf(f)};
+  /// A favorite saved as a card (`move:<name>`, D55, before D72) becomes the
+  /// exercise picked on that card last, else its simplest exercise.
+  void _favoritesToVariants() {
+    final moved = {
+      for (final f in _favorites)
+        if (exerciseCatalog.byId.containsKey(f) || exerciseCatalog.byKey[f] == null)
+          f
+        else
+          (_picked[f]?.firstOrNull ?? exerciseCatalog.byKey[f]!.variants.first.id),
+    };
     if (moved.length == _favorites.length && moved.containsAll(_favorites)) return;
     _favorites
       ..clear()
@@ -409,6 +416,9 @@ class LogStore extends ChangeNotifier {
     final ids = {for (final v in g.variants) v.id};
     final picked = _picked[g.key]?.where(ids.contains).firstOrNull;
     if (picked != null) return exerciseCatalog.byId[picked]!;
+    // A favorite exercise of the card (D72), when nothing was picked.
+    final fav = g.variants.where((v) => _favorites.contains(v.id)).firstOrNull;
+    if (fav != null) return fav;
     final used = todaySession?.exercises.lastWhere((e) => ids.contains(e.exerciseId) && e.sets > 0,
         orElse: () => const SessionExercise(exerciseId: ''));
     if (used != null && used.exerciseId.isNotEmpty) return exerciseCatalog.byId[used.exerciseId]!;
@@ -518,7 +528,7 @@ class LogStore extends ChangeNotifier {
 
   /// The cards the filters show, in carousel order (one per move, D55).
   List<ExerciseGroup> get cards {
-    _favoritesToMoves();
+    _favoritesToVariants();
     if (_chalk.isNotEmpty) return ChalkIndex.of(exerciseCatalog).search(_chalk);
     return filter.apply(exerciseCatalog, _favorites);
   }

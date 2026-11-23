@@ -583,11 +583,13 @@ void main() {
     store.resetFilter();
     expect(store.filter, store.defaultFilter);
     final favCard = store.cards.last;
-    final fav = favCard.key;
+    final fav = favCard.variants.last.id; // the star saves the exercise (D72)
     store.toggleFavorite(fav);
-    expect(store.cards.first.key, fav); // the first card is a favorite
+    expect(store.cards.first.key, favCard.key); // the first card has a favorite
+    expect(store.variantFor(store.cards.first).id, fav); // and opens on it
     store.setFilter(store.filter.copyWith(favorites: true));
-    expect(store.cards.map((g) => g.key), [fav]);
+    expect(store.cards.map((g) => g.key), [favCard.key]);
+    expect(store.cards.single.variants.map((e) => e.id), [fav]); // only that exercise
     final parts = {for (final e in favCard.variants) bodyPartOf(e.muscle)!.id};
     final other = bodyParts.firstWhere((b) => !parts.contains(b.id)).id;
     store.setFilter(store.filter.withBody(other));
@@ -595,11 +597,12 @@ void main() {
     store.toggleFavorite(fav);
     expect(store.favorites, isEmpty);
     expect(store.cards, isEmpty); // favorites only, and none left
-    // A favorite saved as an exercise id (before D55) moves to its move.
-    store.toggleFavorite('Decline_Push-Up');
-    expect(store.cards.map((g) => g.key), ['move:push-up']); // the favorite moved to its move
-    expect(store.favorites, {'move:push-up'});
+    // A favorite saved as a card (D55, before D72) becomes its simplest exercise.
     store.toggleFavorite('move:push-up');
+    final simplest = exerciseCatalog.byKey['move:push-up']!.variants.first.id;
+    expect(store.cards.map((g) => g.key), ['move:push-up']);
+    expect(store.favorites, {simplest});
+    store.toggleFavorite(simplest);
     // The last choice stays the next day too (kept on the phone).
     store.setFilter(store.filter.copyWith(favorites: false).withBody('arms'));
     _now = _now.add(const Duration(days: 1));
@@ -728,7 +731,7 @@ void main() {
     store.addSet(_squat);
     _now = _now.add(const Duration(days: 1));
     store.addSet(_bench);
-    store.toggleFavorite('move:bench press');
+    store.toggleFavorite(_bench);
     final backup = store.backupJson();
     final data = jsonDecode(backup) as Map;
     expect(data['version'], 6);
@@ -740,7 +743,7 @@ void main() {
     expect(other.sessions.length, 2);
     expect(other.bodyHistory.length, 1);
     expect(other.setsToday(_bench), 1);
-    expect(other.favorites, {'move:bench press'});
+    expect(other.favorites, {_bench});
     expect(other.backupJson(), backup);
     expect(otherPrefs.getString('logs_v2'), _oldLogs); // only the migration deletes old keys
     await expectLater(other.importBackup('not json'), throwsA(anything));
@@ -1124,9 +1127,10 @@ void main() {
     await t.fling(carousel, const Offset(-300, 0), 1000);
     await _frames(t, 10);
     final second = store.cards[1].key;
+    final shown = store.variantFor(store.cards[1]).id;
     await t.tap(find.byKey(const ValueKey('favorite-star')));
     await _frames(t, 10);
-    expect(store.favorites, {second});
+    expect(store.favorites, {shown}); // the exercise shown (D72)
     expect(find.byKey(ValueKey('exercise-$second')), findsOneWidget); // the card stays
     // The star tag: favorites only.
     await t.tap(find.byKey(const ValueKey('filter-favorites')));

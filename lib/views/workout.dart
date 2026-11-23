@@ -206,10 +206,11 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
     setState(() => _burst = null); // undo has no effect animation
   }
 
-  void _star(String key) {
+  /// The star saves the exercise shown (D72), not the card.
+  void _star(ExerciseGroup g) {
     HapticFeedback.selectionClick();
-    setState(() => _keep(key)); // stay on this card
-    _store.toggleFavorite(key);
+    setState(() => _keep(g.key)); // stay on this card
+    _store.toggleFavorite(_store.variantFor(g).id);
   }
 
   void _pick(ExerciseGroup g, String id) {
@@ -347,9 +348,9 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
                                       v: store.variantFor(e),
                                       sets: sets,
                                       xp: store.groupXpToday(e.key),
-                                      favorite: store.isFavorite(e.key),
+                                      favorite: store.isFavorite(store.variantFor(e).id),
                                       hard: store.isHard(e, store.variantFor(e)),
-                                      onStar: () => _star(e.key),
+                                      onStar: () => _star(e),
                                       onPick: (id) => _pick(e, id),
                                     ),
                                 ))),

@@ -366,14 +366,14 @@ class ExerciseFilter {
   List<ExerciseGroup> apply(ExerciseCatalog catalog, Set<String> favs) {
     final out = <ExerciseGroup>[];
     for (final g in catalog.groups) {
-      if (favorites && !favs.contains(g.key)) continue;
       if (!_shown(g)) continue;
-      final keep = [for (final e in g.variants) if (_class(e) && _body(e)) e];
+      // Favorites are exercises (D72): favorites only keeps those.
+      final keep = [for (final e in g.variants) if (_class(e) && _body(e) && (!favorites || favs.contains(e.id))) e];
       if (keep.isNotEmpty) out.add(g.only(keep));
     }
     int mode(ExerciseGroup g) => g.shownIn(classId, difficulty) ? 0 : g.variants.first.unlock[classId] ?? 99;
     out.sort((a, b) {
-      final f = (favs.contains(a.key) ? 0 : 1) - (favs.contains(b.key) ? 0 : 1);
+      final f = (a.variants.any((e) => favs.contains(e.id)) ? 0 : 1) - (b.variants.any((e) => favs.contains(e.id)) ? 0 : 1);
       if (f != 0) return f;
       final m = mode(a) - mode(b);
       if (m != 0) return m;
@@ -401,7 +401,7 @@ class ExerciseFilter {
 
   int _count(ExerciseCatalog c, Set<String> favs, bool Function(ExerciseGroup) shown,
           bool Function(CatalogExercise) test) =>
-      c.groups.where((g) => (!favorites || favs.contains(g.key)) && shown(g) && g.variants.any(test)).length;
+      c.groups.where((g) => shown(g) && g.variants.any((e) => (!favorites || favs.contains(e.id)) && test(e))).length;
 
   /// After an earlier filter changed: a body part or muscle with no
   /// exercises left goes back to all.

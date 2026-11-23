@@ -20,9 +20,10 @@ What is built from `HANDOFF.md` (D70, D72) on branch `design-fixes`, and what is
    - Placeholder look (design still to decide): plain dashed-box chalk words, no chalk texture or icons. The sheet scrolls only if a phone is too short.
 5. **0 matches**: the chalk line says NO EXERCISE HAS ALL THESE WORDS and the main button is the pink NO SUCH MOVE. FORGE IT? (`chalk-forge`). For now it only closes the sheet: the FORGE card is the next step.
 
+6. **Star per variant (D72).** `favorites_v1` holds exercise ids; the star saves the exercise shown. A card with a favorite comes first and opens on it (when nothing was picked); favorites only keeps just the starred exercises. Old card favorites (`move:<name>`) become the exercise last picked on the card, else the simplest (`LogStore._favoritesToVariants`).
+
 ## Left to do (in this order)
 
-6. **FORGE card** (hook: the `chalk-forge` button in `lib/views/chalk.dart`) (mockup `02-forge.html`): one scrolling card; the name from the chalk words; editable word chips; BODY PART and MUSCLE preset from the MOVE word; NICKNAME (optional); BACK and FORGE IT. Needs a stored custom exercise (new prefs key; open: backup or not, edit / delete later, see HANDOFF "Still open").
-7. **Nickname keyboard**: arcade QWERTY + Ă Â Î Ș Ț row, SPACE, DEL, OK, no digits; under NICKNAME at the bottom; BACK / FORGE IT above it; FORGE IT works before OK. The nickname shrinks to fit one line after about 10 letters; when set it is the big name, the chalk name small under it.
-8. **Star per variant (D72)**: favorites save the exact exercise id, not the card key. Needs a migration of `favorites_v1` (card keys -> the variant picked / the simplest).
+7. **FORGE card** (hook: the `chalk-forge` button in `lib/views/chalk.dart`) (mockup `02-forge.html`): one scrolling card; the name from the chalk words; editable word chips; BODY PART and MUSCLE preset from the MOVE word; NICKNAME (optional); BACK and FORGE IT. Needs a stored custom exercise (new prefs key; open: backup or not, edit / delete later, see HANDOFF "Still open").
+8. **Nickname keyboard**: arcade QWERTY + Ă Â Î Ș Ț row, SPACE, DEL, OK, no digits; under NICKNAME at the bottom; BACK / FORGE IT above it; FORGE IT works before OK. The nickname shrinks to fit one line after about 10 letters; when set it is the big name, the chalk name small under it.
 9. **D71 XP tiers**: not in the handoff; tier values are still to be set by the owner.

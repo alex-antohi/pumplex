@@ -129,7 +129,7 @@ The app migrates each one once (§5.2, §5.3).
 | `body_history_v1` | List of BODY_CHANGE. |
 | `sessions_v3` | Map date → SESSION with its SESSION_EXERCISE list. |
 | `xp_events_v1` | List of the saved XP_EVENTs: `legacy`, and the old `streak`, `achievement` and `workout` XP. |
-| `favorites_v1` | List of favorite cards (D53): `move:<move name>` for a move with variations (D55), else the exercise id. An old favorite exercise id of a move is changed to its move. |
+| `favorites_v1` | List of favorite exercises (D53, D72): exercise ids, the exact variant starred. An old favorite card (`move:<move name>`, D55) is changed to the exercise last picked on that card, else its simplest exercise. |
 | `old_exercises_v0_backup` | Written once by §5.6: the old `sessions_v3` text. |
 | `gear_v1`, `chaos`, `cel`, `sound` | **Removed** (D38–D41). The app deletes these keys on every start. |
 | `class_ids_v0_backup` | Written once by the class id migration (§5.2): the old `profile_v1` and `sessions_v3` text. |
