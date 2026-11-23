@@ -55,7 +55,7 @@ flowchart TD
 | 4 | Starting area | exists | A swipe card like the class card: the area scene with the lifter in it, the name, the line, what you hit, "YOUR PATH'S HOME" on the default; dots under it (D47). The class picks the default area. |
 | 5 | Summary | exists | Class, equipment, difficulty, area. Tap a row to change it. LET'S GO (or SAVE when editing). |
 | 6 | Hub | removed | No hub (D49): the app opens on the workout. The level and XP bar is in the PUMPLEX bar there; tap the lifter in the world for the body sliders. |
-| 7 | Workout | exists | The home screen (D49). One card (D48): the world (area scene with the lifter) on top, filter tags (D51, D53), an exercise carousel under it over every exercise the filters show (D50; swipe both ways, round and round; a counter; a star button). No targets (D52). Tap the object = +1 set to the exercise shown, hold = −1. Area marks stay in the world. Bottom bar, HUB lit (D44). |
+| 7 | Workout | exists | The home screen (D49). It fills the screen, no card (D69; a card only when minimised): the world (area scene with the lifter) on top, filter tags (D51, D53), an exercise carousel under it over every exercise the filters show (D50; swipe both ways, round and round; a counter; a star button). No targets (D52). Tap the object = +1 set to the exercise shown, hold = −1. Area marks stay in the world. Bottom bar, HUB lit (D44). |
 | 8 | Reward | exists | XP on the active exercise line. CRITICAL SET message. Freeze-frame intro card for level-ups. No achievement burst (D35). Not a separate screen. |
 | 9 | Past sessions | removed | Now the past-sessions card of the lifter profile (D59). |
 | 10 | Gear | removed | No gear (D38). |
@@ -208,7 +208,7 @@ owner's rules ([decisions.md](decisions.md)).
   the set marks and the 10-set XP cap count per card.
 - **Exercise carousel** under them: one card at a time from the filtered list, sorted:
   favorites, then the hardest level first, compound before isolation, then by name. So the first
-  card is a favorite (D53). The card shows the name, a **star button** (favorite on / off) and the
+  card is a favorite (D53). The card shows the exercise picked as its title (the variant name, D69), a **star button** (favorite on / off) and the
   modifier chips. No subtitle and no sets on the card (D68): the sets show in the world. Swipe left for the next exercise, right for the one before, round and round.
   A counter (`12 / 437`) shows where you are.
 - If nothing passes the filters, the card says so and offers RESET TO MINE.
@@ -219,7 +219,8 @@ owner's rules ([decisions.md](decisions.md)).
   - Each set plays the object's hit frames and shakes the scene in hard steps (320 ms). A starburst
     says "+1 SET", or the area's stamp on every 5th set. There is no CRUSHED (D52).
   - The marks stay in the world, in the area's mark style, in groups of five. Once every mark spot is
-    used, the marks start again at the first spot in a new colour per lap (sky, lime, orange, violet),
+    used, the marks start again at the first spot in a new colour per lap (sky, orange, violet, pink;
+    the first round is all one colour, D69),
     and the number of sets shows in the top corner of the world (D68).
   - The carousel never moves on by itself.
 - **Over the sky:** the area's tap hint.

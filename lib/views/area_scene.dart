@@ -24,13 +24,16 @@ const markLadder = [
   Color(0xFFFF5FB0),
 ];
 
+/// The colour of every mark in the first round (D69): one colour for all.
+const markFirst = Color(0xFFC6FF3D);
+
 /// Mark colours once every mark spot is used (D68): the marks start again
 /// at the first spot, one colour per lap, so the new sets stand out.
 const markLaps = [
   Color(0xFF3FD2FF),
-  Color(0xFFC6FF3D),
   Color(0xFFFFA033),
   Color(0xFFA77BFF),
+  Color(0xFFFF5FB0),
 ];
 
 /// The lap of the set shown at mark spot [i] with [count] sets and [spots]
@@ -252,18 +255,6 @@ class _AreaSceneState extends State<AreaScene> with SingleTickerProviderStateMix
                       ),
                     ),
                   if (a.marksOverObject) ...marks,
-                  // More sets than mark spots: the number of sets (D68).
-                  if (widget.count > spots && a.ledRect == null)
-                    Positioned(
-                      right: 4 * s,
-                      top: 4 * s,
-                      child: Container(
-                        key: const ValueKey('scene-count'),
-                        padding: EdgeInsets.symmetric(horizontal: 3 * s, vertical: 1 * s),
-                        color: kNight,
-                        child: Text('${widget.count} SETS', style: display(7 * s, markLaps[(markLap(0, widget.count, spots) - 1) % markLaps.length])),
-                      ),
-                    ),
                   if (fx != null) _img(fx.file, Offset.zero, sceneSize),
                   if (burst != null) ...[
                     _img(burst.file, a.burstPos, const Size(50, 50)),
@@ -300,8 +291,8 @@ class _AreaSceneState extends State<AreaScene> with SingleTickerProviderStateMix
     final p = a.markPositions[i];
     final isFifth = a.markFifth != null && i % 5 == 4;
     final sprite = isFifth ? a.markFifth! : a.mark;
-    // The first round uses the rarity ladder; each later lap one colour (D68).
-    final color = lap == 0 ? markLadder[min(i, markLadder.length - 1)] : markLaps[(lap - 1) % markLaps.length];
+    // The first round: one colour (D69); each later lap: a new colour (D68).
+    final color = lap == 0 ? markFirst : markLaps[(lap - 1) % markLaps.length];
     Widget m = Stack(
       children: [
         _img(sprite.file, Offset.zero, sprite.size, tint: a.tintMarks || lap > 0 ? color : null),

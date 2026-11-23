@@ -824,7 +824,8 @@ void main() {
         const Character(sex: 'female', height: 100, muscle: 100, fat: 0, skin: 'deep', hair: 'blonde', facialHair: 'beard'));
     expect((saved.classId, saved.difficultyId, saved.areaId, saved.schemaVersion), ('paladin', 'sweat', 'gainsgard', 1));
     expect(find.byKey(const ValueKey('world-object')), findsOneWidget); // the workout is home (D49)
-    expect(find.text(store.cards.first.name.toUpperCase()), findsOneWidget);
+    // The title is the exercise picked (D69).
+    expect(find.text(store.variantFor(store.cards.first).name.toUpperCase()), findsOneWidget);
     expect(find.textContaining('THIS WEEK'), findsNothing); // no streak (D34)
     expect(pushes.pushes, 1); // only the home route: views never push routes
   });
@@ -951,7 +952,8 @@ void main() {
       await t.fling(carousel, const Offset(-300, 0), 1000);
       await _frames(t, 8);
     }
-    expect(find.text('BENCH PRESS'), findsOneWidget);
+    final bench = store.cards.firstWhere((g) => g.key == 'move:bench press');
+    expect(find.text(store.variantFor(bench).name.toUpperCase()), findsOneWidget); // the title (D69)
     expect(find.byKey(const ValueKey('exercise-variant')), findsNothing); // no subtitle (D68)
     // Rows for equipment and angle; no Smith machine for a Paladin (greyed).
     expect(find.text('EQUIPMENT'), findsOneWidget);
@@ -962,7 +964,7 @@ void main() {
     await _frames(t, 6);
     final picked = store.variantFor(store.cards.firstWhere((g) => g.key == 'move:bench press'));
     expect(picked.mods['angle'], 'Incline');
-    expect(find.text(picked.name.toUpperCase()), findsNothing); // no variant subtitle (D68): the chips show it
+    expect(find.text(picked.name.toUpperCase()), findsOneWidget); // the picked exercise is the title (D69)
     // The world adds the set to the exercise picked.
     await t.tap(find.byKey(const ValueKey('world-object')));
     await _frames(t, 70);
@@ -1004,6 +1006,22 @@ void main() {
     expect(markLap(5, 3, 10), 0); // no set there yet
   });
 
+  testWidgets('D69: no TM; the workout keeps the card picked after leaving', (t) async {
+    final (store, prefs) = await _openApp(t);
+    expect(find.text('PUMPLEX'), findsWidgets); // drawn in layers
+    expect(find.textContaining('™'), findsNothing);
+    await t.fling(find.byKey(const ValueKey('exercise-card')), const Offset(-300, 0), 1000);
+    await _frames(t, 10);
+    final second = store.cards[1].key;
+    expect(prefs.getString(LogStore.pickedCardKey), second);
+    // Leave and come back: a new app on the same data opens on that card.
+    await t.pumpWidget(const SizedBox());
+    await t.pumpWidget(GymApp(store: store));
+    await _frames(t);
+    expect(find.byKey(ValueKey('exercise-$second')), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
+
   testWidgets('D68: many sets show their number in the world; chips have no numbers; difficulty card', (t) async {
     final (store, _) = await _openApp(t);
     final first = store.variantFor(store.cards.first).id;
@@ -1015,6 +1033,10 @@ void main() {
     if (store.profile!.areaId != 'arcade') {
       expect(spots, findsOneWidget);
       expect(find.descendant(of: spots, matching: find.text('25 SETS')), findsOneWidget);
+      // Inside the screen, never cut off (D69).
+      final r = t.getRect(spots);
+      expect(r.left, greaterThanOrEqualTo(0));
+      expect(r.right, lessThanOrEqualTo(t.view.physicalSize.width / t.view.devicePixelRatio));
     }
     // The filter chips show no numbers.
     await t.tap(find.byKey(const ValueKey('filter-class')));

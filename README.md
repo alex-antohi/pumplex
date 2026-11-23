@@ -1,4 +1,4 @@
-# PUMPLEX™
+# PUMPLEX
 
 Owner decisions win over this document: read [docs/decisions.md](docs/decisions.md) first.
 
