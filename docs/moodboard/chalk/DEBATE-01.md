@@ -27,7 +27,7 @@ Date: 24 Nov 2026. Topic: how the CHALK screen can be improved, design / UI wise
 
 ## Suggested order (synthesis)
 
-1. A flexible results box, with tiles tight enough that all 4 rows fit when empty. All three agree, it is low cost, and it needs no owner call.
+1. A flexible results box, with tiles tight enough that all 4 rows fit when empty. All three agree, it is low cost, and it needs no owner call. **Built (D86):** before the first word the results area is only the hint, so all 4 rows fit on a common phone in EN and RO; small phones in RO still scroll.
 2. Make the picked words visible: a pinned line, or at least at 0 matches (owner call on how far).
 3. Bigger tap targets (tiles ≥ 36–40 dp) and a quieter, reachable BACK; greyed-tile semantics and contrast.
 4. Game feel that never blocks input: a haptic on a tile tap, results staggering in, the 0-match moment handing off to the ANVIL reveal.

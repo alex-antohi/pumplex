@@ -18,7 +18,7 @@ import 'package:gym_app/game/model.dart';
 import 'package:gym_app/main.dart';
 import 'package:gym_app/pumplex.dart';
 import 'package:gym_app/store.dart';
-import 'package:gym_app/views/chalk.dart' show kChalkResultsHeight, kChalkSheetFraction;
+import 'package:gym_app/views/chalk.dart' show kChalkHintHeight, kChalkResultsHeight, kChalkSheetFraction;
 import 'package:gym_app/views/play.dart' show SessionPage;
 
 /// The cards of the class and mode, in the Suggested order: the cards the
@@ -370,6 +370,8 @@ void main() {
     }
 
     await measure('no words', {});
+    // Before the first word only the hint (D86): the tiles get the sheet.
+    final empty = sizes.remove('no words')!;
     await measure('0', _noMove);
     expect(find.byKey(const ValueKey('chalk-forge')), findsOneWidget);
     await measure('3', few);
@@ -381,6 +383,9 @@ void main() {
     }
     expect(first.$1.height, closeTo(t.view.physicalSize.height / t.view.devicePixelRatio * kChalkSheetFraction, 0.5));
     expect(first.$2.height, kChalkResultsHeight);
+    expect(empty.$1, first.$1); // the sheet itself never moves
+    expect(empty.$2.height, kChalkHintHeight);
+    expect(empty.$3.height, closeTo(first.$3.height + kChalkResultsHeight - kChalkHintHeight, 0.5));
     // Many results scroll inside the area, with a visible scrollbar and a fade.
     final list = find.byKey(const ValueKey('chalk-results-scroll'));
     final bar = find.descendant(of: list, matching: find.byType(Scrollbar));

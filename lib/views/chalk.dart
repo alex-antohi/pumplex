@@ -3,8 +3,10 @@
 // sheet and goes back to the first Today card). Then one row of word tiles
 // per kind: PATTERN, MOVE, TOOL, BODY (ANGLE and GRIP are chips on the
 // exercise card, D55/D57). A tile picked is filled; a second tap takes it
-// out. A tile that gives 0 exercises is greyed (no counts, D81). At the
-// bottom, in a fixed height: the results, one row per matching exercise (a
+// out. A tile that gives 0 exercises is greyed (no counts, D81). Before the
+// first word the results area is only the hint, so the tiles get the sheet
+// and every row shows (D86). Once a word is picked, at the bottom, in a
+// fixed height: the results, one row per matching exercise (a
 // card can give several); a tap picks that exercise and selects its card
 // (the carousel goes there and the sheet closes on it); the "+" at the
 // right adds that exercise to Today (only an exercise in Today shows TODAY,
@@ -41,9 +43,13 @@ Future<void> showChalkSheet(BuildContext context, LogStore store) =>
 /// 3 or 30 results, so the sheet never jumps (D81 follow-up).
 const kChalkSheetFraction = 0.82;
 
-/// The results area's fixed height at the bottom of the sheet: few results
-/// leave empty space, many scroll inside it.
+/// The results area's fixed height at the bottom of the sheet once a word is
+/// picked: few results leave empty space, many scroll inside it.
 const kChalkResultsHeight = 270.0;
+
+/// The results area before the first word: only the hint (D86), so the
+/// word tiles take the rest of the sheet.
+const kChalkHintHeight = 40.0;
 
 class ChalkSheet extends StatelessWidget {
   const ChalkSheet({super.key, required this.store});
@@ -100,7 +106,7 @@ class ChalkSheet extends StatelessWidget {
                     key: const ValueKey('chalk-tiles'),
                     builder: (controller) => SingleChildScrollView(
                       controller: controller,
-                      padding: const EdgeInsets.fromLTRB(16, 8, 20, 4),
+                      padding: const EdgeInsets.fromLTRB(16, 4, 20, 0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -108,7 +114,7 @@ class ChalkSheet extends StatelessWidget {
                             ChipSection(
                               key: ValueKey('chalk-row-$row'),
                               title: chalkRowLabel(row),
-                              bottom: 10,
+                              bottom: 6,
                               children: [
                                 // A word tile: its label only (no count,
                                 // D81); filled lime when picked (like the
@@ -135,9 +141,9 @@ class ChalkSheet extends StatelessWidget {
                 // at 0 (D81), or a hint before the first word.
                 SizedBox(
                   key: const ValueKey('chalk-results-area'),
-                  height: kChalkResultsHeight,
+                  height: line.isEmpty ? kChalkHintHeight : kChalkResultsHeight,
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 4, 12, 12),
+                    padding: EdgeInsets.fromLTRB(16, 4, 12, line.isEmpty ? 4 : 12),
                     child: line.isEmpty
                         // Before the first word: a short hint, not a blank.
                         ? Align(
