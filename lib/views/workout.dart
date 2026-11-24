@@ -34,6 +34,7 @@ import '../store.dart';
 import 'area_scene.dart';
 import 'carousel.dart';
 import 'chalk.dart';
+import 'forge.dart' show showForgeEdit;
 import 'workout_layout.dart';
 
 class WorkoutView extends StatefulWidget {
@@ -260,6 +261,13 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
           onStar: () => _star(e),
           onPick: (id) => _pick(e, id),
           onRemove: preview ? null : () => _remove(e),
+          onEdit: switch (store.forgedById(e.id)) {
+            final f? => () {
+                HapticFeedback.mediumImpact();
+                showForgeEdit(Navigator.of(context), store, f);
+              },
+            null => null,
+          },
         ),
       ),
     );
@@ -778,7 +786,11 @@ class _ExerciseText extends StatelessWidget {
     required this.onStar,
     required this.onPick,
     this.onRemove,
+    this.onEdit,
   });
+
+  /// The long-press on the title of a forged move (D78); null otherwise.
+  final VoidCallback? onEdit;
 
   /// The card (all its exercises, D82).
   final ExerciseGroup g;
@@ -814,12 +826,20 @@ class _ExerciseText extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // The exercise picked is the title (D75).
+              // A forged move (D78): a long-press on the title opens the
+              // FORGE card in edit mode. Only here, away from the world's
+              // hold (D17, D48).
               Expanded(
-                child: ShadowTitle(
-                  displayName(v).toUpperCase(),
-                  textKey: const ValueKey('exercise-title'),
-                  size: 28,
-                  shadowColor: p.orange,
+                child: GestureDetector(
+                  key: const ValueKey('exercise-title-area'),
+                  behavior: HitTestBehavior.opaque,
+                  onLongPress: onEdit,
+                  child: ShadowTitle(
+                    displayName(v).toUpperCase(),
+                    textKey: const ValueKey('exercise-title'),
+                    size: 28,
+                    shadowColor: p.orange,
+                  ),
                 ),
               ),
               if (hard)

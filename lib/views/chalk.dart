@@ -62,7 +62,7 @@ class ChalkSheet extends StatelessWidget {
         // The FORGE card, from the picked words (CHALK closes first).
         void forge() {
           final nav = Navigator.of(context)..pop();
-          showForge(nav, store, line);
+          showForge(nav, store, line, onBackToChalk: () => showChalkSheet(nav.context, store));
         }
 
         return SizedBox(

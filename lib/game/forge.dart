@@ -6,9 +6,13 @@
 // joins the exercise list like any card (sets and XP work the same), for
 // every class with its gear, and CHALK finds it.
 //
+// When CHALK has no MOVE word for it, the lifter types the move (D83): the
+// typed word is the move part of the name, kept as typed (user text, not
+// translated).
+//
 // Kept on the phone as `custom_exercises_v1` (a list of [ForgedMove] JSON).
-// Not in the backup file yet, and there is no edit or delete yet: both are
-// still open (HANDOFF.md "Still open").
+// A long-press on its Today card title edits it or melts (deletes) it
+// (D78). Not in the backup file yet (still open).
 
 import 'chalk.dart';
 import 'content.dart';
@@ -66,20 +70,31 @@ String? chalkIdOf(Iterable<String> line, String row) =>
 
 /// The name the words give, in English (the exercise list's language):
 /// the tool, then the move (or the pattern), for example "Kettlebell
-/// Curl". Bodyweight is left out.
-String forgeName(Iterable<String> line) {
+/// Curl". Bodyweight is left out. A [typed] move word (D83) takes the
+/// place of the MOVE word, as typed.
+String forgeName(Iterable<String> line, {String? typed}) {
   final parts = <String>[];
-  for (final row in ['tool', 'move']) {
-    final id = chalkIdOf(line, row);
-    if (id == null || id == 'bodyweight') continue;
-    parts.add(chalkWordByKey('$row.$id')!.label);
-  }
-  if (chalkIdOf(line, 'move') == null) {
+  final tool = chalkIdOf(line, 'tool');
+  if (tool != null && tool != 'bodyweight') parts.add(chalkWordByKey('tool.$tool')!.label);
+  final move = chalkIdOf(line, 'move');
+  final own = cleanTyped(typed);
+  if (own != null) {
+    parts.add(own);
+  } else if (move != null) {
+    parts.add(chalkWordByKey('move.$move')!.label);
+  } else {
     final pat = chalkIdOf(line, 'pattern');
     if (pat != null) parts.add(chalkWordByKey('pattern.$pat')!.label);
   }
   if (parts.isEmpty) return 'My Move';
   return parts.map((w) => w[0].toUpperCase() + w.substring(1)).join(' ');
+}
+
+/// [typed] cleaned for keeping: one space between words, no end spaces;
+/// null when nothing is left.
+String? cleanTyped(String? typed) {
+  final s = typed?.trim().replaceAll(RegExp(r'\s+'), ' ');
+  return s == null || s.isEmpty ? null : s;
 }
 
 /// The body part and muscle the words point to: the BODY word, else the
@@ -106,7 +121,7 @@ List<GameClass> forgeClasses(Iterable<String> line) {
 
 /// A forged move, as kept on the phone.
 class ForgedMove {
-  const ForgedMove({required this.id, required this.words, required this.muscle, this.nickname});
+  const ForgedMove({required this.id, required this.words, required this.muscle, this.nickname, this.typed});
 
   /// `custom_<n>`; saved sets use it like any exercise id.
   final String id;
@@ -121,13 +136,18 @@ class ForgedMove {
   /// The big name when set (D72); the words' name sits small under it.
   final String? nickname;
 
-  String get name => forgeName(words);
+  /// The move word the lifter typed (D83), when CHALK had none: then
+  /// [words] has no MOVE word. Shown as typed, never translated.
+  final String? typed;
+
+  String get name => forgeName(words, typed: typed);
 
   factory ForgedMove.fromJson(Map<String, dynamic> j) => ForgedMove(
         id: j['id'] as String,
         words: {for (final w in j['words'] as List? ?? const []) if (w is String && chalkWordByKey(w) != null) w},
         muscle: j['muscle'] as String? ?? 'chest',
         nickname: j['nickname'] as String?,
+        typed: cleanTyped(j['typed'] as String?),
       );
 
   Map<String, Object?> toJson() => {
@@ -135,13 +155,15 @@ class ForgedMove {
         'words': words.toList(),
         'muscle': muscle,
         if (nickname != null) 'nickname': nickname,
+        if (typed != null) 'typed': typed,
       };
 
   /// The exercise for the list: every class with its gear sees it from
   /// the first mode, last in the Suggested order.
   CatalogExercise toExercise() {
     final tool = _toolFields[chalkIdOf(words, 'tool')] ?? ('body only', null);
-    final pattern = _moveFields[chalkIdOf(words, 'move')]?.$3 ?? _patternFields[chalkIdOf(words, 'pattern')];
+    final pattern = (typed == null ? _moveFields[chalkIdOf(words, 'move')]?.$3 : null) ??
+        _patternFields[chalkIdOf(words, 'pattern')];
     return CatalogExercise(
       id: id,
       name: name,

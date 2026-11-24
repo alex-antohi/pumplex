@@ -491,15 +491,22 @@ class LogStore extends ChangeNotifier {
 
   /// Forge a move from the chalk [words]: it joins the exercise list, and
   /// the workout shows it (the chalk line becomes its words).
-  ForgedMove forge(Set<String> words, String muscle, String? nickname) {
+  /// A [typed] move word (D83) takes the place of the MOVE word.
+  ForgedMove forge(Set<String> words, String muscle, String? nickname, {String? typed}) {
     var n = _forged.length + 1;
     while (exerciseCatalog.byId.containsKey('custom_$n')) {
       n++;
     }
-    final move = ForgedMove(id: 'custom_$n', words: words, muscle: muscle, nickname: nickname);
+    final own = cleanTyped(typed);
+    final move = ForgedMove(
+      id: 'custom_$n',
+      words: own == null ? words : {for (final w in words) if (!w.startsWith('move.')) w},
+      muscle: muscle,
+      nickname: nickname,
+      typed: own,
+    );
     _forged.add(move);
-    _prefs.setString(forgedKey, jsonEncode([for (final f in _forged) f.toJson()]));
-    exerciseCatalog = catalogWithForged(exerciseCatalog, _forged);
+    _saveForged();
     _chalk
       ..clear()
       ..addAll(ChalkIndex.of(exerciseCatalog).words[move.id] ?? const {});
@@ -507,6 +514,63 @@ class LogStore extends ChangeNotifier {
     _addToToday([move.id]); // FORGE IT adds the move to Today (D79)
     notifyListeners();
     return move;
+  }
+
+  /// Saves the forged moves and puts them in the exercise list again.
+  void _saveForged() {
+    _prefs.setString(forgedKey, jsonEncode([for (final f in _forged) f.toJson()]));
+    exerciseCatalog = catalogWithForged(exerciseCatalog, _forged);
+  }
+
+  /// The forged move [id], or null.
+  ForgedMove? forgedById(String id) => _forged.where((f) => f.id == id).firstOrNull;
+
+  /// SAVE on the FORGE card in edit mode (D78): forged move [id] gets new
+  /// words, muscle, nickname and typed word. Its id stays, so its sets,
+  /// XP and Today place stay.
+  void editForged(String id, Set<String> words, String muscle, String? nickname, {String? typed}) {
+    final i = _forged.indexWhere((f) => f.id == id);
+    if (i < 0) return;
+    final own = cleanTyped(typed);
+    _forged[i] = ForgedMove(
+      id: id,
+      words: own == null ? words : {for (final w in words) if (!w.startsWith('move.')) w},
+      muscle: muscle,
+      nickname: nickname,
+      typed: own,
+    );
+    _saveForged();
+    notifyListeners();
+  }
+
+  /// All the working sets of exercise [id], on every day.
+  int allSets(String id) => _sessions.values
+      .expand((s) => s.exercises)
+      .where((e) => e.exerciseId == id)
+      .fold(0, (a, e) => a + e.sets);
+
+  /// MELT on the FORGE card in edit mode (D78): forged move [id] is
+  /// deleted. It leaves Today, the favorites and the list, and its sets on
+  /// every day go too (so does their XP: XP is worked out from the sets).
+  void meltForged(String id) {
+    if (forgedById(id) == null) return;
+    removeFromToday(id);
+    if (_favorites.remove(id)) _prefs.setString(_favoritesKey, jsonEncode(_favorites.toList()));
+    if (allSets(id) > 0) {
+      for (final e in _sessions.entries.toList()) {
+        if (e.value.exercises.any((x) => x.exerciseId == id)) {
+          _sessions[e.key] = e.value.copyWith(exercises: [
+            for (final x in e.value.exercises)
+              if (x.exerciseId != id) x,
+          ]);
+        }
+      }
+      _saveSessions();
+    }
+    _forged.removeWhere((f) => f.id == id);
+    _saveForged();
+    if (pickedCard == id) _prefs.remove(pickedCardKey);
+    notifyListeners();
   }
 
   /// The HARD badge (D70) for exercise [e] of card [g]: only for a card of

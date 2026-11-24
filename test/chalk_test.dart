@@ -533,8 +533,8 @@ void main() {
     expect(find.textContaining('KETTLEBELL CURL'), findsNothing);
   });
 
-  testWidgets('FORGE card: no ANGLE or GRIP; a nickname on the arcade keyboard, FORGE IT', (t) async {
-    final store = await _openApp(t);
+  /// Opens CHALK with the words [_noMove] and taps NO SUCH MOVE. FORGE IT?
+  Future<void> openForge(WidgetTester t, LogStore store) async {
     store.setChalk(_noMove);
     await t.pump();
     await t.tap(find.byKey(const ValueKey('filter-chalk')));
@@ -543,34 +543,207 @@ void main() {
     await t.tap(find.byKey(const ValueKey('chalk-forge')));
     await _frames(t, 20);
     expect(find.byKey(const ValueKey('forge-card')), findsOneWidget);
+  }
+
+  String slotWord(WidgetTester t, String row) => t.widget<Text>(find.byKey(ValueKey('forge-slot-$row-word'))).data!;
+
+  testWidgets('FORGE (D83): 2 taps forge into Today and select it, with no reveal', (t) async {
+    final store = await _openApp(t);
+    await openForge(t, store); // tap 1: FORGE IT in CHALK
+    await t.tap(find.byKey(const ValueKey('forge-it'))); // tap 2: FORGE IT
+    await t.pump();
+    expect(find.byKey(const ValueKey('forge-reveal')), findsNothing); // chalk words only: no ANVIL
+    await _frames(t, 20);
+    final f = store.forged.single;
+    expect(f.typed, isNull);
+    expect(store.todayIds, [f.id]);
+    expect(store.pickedCard, f.id);
+    expect(find.byKey(const ValueKey('forge-card')), findsNothing);
+    expect(find.text('KETTLEBELL PULLDOWN'), findsOneWidget); // the Today card's title
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('FORGE card (MINIMAL): 3 slots, tiles only for the open slot, no ANGLE or GRIP, GUESSED, nickname', (t) async {
+    final store = await _openApp(t);
+    await openForge(t, store);
+    expect(find.text('FORGE'), findsOneWidget);
     expect(find.text('KETTLEBELL PULLDOWN'), findsOneWidget);
+    // The 3 slots, in the mockup's order.
+    final xs = [for (final r in forgeSlotsForTest) t.getRect(find.byKey(ValueKey('forge-slot-$r'))).left];
+    expect(xs, orderedEquals([...xs]..sort()));
+    expect((slotWord(t, 'move'), slotWord(t, 'tool'), slotWord(t, 'pattern')), ('PULLDOWN', 'KETTLEBELL', '—'));
+    // No tiles until a slot opens; then only that row's.
+    expect(find.byKey(const ValueKey('forge-tool.kettlebell')), findsNothing);
+    await t.tap(find.byKey(const ValueKey('forge-slot-tool')));
+    await t.pump();
     expect(find.byKey(const ValueKey('forge-tool.kettlebell')), findsOneWidget);
-    expect(find.byKey(const ValueKey('forge-angle.incline')), findsNothing);
-    expect(find.byKey(const ValueKey('forge-grip.wide')), findsNothing);
+    expect(find.byKey(const ValueKey('forge-move.curl')), findsNothing);
+    await t.tap(find.byKey(const ValueKey('forge-tool.cable')));
+    await t.pump();
+    expect(slotWord(t, 'tool'), 'CABLE');
+    for (final w in ['forge-angle.incline', 'forge-grip.wide']) {
+      expect(find.byKey(ValueKey(w)), findsNothing);
+    }
     expect(find.text('ANGLE'), findsNothing);
     expect(find.text('GRIP'), findsNothing);
-    expect(find.byKey(const ValueKey('forge-muscle-lats')), findsOneWidget);
-    await t.ensureVisible(find.byKey(const ValueKey('forge-nickname')));
+    // The guessed muscle is tagged until the lifter taps a muscle.
+    expect(find.byKey(const ValueKey('forge-guessed')), findsOneWidget);
+    expect(find.text('GUESSED'), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('forge-muscle-middle back')));
+    await t.pump();
+    expect(find.byKey(const ValueKey('forge-guessed')), findsNothing);
+    // The nickname on the arcade keyboard; BODY and MUSCLE hide while it is up.
     await t.tap(find.byKey(const ValueKey('forge-nickname')));
     await _frames(t, 4);
     expect(find.byKey(const ValueKey('arcade-keyboard')), findsOneWidget);
     expect(find.byKey(const ValueKey('key-1')), findsNothing); // no digits
+    expect(find.byKey(const ValueKey('forge-muscle-lats')), findsNothing);
     for (final k in ['B', 'E', 'N', 'C', 'H', 'Ș']) {
       await t.tap(find.byKey(ValueKey('key-$k')));
     }
     await t.tap(find.byKey(const ValueKey('key-del')));
     await t.pump();
     expect(find.text('BENCH_'), findsOneWidget);
-    // FORGE IT works before OK.
-    await t.tap(find.byKey(const ValueKey('forge-it')));
+    // The bar sits over the keyboard.
+    expect(t.getRect(find.byKey(const ValueKey('forge-it'))).bottom,
+        lessThanOrEqualTo(t.getRect(find.byKey(const ValueKey('arcade-keyboard'))).top));
+    await t.tap(find.byKey(const ValueKey('forge-it'))); // works before OK
     await _frames(t, 30);
     final f = store.forged.single;
-    expect((f.nickname, f.muscle), ('BENCH', 'lats'));
-    expect(f.words, _noMove);
+    expect((f.nickname, f.muscle), ('BENCH', 'middle back'));
+    expect(f.words, {'tool.cable', 'move.pulldown'});
     expect(exerciseCatalog.byId[f.id]!.mods.keys, ['equip']);
-    expect(store.todayIds, [f.id]); // FORGE IT still adds to Today (D79)
-    expect(find.byKey(const ValueKey('forge-card')), findsNothing);
+    expect(store.todayIds, [f.id]);
     expect(find.text('BENCH'), findsOneWidget); // the nickname is the card's title
     expect(t.takeException(), isNull);
   });
+
+  testWidgets('FORGE: + TYPE THE MOVE makes the MOVE, kept as typed; the ANVIL reveal plays and a skip tap does nothing else',
+      (t) async {
+    final store = await _openApp(t);
+    await openForge(t, store);
+    await t.tap(find.byKey(const ValueKey('forge-type-move')));
+    await _frames(t, 4);
+    expect(find.byKey(const ValueKey('arcade-keyboard')), findsOneWidget);
+    for (final k in ['S', 'N', 'A', 'T', 'C', 'H']) {
+      await t.tap(find.byKey(ValueKey('key-$k')));
+    }
+    await t.pump();
+    expect(slotWord(t, 'move'), 'SNATCH');
+    expect(find.text('KETTLEBELL SNATCH'), findsOneWidget);
+    final forgeIt = t.getCenter(find.byKey(const ValueKey('forge-it')));
+    await t.tap(find.byKey(const ValueKey('forge-it')));
+    await t.pump();
+    final f = store.forged.single;
+    expect((f.typed, f.name), ('SNATCH', 'Kettlebell SNATCH'));
+    expect(f.words, {'tool.kettlebell'}); // the typed word took the MOVE word's place
+    expect(store.todayIds, [f.id]);
+    // The reveal plays; a tap on FORGE IT's spot only skips it.
+    await t.pump(const Duration(milliseconds: 300));
+    expect(find.byKey(const ValueKey('forge-reveal')), findsOneWidget);
+    await t.tapAt(forgeIt);
+    await _frames(t, 20);
+    expect(store.forged.length, 1);
+    expect(store.todayIds, [f.id]);
+    expect(store.setsToday(f.id), 0);
+    expect(find.byKey(const ValueKey('forge-reveal')), findsNothing);
+    expect(find.byKey(const ValueKey('forge-card')), findsNothing);
+    expect(find.text('KETTLEBELL SNATCH'), findsOneWidget); // the card in Today
+    // Kept on the phone as typed.
+    final again = LogStore(await SharedPreferences.getInstance(), clock: () => DateTime(2026, 11, 21, 11));
+    expect(again.forged.single.typed, 'SNATCH');
+    // Without a tap, the reveal ends by itself (it plays, then the loot card stays a moment).
+    await openForge(t, store);
+    await t.tap(find.byKey(const ValueKey('forge-type-move')));
+    await t.pump();
+    await t.tap(find.byKey(const ValueKey('key-X')));
+    await t.tap(find.byKey(const ValueKey('forge-it')));
+    await t.pump();
+    await t.pump(const Duration(milliseconds: 1250));
+    expect(find.byKey(const ValueKey('forge-loot')), findsOneWidget);
+    await _frames(t, 30);
+    expect(find.byKey(const ValueKey('forge-reveal')), findsNothing);
+    expect(store.forged.length, 2);
+    expect(t.takeException(), isNull);
+  });
+
+  test('FORJA (D83): the Romanian words, no FAUR left', () {
+    expect(RegExp('FAUR', caseSensitive: false).hasMatch(langFiles['ro']!), isFalse);
+    I18n.instance.useJson(langFiles, lang: 'ro');
+    expect([t('forge.title'), t('forge.go'), t('chalk.forge'), t('forge.typeMove'), t('forge.guessed')],
+        ['FORJA', 'FORJEAZĂ', 'NU EXISTĂ. O FORJEZI?', '+ SCRIE MIȘCAREA', 'GHICIT']);
+    I18n.instance.useJson(langFiles);
+    expect([t('forge.title'), t('forge.go'), t('chalk.forge'), t('forge.typeMove')],
+        ['FORGE', 'FORGE IT', 'NO SUCH MOVE. FORGE IT?', '+ TYPE THE MOVE']);
+  });
+
+  testWidgets('FORGE edit (D78): a long-press on a forged card title opens the same card; SAVE, MELT with a dialog', (t) async {
+    t.view.physicalSize = const Size(1080, 2340);
+    t.view.devicePixelRatio = 2.75;
+    t.view.padding = const FakeViewPadding(top: 110, bottom: 146);
+    addTearDown(t.view.reset);
+    SharedPreferences.setMockInitialValues({'profile_v1': jsonEncode(_profile.toJson())});
+    final store = LogStore(await SharedPreferences.getInstance(), clock: () => DateTime(2026, 11, 21, 10));
+    final move = store.forge({'tool.kettlebell'}, 'biceps', null, typed: 'snatch');
+    store.addSet(move.id);
+    await t.pumpWidget(GymApp(store: store));
+    await _frames(t);
+    // A plain tap on the title opens nothing.
+    await t.tap(find.byKey(const ValueKey('exercise-title-area')));
+    await _frames(t, 4);
+    expect(find.byKey(const ValueKey('forge-card')), findsNothing);
+    await t.longPress(find.byKey(const ValueKey('exercise-title-area')));
+    await _frames(t, 20);
+    expect(find.byKey(const ValueKey('forge-card')), findsOneWidget);
+    expect(find.text('EDIT MOVE'), findsOneWidget);
+    expect(slotWord(t, 'move'), 'SNATCH'); // prefilled
+    expect(find.byKey(const ValueKey('forge-guessed')), findsNothing); // the muscle was picked
+    expect(find.descendant(of: find.byKey(const ValueKey('forge-it')), matching: find.text('SAVE')), findsOneWidget);
+    expect(find.byKey(const ValueKey('forge-melt')), findsOneWidget);
+    // SAVE: a nickname; the id, the set and the Today place stay.
+    await t.tap(find.byKey(const ValueKey('forge-nickname')));
+    await t.pump();
+    await t.tap(find.byKey(const ValueKey('key-Z')));
+    await t.tap(find.byKey(const ValueKey('forge-it')));
+    await _frames(t, 20);
+    expect(find.byKey(const ValueKey('forge-reveal')), findsNothing); // no reveal on SAVE
+    expect(store.forged.single.nickname, 'Z');
+    expect(store.forged.single.typed, 'snatch');
+    expect(store.todayIds, [move.id]);
+    expect(store.setsToday(move.id), 1);
+    expect(find.text('Z'), findsOneWidget);
+    // MELT asks first (the move has a set); KEEP keeps it.
+    await t.longPress(find.byKey(const ValueKey('exercise-title-area')));
+    await _frames(t, 20);
+    await t.tap(find.byKey(const ValueKey('forge-melt')));
+    await _frames(t, 10);
+    expect(find.byKey(const ValueKey('forge-melt-dialog')), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('forge-melt-cancel')));
+    await _frames(t, 10);
+    expect(store.forged, hasLength(1));
+    await t.tap(find.byKey(const ValueKey('forge-melt')));
+    await _frames(t, 10);
+    await t.tap(find.byKey(const ValueKey('forge-melt-confirm')));
+    await _frames(t, 20);
+    expect(store.forged, isEmpty);
+    expect(store.todayIds, isEmpty);
+    expect(store.allSets(move.id), 0);
+    expect(exerciseCatalog.byId[move.id], isNull);
+    expect(find.byKey(const ValueKey('forge-card')), findsNothing);
+    expect(find.byKey(const ValueKey('today-empty-card')), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('a long-press on a catalog card title opens nothing', (t) async {
+    final store = await _openApp(t);
+    store.addToToday(exerciseCatalog.all.first.id);
+    await _frames(t, 10);
+    await t.longPress(find.byKey(const ValueKey('exercise-title-area')));
+    await _frames(t, 10);
+    expect(find.byKey(const ValueKey('forge-card')), findsNothing);
+    expect(t.takeException(), isNull);
+  });
 }
+
+/// The FORGE slots, left to right (lib/views/forge.dart).
+const forgeSlotsForTest = ['move', 'tool', 'pattern'];
