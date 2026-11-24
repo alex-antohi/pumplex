@@ -1,4 +1,4 @@
-// The exercise list, its moves with modifiers, and the workout filters
+// The exercise list, its moves with modifiers, and the class filter
 // (D50-D53, D55, D67).
 //
 // The list is assets/exercises/exercises.json: free-exercise-db
@@ -22,11 +22,9 @@
 // `mods` (tools/exercise_variants.mjs writes both). The workout shows one
 // card per move, with modifier chips that pick the exercise.
 //
-// Filters, in cascade order: class -> difficulty -> body part (-> muscle),
-// then favorites. Each filter's option counts use only the filters before
-// it (and favorites), so an earlier choice greys out later options. A move
-// passes when the mode shows it for the class and at least one of its
-// exercises passes.
+// The class filter (ExerciseFilter): a move passes when the class sees it
+// in some mode and at least one of its exercises fits the class's gear.
+// There is no body part filter any more (D82: CHALK finds the rest).
 
 import 'dart:convert';
 
@@ -423,45 +421,18 @@ BodyPart? bodyPartOf(String muscle) => bodyParts.where((b) => b.muscles.contains
 
 // --------------------------------------------------------------- filter
 
-/// The workout filters. Null body or muscle = all.
+/// Your class and mode (D70, D82): the cards of the class, and the HARD
+/// badge. The body part filter is gone (D82: CHALK is the way to the
+/// catalog).
 class ExerciseFilter {
-  const ExerciseFilter({
-    required this.classId,
-    required this.difficulty,
-    this.body,
-    this.muscle,
-    this.favorites = false,
-  });
+  const ExerciseFilter({required this.classId, required this.difficulty});
 
   final String classId;
   final int difficulty;
-  final String? body, muscle;
-
-  /// Show favorites only (combined with the other filters, D53).
-  final bool favorites;
-
-  ExerciseFilter copyWith({String? classId, int? difficulty, bool? favorites}) => ExerciseFilter(
-        classId: classId ?? this.classId,
-        difficulty: difficulty ?? this.difficulty,
-        body: body,
-        muscle: muscle,
-        favorites: favorites ?? this.favorites,
-      );
-
-  /// A new body part (null = all) clears the muscle.
-  ExerciseFilter withBody(String? id) =>
-      ExerciseFilter(classId: classId, difficulty: difficulty, body: id, favorites: favorites);
-
-  /// A muscle of the current body part (null = the whole body part).
-  ExerciseFilter withMuscle(String? m) =>
-      ExerciseFilter(classId: classId, difficulty: difficulty, body: body, muscle: m, favorites: favorites);
 
   bool _class(CatalogExercise e) =>
       (classEquipment[classId]?.contains(e.equipment) ?? false) &&
       (classCategories[classId]?.contains(e.category) ?? false);
-
-  bool _body(CatalogExercise e) =>
-      muscle != null ? e.muscle == muscle : body == null || (bodyPartById(body)?.muscles.contains(e.muscle) ?? false);
 
   /// The cards that pass, each with only its exercises that pass. Difficulty
   /// is not a filter (D70): every card of the class shows, with all its
@@ -472,8 +443,7 @@ class ExerciseFilter {
     final out = <ExerciseGroup>[];
     for (final g in catalog.groups) {
       if (!_shown(g)) continue;
-      // Favorites are exercises (D72): favorites only keeps those.
-      final keep = [for (final e in g.variants) if (_class(e) && _body(e) && (!favorites || favs.contains(e.id))) e];
+      final keep = [for (final e in g.variants) if (_class(e)) e];
       if (keep.isNotEmpty) out.add(g.only(keep));
     }
     int mode(ExerciseGroup g) => g.shownIn(classId, difficulty) ? 0 : g.variants.first.unlock[classId] ?? 99;
@@ -493,39 +463,12 @@ class ExerciseFilter {
   /// above what your mode sees (D51). Nothing is hidden or locked.
   bool isHard(ExerciseGroup g, CatalogExercise e) => !g.shownIn(classId, difficulty) || e.level > topLevelFor(difficulty);
 
-  /// Card counts for the options of each filter (cascade: only earlier
-  /// filters). A class counts all its cards, of every mode.
-  int countBody(ExerciseCatalog c, Set<String> favs, String? id) =>
-      _count(c, favs, _shown, (e) => _class(e) && withBody(id)._body(e));
-
-  int countMuscle(ExerciseCatalog c, Set<String> favs, String? m) =>
-      _count(c, favs, _shown, (e) => _class(e) && withMuscle(m)._body(e));
-
   /// Every card of the class, of every mode (D70).
   bool _shown(ExerciseGroup g) => g.shownIn(classId, 5);
 
-  int _count(ExerciseCatalog c, Set<String> favs, bool Function(ExerciseGroup) shown,
-          bool Function(CatalogExercise) test) =>
-      c.groups.where((g) => shown(g) && g.variants.any((e) => (!favorites || favs.contains(e.id)) && test(e))).length;
-
-  /// After an earlier filter changed: a body part or muscle with no
-  /// exercises left goes back to all.
-  ExerciseFilter settle(ExerciseCatalog c, Set<String> favs) {
-    var f = this;
-    if (f.muscle != null && f.countMuscle(c, favs, f.muscle) == 0) f = f.withMuscle(null);
-    if (f.body != null && f.countBody(c, favs, f.body) == 0) f = f.withBody(null);
-    return f;
-  }
+  @override
+  bool operator ==(Object other) => other is ExerciseFilter && other.classId == classId && other.difficulty == difficulty;
 
   @override
-  bool operator ==(Object other) =>
-      other is ExerciseFilter &&
-      other.classId == classId &&
-      other.difficulty == difficulty &&
-      other.body == body &&
-      other.muscle == muscle &&
-      other.favorites == favorites;
-
-  @override
-  int get hashCode => Object.hash(classId, difficulty, body, muscle, favorites);
+  int get hashCode => Object.hash(classId, difficulty);
 }

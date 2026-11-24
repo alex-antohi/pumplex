@@ -15,6 +15,10 @@ import 'package:gym_app/store.dart';
 import 'package:gym_app/views/workout.dart';
 import 'package:gym_app/views/workout_layout.dart';
 
+/// The cards of the class and mode, in the Suggested order: the cards the
+/// carousel keeps (D82). The old filter list (store.cards) is gone.
+List<ExerciseGroup> _cards(LogStore s) => s.defaultFilter.apply(exerciseCatalog, s.favorites);
+
 /// A test clock the store reads. 21 Nov 2026 is a Saturday.
 final _now = DateTime(2026, 11, 21, 10);
 
@@ -53,7 +57,7 @@ Future<LogStore> _openApp(WidgetTester t, {String areaId = 'gainsgard'}) async {
 /// Puts the first 40 cards in Today (the carousel shows only Today, D82)
 /// and shows the first one.
 void _seedToday(LogStore store) {
-  final ids = store.cards.take(40).map((g) => store.variantFor(g).id).toList();
+  final ids = _cards(store).take(40).map((g) => store.variantFor(g).id).toList();
   ids.forEach(store.addToToday);
   store.selectExercise(ids.first);
 }
@@ -77,7 +81,7 @@ void main() {
     testWidgets('workout layout ($id): the set-count badge sits by the marks, in the world, off the object', (t) async {
       final store = await _openApp(t, areaId: id);
       final art = areaArt[id]!;
-      final first = store.variantFor(store.cards.first).id;
+      final first = store.variantFor(_cards(store).first).id;
       for (var i = 0; i < art.markPositions.length + 3; i++) {
         store.addSet(first);
       }
@@ -127,7 +131,7 @@ void main() {
     expect(workoutStage(view.size, inset).shift(view.topLeft).top, greaterThanOrEqualTo(scene.top + view.top));
     expect(scene.shift(view.topLeft).contains(workoutArena(view.size, inset).shift(view.topLeft).center), isTrue);
     final object = t.getRect(find.byKey(const ValueKey('world-object')));
-    for (var i = 0; i < 8 && i < store.cards.length; i++) {
+    for (var i = 0; i < 8 && i < _cards(store).length; i++) {
       final part = t.getRect(find.byKey(const ValueKey('exercise-part')));
       final counter = t.getRect(find.byKey(const ValueKey('exercise-counter')));
       final star = t.getRect(find.byKey(const ValueKey('favorite-star')));
@@ -171,7 +175,7 @@ void main() {
   testWidgets('workout layout: the card stays put whatever its number of chip rows (D79)', (t) async {
     final store = await _openApp(t);
     final title = <int, Rect>{}, counter = <int, Rect>{};
-    for (var i = 0; i < 40 && i < store.cards.length; i++) {
+    for (var i = 0; i < 40 && i < _cards(store).length; i++) {
       final e = store.carousel.firstWhere((c) => c.id == store.pickedCard, orElse: () => store.carousel.first);
       final full = exerciseCatalog.byKey[e.card.key] ?? e.card;
       final rows = full.axesFor(e.exercise).length;
@@ -195,12 +199,12 @@ void main() {
     final prefs = await SharedPreferences.getInstance();
     final store = LogStore(prefs, clock: () => _now);
     // The shown card with the longest chip row.
-    final g = store.cards.reduce((a, b) {
+    final g = _cards(store).reduce((a, b) {
       int longest(ExerciseGroup c) =>
           (exerciseCatalog.byKey[c.key] ?? c).axesFor(store.variantFor(c)).fold(0, (m, a) => max(m, a.$2.length));
       return longest(b) > longest(a) ? b : a;
     });
-    store.addToToday(store.variantFor(store.cards.first).id);
+    store.addToToday(store.variantFor(_cards(store).first).id);
     store.addToToday(store.variantFor(g).id); // only Today shows (D82)
     await t.pumpWidget(GymApp(store: store));
     await _frames(t);
@@ -227,11 +231,11 @@ void main() {
     SharedPreferences.setMockInitialValues({'profile_v1': jsonEncode(_profile('gainsgard').toJson())});
     final prefs = await SharedPreferences.getInstance();
     final store = LogStore(prefs, clock: () => _now);
-    final g = store.cards.reduce((a, b) {
+    final g = _cards(store).reduce((a, b) {
       int rows(ExerciseGroup c) => (exerciseCatalog.byKey[c.key] ?? c).axesFor(store.variantFor(c)).length;
       return rows(b) > rows(a) ? b : a;
     });
-    store.addToToday(store.variantFor(store.cards.first).id);
+    store.addToToday(store.variantFor(_cards(store).first).id);
     store.addToToday(store.variantFor(g).id); // only Today shows (D82)
     await t.pumpWidget(GymApp(store: store));
     await _frames(t);
@@ -250,7 +254,7 @@ void main() {
     _phone(t);
     t.view.physicalSize = const Size(1080, 1500); // a short screen
     final store = await _openAppKeepView(t);
-    for (var i = 0; i < 6 && i < store.cards.length; i++) {
+    for (var i = 0; i < 6 && i < _cards(store).length; i++) {
       expect(t.takeException(), isNull);
       final part = t.getRect(find.byKey(const ValueKey('exercise-part')));
       final (scene, _) = workoutLayout(_view(t).size, 146 / 2.75);

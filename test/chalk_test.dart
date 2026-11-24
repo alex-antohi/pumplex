@@ -21,6 +21,10 @@ import 'package:gym_app/store.dart';
 import 'package:gym_app/views/chalk.dart' show kChalkResultsHeight, kChalkSheetFraction;
 import 'package:gym_app/views/play.dart' show SessionPage;
 
+/// The cards of the class and mode, in the Suggested order: the cards the
+/// carousel keeps (D82). The old filter list (store.cards) is gone.
+List<ExerciseGroup> _cards(LogStore s) => s.defaultFilter.apply(exerciseCatalog, s.favorites);
+
 const _profile = Profile(
   character: Character(sex: 'female', height: 80, muscle: 100, fat: 0),
   classId: 'scrapper', // no gear: CHALK still finds barbell moves
@@ -232,7 +236,7 @@ void main() {
     await t.tap(row, warnIfMissed: false);
     await _frames(t, 20);
     expect(store.pickedCard, 'Dumbbell_Flyes'); // the exercise (D82)
-    expect(store.variantFor(store.cards.firstWhere((g) => g.key == 'move:fly')).id, 'Dumbbell_Flyes');
+    expect(store.variantFor(exerciseCatalog.byKey['move:fly']!).id, 'Dumbbell_Flyes');
     await t.tap(find.byKey(const ValueKey('filter-chalk')));
     await _frames(t, 10);
     await t.ensureVisible(find.byKey(const ValueKey('chalk-result-Dumbbell_Flyes')));
@@ -279,7 +283,7 @@ void main() {
 
   testWidgets('CHALK sheet (D81): tiles with no counts, no ANGLE / GRIP, results at the bottom, FORGE at 0', (t) async {
     final store = await _openApp(t);
-    expect(store.cards.any((g) => g.variants.any((e) => e.equipment == 'barbell')), isFalse); // a Scrapper has no barbell
+    expect(_cards(store).any((g) => g.variants.any((e) => e.equipment == 'barbell')), isFalse); // a Scrapper has no barbell
     await t.tap(find.byKey(const ValueKey('filter-chalk')));
     await _frames(t, 10);
     // No chalk line, no hints, no WIPE and no SHOW n EXERCISES.
@@ -325,7 +329,7 @@ void main() {
     final tiles = find.ancestor(of: find.byKey(const ValueKey('chalk-row-body')), matching: find.byType(SingleChildScrollView));
     expect(find.byKey(const ValueKey('chalk-results')), findsOneWidget);
     expect(t.getRect(find.byKey(const ValueKey('chalk-results'))).top, greaterThanOrEqualTo(t.getRect(tiles).bottom));
-    expect(store.cards.every((g) => g.variants.every((e) => e.name.toLowerCase().contains('press'))), isTrue);
+    expect(ChalkIndex.of(exerciseCatalog).search(store.chalk).every((g) => g.variants.every((e) => e.name.toLowerCase().contains('press'))), isTrue);
     // No exercise has all the words: the bottom shows NO SUCH MOVE. FORGE IT?
     await tapTile('move.press'); // out
     await tapTile('move.pulldown');
@@ -431,7 +435,7 @@ void main() {
 
   testWidgets('BACK TO TODAY (D81): wipes the words, closes CHALK, the carousel goes to the first Today card', (t) async {
     final store = await _openApp(t);
-    final a = store.cards[2], b = store.cards[5];
+    final a = _cards(store)[2], b = _cards(store)[5];
     store.addToToday(store.variantFor(a).id);
     store.addToToday(store.variantFor(b).id);
     store.setChalk({'tool.barbell', 'move.press'});
@@ -489,7 +493,7 @@ void main() {
     expect(e.mods, {'equip': 'Kettlebell'});
     // CHALK finds it with the words it came from; the workout shows it.
     expect(ChalkIndex.of(exerciseCatalog).search(line).map((g) => g.key), contains(move.id));
-    expect(store.cards.map((g) => g.key), contains(move.id));
+    expect(store.carousel.map((e) => e.id), contains(move.id)); // FORGE IT adds it to Today (D79)
     expect(store.pickedCard, move.id);
     store.addSet(move.id);
     expect(store.groupSetsToday(move.id), 1);

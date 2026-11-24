@@ -20,6 +20,10 @@ import 'package:gym_app/game/model.dart';
 import 'package:gym_app/main.dart';
 import 'package:gym_app/store.dart';
 
+/// The cards of the class and mode, in the Suggested order: the cards the
+/// carousel keeps (D82). The old filter list (store.cards) is gone.
+List<ExerciseGroup> _cards(LogStore s) => s.defaultFilter.apply(exerciseCatalog, s.favorites);
+
 const _profile = Profile(
   character: Character(sex: 'female', height: 80, muscle: 100, fat: 0),
   classId: 'paladin',
@@ -52,12 +56,12 @@ void main() {
   ExerciseGroup bench() => exerciseCatalog.byKey['move:bench press']!;
 
   /// The first exercises of the cards that are not Bench Press.
-  List<String> others(LogStore store) => [for (final g in store.cards) if (g.key != bench().key) _first(g)];
+  List<String> others(LogStore store) => [for (final g in _cards(store)) if (g.key != bench().key) _first(g)];
 
   test('the first set adds that exercise; a CHALK row only selects; one exercise once; kept on the phone', () async {
     final (store, prefs) = await newStore();
     expect(store.todayIds, isEmpty);
-    final a = _first(store.cards[3]), b = _first(store.cards[7]), c = _first(store.cards[9]);
+    final a = _first(_cards(store)[3]), b = _first(_cards(store)[7]), c = _first(_cards(store)[9]);
     store.addSet(a);
     store.addSet(a);
     expect(store.todayIds, [a]);
@@ -154,23 +158,22 @@ void main() {
   test('the carousel (D82): only the Today exercises, with all their card\'s exercises; no catalog, filters or search after them', () async {
     final (store, _) = await newStore();
     expect(store.carousel, isEmpty);
-    final cards = store.cards.map((g) => g.key).toList();
-    final a = _first(store.cards[5]), b = _first(store.cards[2]);
+    final cards = _cards(store).map((g) => g.key).toList();
+    final a = _first(_cards(store)[5]), b = _first(_cards(store)[2]);
     store.addToToday(a);
     store.addToToday(b);
     expect(store.carousel.map((e) => e.card.key), [cards[5], cards[2]]);
-    // Old saved filters and a CHALK search change nothing.
-    store.setFilter(store.filter.withBody('legs'));
+    // A CHALK search changes nothing.
     store.setChalk({'move.press', 'tool.barbell'});
     expect(store.carousel.map((e) => e.id), [a, b]);
-    // A card keeps the exercises of your class and mode, not of the body filter.
+    // A card keeps the exercises of your class and mode.
     final mine = store.defaultFilter.apply(exerciseCatalog, store.favorites).firstWhere((g) => g.key == cards[5]);
     expect(store.carousel.first.card.variants.map((e) => e.id), mine.variants.map((e) => e.id));
   });
 
   test('a CHALK row on an exercise not in Today (D82): a preview at the end until the carousel leaves it; its first set adds it; per variation', () async {
     final (store, _) = await newStore();
-    final ids = [for (final g in store.cards.take(10)) _first(g)];
+    final ids = [for (final g in _cards(store).take(10)) _first(g)];
     store.addToToday(ids[0]);
     store.addToToday(ids[1]);
     store.selectExercise(ids[7]); // the CHALK row
@@ -370,7 +373,7 @@ void main() {
     t.view.padding = const FakeViewPadding(top: 110, bottom: 146);
     addTearDown(t.view.reset);
     final (seed, prefs) = await newStore();
-    final a = _first(seed.cards[0]), b = _first(seed.cards[4]), c = _first(seed.cards[6]);
+    final a = _first(_cards(seed)[0]), b = _first(_cards(seed)[4]), c = _first(_cards(seed)[6]);
     seed.addSet(a); // 21 Nov: a
     now = DateTime(2026, 11, 22, 9);
     seed.addSet(b); // 22 Nov: b, c
@@ -397,7 +400,7 @@ void main() {
     expect(store.todayIds, [b, c]);
     expect(store.todaySession?.totalSets ?? 0, 0);
     expect(find.byKey(const ValueKey('copy-day-card')), findsNothing);
-    expect(find.byKey(ValueKey('exercise-${seed.cards[4].key}')), findsOneWidget);
+    expect(find.byKey(ValueKey('exercise-${_cards(seed)[4].key}')), findsOneWidget);
     expect(find.byKey(const ValueKey('today-dot-1')), findsOneWidget);
     expect(t.takeException(), isNull);
   });
@@ -422,7 +425,7 @@ void main() {
     final store = await openApp(t);
     expect(find.byKey(const ValueKey('today-empty-card')), findsOneWidget);
     expect(find.text('OPEN CHALK TO ADD EXERCISES'), findsOneWidget);
-    expect(find.byKey(ValueKey('exercise-${store.cards.first.key}')), findsNothing);
+    expect(find.byKey(ValueKey('exercise-${_cards(store).first.key}')), findsNothing);
     expect(find.byKey(const ValueKey('world-object')), findsNothing); // nothing to add a set to
     for (final k in ['filter-body', 'filter-favorites', 'class-label', 'workout-filters']) {
       expect(find.byKey(ValueKey(k)), findsNothing, reason: k);
@@ -438,7 +441,7 @@ void main() {
   });
 
   testWidgets('"+ CHALK" by the dots opens CHALK (D82); "+ CRETĂ" in Romanian', (t) async {
-    final store = await openApp(t, (s) => s.addToToday(_first(s.cards[0])));
+    final store = await openApp(t, (s) => s.addToToday(_first(_cards(s)[0])));
     final button = find.byKey(const ValueKey('filter-chalk'));
     expect(find.descendant(of: button, matching: find.text('+ CHALK')), findsOneWidget);
     expect(t.getSize(button).height, greaterThanOrEqualTo(48));
@@ -453,11 +456,11 @@ void main() {
   testWidgets('Today shows only its cards: the swipe goes round them, no catalog after them', (t) async {
     late List<String> keys;
     final store = await openApp(t, (s) {
-      keys = [s.cards[3].key, s.cards[8].key];
-      for (final g in [s.cards[3], s.cards[8]]) {
+      keys = [_cards(s)[3].key, _cards(s)[8].key];
+      for (final g in [_cards(s)[3], _cards(s)[8]]) {
         s.addToToday(_first(g));
       }
-      s.selectExercise(_first(s.cards[3]));
+      s.selectExercise(_first(_cards(s)[3]));
     });
     for (final k in [keys[1], keys[0], keys[1]]) {
       await t.fling(find.byKey(const ValueKey('exercise-card')), const Offset(-300, 0), 1000);
@@ -502,9 +505,9 @@ void main() {
   testWidgets('a selected exercise not in Today: a preview after Today (a line, no delete); the first set adds it', (t) async {
     late String a, g, gKey;
     final store = await openApp(t, (s) {
-      a = _first(s.cards[0]);
-      g = _first(s.cards[6]);
-      gKey = s.cards[6].key;
+      a = _first(_cards(s)[0]);
+      g = _first(_cards(s)[6]);
+      gKey = _cards(s)[6].key;
       s.addToToday(a);
       s.selectExercise(g); // a CHALK row
     });
@@ -528,9 +531,9 @@ void main() {
   testWidgets('delete (D82): no sets, straight out; with sets, a dialog first (KEEP keeps all, REMOVE takes the sets and XP)', (t) async {
     late String a, b, aKey;
     final store = await openApp(t, (s) {
-      a = _first(s.cards[0]);
-      aKey = s.cards[0].key;
-      b = _first(s.cards[1]);
+      a = _first(_cards(s)[0]);
+      aKey = _cards(s)[0].key;
+      b = _first(_cards(s)[1]);
       s.addToToday(a);
       s.addToToday(b);
       s.selectExercise(b);

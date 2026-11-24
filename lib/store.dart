@@ -247,8 +247,6 @@ class LogStore extends ChangeNotifier {
           if (j is Map && j['id'] is String) ForgedMove.fromJson(Map<String, dynamic>.from(j)),
       ]);
     exerciseCatalog = catalogWithForged(exerciseCatalog, _forged);
-    _filter = null;
-    _filterLoaded = false;
     try {
       final raw = _json(pickedVariantsKey, const {});
       if (raw is Map) {
@@ -384,11 +382,10 @@ class LogStore extends ChangeNotifier {
       _sessions[_today] = t.copyWith(areaId: p.areaId);
       _saveSessions();
     }
-    _clearFilter(); // the filters go back to the new class and mode
     notifyListeners();
   }
 
-  // ------------------------------------------------- favorites and filters
+  // --------------------------------------------------- favorites and picks
 
   /// Favorite exercises (D53, D72): the star saves the exact exercise (the
   /// variant), not the card.
@@ -457,65 +454,8 @@ class LogStore extends ChangeNotifier {
     _prefs.setString(pickedVariantsKey, jsonEncode(_picked));
   }
 
-  /// The last filter choice, kept on the phone (also the next day and after
-  /// closing the app) until RESET TO MINE or a new class or mode. UI state
-  /// only: not in the backup.
-  static const filterKey = 'workout_filter_v1';
-  ExerciseFilter? _filter;
-  bool _filterLoaded = false;
-
-  /// Your class, your mode, all body parts, not only favorites.
+  /// Your class and your mode: the cards the carousel keeps and the HARD badge.
   ExerciseFilter get defaultFilter => ExerciseFilter(classId: gameClass.id, difficulty: difficulty);
-
-  /// The workout filters: the last choice, else [defaultFilter].
-  ExerciseFilter get filter {
-    if (!_filterLoaded) {
-      _filterLoaded = true;
-      _filter = _savedFilter();
-    }
-    return _filter ?? defaultFilter;
-  }
-
-  /// The saved choice, checked against the list as it is now: an unknown
-  /// class or difficulty means the defaults; an unknown body part or
-  /// muscle, or one with nothing left, goes back to all.
-  ExerciseFilter? _savedFilter() {
-    final Object? j;
-    try {
-      j = _json(filterKey, const {});
-    } on FormatException {
-      return null;
-    }
-    if (j is! Map) return null;
-    final cls = j['class'], d = j['difficulty'];
-    if (cls is! String || !classEquipment.containsKey(cls) || d is! int || d < 0 || d >= difficulties.length) return null;
-    final body = bodyPartById(j['body'] is String ? j['body'] as String : null);
-    final m = j['muscle'];
-    final muscle = body != null && m is String && body.muscles.contains(m) ? m : null;
-    return ExerciseFilter(classId: cls, difficulty: d, body: body?.id, muscle: muscle, favorites: j['favorites'] == true)
-        .settle(exerciseCatalog, _favorites);
-  }
-
-  /// A new choice; a body part or muscle with nothing left goes back to all.
-  void setFilter(ExerciseFilter f) {
-    final s = _filter = f.settle(exerciseCatalog, _favorites);
-    _filterLoaded = true;
-    _prefs.setString(filterKey, jsonEncode({
-      'class': s.classId,
-      'difficulty': s.difficulty,
-      'body': s.body,
-      'muscle': s.muscle,
-      'favorites': s.favorites,
-    }));
-    notifyListeners();
-  }
-
-  /// Back to [defaultFilter], and the saved choice is gone.
-  void _clearFilter() {
-    _filter = null;
-    _filterLoaded = true;
-    _prefs.remove(filterKey);
-  }
 
   /// The workout card picked last (its exercise id: one card per Today
   /// exercise, D82; an old group key just shows the first card), kept on the phone so it is
@@ -528,11 +468,6 @@ class LogStore extends ChangeNotifier {
     if (_prefs.getString(pickedCardKey) != key) _prefs.setString(pickedCardKey, key);
   }
 
-  void resetFilter() {
-    _clearFilter();
-    _chalk.clear();
-    notifyListeners();
-  }
 
   /// The CHALK line (D72): the words picked in the search, one per row
   /// (`<row>.<id>`, lib/game/chalk.dart). While it has words, the cards are
@@ -576,7 +511,7 @@ class LogStore extends ChangeNotifier {
 
   /// The HARD badge (D70) for exercise [e] of card [g]: only for a card of
   /// your class (a CHALK result for other gear opens with no badge, D72).
-  bool isHard(ExerciseGroup g, CatalogExercise e) => g.variants.first.unlock.containsKey(gameClass.id) && filter.isHard(g, e);
+  bool isHard(ExerciseGroup g, CatalogExercise e) => g.variants.first.unlock.containsKey(gameClass.id) && defaultFilter.isHard(g, e);
 
   // ---------------------------------------------------------------- today
 
@@ -823,13 +758,6 @@ class LogStore extends ChangeNotifier {
       out.add(TodayEntry(e, g));
     }
     return out;
-  }
-
-  /// The cards the filters show, in carousel order (one per move, D55).
-  List<ExerciseGroup> get cards {
-    _favoritesToVariants();
-    if (_chalk.isNotEmpty) return ChalkIndex.of(exerciseCatalog).search(_chalk);
-    return filter.apply(exerciseCatalog, _favorites);
   }
 
   // ------------------------------------------------------------- sessions

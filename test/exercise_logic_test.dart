@@ -1,5 +1,5 @@
-// The workout state kept on the phone (the picked card, the picked exercise, the
-// filters).
+// The workout state kept on the phone (the picked card, the picked
+// exercise), and an old saved filter.
 
 import 'dart:convert';
 import 'dart:io';
@@ -39,59 +39,25 @@ void main() {
       store.pickVariant('Decline_Barbell_Bench_Press');
       final again = LogStore(prefs, clock: () => _now);
       expect(again.pickedCard, 'move:bench press');
-      final card = again.cards.firstWhere((g) => g.key == 'move:bench press');
+      final card = exerciseCatalog.byKey['move:bench press']!;
       expect(again.variantFor(card).id, 'Decline_Barbell_Bench_Press');
-      // A filter that hides the card keeps the saved pick for later.
-      again.setFilter(again.filter.withBody('legs'));
-      expect(again.cards.any((g) => g.key == 'move:bench press'), isFalse);
-      expect(again.pickedCard, 'move:bench press');
-      again.resetFilter();
-      expect(again.variantFor(again.cards.firstWhere((g) => g.key == 'move:bench press')).id, 'Decline_Barbell_Bench_Press');
-    });
-
-    test('the filters stay after closing the app and the next day; reset clears them', () async {
-      final (store, prefs) = await _store();
-      final def = store.defaultFilter;
-      store.setFilter(store.filter.withBody('legs').withMuscle('quadriceps').copyWith(difficulty: 4));
-      final want = ExerciseFilter(classId: def.classId, difficulty: 4, body: 'legs', muscle: 'quadriceps');
-      expect(store.filter, want);
-      expect(prefs.getString(LogStore.filterKey), isNotNull);
-      _now = _now.add(const Duration(days: 1));
-      final again = LogStore(prefs, clock: () => _now);
-      expect(again.filter, want);
-      again.resetFilter();
-      expect(again.filter, again.defaultFilter);
-      expect(prefs.containsKey(LogStore.filterKey), isFalse);
-      expect(LogStore(prefs, clock: () => _now).filter, again.defaultFilter);
-      // A new class or mode goes back to the defaults too.
-      again.setFilter(again.filter.withBody('arms'));
-      again.setProfile(_profile.copyWith(classId: 'cablemancer'));
-      expect(again.filter, again.defaultFilter);
-      expect(prefs.containsKey(LogStore.filterKey), isFalse);
+      // A CHALK search does not change the saved pick.
+      again.setChalk({'tool.barbell', 'move.press'});
+      expect(again.variantFor(card).id, 'Decline_Barbell_Bench_Press');
       // Not in the backup.
-      again.setFilter(again.filter.withBody('arms'));
-      expect(again.backupJson(), isNot(contains(LogStore.filterKey)));
       expect(again.backupJson(), isNot(contains(LogStore.pickedVariantsKey)));
     });
 
-    test('stale saved filters fall back to the defaults', () async {
-      Future<ExerciseFilter> load(Object saved) async {
-        final (store, _) = await _store({LogStore.filterKey: saved is String ? saved : jsonEncode(saved)});
-        return store.filter;
+    test('an old saved filter (before D82) is ignored', () async {
+      for (final saved in [
+        jsonEncode({'class': 'paladin', 'difficulty': 2, 'body': 'legs', 'muscle': 'quadriceps', 'favorites': true}),
+        'not json',
+      ]) {
+        final (store, _) = await _store({'workout_filter_v1': saved});
+        expect(store.defaultFilter, const ExerciseFilter(classId: 'paladin', difficulty: 2));
+        store.addToToday('Decline_Barbell_Bench_Press');
+        expect(store.carousel.map((e) => e.id), ['Decline_Barbell_Bench_Press']);
       }
-
-      final (s, _) = await _store();
-      final def = s.defaultFilter;
-      expect(await load({'class': 'wizard', 'difficulty': 1, 'body': 'legs'}), def);
-      expect(await load({'class': 'paladin', 'difficulty': 9}), def);
-      expect(await load('not json'), def);
-      expect(await load(const ['x']), def);
-      expect(await load({'class': 'paladin', 'difficulty': 2, 'body': 'wings'}), def);
-      // A muscle of another body part goes back to all.
-      expect(await load({'class': 'paladin', 'difficulty': 2, 'body': 'legs', 'muscle': 'chest'}),
-          const ExerciseFilter(classId: 'paladin', difficulty: 2, body: 'legs'));
-      expect(await load({'class': 'cablemancer', 'difficulty': 5, 'favorites': true}),
-          const ExerciseFilter(classId: 'cablemancer', difficulty: 5, favorites: true));
     });
   });
 }
