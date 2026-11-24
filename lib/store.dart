@@ -518,6 +518,7 @@ class LogStore extends ChangeNotifier {
   static const pickedCardKey = 'workout_card_v1';
   String? get pickedCard => _prefs.getString(pickedCardKey);
   void setPickedCard(String key) {
+    if (key != _preview) _preview = null; // leaving the preview drops it (D82)
     if (_prefs.getString(pickedCardKey) != key) _prefs.setString(pickedCardKey, key);
   }
 
@@ -618,12 +619,40 @@ class LogStore extends ChangeNotifier {
     final list = todayCards;
     final add = [for (final k in keys) if (exerciseCatalog.byKey.containsKey(k) && !list.contains(k)) k];
     if (add.isEmpty && _todayDate == _today) return;
-    final saved = {...list, ...add}.toList();
+    _saveToday({...list, ...add}.toList());
+    if (keys.contains(_preview)) _preview = null;
+  }
+
+  void _saveToday(List<String> cards) {
     _todayDate = _today;
     _todaySaved
       ..clear()
-      ..addAll(saved);
-    _prefs.setString(todayKey, jsonEncode({'date': _today, 'cards': saved}));
+      ..addAll(cards);
+    _prefs.setString(todayKey, jsonEncode({'date': _today, 'cards': cards}));
+  }
+
+  /// The delete button on a Today card (D82): card [key] leaves Today, and
+  /// today's sets of it go too (so does their XP: XP is worked out from the
+  /// sets). The carousel goes to the card in its place, else the one before.
+  void removeFromToday(String key) {
+    final list = todayCards;
+    final i = list.indexOf(key);
+    if (i < 0) return;
+    final rest = [...list]..removeAt(i);
+    _saveToday(rest);
+    if (_preview == key) _preview = null;
+    if (pickedCard == key) {
+      if (rest.isEmpty) {
+        _prefs.remove(pickedCardKey);
+      } else {
+        setPickedCard(rest[min(i, rest.length - 1)]);
+      }
+    }
+    if (groupSetsToday(key) > 0) {
+      _edit((l) => l..removeWhere((e) => exerciseCatalog.groupKeyOf(e.exerciseId) == key)); // notifies
+    } else {
+      notifyListeners();
+    }
   }
 
   /// Card [key] joins Today and is shown (D79). A CHALK row no longer
@@ -635,17 +664,27 @@ class LogStore extends ChangeNotifier {
   }
 
   /// A tap on a CHALK result row (D81): the carousel goes to card [key].
-  /// It does not join Today; the first set does that (D79).
+  /// It does not join Today; the first set does that (D79). A card not in
+  /// Today shows as a preview at the end of the carousel until the lifter
+  /// swipes away from it (D82).
   void selectCard(String key) {
     setPickedCard(key);
+    _preview = inToday(key) || !exerciseCatalog.byKey.containsKey(key) ? null : key;
     notifyListeners();
   }
+
+  /// The card a CHALK row selected that is not in Today (D82), in memory
+  /// only: it shows after the Today cards until the carousel leaves it.
+  String? _preview;
+  String? get previewCard =>
+      _preview != null && !inToday(_preview!) && exerciseCatalog.byKey.containsKey(_preview) ? _preview : null;
 
   /// BACK TO TODAY on the CHALK sheet (D81): the words are wiped and the
   /// carousel goes to the first Today card, or to the start of the list
   /// when Today is empty (no card picked).
   void backToToday() {
     _chalk.clear();
+    _preview = null;
     final first = todayCards.firstOrNull;
     if (first != null) {
       setPickedCard(first);
@@ -685,18 +724,16 @@ class LogStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// The workout carousel (D79): the Today cards first, then the rest of
-  /// [cards] (the catalog in Suggested order, or the CHALK results). The
-  /// filters and the search order only the rest; a Today card always
-  /// shows, once. A Today card the rest has keeps its filtered exercises.
+  /// The workout carousel (D82): only the Today cards, then the CHALK
+  /// preview card when there is one. No catalog after them: CHALK is the
+  /// way to the other cards. A card keeps the exercises of your class and
+  /// mode ([defaultFilter]; no body part or favorites filter), else all.
   List<ExerciseGroup> get carousel {
-    final rest = cards;
-    final today = todayCards;
-    final byKey = {for (final g in rest) g.key: g};
-    final mine = today.toSet();
+    _favoritesToVariants();
+    final mine = {for (final g in defaultFilter.apply(exerciseCatalog, _favorites)) g.key: g};
+    final preview = previewCard;
     return [
-      for (final k in today) byKey[k] ?? exerciseCatalog.byKey[k]!,
-      for (final g in rest) if (!mine.contains(g.key)) g,
+      for (final k in [...todayCards, ?preview]) mine[k] ?? exerciseCatalog.byKey[k]!,
     ];
   }
 

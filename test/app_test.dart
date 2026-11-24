@@ -82,9 +82,14 @@ Future<void> _frames(WidgetTester t, [int n = 20]) async {
 }
 
 /// A set-up app on a phone, on the hub.
-Future<(LogStore, SharedPreferences)> _openApp(WidgetTester t) async {
+/// The app on the workout, with the first [today] cards of the catalog in
+/// Today (the carousel shows only Today, D82), on the first one.
+Future<(LogStore, SharedPreferences)> _openApp(WidgetTester t, {int today = 3}) async {
   _phone(t);
   final (store, prefs) = await _store(setUp: true);
+  final first = store.cards.take(today).map((g) => g.key).toList();
+  first.forEach(store.addToToday);
+  if (first.isNotEmpty) store.selectCard(first.first);
   await t.pumpWidget(GymApp(store: store));
   await _frames(t);
   return (store, prefs);
@@ -1027,9 +1032,9 @@ void main() {
     expect(saved.character,
         const Character(sex: 'female', height: 100, muscle: 100, fat: 0, skin: 'deep', hair: 'blonde', facialHair: 'beard'));
     expect((saved.classId, saved.difficultyId, saved.areaId, saved.schemaVersion), ('paladin', 'sweat', 'gainsgard', 1));
-    expect(find.byKey(const ValueKey('world-object')), findsOneWidget); // the workout is home (D49)
-    // The title is the exercise picked (D75).
-    expect(find.text(store.variantFor(store.cards.first).name.toUpperCase()), findsOneWidget);
+    // The workout is home (D49); a new lifter's Today is empty: OPEN CHALK (D82).
+    expect(find.byKey(const ValueKey('today-empty-card')), findsOneWidget);
+    expect(find.byKey(const ValueKey('world-object')), findsNothing); // no card to add a set to
     expect(find.textContaining('THIS WEEK'), findsNothing); // no streak (D34)
     expect(pushes.pushes, 1); // only the home route: views never push routes
   });
@@ -1099,30 +1104,33 @@ void main() {
 
   testWidgets('workout (D48, D50): swipe the exercise carousel; the world adds to the one shown', (t) async {
     final (store, _) = await _openApp(t);
-    final list = store.cards;
-    expect(find.byKey(ValueKey('exercise-${list[0].key}')), findsOneWidget);
-    // D79: no total; an empty Today shows no dots, and no SUGGESTED label (D81).
+    final list = store.todayCards; // 3 cards (D82: only Today shows)
+    expect(find.byKey(ValueKey('exercise-${list[0]}')), findsOneWidget);
+    // D79: no total, one dot per Today card, and no SUGGESTED label (D81).
     expect(find.text('1 / ${list.length}'), findsNothing);
-    expect(find.byKey(const ValueKey('today-dot-0')), findsNothing);
+    expect(find.byKey(const ValueKey('today-dot-2')), findsOneWidget);
+    expect(find.byKey(const ValueKey('today-dot-3')), findsNothing);
     expect(find.text('SUGGESTED'), findsNothing);
     // Up / down does nothing to the exercise carousel (D65).
     final before = t.getRect(find.byKey(const ValueKey('favorite-star')));
     await t.drag(find.byKey(const ValueKey('exercise-card')), const Offset(0, -200));
     await _frames(t, 10);
-    expect(find.byKey(ValueKey('exercise-${list[0].key}')), findsOneWidget);
+    expect(find.byKey(ValueKey('exercise-${list[0]}')), findsOneWidget);
     // A swipe up with a little sideways drift does nothing either (D66).
     await t.fling(find.byKey(const ValueKey('exercise-card')), const Offset(-60, -260), 1200);
     await _frames(t, 10);
-    expect(find.byKey(ValueKey('exercise-${list[0].key}')), findsOneWidget);
+    expect(find.byKey(ValueKey('exercise-${list[0]}')), findsOneWidget);
     expect(t.getRect(find.byKey(const ValueKey('favorite-star'))), before);
     // The tag row (D72): the class as a label, no difficulty tag (D70).
     expect(find.descendant(of: find.byKey(const ValueKey('class-label')), matching: find.text('PLATE PALADIN')), findsOneWidget);
     expect(find.byKey(const ValueKey('filter-difficulty')), findsNothing);
     expect(find.byKey(const ValueKey('filter-class')), findsNothing);
-    expect(find.descendant(of: find.byKey(const ValueKey('filter-body')), matching: find.text('ALL BODY PARTS')), findsOneWidget);
+    // No BODY PART or star tags (D82): the carousel has only Today.
+    expect(find.byKey(const ValueKey('filter-body')), findsNothing);
+    expect(find.byKey(const ValueKey('filter-favorites')), findsNothing);
     // The tags sit on one row; the card has no muscle / level / equipment line.
     final ys = [
-      for (final k in ['class-label', 'filter-body', 'filter-favorites'])
+      for (final k in ['class-label', 'filter-chalk'])
         t.getCenter(find.byKey(ValueKey(k))).dy,
     ];
     expect(ys.every((y) => (y - ys.first).abs() < 1), isTrue);
@@ -1132,41 +1140,34 @@ void main() {
     final carousel = find.byKey(const ValueKey('exercise-card'));
     await t.fling(carousel, const Offset(-300, 0), 1000); // next
     await _frames(t, 10);
-    expect(find.byKey(ValueKey('exercise-${list[1].key}')), findsOneWidget);
+    expect(find.byKey(ValueKey('exercise-${list[1]}')), findsOneWidget);
     await t.tap(find.byKey(const ValueKey('world-object')));
     await _frames(t, 70);
     if (find.byKey(const ValueKey('intro-card')).evaluate().isNotEmpty) {
       await t.tap(find.byKey(const ValueKey('intro-card')));
       await _frames(t, 4);
     }
-    expect((store.groupSetsToday(list[0].key), store.groupSetsToday(list[1].key)), (0, 1));
-    // The first set put the card in Today (D79): it comes first, with a dot.
-    expect(store.todayCards, [list[1].key]);
-    expect(find.byKey(ValueKey('exercise-${list[1].key}')), findsOneWidget);
-    expect(find.byKey(const ValueKey('today-dot-0')), findsOneWidget);
-    await t.fling(carousel, const Offset(-300, 0), 1000); // next: the rest, from the top
+    expect((store.groupSetsToday(list[0]), store.groupSetsToday(list[1])), (0, 1));
+    expect(find.byKey(ValueKey('exercise-${list[1]}')), findsOneWidget);
+    await t.fling(carousel, const Offset(-300, 0), 1000); // next: the last Today card
     await _frames(t, 10);
-    expect(find.byKey(ValueKey('exercise-${list[0].key}')), findsOneWidget);
-    expect(find.byKey(const ValueKey('suggested-line')), findsOneWidget);
-    await t.fling(carousel, const Offset(300, 0), 1000); // back
+    expect(find.byKey(ValueKey('exercise-${list[2]}')), findsOneWidget);
+    await t.fling(carousel, const Offset(-300, 0), 1000); // round to the first: no catalog after Today
     await _frames(t, 10);
-    await t.fling(carousel, const Offset(300, 0), 1000); // round to the last one
+    expect(find.byKey(ValueKey('exercise-${list[0]}')), findsOneWidget);
+    expect(find.byKey(const ValueKey('suggested-line')), findsNothing);
+    await t.fling(carousel, const Offset(300, 0), 1000); // back, round to the last one
     await _frames(t, 10);
-    expect(find.byKey(ValueKey('exercise-${list.last.key}')), findsOneWidget);
+    expect(find.byKey(ValueKey('exercise-${list.last}')), findsOneWidget);
     expect(t.takeException(), isNull);
   });
 
   testWidgets('workout (D55): modifier chips pick the exercise of a move', (t) async {
     final (store, _) = await _openApp(t);
-    store.setFilter(store.filter.withBody('chest'));
-    await _frames(t, 4);
-    // Swipe to the Bench Press card.
-    final carousel = find.byKey(const ValueKey('exercise-card'));
-    for (var i = 0; i < store.cards.length && find.byKey(const ValueKey('exercise-move:bench press')).evaluate().isEmpty; i++) {
-      await t.fling(carousel, const Offset(-300, 0), 1000);
-      await _frames(t, 8);
-    }
-    final bench = store.cards.firstWhere((g) => g.key == 'move:bench press');
+    // The Bench Press card joins Today and shows (D79).
+    store.addToToday('move:bench press');
+    await _frames(t, 8);
+    final bench = exerciseCatalog.byKey['move:bench press']!;
     expect(find.text(store.variantFor(bench).name.toUpperCase()), findsOneWidget); // the title (D75)
     expect(find.byKey(const ValueKey('exercise-variant')), findsNothing); // no subtitle (D74)
     // Rows for equipment and angle; no Smith machine for a Paladin (greyed).
@@ -1176,7 +1177,7 @@ void main() {
     await t.ensureVisible(angle);
     await t.tap(angle);
     await _frames(t, 6);
-    final picked = store.variantFor(store.cards.firstWhere((g) => g.key == 'move:bench press'));
+    final picked = store.variantFor(bench);
     expect(picked.mods['angle'], 'Incline');
     expect(find.text(picked.name.toUpperCase()), findsOneWidget); // the picked exercise is the title (D75)
     // The world adds the set to the exercise picked.
@@ -1187,7 +1188,7 @@ void main() {
     expect(t.takeException(), isNull);
   });
 
-  testWidgets('workout: the star button and the star tag (D53)', (t) async {
+  testWidgets('workout: the star button (D53); no star tag (D82)', (t) async {
     final (store, _) = await _openApp(t);
     final carousel = find.byKey(const ValueKey('exercise-card'));
     await t.fling(carousel, const Offset(-300, 0), 1000);
@@ -1198,19 +1199,12 @@ void main() {
     await _frames(t, 10);
     expect(store.favorites, {shown}); // the exercise shown (D72)
     expect(find.byKey(ValueKey('exercise-$second')), findsOneWidget); // the card stays
-    // The star tag: favorites only.
-    await t.tap(find.byKey(const ValueKey('filter-favorites')));
-    await _frames(t, 10);
-    expect(store.filter.favorites, isTrue);
-    expect(store.carousel.map((g) => g.key), [second]);
-    expect(find.byKey(ValueKey('exercise-$second')), findsOneWidget);
-    // Unstar it: nothing left, with a way back.
+    expect(find.byKey(const ValueKey('filter-favorites')), findsNothing); // no star tag (D82)
+    // Unstar it: the card stays in Today.
     await t.tap(find.byKey(const ValueKey('favorite-star')));
     await _frames(t, 10);
-    expect(find.text('NO FAVORITES YET. TAP THE STAR ON AN EXERCISE.'), findsOneWidget);
-    await t.tap(find.byKey(const ValueKey('filter-reset-empty')));
-    await _frames(t, 10);
-    expect(store.filter, store.defaultFilter);
+    expect(store.favorites, isEmpty);
+    expect(find.byKey(ValueKey('exercise-$second')), findsOneWidget);
     expect(t.takeException(), isNull);
   });
 
@@ -1254,13 +1248,6 @@ void main() {
       expect(r.left, greaterThanOrEqualTo(0));
       expect(r.right, lessThanOrEqualTo(t.view.physicalSize.width / t.view.devicePixelRatio));
     }
-    // The filter chips show no numbers.
-    await t.tap(find.byKey(const ValueKey('filter-body')));
-    await _frames(t, 10);
-    final chip = find.byKey(const ValueKey('chip-body-legs'));
-    expect(find.descendant(of: chip, matching: find.byWidgetPredicate((w) => w is Text && RegExp(r'^\d+$').hasMatch(w.data ?? ''))), findsNothing);
-    await t.tap(find.byKey(const ValueKey('filter-show')));
-    await _frames(t, 20);
     // The class screen: the difficulty in a card with who it is for.
     await t.tap(find.byKey(const ValueKey('workout-character')));
     await _frames(t, 20);
@@ -1268,32 +1255,6 @@ void main() {
     await _frames(t, 20);
     expect(find.byKey(const ValueKey('difficulty-card')), findsOneWidget);
     expect(find.text(difficulties[store.difficulty].line), findsOneWidget);
-    expect(t.takeException(), isNull);
-  });
-
-  testWidgets('workout: BODY PART opens its chips; they cascade; RESET TO MINE', (t) async {
-    final (store, _) = await _openApp(t);
-    await t.tap(find.byKey(const ValueKey('filter-body')));
-    await _frames(t, 10);
-    await t.tap(find.byKey(const ValueKey('chip-body-legs')));
-    await _frames(t, 4);
-    expect(store.filter.body, 'legs');
-    await t.ensureVisible(find.byKey(const ValueKey('chip-muscle-quadriceps')));
-    await t.tap(find.byKey(const ValueKey('chip-muscle-quadriceps')));
-    await _frames(t, 4);
-    expect(store.filter.muscle, 'quadriceps');
-    final n = store.cards.length;
-    expect(find.text('SHOW $n EXERCISES'), findsOneWidget);
-    await t.tap(find.byKey(const ValueKey('filter-show')));
-    await _frames(t, 20);
-    expect(find.descendant(of: find.byKey(const ValueKey('filter-body')), matching: find.text('QUADRICEPS')), findsOneWidget);
-    expect(store.cards.every((g) => g.variants.every((e) => e.muscle == 'quadriceps')), isTrue);
-    // RESET TO MINE: all body parts again.
-    await t.tap(find.byKey(const ValueKey('filter-body')));
-    await _frames(t, 10);
-    await t.tap(find.byKey(const ValueKey('filter-reset')));
-    await _frames(t, 4);
-    expect(store.filter, store.defaultFilter);
     expect(t.takeException(), isNull);
   });
 
@@ -1442,13 +1403,10 @@ void main() {
       await t.fling(find.byKey(const ValueKey('lifter-editor')), const Offset(0, -300), 1000);
       await _frames(t);
       expect(find.byKey(const ValueKey('body-card')), findsOneWidget);
-      // The filter sheet, with its longest texts.
+      // The remove dialog (D82), with its longest texts: KEEP closes it.
       await tapAndSettle(find.byKey(const ValueKey('mini-workout')));
-      await tapAndSettle(find.byKey(const ValueKey('filter-body')));
-      await tapAndSettle(find.byKey(const ValueKey('chip-body-back')));
-      await tapAndSettle(find.byKey(const ValueKey('filter-show')));
-      store.resetFilter();
-      await _frames(t);
+      await tapAndSettle(find.byKey(const ValueKey('today-remove')));
+      await tapAndSettle(find.byKey(const ValueKey('today-remove-cancel')));
       await tapAndSettle(find.byKey(const ValueKey('top-level')));
       expect((store.profile!.classId, store.profile!.areaId), ('bruiser', 'arcade'));
       expect(find.byKey(const ValueKey('world-object')), findsOneWidget); // the workout is home (D49)

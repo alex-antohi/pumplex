@@ -43,9 +43,18 @@ Future<LogStore> _openApp(WidgetTester t, {String areaId = 'gainsgard'}) async {
   SharedPreferences.setMockInitialValues({'profile_v1': jsonEncode(_profile(areaId).toJson())});
   final prefs = await SharedPreferences.getInstance();
   final store = LogStore(prefs, clock: () => _now);
+  _seedToday(store);
   await t.pumpWidget(GymApp(store: store));
   await _frames(t);
   return store;
+}
+
+/// Puts the first 40 cards in Today (the carousel shows only Today, D82)
+/// and shows the first one.
+void _seedToday(LogStore store) {
+  final keys = store.cards.take(40).map((g) => g.key).toList();
+  keys.forEach(store.addToToday);
+  store.selectCard(keys.first);
 }
 
 /// The workout view's box (the content area under the top bar).
@@ -179,7 +188,8 @@ void main() {
           (exerciseCatalog.byKey[c.key] ?? c).axesFor(store.variantFor(c)).fold(0, (m, a) => max(m, a.$2.length));
       return longest(b) > longest(a) ? b : a;
     });
-    store.setPickedCard(g.key);
+    store.addToToday(store.cards.first.key);
+    store.addToToday(g.key); // only Today shows (D82)
     await t.pumpWidget(GymApp(store: store));
     await _frames(t);
     final full = exerciseCatalog.byKey[g.key] ?? g;
@@ -209,7 +219,8 @@ void main() {
       int rows(ExerciseGroup c) => (exerciseCatalog.byKey[c.key] ?? c).axesFor(store.variantFor(c)).length;
       return rows(b) > rows(a) ? b : a;
     });
-    store.setPickedCard(g.key);
+    store.addToToday(store.cards.first.key);
+    store.addToToday(g.key); // only Today shows (D82)
     await t.pumpWidget(GymApp(store: store));
     await _frames(t);
     final area = find.byKey(const ValueKey('mod-area'));
@@ -243,6 +254,7 @@ Future<LogStore> _openAppKeepView(WidgetTester t) async {
   SharedPreferences.setMockInitialValues({'profile_v1': jsonEncode(_profile('gainsgard').toJson())});
   final prefs = await SharedPreferences.getInstance();
   final store = LogStore(prefs, clock: () => _now);
+  _seedToday(store);
   await t.pumpWidget(GymApp(store: store));
   await _frames(t);
   return store;

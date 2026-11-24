@@ -465,7 +465,8 @@ void main() {
     await _frames(t, 20);
     expect(store.chalk, isEmpty);
     expect(store.todayCards, isEmpty);
-    expect(find.byKey(ValueKey('exercise-${store.carousel.first.key}')), findsOneWidget);
+    expect(store.carousel, isEmpty); // the preview went too (D82)
+    expect(find.byKey(const ValueKey('today-empty-card')), findsOneWidget);
     expect(t.takeException(), isNull);
   });
 
