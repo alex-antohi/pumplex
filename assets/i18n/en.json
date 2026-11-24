@@ -905,5 +905,10 @@
   "exercise.Weighted_Jump_Squat": "Weighted Jump Squat",
   "exercise.Wide_Stance_Leg_Press": "Wide Stance Leg Press",
   "exercise.Zottman_Curl": "Zottman Curl",
-  "exercise.Towel_Row": "Towel Row"
+  "exercise.Towel_Row": "Towel Row",
+  "log.set": "SET {n}",
+  "log.optional": "OPTIONAL",
+  "log.sameAs": "SAME AS SET {n}",
+  "log.kg": "KG",
+  "log.reps": "REPS"
 }

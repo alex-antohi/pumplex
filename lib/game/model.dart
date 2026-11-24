@@ -165,24 +165,86 @@ class Profile {
 }
 
 /// SESSION_EXERCISE: one exercise with sets on a day (no targets, D52).
+/// The weight and reps of one set (D84, docs/moodboard/today-logging/
+/// MINIMAL.md). Log only: they never change XP. Each value is typed (the
+/// lifter set it) or carried (copied from the set before); only typed
+/// values count as real numbers.
+class SetLog {
+  const SetLog({this.kg, this.reps, this.kgTyped = false, this.repsTyped = false});
+
+  /// Weight in kg, in steps of 0.5; null: not known.
+  final double? kg;
+
+  /// Reps of the set; null: not known.
+  final int? reps;
+  final bool kgTyped, repsTyped;
+
+  /// The next set starts with these values, carried (not typed).
+  SetLog get carried => SetLog(kg: kg, reps: reps);
+
+  bool get isEmpty => kg == null && reps == null;
+
+  Map<String, dynamic> toJson() => {
+        if (kg != null) 'kg': kg,
+        if (reps != null) 'reps': reps,
+        if (kgTyped) 'kgTyped': true,
+        if (repsTyped) 'repsTyped': true,
+      };
+
+  factory SetLog.fromJson(Map<String, dynamic> j) {
+    final kg = (j['kg'] as num?)?.toDouble();
+    return SetLog(
+      kg: kg == null ? null : (kg.clamp(0, 9999) * 2).round() / 2,
+      reps: (j['reps'] as num?)?.toInt().clamp(0, 9999),
+      kgTyped: j['kgTyped'] == true,
+      repsTyped: j['repsTyped'] == true,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is SetLog && other.kg == kg && other.reps == reps && other.kgTyped == kgTyped && other.repsTyped == repsTyped;
+
+  @override
+  int get hashCode => Object.hash(kg, reps, kgTyped, repsTyped);
+}
+
 class SessionExercise {
-  const SessionExercise({required this.exerciseId, this.sets = 0});
+  const SessionExercise({required this.exerciseId, this.sets = 0, this.log = const []});
 
   final String exerciseId;
 
   /// Working sets done.
   final int sets;
 
-  SessionExercise copyWith({int? sets}) => SessionExercise(exerciseId: exerciseId, sets: sets ?? this.sets);
+  /// The weight and reps of the sets, in order (D84): one per set of a
+  /// weighted exercise; shorter (or empty) for old sets and other moves.
+  final List<SetLog> log;
 
-  Map<String, dynamic> toJson() => {'exerciseId': exerciseId, 'sets': sets};
+  SessionExercise copyWith({int? sets, List<SetLog>? log}) =>
+      SessionExercise(exerciseId: exerciseId, sets: sets ?? this.sets, log: log ?? this.log);
+
+  Map<String, dynamic> toJson() => {
+        'exerciseId': exerciseId,
+        'sets': sets,
+        // Only when a set has a value: an all-empty log is not saved.
+        if (log.any((l) => !l.isEmpty)) 'log': [for (final l in log) l.toJson()],
+      };
 
   /// Old entries also had position, originalExerciseId, targetSets, added
-  /// and removed (before D50); those fields are ignored.
-  factory SessionExercise.fromJson(Map<String, dynamic> j) => SessionExercise(
-        exerciseId: newExerciseId(j['exerciseId'] as String),
-        sets: (j['sets'] as num?)?.toInt().clamp(0, 9999) ?? 0,
-      );
+  /// and removed (before D50); those fields are ignored. Entries from before
+  /// D84 have no log.
+  factory SessionExercise.fromJson(Map<String, dynamic> j) {
+    final sets = (j['sets'] as num?)?.toInt().clamp(0, 9999) ?? 0;
+    return SessionExercise(
+      exerciseId: newExerciseId(j['exerciseId'] as String),
+      sets: sets,
+      log: [
+        for (final l in (j['log'] as List? ?? const []).take(sets))
+          if (l is Map) SetLog.fromJson(Map<String, dynamic>.from(l)),
+      ],
+    );
+  }
 }
 
 /// SESSION: one calendar day.

@@ -1088,5 +1088,10 @@
   "exercise.Weighted_Jump_Squat": "Genuflexiuni cu săritură, halteră",
   "exercise.Wide_Stance_Leg_Press": "Presă cu picioare depărtate",
   "exercise.Zottman_Curl": "Flexii Zottman cu gantere",
-  "exercise.Towel_Row": "Ramat cu prosop"
+  "exercise.Towel_Row": "Ramat cu prosop",
+  "log.set": "SERIA {n}",
+  "log.optional": "OPȚIONAL",
+  "log.sameAs": "LA FEL CA SERIA {n}",
+  "log.kg": "KG",
+  "log.reps": "REPETĂRI"
 }

@@ -36,6 +36,7 @@ import 'area_scene.dart';
 import 'carousel.dart';
 import 'chalk.dart';
 import 'forge.dart' show showForgeEdit;
+import 'set_log.dart';
 import 'workout_layout.dart';
 
 class WorkoutView extends StatefulWidget {
@@ -209,6 +210,9 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
             inset: inset,
             swipe: swipe,
             card: _card(context, e, onCopy: onCopy, past: past, preview: preview),
+            // Weight and reps of the set just done (D84): under the chips,
+            // above the dots; only after a set on a weighted move.
+            strip: e == null || onCopy ? null : LogStrip(key: ValueKey('log-${e.id}'), store: store, id: e.id),
             dots: _dotsRow(context, onCopy, sets),
           ),
           // The scene. TAP THE OBJECT = one working set, HOLD IT = take one back.
@@ -334,12 +338,16 @@ class _ExercisePanel extends StatelessWidget {
     required this.inset,
     required this.swipe,
     required this.card,
+    this.strip,
     required this.dots,
   });
 
   final double maxHeight, inset;
   final Widget Function({required Key key, required Widget child}) swipe;
   final Widget card, dots;
+
+  /// The weight and reps strip (D84), between the card and the dots.
+  final Widget? strip;
 
   @override
   Widget build(BuildContext context) {
@@ -372,6 +380,7 @@ class _ExercisePanel extends StatelessWidget {
                           child: card,
                         ),
                       ),
+                      ?strip,
                       dots,
                       const SizedBox(height: 2),
                     ],

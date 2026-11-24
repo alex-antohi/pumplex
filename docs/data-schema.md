@@ -80,6 +80,7 @@ erDiagram
     SESSION_EXERCISE {
         string exerciseId "free-exercise-db id"
         int sets "working sets done"
+        list log "SET_LOG per set, weighted moves only (D84)"
     }
     EXERCISE {
         string id PK
@@ -127,7 +128,7 @@ The app migrates each one once (§5.2, §5.3).
 |---|---|
 | `profile_v1` | PROFILE + CHARACTER (current values). |
 | `body_history_v1` | List of BODY_CHANGE. |
-| `sessions_v3` | Map date → SESSION with its SESSION_EXERCISE list. |
+| `sessions_v3` | Map date → SESSION with its SESSION_EXERCISE list. A SESSION_EXERCISE of a weighted move has `log`: one `{kg?, reps?, kgTyped?, repsTyped?}` per set, in order (D84); written only when a set has a value. Sets from before D84 have none. Log only: not in XP. |
 | `xp_events_v1` | List of the saved XP_EVENTs: `legacy`, and the old `streak`, `achievement` and `workout` XP. |
 | `favorites_v1` | List of favorite exercises (D53, D72): exercise ids, the exact variant starred. An old favorite card (`move:<move name>`, D55) is changed to the exercise last picked on that card, else its simplest exercise. |
 | `custom_exercises_v1` | List of forged moves (D72, `lib/game/forge.dart`): `{id: "custom_<n>", words: ["<row>.<id>", ...], muscle, nickname?}`. They join the exercise list at start. UI data: not in the backup file yet. |

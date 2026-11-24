@@ -874,18 +874,82 @@ class LogStore extends ChangeNotifier {
     _addSet(id);
   }
 
-  void _addSet(String id) => _edit((l) {
-        final i = l.indexWhere((e) => e.exerciseId == id);
-        return i < 0 ? (l..add(SessionExercise(exerciseId: id, sets: 1))) : (l..[i] = l[i].copyWith(sets: l[i].sets + 1));
-      });
+  void _addSet(String id) {
+    // A weighted move logs the set's weight and reps (D84), carried from
+    // the set before (today, else the last day with this exercise).
+    final log = isWeighted(id) ? [..._logPadded(id, setsToday(id)), lastSetLog(id)?.carried ?? const SetLog()] : null;
+    _edit((l) {
+      final i = l.indexWhere((e) => e.exerciseId == id);
+      return i < 0
+          ? (l..add(SessionExercise(exerciseId: id, sets: 1, log: log ?? const [])))
+          : (l..[i] = l[i].copyWith(sets: l[i].sets + 1, log: log));
+    });
+  }
 
-  /// Hold on the world: one working set less (for a wrong tap). An
-  /// exercise with no sets left leaves the session.
+  /// Hold on the world: one working set less (for a wrong tap), with its
+  /// weight and reps (D84). An exercise with no sets left leaves the session.
   void removeSet(String id) {
     if (setsToday(id) == 0) return;
     _edit((l) {
       final i = l.indexWhere((e) => e.exerciseId == id);
-      return l[i].sets == 1 ? (l..removeAt(i)) : (l..[i] = l[i].copyWith(sets: l[i].sets - 1));
+      final e = l[i];
+      return e.sets == 1
+          ? (l..removeAt(i))
+          : (l..[i] = e.copyWith(sets: e.sets - 1, log: e.log.take(e.sets - 1).toList()));
+    });
+  }
+
+  // -------------------------------------------------- weight and reps (D84)
+
+  /// The tools that log weight and reps (D84): barbell, dumbbell,
+  /// kettlebell, cable, machine (and Smith machine), EZ bar. Not bodyweight,
+  /// bands, balls or cardio.
+  static const weightedEquipment = {'barbell', 'dumbbell', 'kettlebells', 'cable', 'machine', 'e-z curl bar'};
+
+  /// Whether exercise [id] logs weight and reps.
+  bool isWeighted(String id) {
+    final e = exerciseCatalog.byId[id];
+    return e != null && e.category != 'cardio' && weightedEquipment.contains(e.equipment);
+  }
+
+  /// Today's set logs of exercise [id], one per set (empty for sets with none).
+  List<SetLog> setLogs(String id) => _logPadded(id, setsToday(id));
+
+  List<SetLog> _logPadded(String id, int n) {
+    final log = todaySession?.exercises.where((e) => e.exerciseId == id).firstOrNull?.log ?? const <SetLog>[];
+    return [for (var k = 0; k < n; k++) k < log.length ? log[k] : const SetLog()];
+  }
+
+  /// The last set log of exercise [id] with values: today's, else the last
+  /// day's with that exercise. Null with no history.
+  SetLog? lastSetLog(String id) {
+    final today = setLogs(id).lastWhere((l) => !l.isEmpty, orElse: () => const SetLog());
+    if (!today.isEmpty) return today;
+    final days = _sessions.keys.where((d) => d.compareTo(_today) < 0).toList()..sort();
+    for (final d in days.reversed) {
+      final log = _sessions[d]!.exercises.where((e) => e.exerciseId == id).firstOrNull?.log ?? const <SetLog>[];
+      final last = log.lastWhere((l) => !l.isEmpty, orElse: () => const SetLog());
+      if (!last.isEmpty) return last;
+    }
+    return null;
+  }
+
+  /// The lifter sets set [index] (0 = the first) of exercise [id] today: a
+  /// value given is saved as typed. Log only: XP does not change.
+  void setSetLog(String id, int index, {double? kg, int? reps}) {
+    final n = setsToday(id);
+    if (index < 0 || index >= n) return;
+    final log = _logPadded(id, n);
+    final old = log[index];
+    log[index] = SetLog(
+      kg: kg ?? old.kg,
+      reps: reps ?? old.reps,
+      kgTyped: old.kgTyped || kg != null,
+      repsTyped: old.repsTyped || reps != null,
+    );
+    _edit((l) {
+      final i = l.indexWhere((e) => e.exerciseId == id);
+      return l..[i] = l[i].copyWith(log: log);
     });
   }
 
