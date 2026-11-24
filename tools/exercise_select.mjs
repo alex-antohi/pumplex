@@ -196,6 +196,10 @@ const PIN = {
     Tricep_Dumbbell_Kickback: M.pain, Vertical_Swing: M.pain, Ball_Leg_Curl: M.pain, Dumbbell_Step_Ups: M.pain,
     Mountain_Climbers: M.pain, Kettlebell_Thruster: M.pain,
     Kettlebell_Pistol_Squat: M.brutal, Alternating_Renegade_Row: M.brutal,
+    // Band and kettlebell variations (D80) that give the class a new card:
+    // the band ones with Band Pull-Apart and the abductor slot, the
+    // kettlebell sumo deadlift with the Paladin's sumo deadlift.
+    'face pull|bands': M.sweat, 'hip abduction|bands': M.sweat, 'sumo deadlift|kettlebell': M.pain,
     // The rare moves the keep rule brought back, placed by gear (D50) in late modes.
     'Hip Extension': M.sweat, Halo: M.pain,
     Scaption: M.brutal, 'Lateral to Front Raise': M.brutal, 'Kettlebell Sumo High Pull': M.brutal,

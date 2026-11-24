@@ -513,7 +513,8 @@ for (const r of rows) {
 // modifiers; a list = any of these values). `add` lists single extra
 // variations. A new variation copies its fields from the closest one of the
 // move with the same equipment; its level is `level` (else the closest
-// one's) plus the largest raise and the largest cut of `adj`. Its id is
+// one's) plus the largest raise and the largest cut of `adj`; `set` replaces
+// copied fields (for example the category). Its id is
 // variationId (tools/exercise_names.mjs): stable, never renamed.
 const GRID = [
   // Knee push-ups with every grip width; decline push-ups too. A knee
@@ -568,6 +569,13 @@ const GRID = [
   { move: 'Inverted Row', equip: 'Bodyweight', add: [{ hand: 'Reverse Grip' }] },
   { move: 'Russian Twist', equip: 'Medicine Ball', from: 'Bodyweight', add: [{}] },
   { move: 'Russian Twist', equip: 'Dumbbell', from: 'Bodyweight', add: [{}] },
+  // Bargain Bruiser gear for 3 moves it had no card of: a band face pull and
+  // band hip abduction (like the cable ones), a kettlebell sumo deadlift
+  // (`set`: a strength move, not powerlifting, with a light bell).
+  { move: 'Face Pull', equip: 'Bands', from: 'Cable', level: 'beginner', add: [{}] },
+  { move: 'Hip Abduction', equip: 'Bands', from: 'Cable', add: [{}] },
+  { move: 'Sumo Deadlift', equip: 'Kettlebell', from: 'Barbell', level: 'beginner', set: { category: 'strength' },
+    add: [{}] },
 ];
 // The database equipment of an equipment modifier (for a new equipment on a move).
 const EQUIP_DB = {
@@ -603,7 +611,7 @@ for (const spec of GRID) {
     const id = variationId(spec.move, mods);
     if (all.some((e) => e.id === id) || generated.some((r) => r.e.id === id)) throw new Error(`GRID: id ${id} twice`);
     const { id: _i, name: _n, custom: _c, ...fields } = src.e;
-    const e = { id, name: id, ...fields, equipment: spec.from ? EQUIP_DB[spec.equip] : src.e.equipment,
+    const e = { id, name: id, ...fields, ...spec.set, equipment: spec.from ? EQUIP_DB[spec.equip] : src.e.equipment,
       level: L[Math.max(0, Math.min(2, lv))], custom: true, grid: true };
     const r = { e, base: spec.move, mods: { ...mods } };
     if (!WIDTH_EQUIP.has(r.mods.equip)) delete r.mods.width;

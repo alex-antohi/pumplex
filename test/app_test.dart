@@ -98,6 +98,26 @@ Future<(LogStore, SharedPreferences)> _openApp(WidgetTester t, {int today = 3}) 
   return (store, prefs);
 }
 
+/// Adds sets (in the store, not on screen) until one more set of [id] does
+/// not level up, but two more do.
+void _oneSetBeforeLevelUp(LogStore store, String id) {
+  store.addSet(id); // the first set of the day holds the day bonus
+  final others = _cards(store).skip(1).map((g) => store.variantFor(g).id).toList();
+  for (var i = 0; i < 200; i++) {
+    final xp = store.totalXp;
+    store.addSet(id);
+    final one = store.totalXp;
+    store.addSet(id);
+    final two = store.totalXp;
+    store.removeSet(id);
+    store.removeSet(id);
+    final l = levelFor(xp).level;
+    if (levelFor(one).level == l && levelFor(two).level > l) return;
+    store.addSet(others[i % others.length]);
+  }
+  fail('no state one set before a level-up');
+}
+
 String _spriteAsset(WidgetTester t) => t.widget<AtlasSprite>(find.byKey(const ValueKey('character-sprite'))).frame;
 
 /// Answers the Android "Save as" channel: [saved] = the user saved the file.
@@ -336,7 +356,7 @@ void main() {
     final all = exerciseCatalog.all;
     // The common exercises only (D67, D69), with the added bench presses
     // (D57) and bodyweight exercises (D69), and the variation grids (D80).
-    expect(all.length, 524);
+    expect(all.length, 527);
     expect(exerciseCatalog.groups.length, 164);
     // The clean-up (D69): every card is a move, with a clean move name.
     expect(exerciseCatalog.groups.where((g) => !g.key.startsWith('move:')), isEmpty);
@@ -1022,10 +1042,10 @@ void main() {
     final card = find.byKey(const ValueKey('world-object'));
     await t.tap(card);
     await _frames(t, 70); // level-up intro card
-    // A level-up card lets taps through (D48); let it close by itself.
+    // A tap on a level-up card only closes it; let it close by itself.
     Future<void> closeCard() async {
       if (find.byKey(const ValueKey('intro-card')).evaluate().isNotEmpty) {
-        await t.pump(const Duration(milliseconds: 1900)); // a tap would go through it: wait
+        await t.pump(const Duration(milliseconds: 1900)); // a tap would only close it: wait
         await t.pump(const Duration(milliseconds: 80));
       }
     }
@@ -1293,23 +1313,44 @@ void main() {
     expect(find.byKey(const ValueKey('world-object')), findsOneWidget);
   });
 
-  testWidgets('3 quick world taps across a level-up give 3 sets (D48): the card lets taps through', (t) async {
+  testWidgets('3 quick world taps, the 2nd a level-up: 2 sets, the 3rd tap only closes the card', (t) async {
     final (store, _) = await _openApp(t);
     final id = store.pickedCard!;
+    _oneSetBeforeLevelUp(store, id);
+    final sets = store.setsToday(id);
+    final level = levelFor(store.totalXp).level;
+    await t.pump();
     final world = find.byKey(const ValueKey('world-object'));
-    expect(levelFor(store.totalXp).level, 1);
-    await t.tap(world); // the first set: level 1 -> 2
+    await t.tap(world); // no level-up
     await t.pump(const Duration(milliseconds: 80));
-    expect(levelFor(store.totalXp).level, greaterThan(1));
+    expect(levelFor(store.totalXp).level, level);
+    expect(find.byKey(const ValueKey('intro-card')), findsNothing);
+    await t.tap(world); // the level-up
+    await t.pump(const Duration(milliseconds: 80)); // the card is in its slam
+    expect(levelFor(store.totalXp).level, greaterThan(level));
     expect(find.byKey(const ValueKey('intro-card')), findsOneWidget);
-    await t.tap(world, warnIfMissed: false); // under the level-up card
+    await t.tap(world, warnIfMissed: false); // on the card: it only closes it
     await t.pump(const Duration(milliseconds: 80));
-    await t.tap(world, warnIfMissed: false);
-    await t.pump(const Duration(milliseconds: 80));
-    expect(store.setsToday(id), 3);
-    expect(find.byKey(const ValueKey('intro-card')), findsNothing); // a tap closes it too
-    await _frames(t, 40);
+    expect(store.setsToday(id), sets + 2);
+    expect(find.byKey(const ValueKey('intro-card')), findsNothing);
+    await _frames(t, 20);
+    expect(find.byKey(const ValueKey('tile-session')), findsNothing); // no lifter profile
     expect(t.takeException(), isNull);
+  });
+
+  testWidgets('a tap on the lifter during the level-up card only closes the card', (t) async {
+    final (store, _) = await _openApp(t);
+    final id = store.pickedCard!;
+    final lifter = t.getCenter(find.byKey(const ValueKey('workout-character')));
+    await t.tap(find.byKey(const ValueKey('world-object'))); // the first set: a level-up
+    await t.pump(const Duration(milliseconds: 80));
+    expect(find.byKey(const ValueKey('intro-card')), findsOneWidget);
+    await t.tapAt(lifter);
+    await t.pump(const Duration(milliseconds: 80));
+    expect(find.byKey(const ValueKey('intro-card')), findsNothing);
+    await _frames(t, 20);
+    expect(find.byKey(const ValueKey('tile-session')), findsNothing); // the profile did not open
+    expect(store.setsToday(id), 1);
   });
 
   testWidgets('a level-up shows the freeze-frame card', (t) async {

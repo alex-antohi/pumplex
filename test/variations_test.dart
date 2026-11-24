@@ -139,6 +139,17 @@ void main() {
     expect(level('push-up|bodyweight|decline|close grip'), 1);
     expect(level('pull-up|bodyweight|band assisted|medium grip|reverse grip'), 0);
     expect(level('pull-up|bodyweight|weighted|medium grip|reverse grip'), 2);
+    // Bargain Bruiser gear for 3 moves: new cards for the class, placed by the owner.
+    for (final (id, en, ro, mode) in [
+      ('face pull|bands', 'Band Face Pull', 'Face Pull cu bandă', 2),
+      ('hip abduction|bands', 'Band Hip Abduction', 'Abducții cu bandă', 2),
+      ('sumo deadlift|kettlebell', 'Kettlebell Sumo Deadlift', 'Îndreptări sumo cu kettlebell', 3),
+    ]) {
+      expect(level(id), 0, reason: id);
+      expect((label(id, 'en'), label(id, 'ro')), (en, ro), reason: id);
+      final g = exerciseCatalog.groupOf(id)!;
+      expect((g.shownIn('bruiser', mode - 1), g.shownIn('bruiser', mode)), (false, true), reason: id);
+    }
     // The completed grids of the owner's example.
     final push = exerciseCatalog.byKey['move:push-up']!;
     for (final mods in [
