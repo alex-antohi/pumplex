@@ -19,6 +19,7 @@ import 'views/setup.dart';
 import 'views/sprite.dart';
 import 'views/stage.dart';
 import 'views/workout.dart';
+import 'views/workout_layout.dart';
 
 export 'views/stage.dart' show Scene, stageRect;
 

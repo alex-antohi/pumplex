@@ -34,106 +34,7 @@ import '../store.dart';
 import 'area_scene.dart';
 import 'carousel.dart';
 import 'chalk.dart';
-
-/// The least room the exercise part under the world keeps (D75): the filter
-/// tags, the exercise (title, star, modifier rows) and the counter.
-const _exerciseMin = 240.0;
-
-/// The scene's part of the world in a workout view of [area] (D75): the whole
-/// width, from the top, just tall enough for the scene at the biggest
-/// whole-number scale for the width. It depends on the size only, so the
-/// scene (and the lifter the shell draws in it) never moves. The exercise
-/// part is only as tall as its content, at the bottom; the world's floor
-/// colour fills the space between them. The workout is no card (only when
-/// minimised).
-Rect workoutWorld(Size area, [double bottomInset = 0]) {
-  final byWidth = max(1, (area.width / sceneSize.width).floor());
-  final h = min(sceneSize.height * byWidth + 8, area.height - bottomInset - _exerciseMin);
-  return Rect.fromLTWH(0, 0, area.width, h);
-}
-
-/// The scene's rect and whole-number scale in a workout view of [area]: the
-/// biggest scale at which the whole scene fits in [workoutWorld], so no mark
-/// is ever cut off (D75). It stands on the bottom of that rect; the area's
-/// sky and floor colours fill the rest of the world.
-(Rect, int) workoutLayout(Size area, [double bottomInset = 0]) {
-  final world = workoutWorld(area, bottomInset);
-  final scale = max(1, min(world.width / sceneSize.width, world.height / sceneSize.height).floor());
-  final w = sceneSize.width * scale, h = sceneSize.height * scale;
-  return (Rect.fromLTWH(world.center.dx - w / 2, world.bottom - h, w, h), scale);
-}
-
-/// The arena only (D61): the scene cut to a square around its middle. The
-/// minimised workout shows this.
-Rect workoutArena(Size area, [double bottomInset = 0]) {
-  final (scene, _) = workoutLayout(area, bottomInset);
-  final side = min(scene.width, scene.height);
-  return Rect.fromCenter(center: scene.center, width: side, height: side);
-}
-
-/// The lifter's place in the scene: the design's lifter position (the same
-/// in every area), feet on the shadow.
-Rect workoutStage(Size area, [double bottomInset = 0]) {
-  final (scene, scale) = workoutLayout(area, bottomInset);
-  return sceneLifterRect(areaArt.values.first, scene, scale);
-}
-
-/// Where the set-count badge goes (size [badge]) for a scene at [scene],
-/// scale [scale], in a view whose free world is [bounds]: next to the marks'
-/// box (above it first), inside [bounds], off the object to hit, the marks
-/// and [avoid] (the hint over the sky). The least covering spot when none is
-/// free.
-Offset sceneCountPos(AreaArt art, Rect scene, int scale, Size badge, Rect bounds, {Rect avoid = Rect.zero}) {
-  final s = scale.toDouble();
-  final marks = markBox(art, scene, scale);
-  final object = Rect.fromLTWH(
-      scene.left + art.hitBox.left * s, scene.top + art.hitBox.top * s, art.hitBox.width * s, art.hitBox.height * s);
-  // Marks on the object (the Gainsgard wall): go round both.
-  final m = marks.overlaps(object) ? marks.expandToInclude(object) : marks;
-  const gap = 6.0;
-  final w = badge.width, h = badge.height;
-  final above = m.top - gap - h, below = m.bottom + gap;
-  final candidates = [
-    Offset(m.right - w, above),
-    Offset(m.center.dx - w / 2, above),
-    Offset(m.left, above),
-    Offset(m.right + gap, m.top),
-    Offset(m.left - gap - w, m.top),
-    Offset(m.right - w, below),
-    Offset(m.left, below),
-  ];
-  double cover(Rect r, Rect o) {
-    final i = r.intersect(o);
-    return i.width > 0 && i.height > 0 ? i.width * i.height : 0;
-  }
-
-  var best = Offset.zero;
-  var least = double.infinity;
-  for (final c in candidates) {
-    final x = c.dx.clamp(bounds.left, max(bounds.left, bounds.right - w)).toDouble();
-    final y = c.dy.clamp(bounds.top, max(bounds.top, bounds.bottom - h)).toDouble();
-    final r = Rect.fromLTWH(x, y, w, h);
-    final k = cover(r, object) + cover(r, marks) + cover(r, avoid);
-    if (k < least) {
-      least = k;
-      best = Offset(x, y);
-      if (k == 0) break;
-    }
-  }
-  return best;
-}
-
-/// The box around every mark spot of [art] for a scene at [scene], scale [scale].
-Rect markBox(AreaArt art, Rect scene, int scale) {
-  final s = scale.toDouble();
-  var box = Rect.zero;
-  for (final (i, p) in art.markPositions.indexed) {
-    final size = art.markFifth != null && i % 5 == 4 ? art.markFifth!.size : art.mark.size;
-    final r = Rect.fromLTWH(scene.left + p.dx * s, scene.top + p.dy * s, size.width * s, size.height * s);
-    box = i == 0 ? r : box.expandToInclude(r);
-  }
-  return box;
-}
+import 'workout_layout.dart';
 
 class WorkoutView extends StatefulWidget {
   const WorkoutView({
@@ -268,7 +169,6 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
 
   @override
   Widget build(BuildContext context) {
-    final p = Pal.of(context);
     final store = _store;
     final pick = store.pickedCard;
     if (pick != _seenPick) {
@@ -284,117 +184,30 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
     _todayCount = todayIds.length;
     _todayStart = _items.length - cards.length;
     final e = _current;
-    final shown = _keyOf(_items[index]);
-    final onCopy = shown == _copyKey;
+    final onCopy = _keyOf(_items[index]) == _copyKey;
     // The CHALK preview (not in Today, D82) gets a thin line on top.
     final preview = e != null && !todayIds.contains(e.id);
-    final today = store.todaySession;
-    final area = areaById(today?.areaId ?? store.profile?.areaId);
+    final area = areaById(store.todaySession?.areaId ?? store.profile?.areaId);
     final art = areaArt[area.id]!;
-    final accent = Color(area.accent);
     // The sets of this exercise (variation) today (D82).
     final sets = e == null ? 0 : store.setsToday(e.id);
     // Old-app days have no class; days frozen by D54 keep theirs and count.
     final firstTime = store.history.where((s) => !s.legacy || s.classId.isNotEmpty).isEmpty;
+    // The first-workout tip (app-flow §4.2), until the first set.
+    final tip = firstTime && sets == 0;
     return LayoutBuilder(builder: (context, box) {
       final inset = MediaQuery.paddingOf(context).bottom;
       final world = workoutWorld(box.biggest, inset);
       final (scene, scale) = workoutLayout(box.biggest, inset);
-      final spots = art.markPositions.length;
       return Stack(
         children: [
-          // The world fills the width and everything above the exercise part
-          // (D75): the area's sky and floor around the scene (the shell draws
-          // the lifter in it). The floor goes down to the exercise part.
-          Positioned.fill(child: ColoredBox(color: Color(area.sky))),
-          Positioned(
-            left: 0,
-            right: 0,
-            top: scene.top + art.floorPos.dy * scale,
-            bottom: 0,
-            child: ColoredBox(color: Color(area.floor)),
-          ),
-          // The exercise part: at the bottom, only as tall as its content, at
-          // most the room under the scene (a taller card is cut off there).
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxHeight: max(0.0, box.maxHeight - world.bottom)),
-              child: DecoratedBox(
-              key: const ValueKey('exercise-part'),
-              decoration: BoxDecoration(color: p.bg, border: Border(top: BorderSide(color: p.ink, width: 3))),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 3), // the border
-                  // No tag row (D82): the class shows in the outfit and the
-                  // lifter profile; CHALK is "+ CHALK" by the dots. The
-                  // exercise carousel: the world adds sets to the exercise
-                  // shown here.
-                  Flexible(
-                    child: swipe(
-                            key: const ValueKey('exercise-card'),
-                            // As tall as the exercise, the counter at the
-                            // bottom: no empty band (D75).
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                // Bounded, so a tall card is cut off, not overflowing.
-                                Flexible(child: AnimatedSize(
-                                  duration: const Duration(milliseconds: 240),
-                                  curve: Curves.easeOutCubic,
-                                  alignment: Alignment.topCenter,
-                                  child: onCopy
-                                      ? slide('copy-day', _CopyDay(store: store, days: past))
-                                      : e == null
-                                      ? slide('open-chalk', _OpenChalk(onOpen: () => showChalkSheet(context, store)))
-                                      : slide(
-                                    _slideId(index),
-                                    _TopLine(on: preview, child: _ExerciseText(
-                                      g: e.card,
-                                      full: exerciseCatalog.byKey[e.card.key] ?? e.card,
-                                      v: e.exercise,
-                                      favorite: store.isFavorite(e.id),
-                                      hard: store.isHard(e.card, e.exercise),
-                                      onStar: () => _star(e),
-                                      onPick: (id) => _pick(e, id),
-                                      onRemove: preview ? null : () => _remove(e),
-                                    )),
-                                ))),
-                                // Dots for the Today cards (no total, D79;
-                                // no label after them, D81), and "+ CHALK"
-                                // at the right end, in thumb reach (D82).
-                                Padding(
-                                  padding: const EdgeInsets.only(left: 14, right: 10),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: _TodayDots(
-                                          key: const ValueKey('exercise-counter'),
-                                          today: _todayCount,
-                                          current: onCopy ? -1 : index - _todayStart,
-                                          onCopy: onCopy,
-                                          onDot: (i) => jump(_todayStart + i),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      _ChalkButton(chalk: store.chalk.length, onTap: () => showChalkSheet(context, store)),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                              ],
-                            ),
-                          ),
-                  ),
-                  SizedBox(height: inset),
-                ],
-              ),
-            ),
-            ),
+          _WorldBackdrop(area: area, floorTop: scene.top + art.floorPos.dy * scale),
+          _ExercisePanel(
+            maxHeight: max(0.0, box.maxHeight - world.bottom),
+            inset: inset,
+            swipe: swipe,
+            card: _card(context, e, onCopy: onCopy, past: past, preview: preview),
+            dots: _dotsRow(context, onCopy),
           ),
           // The scene. TAP THE OBJECT = one working set, HOLD IT = take one back.
           Positioned.fromRect(
@@ -410,32 +223,9 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
               onUndo: e == null ? null : _undo,
             ),
           ),
-          // More sets than mark spots: the number of sets, next to the marks,
-          // in the world and never cut off (D74, D75). The arcade has its own
-          // counter.
-          if (sets > spots && art.ledRect == null)
-            Positioned.fill(
-              child: IgnorePointer(
-                child: CustomSingleChildLayout(
-                  delegate: _CountLayout(
-                    (badge) => sceneCountPos(
-                      art,
-                      scene,
-                      scale,
-                      badge,
-                      Rect.fromLTRB(world.left + 6, world.top + 6, world.right - 6, world.bottom - 6),
-                      avoid: Rect.fromLTWH(world.left + 8, world.top + 4, 230, firstTime && sets == 0 ? 64 : 38),
-                    ),
-                  ),
-                  child: Container(
-                  key: const ValueKey('scene-count'),
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  color: kNight,
-                  child: Text('$sets SETS', style: display(15, markLaps[(markLap(0, sets, spots) - 1) % markLaps.length])),
-                ),
-                ),
-              ),
-            ),
+          // More sets than mark spots (the arcade has its own counter).
+          if (sets > art.markPositions.length && art.ledRect == null)
+            _SetCountBadge(art: art, scene: scene, scale: scale, world: world, sets: sets, tip: tip),
           // Tap the lifter to open the lifter profile (D59).
           Positioned.fromRect(
             rect: widget.stage,
@@ -445,28 +235,218 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
               onTap: widget.onBody,
             ),
           ),
-          // The hint over the sky (and the first-workout tip).
-          if (e != null)
-            Positioned(
-              left: world.left + 12,
-              top: world.top + 8,
-              child: IgnorePointer(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Tag(area.hint, bg: kNight, fg: accent, size: 13, angle: -2),
-                    // First-workout tip (app-flow §4.2), until the first set.
-                    if (firstTime && sets == 0) ...[
-                      const SizedBox(height: 4),
-                      Tag(t('workout.firstTip'), bg: p.lime, fg: p.on, size: 11, angle: 1),
-                    ],
-                  ],
-                ),
-              ),
-            ),
+          if (e != null) _SkyHint(world: world, area: area, tip: tip),
         ],
       );
     });
+  }
+
+  /// The card the carousel shows: COPY A PAST DAY, OPEN CHALK or exercise [e].
+  Widget _card(BuildContext context, TodayEntry? e,
+      {required bool onCopy, required List<String> past, required bool preview}) {
+    final store = _store;
+    if (onCopy) return slide('copy-day', _CopyDay(store: store, days: past));
+    if (e == null) return slide('open-chalk', _OpenChalk(onOpen: () => showChalkSheet(context, store)));
+    return slide(
+      _slideId(index),
+      _TopLine(
+        on: preview,
+        child: _ExerciseText(
+          g: e.card,
+          full: exerciseCatalog.byKey[e.card.key] ?? e.card,
+          v: e.exercise,
+          favorite: store.isFavorite(e.id),
+          hard: store.isHard(e.card, e.exercise),
+          onStar: () => _star(e),
+          onPick: (id) => _pick(e, id),
+          onRemove: preview ? null : () => _remove(e),
+        ),
+      ),
+    );
+  }
+
+  /// Dots for the Today cards (no total, D79; no label after them, D81),
+  /// and "+ CHALK" at the right end, in thumb reach (D82).
+  Widget _dotsRow(BuildContext context, bool onCopy) => Padding(
+        padding: const EdgeInsets.only(left: 14, right: 10),
+        child: Row(
+          children: [
+            Expanded(
+              child: _TodayDots(
+                key: const ValueKey('exercise-counter'),
+                today: _todayCount,
+                current: onCopy ? -1 : index - _todayStart,
+                onCopy: onCopy,
+                onDot: (i) => jump(_todayStart + i),
+              ),
+            ),
+            const SizedBox(width: 8),
+            _ChalkButton(chalk: _store.chalk.length, onTap: () => showChalkSheet(context, _store)),
+          ],
+        ),
+      );
+}
+
+/// The world behind the scene (D75): the area's sky fills the view, and its
+/// floor goes from [floorTop] down to the exercise part (the shell draws the
+/// lifter in the scene).
+class _WorldBackdrop extends StatelessWidget {
+  const _WorldBackdrop({required this.area, required this.floorTop});
+
+  final Area area;
+  final double floorTop;
+
+  @override
+  Widget build(BuildContext context) => Positioned.fill(
+        child: Stack(
+          children: [
+            Positioned.fill(child: ColoredBox(color: Color(area.sky))),
+            Positioned(left: 0, right: 0, top: floorTop, bottom: 0, child: ColoredBox(color: Color(area.floor))),
+          ],
+        ),
+      );
+}
+
+/// The exercise part: at the bottom, only as tall as its content, at most
+/// [maxHeight] (the room under the scene; a taller card is cut off there).
+/// No tag row (D82): the class shows in the outfit and the lifter profile.
+/// The world adds sets to the exercise on the [card]; the [dots] row is
+/// under it, and both swipe the carousel.
+class _ExercisePanel extends StatelessWidget {
+  const _ExercisePanel({
+    required this.maxHeight,
+    required this.inset,
+    required this.swipe,
+    required this.card,
+    required this.dots,
+  });
+
+  final double maxHeight, inset;
+  final Widget Function({required Key key, required Widget child}) swipe;
+  final Widget card, dots;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Pal.of(context);
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 0,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: maxHeight),
+        child: DecoratedBox(
+          key: const ValueKey('exercise-part'),
+          decoration: BoxDecoration(color: p.bg, border: Border(top: BorderSide(color: p.ink, width: 3))),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 3), // the border
+              Flexible(
+                child: swipe(
+                  key: const ValueKey('exercise-card'),
+                  // As tall as the exercise, the dots at the bottom: no
+                  // empty band (D75).
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Bounded, so a tall card is cut off, not overflowing.
+                      Flexible(
+                        child: AnimatedSize(
+                          duration: const Duration(milliseconds: 240),
+                          curve: Curves.easeOutCubic,
+                          alignment: Alignment.topCenter,
+                          child: card,
+                        ),
+                      ),
+                      dots,
+                      const SizedBox(height: 2),
+                    ],
+                  ),
+                ),
+              ),
+              SizedBox(height: inset),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// More sets than mark spots: the number of [sets], next to the marks, in
+/// the [world] and never cut off (D74, D75), off the sky hint (taller with
+/// the first-workout [tip]).
+class _SetCountBadge extends StatelessWidget {
+  const _SetCountBadge({
+    required this.art,
+    required this.scene,
+    required this.scale,
+    required this.world,
+    required this.sets,
+    required this.tip,
+  });
+
+  final AreaArt art;
+  final Rect scene, world;
+  final int scale, sets;
+  final bool tip;
+
+  @override
+  Widget build(BuildContext context) {
+    final spots = art.markPositions.length;
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: CustomSingleChildLayout(
+          delegate: _CountLayout(
+            (badge) => sceneCountPos(
+              art,
+              scene,
+              scale,
+              badge,
+              Rect.fromLTRB(world.left + 6, world.top + 6, world.right - 6, world.bottom - 6),
+              avoid: Rect.fromLTWH(world.left + 8, world.top + 4, 230, tip ? 64 : 38),
+            ),
+          ),
+          child: Container(
+            key: const ValueKey('scene-count'),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            color: kNight,
+            child: Text('$sets SETS', style: display(15, markLaps[(markLap(0, sets, spots) - 1) % markLaps.length])),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The hint over the sky, and the first-workout [tip] under it.
+class _SkyHint extends StatelessWidget {
+  const _SkyHint({required this.world, required this.area, required this.tip});
+
+  final Rect world;
+  final Area area;
+  final bool tip;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Pal.of(context);
+    return Positioned(
+      left: world.left + 12,
+      top: world.top + 8,
+      child: IgnorePointer(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Tag(area.hint, bg: kNight, fg: Color(area.accent), size: 13, angle: -2),
+            if (tip) ...[
+              const SizedBox(height: 4),
+              Tag(t('workout.firstTip'), bg: p.lime, fg: p.on, size: 11, angle: 1),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 }
 

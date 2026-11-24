@@ -13,6 +13,7 @@ import 'package:gym_app/game/model.dart';
 import 'package:gym_app/main.dart';
 import 'package:gym_app/store.dart';
 import 'package:gym_app/views/workout.dart';
+import 'package:gym_app/views/workout_layout.dart';
 
 /// A test clock the store reads. 21 Nov 2026 is a Saturday.
 final _now = DateTime(2026, 11, 21, 10);

@@ -4,7 +4,7 @@
 import 'package:flutter/widgets.dart';
 
 import 'setup.dart';
-import 'workout.dart';
+import 'workout_layout.dart';
 
 /// Every view of the app. They are scenes of ONE screen (see GameShell).
 enum Scene { migrate, create, classSelect, area, summary, workout }
