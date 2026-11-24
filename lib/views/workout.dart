@@ -7,15 +7,16 @@
 //   lib/views/area_scene.dart) with the lifter in it. TAP THE OBJECT = one
 //   working set for the exercise shown below, HOLD IT = take the last set
 //   back (D17). The marks stay in the world.
-// - The tag row: the class as a label and CHALK, the only way to the
-//   catalog (D82; no BODY PART or star tags).
-// - Under them: the exercise carousel, one card at a time, with a star
+// - Under it: the exercise carousel, one card at a time, with a star
 //   button and a delete button. Swipe it both ways, round and round. No
-//   targets (D52).
-// - TODAY (D79, D82): the carousel shows only the Today cards, with dots
-//   and no total. A card a CHALK row selected that is not in Today shows
-//   after them as a preview (a thin line on top) until you swipe away; its
-//   first set adds it. An empty Today shows COPY A PAST DAY and OPEN CHALK.
+//   targets (D52). No tag row: the class shows in the outfit and the
+//   lifter profile (D82).
+// - TODAY (D79, D82): one card per Today exercise (variation), with dots
+//   and no total, and "+ CHALK" at the right end of the dots row (CHALK is
+//   the only way to the catalog). An exercise a CHALK row selected that is
+//   not in Today shows after them as a preview (a thin line on top) until
+//   you swipe away; its first set adds it. An empty Today shows COPY A PAST
+//   DAY and OPEN CHALK.
 
 import 'dart:math';
 
@@ -33,7 +34,6 @@ import 'area_scene.dart';
 import 'carousel.dart';
 import 'chalk.dart';
 import 'filters.dart' show axisLabel, axisNone, modLabel;
-import 'sprite.dart' show classColor;
 
 /// The least room the exercise part under the world keeps (D75): the filter
 /// tags, the exercise (title, star, modifier rows) and the counter.
@@ -163,7 +163,7 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
   /// carousel (D79, D82).
   static const _copyKey = '__copy__', _emptyKey = '__empty__';
 
-  /// The card shown (a group key, [_copyKey] or [_emptyKey]). Null: the
+  /// The card shown (its exercise id, [_copyKey] or [_emptyKey]). Null: the
   /// first one. Kept in the store, so it is still there after leaving (D75).
   late String? _currentKey = widget.store.pickedCard;
 
@@ -184,7 +184,7 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
 
   LogStore get _store => widget.store;
 
-  static String _keyOf(Object o) => o is ExerciseGroup ? o.key : o as String;
+  static String _keyOf(Object o) => o is TodayEntry ? o.id : o as String;
 
   @override
   int get count => _items.length;
@@ -203,57 +203,67 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
     _seenPick = key;
   }
 
-  ExerciseGroup? get _current {
+  TodayEntry? get _current {
     if (_items.isEmpty) return null;
     final o = _items[index];
-    return o is ExerciseGroup ? o : null;
+    return o is TodayEntry ? o : null;
   }
 
   void _hit() {
-    final g = _current;
-    if (g == null) return;
-    widget.onAdd(_store.variantFor(g).id);
-    final sets = _store.groupSetsToday(g.key);
+    final e = _current;
+    if (e == null) return;
+    widget.onAdd(e.id); // the first set adds this variation (D79, D82)
+    final sets = _store.setsToday(e.id);
     final area = areaById(_store.todaySession?.areaId ?? _store.profile?.areaId);
     HapticFeedback.lightImpact();
     setState(() {
-      _keep(g.key);
+      _keep(e.id);
       _burst = sets % 5 == 0 ? area.stamp : t('workout.plusOne');
       _hitRun++;
     });
   }
 
-  /// Takes back the last set of the exercise picked on the card.
+  /// Takes back the last set of the exercise on the card.
   void _undo() {
-    final g = _current;
-    if (g == null) return;
+    final e = _current;
+    if (e == null) return;
     HapticFeedback.mediumImpact();
-    widget.onRemove(_store.variantFor(g).id);
+    widget.onRemove(e.id);
     setState(() => _burst = null); // undo has no effect animation
   }
 
   /// The star saves the exercise shown (D72), not the card.
-  void _star(ExerciseGroup g) {
+  void _star(TodayEntry e) {
     HapticFeedback.selectionClick();
-    setState(() => _keep(g.key)); // stay on this card
-    _store.toggleFavorite(_store.variantFor(g).id);
+    setState(() => _keep(e.id)); // stay on this card
+    _store.toggleFavorite(e.id);
   }
 
-  void _pick(ExerciseGroup g, String id) {
+  /// A chip changes the variation of this card (D82): [id] takes its place.
+  void _pick(TodayEntry e, String id) {
     HapticFeedback.selectionClick();
-    setState(() => _keep(g.key));
-    _store.pickVariant(id);
+    _store.changeVariant(e.id, id);
+    setState(() => _keep(id));
   }
 
-  /// The delete button (D82): card [g] leaves Today. With sets today, a
-  /// dialog asks first: the sets and their XP go too.
-  Future<void> _remove(ExerciseGroup g) async {
-    final sets = _store.groupSetsToday(g.key);
+  /// The delete button (D82): exercise [e] leaves Today. With sets today, a
+  /// dialog asks first: its sets and their XP go too.
+  Future<void> _remove(TodayEntry e) async {
+    final sets = _store.setsToday(e.id);
     if (sets > 0 && await _confirmRemove(context, sets) != true) return;
     if (!mounted) return;
     HapticFeedback.mediumImpact();
     setState(() => _burst = null);
-    _store.removeFromToday(g.key);
+    _store.removeFromToday(e.id);
+  }
+
+  /// The slide key of carousel item [i]: the move's key, and its number when
+  /// the move has an earlier card too. It stays when a chip changes the
+  /// variation, so the card does not slide (D79).
+  String _slideId(int i) {
+    final e = _items[i] as TodayEntry;
+    final n = _items.take(i).where((o) => o is TodayEntry && o.card.key == e.card.key).length;
+    return n == 0 ? 'exercise-${e.card.key}' : 'exercise-${e.card.key}#${n + 1}';
   }
 
   @override
@@ -265,25 +275,25 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
       _seenPick = pick;
       _currentKey = pick;
     }
-    final todayKeys = store.todayCards;
+    final todayIds = store.todayIds;
     // An empty Today (D82): COPY A PAST DAY (D79), then OPEN CHALK when no
     // CHALK preview is there. The carousel never shows the catalog.
-    final past = todayKeys.isEmpty ? store.pastDays : const <String>[];
+    final past = todayIds.isEmpty ? store.pastDays : const <String>[];
     final cards = store.carousel;
     _items = [if (past.isNotEmpty) _copyKey, if (cards.isEmpty) _emptyKey, ...cards];
-    _todayCount = todayKeys.length;
+    _todayCount = todayIds.length;
     _todayStart = _items.length - cards.length;
     final e = _current;
     final shown = _keyOf(_items[index]);
     final onCopy = shown == _copyKey;
     // The CHALK preview (not in Today, D82) gets a thin line on top.
-    final preview = e != null && !todayKeys.contains(e.key);
+    final preview = e != null && !todayIds.contains(e.id);
     final today = store.todaySession;
     final area = areaById(today?.areaId ?? store.profile?.areaId);
     final art = areaArt[area.id]!;
     final accent = Color(area.accent);
-    final cls = classById(store.filter.classId);
-    final sets = e == null ? 0 : store.groupSetsToday(e.key);
+    // The sets of this exercise (variation) today (D82).
+    final sets = e == null ? 0 : store.setsToday(e.id);
     // Old-app days have no class; days frozen by D54 keep theirs and count.
     final firstTime = store.history.where((s) => !s.legacy || s.classId.isNotEmpty).isEmpty;
     return LayoutBuilder(builder: (context, box) {
@@ -320,44 +330,10 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const SizedBox(height: 3), // the border
-                  // The tag row: the class as a label (not a filter) and
-                  // CHALK. No BODY PART or star tags (D82): they filtered
-                  // the catalog, and the carousel has only Today now. The
-                  // row shrinks to fit when the names are long.
-                  Padding(
-                    key: const ValueKey('workout-filters'),
-                    padding: const EdgeInsets.fromLTRB(16, 10, 22, 0),
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Row(
-                      spacing: 6,
-                      children: [
-                        Tag(cls.name, key: const ValueKey('class-label'), bg: kNight, fg: classColor(p, cls.id), size: 12, angle: 0),
-                        // CHALK, the search over all exercises (D72) and the
-                        // only way to the catalog (D82): chalk white on
-                        // night ink; CHALK · n with n words picked.
-                        _TapTag(
-                          key: const ValueKey('filter-chalk'),
-                          onTap: () => showChalkSheet(context, store),
-                          child: Container(
-                            padding: const EdgeInsets.fromLTRB(10, 5, 10, 3),
-                            decoration: BoxDecoration(
-                              color: kNight,
-                              border: Border(bottom: BorderSide(color: kChalk.withValues(alpha: 0.6), width: 2)),
-                            ),
-                            child: Text(
-                              store.chalk.isEmpty ? t('chalk.title') : '${t('chalk.title')} · ${store.chalk.length}',
-                              style: display(12, kChalk),
-                            ),
-                          ),
-                        ),
-                      ],
-                      ),
-                    ),
-                  ),
-                  // Under the tags: the exercise carousel. The world adds
-                  // sets to the exercise shown here.
+                  // No tag row (D82): the class shows in the outfit and the
+                  // lifter profile; CHALK is "+ CHALK" by the dots. The
+                  // exercise carousel: the world adds sets to the exercise
+                  // shown here.
                   Flexible(
                     child: swipe(
                             key: const ValueKey('exercise-card'),
@@ -376,30 +352,42 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
                                       : e == null
                                       ? slide('open-chalk', _OpenChalk(onOpen: () => showChalkSheet(context, store)))
                                       : slide(
-                                    'exercise-${e.key}',
+                                    _slideId(index),
                                     _TopLine(on: preview, child: _ExerciseText(
-                                      g: e,
-                                      full: exerciseCatalog.byKey[e.key] ?? e,
-                                      v: store.variantFor(e),
+                                      g: e.card,
+                                      full: exerciseCatalog.byKey[e.card.key] ?? e.card,
+                                      v: e.exercise,
                                       sets: sets,
-                                      xp: store.groupXpToday(e.key),
-                                      favorite: store.isFavorite(store.variantFor(e).id),
-                                      hard: store.isHard(e, store.variantFor(e)),
+                                      xp: store.xpToday(e.id),
+                                      favorite: store.isFavorite(e.id),
+                                      hard: store.isHard(e.card, e.exercise),
                                       onStar: () => _star(e),
                                       onPick: (id) => _pick(e, id),
                                       onRemove: preview ? null : () => _remove(e),
                                     )),
                                 ))),
-                                // Dots for the Today cards (no total, D79);
-                                // no label after them (D81).
-                                _TodayDots(
-                                  key: const ValueKey('exercise-counter'),
-                                  today: _todayCount,
-                                  current: onCopy ? -1 : index - _todayStart,
-                                  onCopy: onCopy,
-                                  onDot: (i) => jump(_todayStart + i),
+                                // Dots for the Today cards (no total, D79;
+                                // no label after them, D81), and "+ CHALK"
+                                // at the right end, in thumb reach (D82).
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 14, right: 10),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: _TodayDots(
+                                          key: const ValueKey('exercise-counter'),
+                                          today: _todayCount,
+                                          current: onCopy ? -1 : index - _todayStart,
+                                          onCopy: onCopy,
+                                          onDot: (i) => jump(_todayStart + i),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      _ChalkButton(chalk: store.chalk.length, onTap: () => showChalkSheet(context, store)),
+                                    ],
+                                  ),
                                 ),
-                                const SizedBox(height: 6),
+                                const SizedBox(height: 2),
                               ],
                             ),
                           ),
@@ -500,17 +488,39 @@ class _CountLayout extends SingleChildLayoutDelegate {
   bool shouldRelayout(_CountLayout old) => true;
 }
 
-/// A filter tag you can tap.
-class _TapTag extends StatelessWidget {
-  const _TapTag({super.key, required this.child, required this.onTap});
+/// The tap target of "+ CHALK": at least this high and wide (D82).
+const kChalkButtonSize = 48.0;
 
-  final Widget child;
+/// "+ CHALK" at the right end of the dots row (D82): it opens the CHALK
+/// sheet, the only way to the catalog. Chalk white on night ink; "· n"
+/// with n words picked.
+class _ChalkButton extends StatelessWidget {
+  const _ChalkButton({required this.chalk, required this.onTap});
+
+  final int chalk;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) => Semantics(
         button: true,
-        child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: onTap, child: child),
+        child: GestureDetector(
+          key: const ValueKey('filter-chalk'),
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            HapticFeedback.selectionClick();
+            onTap();
+          },
+          child: Container(
+            constraints: const BoxConstraints(minWidth: kChalkButtonSize, minHeight: kChalkButtonSize),
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: kNight,
+              border: Border(bottom: BorderSide(color: kChalk.withValues(alpha: 0.6), width: 3)),
+            ),
+            child: Text(chalk == 0 ? t('chalk.add') : '${t('chalk.add')} · $chalk', style: display(14, kChalk)),
+          ),
+        ),
       );
 }
 

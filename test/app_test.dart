@@ -87,9 +87,9 @@ Future<void> _frames(WidgetTester t, [int n = 20]) async {
 Future<(LogStore, SharedPreferences)> _openApp(WidgetTester t, {int today = 3}) async {
   _phone(t);
   final (store, prefs) = await _store(setUp: true);
-  final first = store.cards.take(today).map((g) => g.key).toList();
+  final first = store.cards.take(today).map((g) => store.variantFor(g).id).toList();
   first.forEach(store.addToToday);
-  if (first.isNotEmpty) store.selectCard(first.first);
+  if (first.isNotEmpty) store.selectExercise(first.first);
   await t.pumpWidget(GymApp(store: store));
   await _frames(t);
   return (store, prefs);
@@ -1104,7 +1104,7 @@ void main() {
 
   testWidgets('workout (D48, D50): swipe the exercise carousel; the world adds to the one shown', (t) async {
     final (store, _) = await _openApp(t);
-    final list = store.todayCards; // 3 cards (D82: only Today shows)
+    final list = [for (final id in store.todayIds) exerciseCatalog.groupKeyOf(id)]; // 3 cards (D82: only Today shows)
     expect(find.byKey(ValueKey('exercise-${list[0]}')), findsOneWidget);
     // D79: no total, one dot per Today card, and no SUGGESTED label (D81).
     expect(find.text('1 / ${list.length}'), findsNothing);
@@ -1121,23 +1121,26 @@ void main() {
     await _frames(t, 10);
     expect(find.byKey(ValueKey('exercise-${list[0]}')), findsOneWidget);
     expect(t.getRect(find.byKey(const ValueKey('favorite-star'))), before);
-    // The tag row (D72): the class as a label, no difficulty tag (D70).
-    expect(find.descendant(of: find.byKey(const ValueKey('class-label')), matching: find.text('PLATE PALADIN')), findsOneWidget);
-    expect(find.byKey(const ValueKey('filter-difficulty')), findsNothing);
-    expect(find.byKey(const ValueKey('filter-class')), findsNothing);
-    // No BODY PART or star tags (D82): the carousel has only Today.
-    expect(find.byKey(const ValueKey('filter-body')), findsNothing);
-    expect(find.byKey(const ValueKey('filter-favorites')), findsNothing);
-    // The tags sit on one row; the card has no muscle / level / equipment line.
-    final ys = [
-      for (final k in ['class-label', 'filter-chalk'])
-        t.getCenter(find.byKey(ValueKey(k))).dy,
-    ];
-    expect(ys.every((y) => (y - ys.first).abs() < 1), isTrue);
+    // No tag row (D82): no class label, no difficulty, class, BODY PART or
+    // star tags; the class shows in the outfit and the lifter profile.
+    expect(find.byKey(const ValueKey('workout-filters')), findsNothing);
+    expect(find.byKey(const ValueKey('class-label')), findsNothing);
+    expect(find.text('PLATE PALADIN'), findsNothing);
+    for (final k in ['filter-difficulty', 'filter-class', 'filter-body', 'filter-favorites']) {
+      expect(find.byKey(ValueKey(k)), findsNothing, reason: k);
+    }
+    // "+ CHALK" sits at the right end of the dots row, at the bottom.
+    final chalk = t.getRect(find.byKey(const ValueKey('filter-chalk')));
+    final dots = t.getRect(find.byKey(const ValueKey('today-dot-2')));
+    expect(find.descendant(of: find.byKey(const ValueKey('filter-chalk')), matching: find.text('+ CHALK')), findsOneWidget);
+    expect((chalk.center.dy - dots.center.dy).abs(), lessThan(1));
+    expect(chalk.left, greaterThan(dots.right));
+    // The card has no muscle / level / equipment line.
     expect(find.byKey(const ValueKey('exercise-info')), findsNothing);
     // The level and XP bar sits in the PUMPLEX bar.
     expect(find.byKey(const ValueKey('top-level')), findsOneWidget);
-    final carousel = find.byKey(const ValueKey('exercise-card'));
+    // Swipe on the title: a drag on a long chip row scrolls the row (D79).
+    final carousel = find.byKey(const ValueKey('exercise-title'));
     await t.fling(carousel, const Offset(-300, 0), 1000); // next
     await _frames(t, 10);
     expect(find.byKey(ValueKey('exercise-${list[1]}')), findsOneWidget);
@@ -1165,9 +1168,9 @@ void main() {
   testWidgets('workout (D55): modifier chips pick the exercise of a move', (t) async {
     final (store, _) = await _openApp(t);
     // The Bench Press card joins Today and shows (D79).
-    store.addToToday('move:bench press');
-    await _frames(t, 8);
     final bench = exerciseCatalog.byKey['move:bench press']!;
+    store.addToToday(store.variantFor(bench).id);
+    await _frames(t, 8);
     expect(find.text(store.variantFor(bench).name.toUpperCase()), findsOneWidget); // the title (D75)
     expect(find.byKey(const ValueKey('exercise-variant')), findsNothing); // no subtitle (D74)
     // Rows for equipment and angle; no Smith machine for a Paladin (greyed).
@@ -1223,7 +1226,7 @@ void main() {
     await t.fling(find.byKey(const ValueKey('exercise-card')), const Offset(-300, 0), 1000);
     await _frames(t, 10);
     final second = store.cards[1].key;
-    expect(prefs.getString(LogStore.pickedCardKey), second);
+    expect(prefs.getString(LogStore.pickedCardKey), store.variantFor(store.cards[1]).id); // the exercise (D82)
     // Leave and come back: a new app on the same data opens on that card.
     await t.pumpWidget(const SizedBox());
     await t.pumpWidget(GymApp(store: store));

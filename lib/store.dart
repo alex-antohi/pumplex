@@ -249,7 +249,6 @@ class LogStore extends ChangeNotifier {
     exerciseCatalog = catalogWithForged(exerciseCatalog, _forged);
     _filter = null;
     _filterLoaded = false;
-    _loadToday();
     try {
       final raw = _json(pickedVariantsKey, const {});
       if (raw is Map) {
@@ -260,6 +259,7 @@ class LogStore extends ChangeNotifier {
     } on FormatException {
       // A broken value is only UI state: start without picks.
     }
+    _loadToday(); // after the picks: the old Today needs them (D82)
   }
 
   String get _now => isoNow(_clock());
@@ -446,10 +446,15 @@ class LogStore extends ChangeNotifier {
 
   /// A modifier chip picked exercise [id] on its card.
   void pickVariant(String id) {
+    _remember(id);
+    notifyListeners();
+  }
+
+  /// Exercise [id] is the one picked last on its move ([variantFor]).
+  void _remember(String id) {
     final key = exerciseCatalog.groupKeyOf(id);
     _picked[key] = [id, ...?_picked[key]?.where((p) => p != id)].take(_pickedPerCard).toList();
     _prefs.setString(pickedVariantsKey, jsonEncode(_picked));
-    notifyListeners();
   }
 
   /// The last filter choice, kept on the phone (also the next day and after
@@ -512,7 +517,8 @@ class LogStore extends ChangeNotifier {
     _prefs.remove(filterKey);
   }
 
-  /// The workout card picked last (a group key), kept on the phone so it is
+  /// The workout card picked last (its exercise id: one card per Today
+  /// exercise, D82; an old group key just shows the first card), kept on the phone so it is
   /// still there after leaving the workout or the app (D75). UI state only:
   /// not in the backup.
   static const pickedCardKey = 'workout_card_v1';
@@ -574,12 +580,16 @@ class LogStore extends ChangeNotifier {
 
   // ---------------------------------------------------------------- today
 
-  /// TODAY (D79): the cards the lifter put in today's list, in order (group
-  /// keys, like the carousel; the star saves exercises, D72). Kept on the
-  /// phone with the day it belongs to: `{"date": "yyyy-MM-dd", "cards":
-  /// [keys]}`. A new day starts empty. UI data, not in the backup: the
-  /// cards with sets are in the day's session.
-  static const todayKey = 'today_v1';
+  /// TODAY (D79, D82): the exercises (variations) the lifter put in today's
+  /// list, in order. Two variations of one move can both be there (a cable
+  /// fly and a dumbbell fly); each one is its own carousel card. Kept on the
+  /// phone with the day it belongs to: `{"date": "yyyy-MM-dd", "exercises":
+  /// [ids]}`. A new day starts empty. UI data, not in the backup: the
+  /// exercises with sets are in the day's session.
+  static const todayKey = 'today_v2';
+
+  /// The old Today (card keys), read once and changed to [todayKey].
+  static const oldTodayKey = 'today_v1';
   String? _todayDate;
   final List<String> _todaySaved = [];
 
@@ -588,96 +598,163 @@ class LogStore extends ChangeNotifier {
     _todaySaved.clear();
     try {
       final j = _json(todayKey, const {});
-      if (j is Map && j['date'] is String && j['cards'] is List) {
+      if (j is Map && j['date'] is String && j['exercises'] is List) {
         _todayDate = j['date'] as String;
-        _todaySaved.addAll([for (final k in j['cards'] as List) if (k is String) k]);
+        _todaySaved.addAll([for (final k in j['exercises'] as List) if (k is String) k]);
       }
     } on FormatException {
       // A broken value is only UI data: start with an empty Today.
     }
+    if (_prefs.containsKey(oldTodayKey)) _migrateToday();
   }
 
-  /// Today's cards, in order: the ones put in today (a set, a CHALK row,
-  /// FORGE IT, COPY), then any card with sets today not in the list. The
-  /// day rule is the sessions' one (D6): the list of another day is gone,
-  /// so a card with 0 sets does not stay past its day. Only cards the
-  /// exercise list has.
-  List<String> get todayCards {
+  /// Once: the old Today held card keys. Each card becomes its variations
+  /// with sets on that day, else the one picked on it, else its first one.
+  /// The picked card becomes its first variation.
+  void _migrateToday() {
+    try {
+      final j = _json(oldTodayKey, const {});
+      if (_todayDate == null && j is Map && j['date'] is String && j['cards'] is List) {
+        final date = j['date'] as String, s = _sessions[date];
+        final ids = <String>[];
+        String? pickedTo;
+        final picked = pickedCard;
+        for (final k in j['cards'] as List) {
+          final g = k is String ? exerciseCatalog.byKey[k] : null;
+          if (g == null) continue;
+          final of = {for (final v in g.variants) v.id};
+          final done = [
+            for (final e in s == null || s.legacy ? const <SessionExercise>[] : s.exercises)
+              if (e.sets > 0 && of.contains(e.exerciseId)) e.exerciseId,
+          ];
+          final add = done.isNotEmpty ? done : [_picked[g.key]?.where(of.contains).firstOrNull ?? g.variants.first.id];
+          if (k == picked) pickedTo = add.first;
+          ids.addAll([for (final id in add) if (!ids.contains(id)) id]);
+        }
+        _todayDate = date;
+        _todaySaved
+          ..clear()
+          ..addAll(ids);
+        _prefs.setString(todayKey, jsonEncode({'date': date, 'exercises': ids}));
+        if (pickedTo != null) _prefs.setString(pickedCardKey, pickedTo);
+      }
+    } on FormatException {
+      // A broken old value: nothing to keep.
+    }
+    _prefs.remove(oldTodayKey);
+  }
+
+  /// Today's exercises, in order: the ones put in today (a set, a CHALK
+  /// "+", FORGE IT, COPY), then any exercise with sets today not in the
+  /// list. The day rule is the sessions' one (D6): the list of another day
+  /// is gone, so an exercise with 0 sets does not stay past its day. Only
+  /// exercises the list has.
+  List<String> get todayIds {
     final out = <String>[if (_todayDate == _today) ..._todaySaved];
     for (final e in todaySession?.exercises ?? const <SessionExercise>[]) {
-      final k = exerciseCatalog.groupKeyOf(e.exerciseId);
-      if (e.sets > 0 && !out.contains(k)) out.add(k);
+      if (e.sets > 0 && !out.contains(e.exerciseId)) out.add(e.exerciseId);
     }
-    return [for (final k in out) if (exerciseCatalog.byKey.containsKey(k)) k];
+    return [for (final id in out) if (exerciseCatalog.byId.containsKey(id)) id];
   }
 
-  bool inToday(String key) => todayCards.contains(key);
+  /// Whether exercise (variation) [id] is in Today.
+  bool inToday(String id) => todayIds.contains(id);
 
-  /// Puts cards [keys] at the end of Today (a card is there once) and saves
-  /// the list. No notify: the callers do it.
-  void _addToToday(Iterable<String> keys) {
-    final list = todayCards;
-    final add = [for (final k in keys) if (exerciseCatalog.byKey.containsKey(k) && !list.contains(k)) k];
+  /// Puts exercises [ids] at the end of Today (each one once) and saves the
+  /// list. No notify: the callers do it.
+  void _addToToday(Iterable<String> ids) {
+    final list = todayIds;
+    final add = [for (final id in ids) if (exerciseCatalog.byId.containsKey(id) && !list.contains(id)) id];
     if (add.isEmpty && _todayDate == _today) return;
     _saveToday({...list, ...add}.toList());
-    if (keys.contains(_preview)) _preview = null;
+    if (ids.contains(_preview)) _preview = null;
   }
 
-  void _saveToday(List<String> cards) {
+  void _saveToday(List<String> ids) {
     _todayDate = _today;
     _todaySaved
       ..clear()
-      ..addAll(cards);
-    _prefs.setString(todayKey, jsonEncode({'date': _today, 'cards': cards}));
+      ..addAll(ids);
+    _prefs.setString(todayKey, jsonEncode({'date': _today, 'exercises': ids}));
   }
 
-  /// The delete button on a Today card (D82): card [key] leaves Today, and
-  /// today's sets of it go too (so does their XP: XP is worked out from the
-  /// sets). The carousel goes to the card in its place, else the one before.
-  void removeFromToday(String key) {
-    final list = todayCards;
-    final i = list.indexOf(key);
+  /// The delete button on a Today card (D82): exercise [id] leaves Today,
+  /// and today's sets of it go too (so does their XP: XP is worked out from
+  /// the sets). Other variations of the same move keep theirs. The carousel
+  /// goes to the card in its place, else the one before.
+  void removeFromToday(String id) {
+    final list = todayIds;
+    final i = list.indexOf(id);
     if (i < 0) return;
     final rest = [...list]..removeAt(i);
     _saveToday(rest);
-    if (_preview == key) _preview = null;
-    if (pickedCard == key) {
+    if (_preview == id) _preview = null;
+    if (pickedCard == id) {
       if (rest.isEmpty) {
         _prefs.remove(pickedCardKey);
       } else {
         setPickedCard(rest[min(i, rest.length - 1)]);
       }
     }
-    if (groupSetsToday(key) > 0) {
-      _edit((l) => l..removeWhere((e) => exerciseCatalog.groupKeyOf(e.exerciseId) == key)); // notifies
+    if (setsToday(id) > 0) {
+      _edit((l) => l..removeWhere((e) => e.exerciseId == id)); // notifies
     } else {
       notifyListeners();
     }
   }
 
-  /// Card [key] joins Today and is shown (D79). A CHALK row no longer
-  /// does this: it only selects (D81).
-  void addToToday(String key) {
-    _addToToday([key]);
-    setPickedCard(key);
+  /// The CHALK "+" (D81): exercise [id] joins Today and is shown (D79).
+  void addToToday(String id) {
+    _addToToday([id]);
+    setPickedCard(id);
     notifyListeners();
   }
 
-  /// A tap on a CHALK result row (D81): the carousel goes to card [key].
-  /// It does not join Today; the first set does that (D79). A card not in
-  /// Today shows as a preview at the end of the carousel until the lifter
-  /// swipes away from it (D82).
-  void selectCard(String key) {
-    setPickedCard(key);
-    _preview = inToday(key) || !exerciseCatalog.byKey.containsKey(key) ? null : key;
+  /// A modifier chip on the card of exercise [from] picked exercise [to]
+  /// (D55). On a Today card the chip changes that card's variation: [to]
+  /// takes the place of [from] in Today. When [to] is in Today already, the
+  /// carousel goes there (no duplicates). When [from] has sets today, it
+  /// stays (its sets are done) and [to] comes right after it. On the CHALK
+  /// preview, the preview becomes [to].
+  void changeVariant(String from, String to) {
+    _remember(to);
+    if (from != to) {
+      final list = todayIds;
+      final i = list.indexOf(from);
+      if (i >= 0 && !list.contains(to)) {
+        if (setsToday(from) > 0) {
+          list.insert(i + 1, to);
+        } else {
+          list[i] = to;
+        }
+        _saveToday(list);
+      } else if (i >= 0 && setsToday(from) == 0) {
+        _saveToday(list..removeAt(i));
+      }
+      final preview = _preview == from;
+      setPickedCard(to);
+      if (preview && !list.contains(to)) _preview = to;
+    }
     notifyListeners();
   }
 
-  /// The card a CHALK row selected that is not in Today (D82), in memory
-  /// only: it shows after the Today cards until the carousel leaves it.
+  /// A tap on a CHALK result row (D81): the carousel goes to exercise
+  /// [id]. It does not join Today; the first set does that (D79). An
+  /// exercise not in Today shows as a preview at the end of the carousel
+  /// until the lifter swipes away from it (D82). This is per variation:
+  /// another variation of a Today move is a preview too.
+  void selectExercise(String id) {
+    _remember(id);
+    setPickedCard(id);
+    _preview = inToday(id) || !exerciseCatalog.byId.containsKey(id) ? null : id;
+    notifyListeners();
+  }
+
+  /// The exercise a CHALK row selected that is not in Today (D82), in
+  /// memory only: it shows after the Today cards until the carousel leaves it.
   String? _preview;
-  String? get previewCard =>
-      _preview != null && !inToday(_preview!) && exerciseCatalog.byKey.containsKey(_preview) ? _preview : null;
+  String? get previewId =>
+      _preview != null && !inToday(_preview!) && exerciseCatalog.byId.containsKey(_preview) ? _preview : null;
 
   /// BACK TO TODAY on the CHALK sheet (D81): the words are wiped and the
   /// carousel goes to the first Today card, or to the start of the list
@@ -685,7 +762,7 @@ class LogStore extends ChangeNotifier {
   void backToToday() {
     _chalk.clear();
     _preview = null;
-    final first = todayCards.firstOrNull;
+    final first = todayIds.firstOrNull;
     if (first != null) {
       setPickedCard(first);
     } else {
@@ -694,47 +771,58 @@ class LogStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// The exercises a past day trained, one per card (the first one with
-  /// sets), in the order of the day: its Today list (D79), worked out from
-  /// the saved session. Cards the exercise list no longer has are left out.
+  /// The exercises (variations) a past day trained, each one once, in the
+  /// order of the day, worked out from the saved session. Exercises the
+  /// list no longer has are left out.
   List<CatalogExercise> dayMoves(String date) {
     final s = _sessions[date];
     if (s == null || s.legacy) return const [];
     final seen = <String>{};
     return [
       for (final e in s.exercises)
-        if (e.sets > 0 && exerciseCatalog.byId[e.exerciseId] != null && seen.add(exerciseCatalog.groupKeyOf(e.exerciseId)))
+        if (e.sets > 0 && exerciseCatalog.byId[e.exerciseId] != null && seen.add(e.exerciseId))
           exerciseCatalog.byId[e.exerciseId]!,
     ];
   }
 
-  /// The days before today with cards to copy, newest first (COPY A PAST
-  /// DAY, D79).
+  /// The days before today with exercises to copy, newest first (COPY A
+  /// PAST DAY, D79).
   List<String> get pastDays => [
         for (final s in _sessions.values)
           if (s.date.compareTo(_today) < 0 && dayMoves(s.date).isNotEmpty) s.date,
       ]..sort((a, b) => b.compareTo(a));
 
-  /// COPY: the cards of day [date] join Today; the sets do not (D79).
+  /// COPY: the variations done on day [date] join Today; the sets do not (D79).
   void copyDay(String date) {
-    final keys = [for (final e in dayMoves(date)) exerciseCatalog.groupKeyOf(e.id)];
-    if (keys.isEmpty) return;
-    _addToToday(keys);
-    setPickedCard(keys.first);
+    final ids = [for (final e in dayMoves(date)) e.id];
+    if (ids.isEmpty) return;
+    _addToToday(ids);
+    setPickedCard(ids.first);
     notifyListeners();
   }
 
-  /// The workout carousel (D82): only the Today cards, then the CHALK
-  /// preview card when there is one. No catalog after them: CHALK is the
+  /// The workout carousel (D82): one card per Today exercise, then the
+  /// CHALK preview when there is one. No catalog after them: CHALK is the
   /// way to the other cards. A card keeps the exercises of your class and
-  /// mode ([defaultFilter]; no body part or favorites filter), else all.
-  List<ExerciseGroup> get carousel {
+  /// mode ([defaultFilter]; no body part or favorites filter) when they
+  /// hold its exercise, else all.
+  List<TodayEntry> get carousel {
     _favoritesToVariants();
     final mine = {for (final g in defaultFilter.apply(exerciseCatalog, _favorites)) g.key: g};
-    final preview = previewCard;
-    return [
-      for (final k in [...todayCards, ?preview]) mine[k] ?? exerciseCatalog.byKey[k]!,
-    ];
+    final preview = previewId;
+    final out = <TodayEntry>[];
+    for (final id in [...todayIds, ?preview]) {
+      final e = exerciseCatalog.byId[id];
+      if (e == null) continue;
+      final key = exerciseCatalog.groupKeyOf(id);
+      final g = [mine[key], exerciseCatalog.byKey[key]].firstWhere(
+            (g) => g != null && g.variants.any((v) => v.id == id),
+            orElse: () => null,
+          ) ??
+          ExerciseGroup(key, e.name, [e]);
+      out.add(TodayEntry(e, g));
+    }
+    return out;
   }
 
   /// The cards the filters show, in carousel order (one per move, D55).
@@ -782,9 +870,9 @@ class LogStore extends ChangeNotifier {
   }
 
   /// Tap on the world: one more working set of exercise [id]. The first
-  /// set on a card puts it in Today (D79).
+  /// set on an exercise puts that variation in Today (D79, D82).
   void addSet(String id) {
-    _addToToday([exerciseCatalog.groupKeyOf(id)]);
+    _addToToday([id]);
     _addSet(id);
   }
 
@@ -806,9 +894,10 @@ class LogStore extends ChangeNotifier {
   // ------------------------------------------------------------------- XP
 
   /// Set XP of a session (docs/rules.md §1, set by set), only for card
-  /// [key] when given. Sets count per card: all the exercises of one move
-  /// share the 10-set cap and the set numbers (D55).
-  static int _setsXp(Session s, [String? key]) {
+  /// [key] or only for exercise [id] when given. Sets count per card: all
+  /// the exercises of one move share the 10-set cap and the set numbers
+  /// (D55), also when they are separate Today cards (D82).
+  static int _setsXp(Session s, [String? key, String? id]) {
     final d = difficultyIndex(s.difficultyId);
     final n = <String, int>{};
     var xp = 0;
@@ -816,7 +905,7 @@ class LogStore extends ChangeNotifier {
       final g = exerciseCatalog.groupKeyOf(e.exerciseId);
       for (var i = 0; i < e.sets; i++) {
         final k = n[g] = (n[g] ?? 0) + 1;
-        if (key == null || key == g) xp += xpForSet(setNumber: k, difficulty: d, critical: isCritical(s.date, g, k));
+        if ((key == null || key == g) && (id == null || id == e.exerciseId)) xp += xpForSet(setNumber: k, difficulty: d, critical: isCritical(s.date, g, k));
       }
     }
     return xp;
@@ -862,11 +951,23 @@ class LogStore extends ChangeNotifier {
     return s == null ? 0 : _setsXp(s, key);
   }
 
-  /// Whether the last set of exercise [id] today (on its card) was a critical set.
+  /// XP of the sets of exercise [id] today so far (with criticals; the set
+  /// numbers and the cap are its move's, D55).
+  int xpToday(String id) {
+    final s = todaySession;
+    return s == null ? 0 : _setsXp(s, exerciseCatalog.groupKeyOf(id), id);
+  }
+
+  /// Whether the last set of exercise [id] today was a critical set. Its
+  /// number on the move is the one [_setsXp] gives it.
   bool lastSetCritical(String id) {
     final g = exerciseCatalog.groupKeyOf(id);
-    final n = groupSetsToday(g);
-    return n > 0 && n <= xpSetsPerExercise && isCritical(_today, g, n);
+    var n = 0;
+    for (final e in todaySession?.exercises ?? const <SessionExercise>[]) {
+      if (exerciseCatalog.groupKeyOf(e.exerciseId) == g) n += e.sets;
+      if (e.exerciseId == id) break;
+    }
+    return setsToday(id) > 0 && n <= xpSetsPerExercise && isCritical(_today, g, n);
   }
 
   // ----------------------------------------------------------------- backup
@@ -948,3 +1049,14 @@ typedef _RawSession = ({
   String? lastMarkAt,
   List<({String id, int target, int sets})> exercises,
 });
+
+/// One card of the workout carousel (D82): a Today exercise (or the CHALK
+/// preview) and the card whose chips pick its variation.
+class TodayEntry {
+  const TodayEntry(this.exercise, this.card);
+
+  final CatalogExercise exercise;
+  final ExerciseGroup card;
+
+  String get id => exercise.id;
+}

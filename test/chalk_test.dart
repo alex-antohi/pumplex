@@ -230,7 +230,7 @@ void main() {
     await t.pump();
     await t.tap(row, warnIfMissed: false);
     await _frames(t, 20);
-    expect(store.pickedCard, 'move:fly');
+    expect(store.pickedCard, 'Dumbbell_Flyes'); // the exercise (D82)
     expect(store.variantFor(store.cards.firstWhere((g) => g.key == 'move:fly')).id, 'Dumbbell_Flyes');
     await t.tap(find.byKey(const ValueKey('filter-chalk')));
     await _frames(t, 10);
@@ -400,7 +400,7 @@ void main() {
     expect(t.getSize(add).height, greaterThanOrEqualTo(44));
     await t.tap(add);
     await _frames(t, 4);
-    expect(store.todayCards, [a.card.key]);
+    expect(store.todayIds, [a.exercise.id]);
     expect(find.byKey(const ValueKey('chalk-sheet')), findsOneWidget);
     expect(add, findsNothing);
     expect(find.byKey(ValueKey('chalk-result-today-${a.exercise.id}')), findsOneWidget);
@@ -417,8 +417,8 @@ void main() {
     await t.pump();
     await t.tap(find.byKey(ValueKey('chalk-result-${b.exercise.id}')), warnIfMissed: false);
     await _frames(t, 20);
-    expect(store.pickedCard, b.card.key);
-    expect(store.todayCards, [a.card.key]);
+    expect(store.pickedCard, b.exercise.id);
+    expect(store.todayIds, [a.exercise.id]);
     expect(find.byKey(const ValueKey('chalk-sheet')), findsNothing);
     await t.tap(find.byKey(const ValueKey('filter-chalk')));
     await _frames(t, 10);
@@ -431,8 +431,8 @@ void main() {
   testWidgets('BACK TO TODAY (D81): wipes the words, closes CHALK, the carousel goes to the first Today card', (t) async {
     final store = await _openApp(t);
     final a = store.cards[2], b = store.cards[5];
-    store.addToToday(a.key);
-    store.addToToday(b.key);
+    store.addToToday(store.variantFor(a).id);
+    store.addToToday(store.variantFor(b).id);
     store.setChalk({'tool.barbell', 'move.press'});
     await _frames(t, 4);
     await t.tap(find.byKey(const ValueKey('filter-chalk')));
@@ -448,23 +448,23 @@ void main() {
     await _frames(t, 20);
     expect(find.byKey(const ValueKey('chalk-back-today')), findsNothing); // closed
     expect(store.chalk, isEmpty);
-    expect(store.pickedCard, a.key);
+    expect(store.pickedCard, store.variantFor(a).id);
     expect(find.byKey(ValueKey('exercise-${a.key}')), findsOneWidget);
-    expect(find.text('CHALK'), findsOneWidget);
+    expect(find.text('+ CHALK'), findsOneWidget); // no words: no count
     expect(t.takeException(), isNull);
   });
 
   testWidgets('BACK TO TODAY with an empty Today: the start of the list', (t) async {
     final store = await _openApp(t);
     store.setChalk({'tool.barbell', 'move.press'});
-    store.selectCard(ChalkIndex.of(exerciseCatalog).search(store.chalk)[1].key);
+    store.selectExercise(ChalkIndex.of(exerciseCatalog).results(store.chalk)[1].exercise.id);
     await _frames(t, 4);
     await t.tap(find.byKey(const ValueKey('filter-chalk')));
     await _frames(t, 10);
     await t.tap(find.byKey(const ValueKey('chalk-back-today')));
     await _frames(t, 20);
     expect(store.chalk, isEmpty);
-    expect(store.todayCards, isEmpty);
+    expect(store.todayIds, isEmpty);
     expect(store.carousel, isEmpty); // the preview went too (D82)
     expect(find.byKey(const ValueKey('today-empty-card')), findsOneWidget);
     expect(t.takeException(), isNull);
@@ -542,7 +542,7 @@ void main() {
     expect((f.nickname, f.muscle), ('BENCH', 'lats'));
     expect(f.words, _noMove);
     expect(exerciseCatalog.byId[f.id]!.mods.keys, ['equip']);
-    expect(store.todayCards, [f.id]); // FORGE IT still adds to Today (D79)
+    expect(store.todayIds, [f.id]); // FORGE IT still adds to Today (D79)
     expect(find.byKey(const ValueKey('forge-card')), findsNothing);
     expect(find.text('BENCH'), findsOneWidget); // the nickname is the card's title
     expect(t.takeException(), isNull);
