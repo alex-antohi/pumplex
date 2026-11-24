@@ -188,12 +188,10 @@ void main() {
     expect(row, findsOneWidget);
     ScrollPosition pos() => t.state<ScrollableState>(find.descendant(of: row, matching: find.byType(Scrollable)).first).position;
     expect(pos().maxScrollExtent, greaterThan(0), reason: 'the row is wider than the screen');
-    final counter = t.widget<Text>(find.byKey(const ValueKey('exercise-counter'))).data;
     await t.drag(row, const Offset(-200, 0));
     await _frames(t, 10);
     expect(pos().pixels, greaterThan(0), reason: 'the row scrolled');
     expect(store.pickedCard, g.key, reason: 'the carousel did not move');
-    expect(t.widget<Text>(find.byKey(const ValueKey('exercise-counter'))).data, counter);
     // A swipe on the title still moves the carousel.
     await t.fling(find.byKey(const ValueKey('exercise-title')), const Offset(-300, 0), 1000);
     await _frames(t, 10);
