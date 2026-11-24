@@ -127,12 +127,12 @@ void main() {
     await t.pump();
     await t.tap(find.byKey(const ValueKey('filter-chalk')));
     await _frames(t, 10);
-    final results = ChalkIndex.of(exerciseCatalog).search(store.chalk);
+    final results = ChalkIndex.of(exerciseCatalog).results(store.chalk);
     expect(results.length, greaterThan(2));
-    final g = results[1];
+    final r = results[1], g = r.card, id = r.exercise.id;
     expect(find.text('RESULTS · ${results.length}'), findsOneWidget);
-    await t.ensureVisible(find.byKey(ValueKey('chalk-result-${g.key}')));
-    await t.tap(find.byKey(ValueKey('chalk-result-${g.key}')));
+    await t.ensureVisible(find.byKey(ValueKey('chalk-result-$id')));
+    await t.tap(find.byKey(ValueKey('chalk-result-$id')));
     await _frames(t, 20);
     expect(find.byKey(const ValueKey('chalk-results')), findsNothing); // the sheet closed
     expect(store.todayCards, isEmpty); // selected, not added (D81)
@@ -144,15 +144,15 @@ void main() {
     // Open again: that row is highlighted, no TODAY mark yet.
     await t.tap(find.byKey(const ValueKey('filter-chalk')));
     await _frames(t, 10);
-    await t.ensureVisible(find.byKey(ValueKey('chalk-result-${g.key}')));
-    expect(find.byKey(ValueKey('chalk-result-on-${g.key}')), findsOneWidget);
-    expect(find.byKey(ValueKey('chalk-result-on-${results.first.key}')), findsNothing);
-    expect(find.byKey(ValueKey('chalk-result-today-${g.key}')), findsNothing);
+    await t.ensureVisible(find.byKey(ValueKey('chalk-result-$id')));
+    expect(find.byKey(ValueKey('chalk-result-on-$id')), findsOneWidget);
+    expect(find.byKey(ValueKey('chalk-result-on-${results.first.exercise.id}')), findsNothing);
+    expect(find.byKey(ValueKey('chalk-result-today-$id')), findsNothing);
     // The first set puts it in Today (D79): the row shows TODAY.
     store.addSet(store.variantFor(g).id);
     await _frames(t, 4);
     expect(store.todayCards, [g.key]);
-    expect(find.byKey(ValueKey('chalk-result-today-${g.key}')), findsOneWidget);
+    expect(find.byKey(ValueKey('chalk-result-today-$id')), findsOneWidget);
     expect(t.takeException(), isNull);
   });
 

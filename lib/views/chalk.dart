@@ -4,11 +4,13 @@
 // per kind: PATTERN, MOVE, TOOL, BODY (ANGLE and GRIP are chips on the
 // exercise card, D55/D57). A tile picked is filled; a second tap takes it
 // out. A tile that gives 0 exercises is greyed (no counts, D81). At the
-// bottom, in a fixed height: the results, one row per card; a tap selects
-// the card (the carousel goes there and the sheet closes on it); the "+" at
-// the right adds it to Today (a card in Today shows TODAY). The sheet has a
-// fixed height, so nothing moves with the count. With 0 matches: NO SUCH
-// MOVE. FORGE IT?, which opens the FORGE card (lib/views/forge.dart).
+// bottom, in a fixed height: the results, one row per matching exercise (a
+// card can give several); a tap picks that exercise and selects its card
+// (the carousel goes there and the sheet closes on it); the "+" at the
+// right adds the card to Today (a card in Today shows TODAY). The list ends
+// with FORGE IT. The sheet has a fixed height, so nothing moves with the
+// count. With 0 matches: NO SUCH MOVE. FORGE IT? Both open the FORGE card
+// with the picked words (lib/views/forge.dart).
 // CHALK searches ALL exercises and ignores the class and the filters.
 
 import 'package:flutter/material.dart';
@@ -63,6 +65,12 @@ class ChalkSheet extends StatelessWidget {
         final index = ChalkIndex.of(exerciseCatalog);
         final line = store.chalk;
         final total = index.count(line);
+        // The FORGE card, from the picked words (CHALK closes first).
+        void forge() {
+          final nav = Navigator.of(context)..pop();
+          showForge(nav, store, line);
+        }
+
         return SizedBox(
           key: const ValueKey('chalk-sheet'),
           height: MediaQuery.sizeOf(context).height * kChalkSheetFraction,
@@ -140,26 +148,22 @@ class ChalkSheet extends StatelessWidget {
                   height: kChalkResultsHeight,
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 4, 12, 12),
-                    child: line.isNotEmpty && total > 0
-                        ? _Results(store: store, cards: index.search(line), index: index)
-                        : line.isNotEmpty
-                            ? Align(
+                    child: line.isEmpty
+                        ? const SizedBox.shrink()
+                        : total > 0
+                            ? _Results(store: store, rows: index.results(line), index: index, onForge: forge)
+                            : Align(
                                 alignment: Alignment.topCenter,
                                 child: Padding(
                                   padding: const EdgeInsets.only(right: 12),
                                   child: BrutalButton(
                                     key: const ValueKey('chalk-forge'),
                                     color: p.pink,
-                                    // The FORGE card, from these words.
-                                    onTap: () {
-                                      final nav = Navigator.of(context)..pop();
-                                      showForge(nav, store, line);
-                                    },
+                                    onTap: forge,
                                     child: FittedBox(fit: BoxFit.scaleDown, child: Text(t('chalk.forge'))),
                                   ),
                                 ),
-                              )
-                            : const SizedBox.shrink(),
+                              ),
                   ),
                 ),
               ],
@@ -258,17 +262,21 @@ class _ChalkScrollState extends State<ChalkScroll> {
   }
 }
 
-/// The CHALK results (D79, D81): one row per matching card, its exercise's
-/// name in the current language, its body part and tool. The card on the
-/// carousel is filled lime (the app's yellow). A tap on the row selects the
-/// card: the sheet closes on it. A "+" at the right adds the card to Today;
-/// a card in Today shows TODAY there. The list scrolls inside its fixed area.
+/// The CHALK results (D79, D81): one row per matching exercise
+/// (ChalkIndex.results), so a card with several matches gives several rows;
+/// the name in the current language, its body part and tool. The exercise
+/// on the carousel is filled lime (the app's yellow). A tap on the row picks
+/// that exercise and selects its card: the sheet closes on it. A "+" at the
+/// right adds the card to Today with that exercise; a card in Today shows
+/// TODAY there. The list scrolls inside its fixed area and always ends with
+/// FORGE IT (a move that is not in the list yet).
 class _Results extends StatelessWidget {
-  const _Results({required this.store, required this.cards, required this.index});
+  const _Results({required this.store, required this.rows, required this.index, required this.onForge});
 
   final LogStore store;
-  final List<ExerciseGroup> cards;
+  final List<ChalkResult> rows;
   final ChalkIndex index;
+  final VoidCallback onForge;
 
   @override
   Widget build(BuildContext context) {
@@ -277,7 +285,7 @@ class _Results extends StatelessWidget {
       key: const ValueKey('chalk-results'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Shout(t('today.results', {'n': cards.length}), size: 13, color: p.ink),
+        Shout(t('today.results', {'n': rows.length}), size: 13, color: p.ink),
         const SizedBox(height: 6),
         Expanded(
           child: ChalkScroll(
@@ -285,9 +293,17 @@ class _Results extends StatelessWidget {
             builder: (controller) => ListView.separated(
               controller: controller,
               padding: const EdgeInsets.only(right: 12, bottom: 4),
-              itemCount: cards.length,
+              itemCount: rows.length + 1,
               separatorBuilder: (_, _) => const SizedBox(height: 6),
-              itemBuilder: (context, i) => _ResultRow(store: store, g: cards[i], index: index),
+              itemBuilder: (context, i) => i < rows.length
+                  ? _ResultRow(store: store, r: rows[i], index: index)
+                  : BrutalButton(
+                      key: const ValueKey('chalk-forge-it'),
+                      small: true,
+                      color: p.pink,
+                      onTap: onForge,
+                      child: Text(t('forge.go')),
+                    ),
             ),
           ),
         ),
@@ -300,18 +316,18 @@ class _Results extends StatelessWidget {
 const kChalkAddSize = 44.0;
 
 class _ResultRow extends StatelessWidget {
-  const _ResultRow({required this.store, required this.g, required this.index});
+  const _ResultRow({required this.store, required this.r, required this.index});
 
   final LogStore store;
-  final ExerciseGroup g;
+  final ChalkResult r;
   final ChalkIndex index;
 
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
-    final v = store.variantFor(g);
+    final g = r.card, v = r.exercise;
     final inToday = store.inToday(g.key);
-    final on = store.pickedCard == g.key;
+    final on = store.pickedCard == g.key && store.variantFor(g).id == v.id;
     final sets = store.groupSetsToday(g.key);
     final part = bodyParts.where((b) => b.muscles.contains(v.muscle)).firstOrNull;
     final tool = (index.words[v.id] ?? const <String>{}).where((k) => k.startsWith('tool.')).map(chalkWordByKey).firstOrNull;
@@ -325,14 +341,16 @@ class _ResultRow extends StatelessWidget {
       button: true,
       selected: on,
       child: GestureDetector(
-        key: ValueKey('chalk-result-${g.key}'),
+        key: ValueKey('chalk-result-${v.id}'),
         behavior: HitTestBehavior.opaque,
+        // Picks this exercise on its card and selects the card.
         onTap: () {
+          store.pickVariant(v.id);
           store.selectCard(g.key);
           Navigator.of(context).pop();
         },
         child: Container(
-          key: on ? ValueKey('chalk-result-on-${g.key}') : null,
+          key: on ? ValueKey('chalk-result-on-${v.id}') : null,
           padding: const EdgeInsets.fromLTRB(10, 4, 4, 4),
           decoration: BoxDecoration(
             color: on ? p.lime : p.panel,
@@ -356,7 +374,7 @@ class _ResultRow extends StatelessWidget {
               const SizedBox(width: 8),
               if (inToday)
                 Container(
-                  key: ValueKey('chalk-result-today-${g.key}'),
+                  key: ValueKey('chalk-result-today-${v.id}'),
                   constraints: const BoxConstraints(minHeight: kChalkAddSize),
                   alignment: Alignment.center,
                   padding: const EdgeInsets.symmetric(horizontal: 7),
@@ -368,10 +386,14 @@ class _ResultRow extends StatelessWidget {
                   button: true,
                   label: '+ ${t('today.title')}',
                   child: GestureDetector(
-                    key: ValueKey('chalk-result-add-${g.key}'),
+                    key: ValueKey('chalk-result-add-${v.id}'),
                     behavior: HitTestBehavior.opaque,
-                    // Adds the card to Today; the sheet stays open.
-                    onTap: () => store.addToToday(g.key),
+                    // Adds the card to Today, on this exercise; the sheet
+                    // stays open.
+                    onTap: () {
+                      store.pickVariant(v.id);
+                      store.addToToday(g.key);
+                    },
                     child: Container(
                       width: kChalkAddSize,
                       height: kChalkAddSize,

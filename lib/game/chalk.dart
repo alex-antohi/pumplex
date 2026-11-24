@@ -5,9 +5,11 @@
 // The words come in rows: PATTERN, MOVE, TOOL, BODY. ANGLE and GRIP are
 // variations, picked on the exercise card's chips (D55, D57), not here. A
 // word is `<row>.<id>` (for example `tool.dumbbell`); its label is the translation
-// key `chalk.<row>.<id>`. An exercise has a word when it matches it; the
-// search keeps the exercises with every word of the chalk line (one word
-// per row).
+// key `chalk.<row>.<id>`. An exercise has a word when it matches it.
+// The one rule, for the tiles, the count, the cards and the results list:
+// an EXERCISE matches when it has every word of the chalk line (one word
+// per row); a card matches when some exercise of it matches, and the
+// results list shows each matching exercise (not only the card's first).
 
 import 'exercises.dart';
 
@@ -30,7 +32,7 @@ class ChalkWord {
 /// patterns (biceps, triceps, forearms, raise, calves, hamcurl, abductor,
 /// adductor) get no PATTERN word, so the row stays short: a MOVE word
 /// (curl, extension, raise, ...) or the BODY word finds them.
-const _patternWords = <String, List<String>>{
+const chalkPatternWords = <String, List<String>>{
   'push': ['hpush', 'vpush', 'fly'],
   'pull': ['hpull', 'vpull', 'rear', 'shrug'],
   'squat': ['squat'],
@@ -45,7 +47,7 @@ const _patternWords = <String, List<String>>{
 /// The moves, found in the exercise's name (English, from the database).
 /// Leg Curl is CURL + LEGS and Calf Raise is RAISE + LEGS (no tile of their
 /// own). ROW is the strength row only: the Rowing Machine is CARDIO.
-final _moveWords = <String, RegExp>{
+final chalkMoveWords = <String, RegExp>{
   'press': RegExp(r'\bpress', caseSensitive: false),
   'fly': RegExp(r'\bfly|\bflye', caseSensitive: false),
   'pullover': RegExp(r'pullover', caseSensitive: false),
@@ -72,7 +74,7 @@ final _moveWords = <String, RegExp>{
 };
 
 /// The tools: the equipment modifier, else the database equipment.
-const _toolOfEquipment = {
+const chalkToolOfEquipment = {
   'body only': 'bodyweight',
   'dumbbell': 'dumbbell',
   'barbell': 'barbell',
@@ -84,7 +86,7 @@ const _toolOfEquipment = {
   'exercise ball': 'ball',
   'medicine ball': 'ball',
 };
-const _toolOfMod = {
+const chalkToolOfMod = {
   'Bodyweight': 'bodyweight',
   'Dumbbell': 'dumbbell',
   'Barbell': 'barbell',
@@ -99,7 +101,7 @@ const _toolOfMod = {
 };
 
 /// A towel is a second tool on top of Bodyweight (Towel Row, Towel Hang).
-final _towel = RegExp(r'\btowel', caseSensitive: false);
+final chalkTowel = RegExp(r'\btowel', caseSensitive: false);
 
 /// Every word tile, row by row, in the order the sheet shows them.
 const chalkWords = <ChalkWord>[
@@ -158,17 +160,17 @@ ChalkWord? chalkWordByKey(String key) => chalkWords.where((w) => w.key == key).f
 /// The words of exercise [e].
 Set<String> _wordsOf(CatalogExercise e) {
   final w = <String>{};
-  for (final MapEntry(:key, :value) in _patternWords.entries) {
+  for (final MapEntry(:key, :value) in chalkPatternWords.entries) {
     if (value.contains(e.pattern)) w.add('pattern.$key');
   }
-  for (final MapEntry(:key, :value) in _moveWords.entries) {
+  for (final MapEntry(:key, :value) in chalkMoveWords.entries) {
     if (value.hasMatch(e.name)) w.add('move.$key');
   }
   // No equipment in the database (null, or empty) is Bodyweight.
   final equipment = e.equipment.isEmpty ? 'body only' : e.equipment;
-  final tool = e.mods['equip'] != null ? _toolOfMod[e.mods['equip']] : _toolOfEquipment[equipment];
+  final tool = e.mods['equip'] != null ? chalkToolOfMod[e.mods['equip']] : chalkToolOfEquipment[equipment];
   if (tool != null) w.add('tool.$tool');
-  if (e.mods['type'] == 'Towel' || _towel.hasMatch(e.name)) w.add('tool.towel');
+  if (e.mods['type'] == 'Towel' || chalkTowel.hasMatch(e.name)) w.add('tool.towel');
   for (final b in bodyParts) {
     if (b.muscles.contains(e.muscle)) w.add('body.${b.id}');
   }
@@ -206,8 +208,27 @@ class ChalkIndex {
     return out;
   }
 
-  /// How many exercises have every word of [line].
+  /// The CHALK results list: one row per exercise that has every word of
+  /// [line], card by card in [search] order. A card can give several rows
+  /// (PUSH + FLY: Cable Fly, Dumbbell Fly, ...): the list never hides a
+  /// match behind the card's first exercise. Each row keeps its card, with
+  /// the matching exercises only, as the carousel shows it.
+  List<ChalkResult> results(Iterable<String> line) => [
+        for (final g in search(line))
+          for (final e in g.variants) ChalkResult(g, e),
+      ];
+
+  /// How many exercises have every word of [line] (the rows of [results]).
   int count(Iterable<String> line) => catalog.groups.fold(0, (n, g) => n + g.variants.where((e) => _has(e, line)).length);
+}
+
+/// One CHALK result row: an [exercise] with every picked word, and its
+/// [card] (the card's matching exercises, as the carousel shows it).
+class ChalkResult {
+  const ChalkResult(this.card, this.exercise);
+
+  final ExerciseGroup card;
+  final CatalogExercise exercise;
 }
 
 /// The chalk line with [word] put in: it takes the place of the word of its

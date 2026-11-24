@@ -426,6 +426,17 @@ kept.forEach((o, i) => {
   for (const e of byCard.get(o.name)) out.push({ ...e, rank: i + 1, pattern: patternOf.get(o.name), unlock: unlock.get(o.name) });
 });
 out.sort((a, b) => a.id.localeCompare(b.id));
+// The app makes one card per base (case ignored) and CHALK reads the
+// pattern of every exercise: all exercises of one move must have the same
+// pattern and rank, or a search finds only some of them.
+const moveOf = new Map();
+for (const e of out) {
+  const k = e.base.toLowerCase(), m = moveOf.get(k);
+  if (!m) moveOf.set(k, e);
+  else if (m.pattern !== e.pattern || m.rank !== e.rank) {
+    throw new Error(`move ${e.base}: ${m.id} is ${m.pattern} #${m.rank}, ${e.id} is ${e.pattern} #${e.rank}`);
+  }
+}
 const lost = all.filter((e) => e.custom && !out.some((o) => o.id === e.id));
 if (lost.length) throw new Error(`custom exercises dropped: ${lost.map((e) => e.id).join(', ')}`);
 

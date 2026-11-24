@@ -46,6 +46,9 @@ Future<LogStore> _openApp(WidgetTester t) async {
   return store;
 }
 
+/// The scrollable of the CHALK results list (rows are built lazily).
+final _resultsList = find.descendant(of: find.byKey(const ValueKey('chalk-results-scroll')), matching: find.byType(Scrollable));
+
 /// Words no exercise has all of: CHALK offers FORGE.
 const _noMove = {'tool.kettlebell', 'move.pulldown'};
 
@@ -130,6 +133,149 @@ void main() {
     expect(cards({'pattern.pull'}), containsAll(['move:face pull', 'move:shrug']));
   });
 
+  test('PUSH + FLY: the results list has the Dumbbell Fly, not only the Cable Fly (owner bug)', () {
+    final index = ChalkIndex.of(exerciseCatalog);
+    final names = index.results({'pattern.push', 'move.fly'}).map((r) => r.exercise.name).toList();
+    expect(names, containsAll(['Cable Fly', 'Dumbbell Fly', 'Incline Dumbbell Fly', 'Decline Cable Fly']));
+    expect(names, isNot(contains('Dumbbell Reverse Fly'))); // a PULL (rear delt) move
+    // Adding DUMBBELL only narrows: the dumbbell flies stay.
+    final dumbbell = index.results({'pattern.push', 'move.fly', 'tool.dumbbell'}).map((r) => r.exercise.name).toSet();
+    expect(names.toSet().containsAll(dumbbell), isTrue);
+    expect(dumbbell, contains('Dumbbell Fly'));
+  });
+
+  test('every move has one pattern and one rank for all its exercises (the data tools check it too)', () {
+    final raw = (jsonDecode(File(ExerciseCatalog.asset).readAsStringSync()) as List).cast<Map<String, dynamic>>();
+    final byBase = <String, List<Map<String, dynamic>>>{};
+    for (final e in raw) {
+      (byBase[(e['base'] as String).toLowerCase()] ??= []).add(e);
+    }
+    for (final MapEntry(:key, :value) in byBase.entries) {
+      expect(value.map((e) => e['pattern']).toSet().length, 1, reason: key);
+      expect(value.map((e) => e['rank']).toSet().length, 1, reason: key);
+    }
+  });
+
+  test('every pair of words: the results equal a brute-force reference read straight from exercises.json', () {
+    // The reference: the CHALK rule applied to the raw JSON, exercise by
+    // exercise, with no cards: an exercise matches when it has every word.
+    final raw = (jsonDecode(File(ExerciseCatalog.asset).readAsStringSync()) as List).cast<Map<String, dynamic>>();
+    Set<String> wordsOf(Map<String, dynamic> j) {
+      final name = j['name'] as String, pattern = j['pattern'] as String?;
+      final mods = Map<String, String>.from(j['mods'] as Map? ?? const {});
+      final equipment = (j['equipment'] as String?) ?? '';
+      final muscle = ((j['primaryMuscles'] as List?) ?? const []).cast<String>().firstOrNull ?? '';
+      final tool = mods['equip'] != null ? chalkToolOfMod[mods['equip']] : chalkToolOfEquipment[equipment.isEmpty ? 'body only' : equipment];
+      return {
+        for (final MapEntry(:key, :value) in chalkPatternWords.entries)
+          if (value.contains(pattern)) 'pattern.$key',
+        for (final MapEntry(:key, :value) in chalkMoveWords.entries)
+          if (value.hasMatch(name)) 'move.$key',
+        if (tool != null) 'tool.$tool',
+        if (mods['type'] == 'Towel' || chalkTowel.hasMatch(name)) 'tool.towel',
+        for (final b in bodyParts)
+          if (b.muscles.contains(muscle)) 'body.${b.id}',
+      };
+    }
+
+    final ref = {for (final j in raw) j['id'] as String: wordsOf(j)};
+    final baseOf = {for (final j in raw) j['id'] as String: 'move:${(j['base'] as String).toLowerCase()}'};
+    final index = ChalkIndex(ExerciseCatalog.parse(File(ExerciseCatalog.asset).readAsStringSync()));
+    var lines = 0, nonEmpty = 0;
+    for (var a = 0; a < chalkRows.length; a++) {
+      for (var b = a + 1; b < chalkRows.length; b++) {
+        for (final x in chalkWords.where((w) => w.row == chalkRows[a])) {
+          for (final y in chalkWords.where((w) => w.row == chalkRows[b])) {
+            final line = {x.key, y.key};
+            final want = {for (final MapEntry(:key, :value) in ref.entries) if (value.containsAll(line)) key};
+            final rows = index.results(line);
+            final got = rows.map((r) => r.exercise.id).toList();
+            final why = '$line';
+            // The list shows each matching exercise once, no more and no less.
+            expect(got.toSet(), want, reason: why);
+            expect(got.length, want.length, reason: '$why: a row twice');
+            expect(index.count(line), want.length, reason: why);
+            // Each row sits on its own card, and the cards are the matching moves.
+            for (final r in rows) {
+              expect(r.card.key, baseOf[r.exercise.id], reason: why);
+              expect(r.card.variants, contains(r.exercise), reason: why);
+            }
+            expect(index.search(line).map((g) => g.key).toSet(), {for (final id in want) baseOf[id]}, reason: why);
+            lines++;
+            if (want.isNotEmpty) nonEmpty++;
+          }
+        }
+      }
+    }
+    expect(lines, greaterThan(700));
+    expect(nonEmpty, greaterThan(200));
+  });
+
+  testWidgets('CHALK PUSH + FLY lists every fly of the Fly card, the Dumbbell Fly too (owner bug)', (t) async {
+    final store = await _openApp(t);
+    store.setChalk({'pattern.push', 'move.fly'});
+    await _frames(t, 4);
+    await t.tap(find.byKey(const ValueKey('filter-chalk')));
+    await _frames(t, 10);
+    for (final name in ['CABLE FLY', 'DUMBBELL FLY']) {
+      expect(find.descendant(of: find.byKey(const ValueKey('chalk-results')), matching: find.text(name, skipOffstage: false)),
+          findsOneWidget,
+          reason: name);
+    }
+    final rows = ChalkIndex.of(exerciseCatalog).results(store.chalk);
+    expect(find.text('RESULTS · ${rows.length}'), findsOneWidget);
+    // A tap on the Dumbbell Fly row picks that exercise on the Fly card.
+    final row = find.byKey(const ValueKey('chalk-result-Dumbbell_Flyes'));
+    await t.ensureVisible(row);
+    await t.pump();
+    await t.tap(row, warnIfMissed: false);
+    await _frames(t, 20);
+    expect(store.pickedCard, 'move:fly');
+    expect(store.variantFor(store.cards.firstWhere((g) => g.key == 'move:fly')).id, 'Dumbbell_Flyes');
+    await t.tap(find.byKey(const ValueKey('filter-chalk')));
+    await _frames(t, 10);
+    await t.ensureVisible(find.byKey(const ValueKey('chalk-result-Dumbbell_Flyes')));
+    await t.pump();
+    expect(find.byKey(const ValueKey('chalk-result-on-Dumbbell_Flyes')), findsOneWidget);
+    expect(find.byKey(const ValueKey('chalk-result-on-Flat_Bench_Cable_Flyes')), findsNothing);
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('FORGE IT sits under every results list and opens FORGE with the words; 0 results keep NO SUCH MOVE', (t) async {
+    final store = await _openApp(t);
+    store.setChalk({'pattern.push', 'move.fly'});
+    await _frames(t, 4);
+    await t.tap(find.byKey(const ValueKey('filter-chalk')));
+    await _frames(t, 10);
+    final forgeIt = find.byKey(const ValueKey('chalk-forge-it'), skipOffstage: false);
+    expect(find.byKey(const ValueKey('chalk-forge')), findsNothing);
+    await t.scrollUntilVisible(find.byKey(const ValueKey('chalk-forge-it')), 80,
+        scrollable: find.descendant(of: find.byKey(const ValueKey('chalk-results-scroll')), matching: find.byType(Scrollable)));
+    await t.ensureVisible(forgeIt);
+    await _frames(t, 4);
+    expect(forgeIt, findsOneWidget);
+    expect(find.text('FORGE IT'), findsOneWidget);
+    // It is the last thing in the list: under the last result row.
+    final last = ChalkIndex.of(exerciseCatalog).results(store.chalk).last.exercise.id;
+    expect(t.getRect(forgeIt).top, greaterThan(t.getRect(find.byKey(ValueKey('chalk-result-$last'))).bottom));
+    await t.tap(forgeIt);
+    await _frames(t, 20);
+    expect(find.byKey(const ValueKey('forge-card')), findsOneWidget);
+    // From the picked words.
+    expect(t.widget<Text>(find.byKey(const ValueKey('forge-name'))).data, forgeName(store.chalk).toUpperCase());
+    expect(find.byKey(const ValueKey('chalk-sheet')), findsNothing);
+    // 0 results: NO SUCH MOVE. FORGE IT?, and no list.
+    await t.tap(find.byKey(const ValueKey('forge-back')));
+    await _frames(t, 20);
+    store.setChalk(_noMove);
+    await _frames(t, 4);
+    await t.tap(find.byKey(const ValueKey('filter-chalk')));
+    await _frames(t, 10);
+    expect(find.byKey(const ValueKey('chalk-forge')), findsOneWidget);
+    expect(find.byKey(const ValueKey('chalk-forge-it')), findsNothing);
+    expect(t.takeException(), isNull);
+  });
+
   testWidgets('CHALK sheet (D81): tiles with no counts, no ANGLE / GRIP, results at the bottom, FORGE at 0', (t) async {
     final store = await _openApp(t);
     expect(store.cards.any((g) => g.variants.any((e) => e.equipment == 'barbell')), isFalse); // a Scrapper has no barbell
@@ -199,8 +345,8 @@ void main() {
       for (final a in chalkWords)
         for (final b in chalkWords)
           if (a.row != b.row) {a.key, b.key},
-    ].firstWhere((l) => index.search(l).length == 3);
-    final many = chalkWords.map((w) => {w.key}).firstWhere((l) => index.search(l).length >= 30);
+    ].firstWhere((l) => index.results(l).length == 3);
+    final many = chalkWords.map((w) => {w.key}).firstWhere((l) => index.results(l).length >= 30);
     await t.tap(find.byKey(const ValueKey('filter-chalk')));
     await _frames(t, 10);
     final sheet = find.byKey(const ValueKey('chalk-sheet'));
@@ -246,35 +392,39 @@ void main() {
     await _frames(t, 4);
     await t.tap(find.byKey(const ValueKey('filter-chalk')));
     await _frames(t, 10);
-    final found = ChalkIndex.of(exerciseCatalog).search(store.chalk);
-    final a = found[0], b = found[1];
+    final rows = ChalkIndex.of(exerciseCatalog).results(store.chalk);
+    final a = rows[0], b = rows.firstWhere((r) => r.card.key != a.card.key);
     // "+" is at least 44 px; a tap adds the card to Today and the sheet stays.
-    final add = find.byKey(ValueKey('chalk-result-add-${a.key}'));
+    final add = find.byKey(ValueKey('chalk-result-add-${a.exercise.id}'));
     expect(t.getSize(add).width, greaterThanOrEqualTo(44));
     expect(t.getSize(add).height, greaterThanOrEqualTo(44));
     await t.tap(add);
     await _frames(t, 4);
-    expect(store.todayCards, [a.key]);
+    expect(store.todayCards, [a.card.key]);
     expect(find.byKey(const ValueKey('chalk-sheet')), findsOneWidget);
     expect(add, findsNothing);
-    expect(find.byKey(ValueKey('chalk-result-today-${a.key}')), findsOneWidget);
-    // The picked card's row is filled with the lime (the app's yellow).
+    expect(find.byKey(ValueKey('chalk-result-today-${a.exercise.id}')), findsOneWidget);
+    // The picked exercise's row is filled with the lime (the app's yellow).
     final p = Theme.of(t.element(find.byKey(const ValueKey('chalk-sheet')))).extension<Pal>()!;
-    Color fill(String key) => ((t.widget<Container>(find.byKey(ValueKey('chalk-result-on-$key'))).decoration!) as BoxDecoration).color!;
-    expect(fill(a.key), p.lime);
+    Color fill(String id) => ((t.widget<Container>(find.byKey(ValueKey('chalk-result-on-$id'))).decoration!) as BoxDecoration).color!;
+    expect(fill(a.exercise.id), p.lime);
     // A picked tile is lime too.
     final tile = find.descendant(of: find.byKey(const ValueKey('chalk-tool.barbell')), matching: find.byType(Container));
     expect((t.widget<Container>(tile).decoration! as BoxDecoration).color, p.lime);
     // A tap on the rest of a row selects that card and closes the sheet; it
     // does not add it to Today.
-    await t.tap(find.byKey(ValueKey('chalk-result-${b.key}')), warnIfMissed: false);
+    await t.scrollUntilVisible(find.byKey(ValueKey('chalk-result-${b.exercise.id}')), 60, scrollable: _resultsList);
+    await t.pump();
+    await t.tap(find.byKey(ValueKey('chalk-result-${b.exercise.id}')), warnIfMissed: false);
     await _frames(t, 20);
-    expect(store.pickedCard, b.key);
-    expect(store.todayCards, [a.key]);
+    expect(store.pickedCard, b.card.key);
+    expect(store.todayCards, [a.card.key]);
     expect(find.byKey(const ValueKey('chalk-sheet')), findsNothing);
     await t.tap(find.byKey(const ValueKey('filter-chalk')));
     await _frames(t, 10);
-    expect(fill(b.key), p.lime);
+    await t.scrollUntilVisible(find.byKey(ValueKey('chalk-result-${b.exercise.id}')), 60, scrollable: _resultsList);
+    await t.pump();
+    expect(fill(b.exercise.id), p.lime);
     expect(t.takeException(), isNull);
   });
 
@@ -287,11 +437,11 @@ void main() {
     await _frames(t, 4);
     await t.tap(find.byKey(const ValueKey('filter-chalk')));
     await _frames(t, 10);
-    final g = ChalkIndex.of(exerciseCatalog).search(store.chalk).first;
-    await t.ensureVisible(find.byKey(ValueKey('chalk-result-${g.key}')));
-    await t.tap(find.byKey(ValueKey('chalk-result-${g.key}')));
+    final r = ChalkIndex.of(exerciseCatalog).results(store.chalk).first;
+    await t.ensureVisible(find.byKey(ValueKey('chalk-result-${r.exercise.id}')));
+    await t.tap(find.byKey(ValueKey('chalk-result-${r.exercise.id}')));
     await _frames(t, 20);
-    expect(find.byKey(ValueKey('exercise-${g.key}')), findsOneWidget);
+    expect(find.byKey(ValueKey('exercise-${r.card.key}')), findsOneWidget);
     await t.tap(find.byKey(const ValueKey('filter-chalk')));
     await _frames(t, 10);
     await t.tap(find.byKey(const ValueKey('chalk-back-today')));
