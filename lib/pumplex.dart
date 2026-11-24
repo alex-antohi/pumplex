@@ -64,6 +64,12 @@ class Pal extends ThemeExtension<Pal> {
   /// Ink for secondary text (an info line under a name).
   Color get inkSoft => ink.withValues(alpha: 0.7);
 
+  /// Ink for a hint line under a title (a little stronger than [inkSoft]).
+  Color get inkHint => ink.withValues(alpha: 0.75);
+
+  /// Ink for a quiet note ("+ 2 MORE", "SWIPE...").
+  Color get inkQuiet => ink.withValues(alpha: 0.6);
+
   /// [on] for secondary text on a bright fill.
   Color get onSoft => on.withValues(alpha: 0.7);
 
@@ -728,7 +734,8 @@ class IconText extends StatelessWidget {
 /// greyed when [off]. [dense] is the small FORGE size; the default is the
 /// CHALK size. [selectedFg] and [selectedBorder] are the text and border
 /// colours when picked. The [id] keys the tap area. Taps go through when
-/// [off] too.
+/// [off] too; a null [onTap] takes none. [line] (the border and the shadow)
+/// and [opacity] override the defaults; [enabled] goes to screen readers.
 class PickChip extends StatelessWidget {
   const PickChip({
     super.key,
@@ -741,27 +748,33 @@ class PickChip extends StatelessWidget {
     this.selectedBorder,
     this.off = false,
     this.dense = false,
+    this.line,
+    this.opacity,
+    this.enabled,
   });
 
   final String id, label;
   final bool selected, off, dense;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final Color color;
   final Color? selectedFg, selectedBorder;
+  final double? line, opacity;
+  final bool? enabled;
 
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
-    final line = dense ? 2.0 : 3.0;
+    final line = this.line ?? (dense ? 2.0 : 3.0);
     return Semantics(
       button: true,
       selected: selected,
+      enabled: enabled,
       child: GestureDetector(
         key: ValueKey(id),
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
         child: Opacity(
-          opacity: off ? 0.35 : 1,
+          opacity: opacity ?? (off ? 0.35 : 1),
           child: Container(
             padding: dense
                 ? const EdgeInsets.symmetric(horizontal: 8, vertical: 4)
@@ -881,43 +894,58 @@ Future<void> showBrutalSheet(BuildContext context, WidgetBuilder builder) {
 
 /// A square button with only an icon (or a glyph), [size] wide and high
 /// (48 by default, a full tap target), with [label] for screen readers.
+/// With [padding], it is the icon plus [padding], at least [size] wide and
+/// high (0: no least size). [decoration] replaces the fill and the border.
 class IconTapButton extends StatelessWidget {
   const IconTapButton({
     super.key,
     required this.icon,
-    required this.label,
+    this.label,
     required this.onTap,
     this.size = 48,
     this.color,
     this.borderColor,
     this.border = 2,
+    this.padding,
+    this.decoration,
+    this.selected,
   });
 
   final Widget icon;
-  final String label;
+  final String? label;
   final VoidCallback onTap;
   final double size, border;
 
   /// The fill (kNight by default) and the border (ink by default).
   final Color? color, borderColor;
+  final EdgeInsetsGeometry? padding;
+  final Decoration? decoration;
+
+  /// For screen readers: a toggle that is on (a star).
+  final bool? selected;
 
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
+    final fixed = padding == null;
     return Semantics(
       button: true,
+      selected: selected,
       label: label,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
         child: Container(
-          width: size,
-          height: size,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: color ?? kNight,
-            border: Border.all(color: borderColor ?? p.ink, width: border),
-          ),
+          width: fixed ? size : null,
+          height: fixed ? size : null,
+          constraints: fixed || size == 0 ? null : BoxConstraints(minWidth: size, minHeight: size),
+          alignment: fixed || size > 0 ? Alignment.center : null,
+          padding: padding,
+          decoration: decoration ??
+              BoxDecoration(
+                color: color ?? kNight,
+                border: Border.all(color: borderColor ?? p.ink, width: border),
+              ),
           child: icon,
         ),
       ),

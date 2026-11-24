@@ -28,12 +28,12 @@ import '../game/area_art.dart';
 import '../game/content.dart';
 import '../game/exercises.dart';
 import '../i18n.dart';
+import '../labels.dart';
 import '../pumplex.dart';
 import '../store.dart';
 import 'area_scene.dart';
 import 'carousel.dart';
 import 'chalk.dart';
-import 'filters.dart' show axisLabel, axisNone, modLabel;
 
 /// The least room the exercise part under the world keeps (D75): the filter
 /// tags, the exercise (title, star, modifier rows) and the counter.
@@ -357,8 +357,6 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
                                       g: e.card,
                                       full: exerciseCatalog.byKey[e.card.key] ?? e.card,
                                       v: e.exercise,
-                                      sets: sets,
-                                      xp: store.xpToday(e.id),
                                       favorite: store.isFavorite(e.id),
                                       hard: store.isHard(e.card, e.exercise),
                                       onStar: () => _star(e),
@@ -501,26 +499,19 @@ class _ChalkButton extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-        button: true,
-        child: GestureDetector(
-          key: const ValueKey('filter-chalk'),
-          behavior: HitTestBehavior.opaque,
-          onTap: () {
-            HapticFeedback.selectionClick();
-            onTap();
-          },
-          child: Container(
-            constraints: const BoxConstraints(minWidth: kChalkButtonSize, minHeight: kChalkButtonSize),
-            alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              color: kNight,
-              border: Border(bottom: BorderSide(color: kChalk.withValues(alpha: 0.6), width: 3)),
-            ),
-            child: Text(chalk == 0 ? t('chalk.add') : '${t('chalk.add')} · $chalk', style: display(14, kChalk)),
-          ),
+  Widget build(BuildContext context) => IconTapButton(
+        key: const ValueKey('filter-chalk'),
+        size: kChalkButtonSize,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: kNight,
+          border: Border(bottom: BorderSide(color: kChalk.withValues(alpha: 0.6), width: 3)),
         ),
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
+        icon: Text(chalk == 0 ? t('chalk.add') : '${t('chalk.add')} · $chalk', style: display(14, kChalk)),
       );
 }
 
@@ -543,7 +534,7 @@ class _OpenChalk extends StatelessWidget {
         children: [
           Shout(t('today.empty'), size: 15, color: p.ink),
           const SizedBox(height: 2),
-          Text(t('today.openChalkHint'), style: mono(11, p.ink.withValues(alpha: 0.75))),
+          Text(t('today.openChalkHint'), style: mono(11, p.inkHint)),
           const SizedBox(height: 12),
           BrutalButton(
             key: const ValueKey('today-open-chalk'),
@@ -654,7 +645,7 @@ class _TodayDots extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
-    if (onCopy) return Text(t('today.swipe'), style: mono(11, p.ink.withValues(alpha: 0.6)));
+    if (onCopy) return Text(t('today.swipe'), style: mono(11, p.inkQuiet));
     return SizedBox(
       height: 18,
       child: FittedBox(
@@ -748,7 +739,7 @@ class _CopyDayState extends State<_CopyDay> {
         children: [
           Shout(t('today.empty'), size: 15, color: p.ink),
           const SizedBox(height: 2),
-          Text(t('today.emptyHint'), style: mono(11, p.ink.withValues(alpha: 0.75))),
+          Text(t('today.emptyHint'), style: mono(11, p.inkHint)),
           const SizedBox(height: 8),
           Row(
             children: [
@@ -759,7 +750,7 @@ class _CopyDayState extends State<_CopyDay> {
                   height: 34,
                   alignment: Alignment.center,
                   color: kNight,
-                  child: Text(shortDate(parseDateKey(day)).toUpperCase(), key: const ValueKey('copy-date'), style: display(17, Colors.white)),
+                  child: Text(shortDate(parseDateKey(day)).toUpperCase(), key: const ValueKey('copy-date'), style: display(17, p.onNight)),
                 ),
               ),
               const SizedBox(width: 8),
@@ -768,9 +759,9 @@ class _CopyDayState extends State<_CopyDay> {
           ),
           const SizedBox(height: 6),
           for (final m in moves.take(_names))
-            Text('▪ ${(m.nick ?? exerciseLabel(m.id, m.name)).toUpperCase()}',
+            Text('▪ ${displayName(m).toUpperCase()}',
                 maxLines: 1, overflow: TextOverflow.ellipsis, style: mono(11.5, p.ink)),
-          if (moves.length > _names) Text(t('today.more', {'n': moves.length - _names}), style: mono(11, p.ink.withValues(alpha: 0.6))),
+          if (moves.length > _names) Text(t('today.more', {'n': moves.length - _names}), style: mono(11, p.inkQuiet)),
           const SizedBox(height: 8),
           BrutalButton(
             key: const ValueKey('copy-day-button'),
@@ -790,17 +781,14 @@ class _CopyDayState extends State<_CopyDay> {
   }
 }
 
-/// The card shown under the world: the move's name and the star, the
-/// exercise picked (its database name and what it trains), today's set
-/// marks for the move (in rarity colours), the XP so far, and the modifier
-/// chips that pick the exercise (D55).
+/// The card shown under the world: the exercise picked as the title, the
+/// HARD badge, the delete button and the star, then the modifier chips that
+/// pick the exercise (D55). The sets show in the world (D74).
 class _ExerciseText extends StatelessWidget {
   const _ExerciseText({
     required this.g,
     required this.full,
     required this.v,
-    required this.sets,
-    required this.xp,
     required this.favorite,
     this.hard = false,
     required this.onStar,
@@ -816,7 +804,6 @@ class _ExerciseText extends StatelessWidget {
 
   /// The exercise picked.
   final CatalogExercise v;
-  final int sets, xp;
   final bool favorite;
 
   /// Above your mode (D70): a HARD badge by the title.
@@ -842,14 +829,13 @@ class _ExerciseText extends StatelessWidget {
             child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // The exercise picked is the title (D75).
               Expanded(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  // The exercise picked is the title (D75).
-                  child: Text((v.nick ?? exerciseLabel(v.id, v.name)).toUpperCase(), key: const ValueKey('exercise-title'), style: display(28, p.ink).copyWith(shadows: [
-                    Shadow(offset: const Offset(2, 2), color: p.orange),
-                  ])),
+                child: ShadowTitle(
+                  displayName(v).toUpperCase(),
+                  textKey: const ValueKey('exercise-title'),
+                  size: 28,
+                  shadowColor: p.orange,
                 ),
               ),
               if (hard)
@@ -860,32 +846,24 @@ class _ExerciseText extends StatelessWidget {
               // A tap, so it does not take the carousel's swipes (D66); it
               // sits on the card, away from the world (D48).
               if (onRemove != null)
-                Semantics(
-                  button: true,
+                IconTapButton(
+                  key: const ValueKey('today-remove'),
                   label: t('today.remove'),
-                  child: GestureDetector(
-                    key: const ValueKey('today-remove'),
-                    behavior: HitTestBehavior.opaque,
-                    onTap: onRemove,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(6, 9, 4, 6),
-                      child: PxIcon('trash', size: 24, color: p.ink.withValues(alpha: 0.45)),
-                    ),
-                  ),
+                  size: 0,
+                  padding: const EdgeInsets.fromLTRB(6, 9, 4, 6),
+                  decoration: const BoxDecoration(),
+                  onTap: onRemove!,
+                  icon: PxIcon('trash', size: 24, color: p.ink.withValues(alpha: 0.45)),
                 ),
-              Semantics(
-                button: true,
+              IconTapButton(
+                key: const ValueKey('favorite-star'),
                 selected: favorite,
                 label: favorite ? t('workout.favRemove') : t('workout.favAdd'),
-                child: GestureDetector(
-                  key: const ValueKey('favorite-star'),
-                  behavior: HitTestBehavior.opaque,
-                  onTap: onStar,
-                  child: Padding(
-                    padding: const EdgeInsets.all(6),
-                    child: PxIcon('star', size: 30, color: favorite ? p.orange : p.ink.withValues(alpha: 0.25)),
-                  ),
-                ),
+                size: 0,
+                padding: const EdgeInsets.all(6),
+                decoration: const BoxDecoration(),
+                onTap: onStar,
+                icon: PxIcon('star', size: 30, color: favorite ? p.orange : p.ink.withValues(alpha: 0.25)),
               ),
             ],
           ),
@@ -909,7 +887,7 @@ class _ExerciseText extends StatelessWidget {
                       const SizedBox(height: 10),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 14),
-                        child: Text(axisLabel(axis).toUpperCase(), style: mono(10.5, p.ink.withValues(alpha: 0.7))),
+                        child: Text(axisLabel(axis).toUpperCase(), style: mono(10.5, p.inkSoft)),
                       ),
                       const SizedBox(height: 4),
                       SingleChildScrollView(
@@ -921,12 +899,12 @@ class _ExerciseText extends StatelessWidget {
                           spacing: 6,
                           children: [
                             for (final value in values)
-                              _ModChip(
-                                key: ValueKey('mod-${axis.id}-${value ?? 'none'}'),
-                                label: value == null ? axisNone(axis) : modLabel(value),
+                              _modChip(
+                                p,
+                                'mod-${axis.id}-${value ?? 'none'}',
+                                value == null ? axisNone(axis) : modLabel(value),
                                 selected: v.mods[axis.id] == value,
                                 target: v.mods[axis.id] == value ? null : chipTarget(g, v, axis.id, value),
-                                onPick: onPick,
                               ),
                           ],
                         ),
@@ -941,46 +919,22 @@ class _ExerciseText extends StatelessWidget {
       ),
     );
   }
-}
 
-/// One modifier value on the card. Greyed out when no exercise of the move
-/// has it (with this equipment, within the filters). A thin border means a
-/// tap also changes another modifier (D57).
-class _ModChip extends StatelessWidget {
-  const _ModChip({super.key, required this.label, required this.selected, required this.target, required this.onPick});
-
-  final String label;
-  final bool selected;
-
-  /// What a tap picks (null when selected or not available).
-  final ({CatalogExercise v, bool exact})? target;
-  final ValueChanged<String> onPick;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = Pal.of(context);
+  /// One modifier value on the card (key [id]). Greyed out when no exercise
+  /// of the move has it ([target] null and not [selected]). A thin border
+  /// means a tap also changes another modifier (D57).
+  Widget _modChip(Pal p, String id, String label, {required bool selected, required ({CatalogExercise v, bool exact})? target}) {
     final off = !selected && target == null;
-    final jump = target != null && !target!.exact;
-    return Semantics(
-      button: true,
+    final jump = target != null && !target.exact;
+    return PickChip(
+      id: id,
+      label: label,
       selected: selected,
+      color: p.lime,
+      line: jump ? 1 : 2,
+      opacity: off ? 0.3 : jump ? 0.7 : 1,
       enabled: !off,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: target == null ? null : () => onPick(target!.v.id),
-        child: Opacity(
-          opacity: off ? 0.3 : jump ? 0.7 : 1,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-            decoration: BoxDecoration(
-              color: selected ? p.lime : p.panel,
-              border: Border.all(color: p.ink, width: jump ? 1 : 2),
-              boxShadow: selected ? [BoxShadow(color: p.ink, offset: const Offset(2, 2))] : null,
-            ),
-            child: Text(label.toUpperCase(), style: display(13, selected ? p.on : p.ink)),
-          ),
-        ),
-      ),
+      onTap: target == null ? null : () => onPick(target.v.id),
     );
   }
 }
