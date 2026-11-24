@@ -7,7 +7,8 @@
 //   4 px ink border, hard ink shadow, −6° tilt, scaling down from 2.2× in
 //   6 hard steps over 420 ms (no easing, like the pixel art).
 // - A joke subtitle slides in under it on an ink strip, tilted −3°.
-// - It closes by itself after 1.8 s, or on a tap. With reduced motion, it
+// - It closes by itself after 1.8 s, or on a tap; the tap also reaches the
+//   view under it, so a world tap during a level-up still adds a set. With reduced motion, it
 //   shows without the slam and the slide.
 
 import 'dart:async';
@@ -74,11 +75,15 @@ class _IntroCardState extends State<IntroCard> with SingleTickerProviderStateMix
   @override
   Widget build(BuildContext context) {
     final s = widget.spec;
-    return GestureDetector(
+    // A tap closes the card AND goes through to the view under it: a world
+    // tap during a level-up still adds its set (D48). The Listener takes no
+    // part in the gesture arena, and the card itself takes no hits.
+    return Listener(
       key: const ValueKey('intro-card'),
-      behavior: HitTestBehavior.opaque,
-      onTap: widget.onDone,
-      child: ClipRect(
+      behavior: HitTestBehavior.translucent,
+      onPointerUp: (_) => widget.onDone(),
+      child: IgnorePointer(
+        child: ClipRect(
         child: CustomPaint(
           painter: _Stripes(),
           child: LayoutBuilder(
@@ -156,6 +161,7 @@ class _IntroCardState extends State<IntroCard> with SingleTickerProviderStateMix
             ),
           ),
         ),
+      ),
       ),
     );
   }

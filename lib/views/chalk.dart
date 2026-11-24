@@ -132,14 +132,19 @@ class ChalkSheet extends StatelessWidget {
                   ),
                 ),
                 // At the bottom, in a fixed height: the results, or FORGE
-                // at 0 (D81), or empty space before the first word.
+                // at 0 (D81), or a hint before the first word.
                 SizedBox(
                   key: const ValueKey('chalk-results-area'),
                   height: kChalkResultsHeight,
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 4, 12, 12),
                     child: line.isEmpty
-                        ? const SizedBox.shrink()
+                        // Before the first word: a short hint, not a blank.
+                        ? Align(
+                            alignment: Alignment.topLeft,
+                            child: Text(t('chalk.pickHint'),
+                                key: const ValueKey('chalk-pick-hint'), style: mono(12, p.inkQuiet)),
+                          )
                         : total > 0
                             ? _Results(store: store, rows: index.results(line), index: index, onForge: forge)
                             : Align(
@@ -305,6 +310,30 @@ class _Results extends StatelessWidget {
 /// The "+" (and TODAY) spot at the right of a result row: 44 px high.
 const kChalkAddSize = 44.0;
 
+/// The "+" glyph of a result row: two thick bars, most of the box (the
+/// Anton "+" is tiny), square ends like the pixel art.
+class _Plus extends StatelessWidget {
+  const _Plus({required this.color});
+
+  final Color color;
+
+  /// The bars' length and thickness.
+  static const size = 28.0, bar = 7.0;
+
+  @override
+  Widget build(BuildContext context) => SizedBox.square(
+        key: const ValueKey('chalk-plus'),
+        dimension: size,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(width: size, height: bar, color: color),
+            Container(width: bar, height: size, color: color),
+          ],
+        ),
+      );
+}
+
 class _ResultRow extends StatelessWidget {
   const _ResultRow({required this.store, required this.r, required this.index});
 
@@ -380,7 +409,7 @@ class _ResultRow extends StatelessWidget {
                   // Adds this exercise (variation) to Today; the sheet
                   // stays open.
                   onTap: () => store.addToToday(v.id),
-                  icon: Text('+', style: display(24, p.lime)),
+                  icon: _Plus(color: p.lime),
                 ),
             ],
           ),

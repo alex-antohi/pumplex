@@ -207,7 +207,7 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
             inset: inset,
             swipe: swipe,
             card: _card(context, e, onCopy: onCopy, past: past, preview: preview),
-            dots: _dotsRow(context, onCopy),
+            dots: _dotsRow(context, onCopy, sets),
           ),
           // The scene. TAP THE OBJECT = one working set, HOLD IT = take one back.
           Positioned.fromRect(
@@ -266,11 +266,17 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
   }
 
   /// Dots for the Today cards (no total, D79; no label after them, D81),
-  /// and "+ CHALK" at the right end, in thumb reach (D82).
-  Widget _dotsRow(BuildContext context, bool onCopy) => Padding(
+  /// and "+ CHALK" at the right end, in thumb reach (D82). With [sets] on
+  /// the card shown, its set count ("2 SETS") at the left end: the world's
+  /// count badge shows only past the mark spots.
+  Widget _dotsRow(BuildContext context, bool onCopy, int sets) => Padding(
         padding: const EdgeInsets.only(left: 14, right: 10),
         child: Row(
           children: [
+            if (sets > 0) ...[
+              Tag(tn('sets', sets), key: const ValueKey('card-set-count'), bg: kNight, fg: Pal.of(context).lime, size: 13, angle: 0),
+              const SizedBox(width: 8),
+            ],
             Expanded(
               child: _TodayDots(
                 key: const ValueKey('exercise-counter'),
@@ -307,8 +313,9 @@ class _WorldBackdrop extends StatelessWidget {
       );
 }
 
-/// The exercise part: at the bottom, only as tall as its content, at most
-/// [maxHeight] (the room under the scene; a taller card is cut off there).
+/// The exercise part: at the bottom, [maxHeight] tall (all the room under
+/// the world; a taller card is cut off there), so an empty Today has no
+/// floor band above it.
 /// No tag row (D82): the class shows in the outfit and the lifter profile.
 /// The world adds sets to the exercise on the [card]; the [dots] row is
 /// under it, and both swipe the carousel.
@@ -332,29 +339,26 @@ class _ExercisePanel extends StatelessWidget {
       left: 0,
       right: 0,
       bottom: 0,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: maxHeight),
+      // All the room under the world, whatever the card: a short card (an
+      // empty Today) leaves no floor band between the world and the panel.
+      child: SizedBox(
+        height: maxHeight,
         child: DecoratedBox(
           key: const ValueKey('exercise-part'),
           decoration: BoxDecoration(color: p.bg, border: Border(top: BorderSide(color: p.ink, width: 3))),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 3), // the border
-              Flexible(
+              Expanded(
                 child: swipe(
                   key: const ValueKey('exercise-card'),
-                  // As tall as the exercise, the dots at the bottom: no
-                  // empty band (D75).
+                  // The card at the top, the dots at the bottom.
                   child: Column(
-                    mainAxisSize: MainAxisSize.min,
                     children: [
                       // Bounded, so a tall card is cut off, not overflowing.
-                      Flexible(
-                        child: AnimatedSize(
-                          duration: const Duration(milliseconds: 240),
-                          curve: Curves.easeOutCubic,
+                      Expanded(
+                        child: Align(
                           alignment: Alignment.topCenter,
                           child: card,
                         ),
@@ -412,7 +416,7 @@ class _SetCountBadge extends StatelessWidget {
             key: const ValueKey('scene-count'),
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             color: kNight,
-            child: Text('$sets SETS', style: display(15, markLaps[(markLap(0, sets, spots) - 1) % markLaps.length])),
+            child: Text(tn('sets', sets), style: display(15, markLaps[(markLap(0, sets, spots) - 1) % markLaps.length])),
           ),
         ),
       ),
@@ -558,7 +562,7 @@ Future<bool?> _confirmRemove(BuildContext context, int sets) => showDialog<bool>
                       child: BrutalButton(
                         key: const ValueKey('today-remove-cancel'),
                         small: true,
-                        color: p.panel2,
+                        color: p.sky, // the secondary button: night ink on sky
                         onTap: () => Navigator.pop(context, false),
                         child: Text(t('today.removeKeep')),
                       ),

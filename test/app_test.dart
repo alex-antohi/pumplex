@@ -1022,10 +1022,10 @@ void main() {
     final card = find.byKey(const ValueKey('world-object'));
     await t.tap(card);
     await _frames(t, 70); // level-up intro card
-    // A level-up card closes on the next tap: close it first.
+    // A level-up card lets taps through (D48); let it close by itself.
     Future<void> closeCard() async {
       if (find.byKey(const ValueKey('intro-card')).evaluate().isNotEmpty) {
-        await t.tap(find.byKey(const ValueKey('intro-card')));
+        await t.pump(const Duration(milliseconds: 1900)); // a tap would go through it: wait
         await t.pump(const Duration(milliseconds: 80));
       }
     }
@@ -1117,7 +1117,7 @@ void main() {
     await t.tap(find.byKey(const ValueKey('world-object')));
     await _frames(t, 70);
     if (find.byKey(const ValueKey('intro-card')).evaluate().isNotEmpty) {
-      await t.tap(find.byKey(const ValueKey('intro-card')));
+      await t.pump(const Duration(milliseconds: 1900)); // a tap would go through it: wait
       await _frames(t, 4);
     }
     expect((store.groupSetsToday(list[0]), store.groupSetsToday(list[1])), (0, 1));
@@ -1291,6 +1291,25 @@ void main() {
     await _frames(t, 20);
     expect(find.byKey(const ValueKey('profile-sessions')), findsNothing);
     expect(find.byKey(const ValueKey('world-object')), findsOneWidget);
+  });
+
+  testWidgets('3 quick world taps across a level-up give 3 sets (D48): the card lets taps through', (t) async {
+    final (store, _) = await _openApp(t);
+    final id = store.pickedCard!;
+    final world = find.byKey(const ValueKey('world-object'));
+    expect(levelFor(store.totalXp).level, 1);
+    await t.tap(world); // the first set: level 1 -> 2
+    await t.pump(const Duration(milliseconds: 80));
+    expect(levelFor(store.totalXp).level, greaterThan(1));
+    expect(find.byKey(const ValueKey('intro-card')), findsOneWidget);
+    await t.tap(world, warnIfMissed: false); // under the level-up card
+    await t.pump(const Duration(milliseconds: 80));
+    await t.tap(world, warnIfMissed: false);
+    await t.pump(const Duration(milliseconds: 80));
+    expect(store.setsToday(id), 3);
+    expect(find.byKey(const ValueKey('intro-card')), findsNothing); // a tap closes it too
+    await _frames(t, 40);
+    expect(t.takeException(), isNull);
   });
 
   testWidgets('a level-up shows the freeze-frame card', (t) async {

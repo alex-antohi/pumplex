@@ -314,7 +314,11 @@ void main() {
     final tile = find.byKey(const ValueKey('chalk-tool.barbell'));
     expect(find.descendant(of: tile, matching: find.byType(Text)).evaluate().map((e) => (e.widget as Text).data), ['BARBELL']);
     expect(find.byKey(const ValueKey('chalk-results')), findsNothing); // no words: no list
+    // ... but a hint in the results area, gone once a word is picked.
+    expect(find.descendant(of: find.byKey(const ValueKey('chalk-results-area')), matching: find.text('PICK A WORD TO SEARCH')),
+        findsOneWidget);
     await tapTile('tool.barbell');
+    expect(find.byKey(const ValueKey('chalk-pick-hint')), findsNothing);
     await tapTile('move.press');
     expect(store.chalk, {'tool.barbell', 'move.press'});
     // A second tap on a tile unpicks it; then put it back.
@@ -403,6 +407,9 @@ void main() {
     final add = find.byKey(ValueKey('chalk-result-add-${a.exercise.id}'));
     expect(t.getSize(add).width, greaterThanOrEqualTo(44));
     expect(t.getSize(add).height, greaterThanOrEqualTo(44));
+    // The "+" glyph fills most of its box.
+    final plus = find.descendant(of: add, matching: find.byKey(const ValueKey('chalk-plus')));
+    expect(t.getSize(plus).width, greaterThanOrEqualTo(t.getSize(add).width * 0.6));
     await t.tap(add);
     await _frames(t, 4);
     expect(store.todayIds, [a.exercise.id]);

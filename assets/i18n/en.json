@@ -588,6 +588,7 @@
   "chalk.add": "+ CHALK",
   "chalk.backToToday": "BACK TO TODAY",
   "chalk.forge": "NO SUCH MOVE. FORGE IT?",
+  "chalk.pickHint": "PICK A WORD TO SEARCH",
   "today.title": "TODAY",
   "today.copyTitle": "COPY A PAST DAY",
   "today.empty": "TODAY IS EMPTY",

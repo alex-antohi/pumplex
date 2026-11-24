@@ -8,6 +8,7 @@
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -383,7 +384,7 @@ void main() {
     await t.pumpWidget(GymApp(store: store));
     await _frames(t);
     if (find.byKey(const ValueKey('intro-card')).evaluate().isNotEmpty) {
-      await t.tap(find.byKey(const ValueKey('intro-card')));
+      await t.pump(const Duration(milliseconds: 1900)); // a tap would go through it: wait
       await _frames(t, 4);
     }
     expect(find.byKey(const ValueKey('copy-day-card')), findsOneWidget);
@@ -415,7 +416,7 @@ void main() {
     await t.pumpWidget(GymApp(store: store));
     await _frames(t);
     if (find.byKey(const ValueKey('intro-card')).evaluate().isNotEmpty) {
-      await t.tap(find.byKey(const ValueKey('intro-card')));
+      await t.pump(const Duration(milliseconds: 1900)); // a tap would go through it: wait
       await _frames(t, 4);
     }
     return store;
@@ -427,6 +428,9 @@ void main() {
     expect(find.text('OPEN CHALK TO ADD EXERCISES'), findsOneWidget);
     expect(find.byKey(ValueKey('exercise-${_cards(store).first.key}')), findsNothing);
     expect(find.byKey(const ValueKey('world-object')), findsNothing); // nothing to add a set to
+    // No floor band: the panel takes all the room under the world, like a
+    // full card (at least the 240 px the layout keeps for it).
+    expect(t.getRect(find.byKey(const ValueKey('exercise-part'))).height, greaterThanOrEqualTo(240));
     for (final k in ['filter-body', 'filter-favorites', 'class-label', 'workout-filters']) {
       expect(find.byKey(ValueKey(k)), findsNothing, reason: k);
     }
@@ -517,7 +521,7 @@ void main() {
     await t.tap(find.byKey(const ValueKey('world-object')));
     await _frames(t, 70);
     if (find.byKey(const ValueKey('intro-card')).evaluate().isNotEmpty) {
-      await t.tap(find.byKey(const ValueKey('intro-card')));
+      await t.pump(const Duration(milliseconds: 1900)); // a tap would go through it: wait
       await _frames(t, 4);
     }
     expect(store.todayIds, [a, g]);
@@ -549,10 +553,19 @@ void main() {
     store.addSet(a);
     store.addSet(a);
     await _frames(t, 4);
+    // The card shows its set count (the world's badge only past the marks).
+    expect(find.descendant(of: find.byKey(const ValueKey('card-set-count')), matching: find.text('2 SETS')), findsOneWidget);
     await t.tap(find.byKey(const ValueKey('today-remove')));
     await _frames(t, 10);
     expect(find.byKey(const ValueKey('today-remove-dialog')), findsOneWidget);
     expect(find.text('2 SETS GO TOO, WITH THEIR XP.'), findsOneWidget);
+    // KEEP is the secondary button: readable night ink on sky, in both themes.
+    final keep = find.byKey(const ValueKey('today-remove-cancel'));
+    final keepText = t.widget<Text>(find.descendant(of: keep, matching: find.byType(Text)));
+    final style = DefaultTextStyle.of(t.element(find.descendant(of: keep, matching: find.byType(Text)))).style.merge(keepText.style);
+    final fill = (t.widget<AnimatedContainer>(find.descendant(of: keep, matching: find.byType(AnimatedContainer))).decoration! as BoxDecoration).color!;
+    final l1 = fill.computeLuminance(), l2 = style.color!.computeLuminance();
+    expect((max(l1, l2) + 0.05) / (min(l1, l2) + 0.05), greaterThan(4.5));
     await t.tap(find.byKey(const ValueKey('today-remove-cancel')));
     await _frames(t, 10);
     expect(store.todayIds, [a]);

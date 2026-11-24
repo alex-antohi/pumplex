@@ -242,7 +242,14 @@ class Brutal extends StatelessWidget {
   }
 }
 
+/// The label colour on a button filled with [fill]: [Pal.on] (night ink) on
+/// the bright colours and the light panels, [Pal.ink] on a dark fill (the
+/// dark theme's panels), so a label never sits dark on dark.
+Color buttonText(Pal p, Color fill) => fill.computeLuminance() < 0.1 ? p.ink : p.on;
+
 /// Chunky button that physically squashes into its shadow when pressed.
+/// The main button is lime or pink; the secondary one (BACK, KEEP, LATER)
+/// is sky. The label colour follows the fill ([buttonText]).
 class BrutalButton extends StatefulWidget {
   const BrutalButton({
     super.key,
@@ -269,6 +276,7 @@ class _BrutalButtonState extends State<BrutalButton> {
     final p = Pal.of(context);
     final enabled = widget.onTap != null;
     final shadow = widget.small ? 4.0 : 6.0;
+    final fill = widget.color ?? p.lime;
     return Semantics(
       button: true,
       enabled: enabled,
@@ -293,14 +301,14 @@ class _BrutalButtonState extends State<BrutalButton> {
               vertical: widget.small ? 6 : 10,
             ),
             decoration: BoxDecoration(
-              color: widget.color ?? p.lime,
+              color: fill,
               border: Border.all(color: p.ink, width: widget.small ? 3 : 4),
               boxShadow: [
                 BoxShadow(color: p.ink, offset: Offset(_down ? 1 : shadow, _down ? 1 : shadow)),
               ],
             ),
             child: DefaultTextStyle(
-              style: display(widget.small ? 15 : 18, p.on).copyWith(letterSpacing: 1),
+              style: display(widget.small ? 15 : 18, buttonText(p, fill)).copyWith(letterSpacing: 1),
               child: widget.child,
             ),
           ),
