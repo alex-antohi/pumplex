@@ -7,7 +7,8 @@
 // bottom, in a fixed height: the results, one row per matching exercise (a
 // card can give several); a tap picks that exercise and selects its card
 // (the carousel goes there and the sheet closes on it); the "+" at the
-// right adds the card to Today (a card in Today shows TODAY). The list ends
+// right adds that exercise to Today (only an exercise in Today shows TODAY,
+// not the other variations of its move, D82). The list ends
 // with FORGE IT. The sheet has a fixed height, so nothing moves with the
 // count. With 0 matches: NO SUCH MOVE. FORGE IT? Both open the FORGE card
 // with the picked words (lib/views/forge.dart).
@@ -256,8 +257,8 @@ class _ChalkScrollState extends State<ChalkScroll> {
 /// the name in the current language, its body part and tool. The exercise
 /// on the carousel is filled lime (the app's yellow). A tap on the row picks
 /// that exercise and selects its card: the sheet closes on it. A "+" at the
-/// right adds the card to Today with that exercise; a card in Today shows
-/// TODAY there. The list scrolls inside its fixed area and always ends with
+/// right adds that exercise (variation) to Today; an exercise in Today
+/// shows TODAY there (D82: per exercise, not per card). The list scrolls inside its fixed area and always ends with
 /// FORGE IT (a move that is not in the list yet).
 class _Results extends StatelessWidget {
   const _Results({required this.store, required this.rows, required this.index, required this.onForge});
@@ -314,10 +315,11 @@ class _ResultRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
-    final g = r.card, v = r.exercise;
-    final inToday = store.inToday(g.key);
-    final on = store.pickedCard == g.key && store.variantFor(g).id == v.id;
-    final sets = store.groupSetsToday(g.key);
+    final v = r.exercise;
+    // Per exercise (D82): only this variation's own TODAY mark and sets.
+    final inToday = store.inToday(v.id);
+    final on = store.pickedCard == v.id;
+    final sets = store.setsToday(v.id);
     final (:part, :tool) = index.tagsOf(v);
     final info = [
       if (part != null) bodyPartLabel(part.id),
@@ -333,8 +335,7 @@ class _ResultRow extends StatelessWidget {
         behavior: HitTestBehavior.opaque,
         // Picks this exercise on its card and selects the card.
         onTap: () {
-          store.pickVariant(v.id);
-          store.selectCard(g.key);
+          store.selectExercise(v.id);
           Navigator.of(context).pop();
         },
         child: Brutal(
@@ -376,12 +377,9 @@ class _ResultRow extends StatelessWidget {
                   label: '+ ${t('today.title')}',
                   size: kChalkAddSize,
                   borderColor: on ? p.on : p.ink,
-                  // Adds the card to Today, on this exercise; the sheet
+                  // Adds this exercise (variation) to Today; the sheet
                   // stays open.
-                  onTap: () {
-                    store.pickVariant(v.id);
-                    store.addToToday(g.key);
-                  },
+                  onTap: () => store.addToToday(v.id),
                   icon: Text('+', style: display(24, p.lime)),
                 ),
             ],

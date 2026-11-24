@@ -52,9 +52,9 @@ Future<LogStore> _openApp(WidgetTester t, {String areaId = 'gainsgard'}) async {
 /// Puts the first 40 cards in Today (the carousel shows only Today, D82)
 /// and shows the first one.
 void _seedToday(LogStore store) {
-  final keys = store.cards.take(40).map((g) => g.key).toList();
-  keys.forEach(store.addToToday);
-  store.selectCard(keys.first);
+  final ids = store.cards.take(40).map((g) => store.variantFor(g).id).toList();
+  ids.forEach(store.addToToday);
+  store.selectExercise(ids.first);
 }
 
 /// The workout view's box (the content area under the top bar).
@@ -130,15 +130,26 @@ void main() {
       final part = t.getRect(find.byKey(const ValueKey('exercise-part')));
       final counter = t.getRect(find.byKey(const ValueKey('exercise-counter')));
       final star = t.getRect(find.byKey(const ValueKey('favorite-star')));
-      final filters = t.getRect(find.byKey(const ValueKey('workout-filters')));
+      final chalk = t.getRect(find.byKey(const ValueKey('filter-chalk')));
       // At the bottom of the view, under the scene.
       expect(part.bottom, moreOrLessEquals(view.bottom));
       expect(part.top, greaterThanOrEqualTo(scene.bottom + view.top - 0.01));
-      // The counter at the bottom, just above the navigation bar.
-      expect(view.bottom - inset - counter.bottom, inInclusiveRange(0, 12));
-      // No dead band: the part starts right above the tags.
-      expect(filters.top - part.top, lessThan(20));
-      expect(star.top, greaterThan(filters.bottom));
+      // The dots row (the counter and "+ CHALK") at the bottom, just above
+      // the navigation bar; the dots are in its middle.
+      expect(view.bottom - inset - chalk.bottom, inInclusiveRange(0, 12));
+      expect((counter.center.dy - chalk.center.dy).abs(), lessThan(1));
+      // No tag row (D82), no dead band: the card starts right at the top.
+      expect(find.byKey(const ValueKey('workout-filters')), findsNothing);
+      expect(star.top - part.top, lessThan(20));
+      // "+ CHALK" (D82): 48 px or more, in the dots row, clear of the
+      // dots, the world, the trash and the star.
+      expect(chalk.height, greaterThanOrEqualTo(48));
+      expect(chalk.width, greaterThanOrEqualTo(48));
+      expect(chalk.top, greaterThanOrEqualTo(part.top));
+      expect(chalk.overlaps(star), isFalse);
+      expect(chalk.overlaps(t.getRect(find.byKey(const ValueKey('today-remove')))), isFalse);
+      expect(chalk.overlaps(t.getRect(find.byKey(const ValueKey('today-dot-0')))), isFalse);
+      expect(chalk.right, lessThanOrEqualTo(view.right));
       // The scene does not move.
       expect(t.getRect(find.byKey(const ValueKey('world-object'))), object);
       await _swipe(t);
@@ -160,9 +171,9 @@ void main() {
     final store = await _openApp(t);
     final title = <int, Rect>{}, counter = <int, Rect>{};
     for (var i = 0; i < 40 && i < store.cards.length; i++) {
-      final g = store.cards.firstWhere((c) => c.key == store.pickedCard, orElse: () => store.cards.first);
-      final full = exerciseCatalog.byKey[g.key] ?? g;
-      final rows = full.axesFor(store.variantFor(g)).length;
+      final e = store.carousel.firstWhere((c) => c.id == store.pickedCard, orElse: () => store.carousel.first);
+      final full = exerciseCatalog.byKey[e.card.key] ?? e.card;
+      final rows = full.axesFor(e.exercise).length;
       title[rows] = t.getRect(find.byKey(const ValueKey('exercise-title')));
       counter[rows] = t.getRect(find.byKey(const ValueKey('exercise-counter')));
       await _swipe(t);
@@ -188,8 +199,8 @@ void main() {
           (exerciseCatalog.byKey[c.key] ?? c).axesFor(store.variantFor(c)).fold(0, (m, a) => max(m, a.$2.length));
       return longest(b) > longest(a) ? b : a;
     });
-    store.addToToday(store.cards.first.key);
-    store.addToToday(g.key); // only Today shows (D82)
+    store.addToToday(store.variantFor(store.cards.first).id);
+    store.addToToday(store.variantFor(g).id); // only Today shows (D82)
     await t.pumpWidget(GymApp(store: store));
     await _frames(t);
     final full = exerciseCatalog.byKey[g.key] ?? g;
@@ -201,11 +212,11 @@ void main() {
     await t.drag(row, const Offset(-200, 0));
     await _frames(t, 10);
     expect(pos().pixels, greaterThan(0), reason: 'the row scrolled');
-    expect(store.pickedCard, g.key, reason: 'the carousel did not move');
+    expect(store.pickedCard, store.variantFor(g).id, reason: 'the carousel did not move');
     // A swipe on the title still moves the carousel.
     await t.fling(find.byKey(const ValueKey('exercise-title')), const Offset(-300, 0), 1000);
     await _frames(t, 10);
-    expect(store.pickedCard, isNot(g.key));
+    expect(store.pickedCard, isNot(store.variantFor(g).id));
     expect(t.takeException(), isNull);
   });
 
@@ -219,8 +230,8 @@ void main() {
       int rows(ExerciseGroup c) => (exerciseCatalog.byKey[c.key] ?? c).axesFor(store.variantFor(c)).length;
       return rows(b) > rows(a) ? b : a;
     });
-    store.addToToday(store.cards.first.key);
-    store.addToToday(g.key); // only Today shows (D82)
+    store.addToToday(store.variantFor(store.cards.first).id);
+    store.addToToday(store.variantFor(g).id); // only Today shows (D82)
     await t.pumpWidget(GymApp(store: store));
     await _frames(t);
     final area = find.byKey(const ValueKey('mod-area'));
@@ -230,7 +241,7 @@ void main() {
     await t.drag(find.byKey(const ValueKey('mod-area')), const Offset(0, -200));
     await _frames(t, 10);
     expect(pos().pixels, greaterThan(0));
-    expect(store.pickedCard, g.key);
+    expect(store.pickedCard, store.variantFor(g).id);
     expect(t.takeException(), isNull);
   });
 
