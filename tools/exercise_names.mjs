@@ -4,28 +4,30 @@
 //
 // Keys in assets/i18n/<lang>.json:
 //   move.<base, lower case>   the move's name ("Push-Up", "Flotări")
+//   name.move.<base>.<value>  the move's name for the variations with that
+//                             value ("Chin-Up" for a reverse-grip Pull-Up);
+//                             the value's own part is then left out
 //   name.move.<base>          a shorter move name for the composed names, where
 //                             a language needs one ("Împins" for "Împins la piept")
+//   name.form.<base>          the grammatical form of the move's name, in a
+//                             language with agreement (Romanian): ms fs ns mp fp np
+//                             (masculine, feminine, neuter; singular, plural)
 //   name.order                the slots in word order, for example
 //                             "side position angle ... move bands chains"
-//   name.<axis>.<value>       the part of one modifier value on one axis,
+//   name.<base>.<value>       the part of one modifier value on one move,
+//   name.<axis>.<value>       else on one axis,
 //   name.<value>              else on any axis ("Close-Grip", "priză îngustă").
 //                             An empty part is left out (Medium Grip). A part
-//                             "a|b|c" has a form per gender of the move's first
-//                             word (Romanian): masculine or neuter, feminine,
-//                             plural ("înclinat|înclinată|înclinate").
+//                             "a|b|c|d" agrees with the move: masculine singular,
+//                             feminine singular, masculine plural, feminine plural
+//                             ("înclinat|înclinată|înclinați|înclinate").
 //   exercise.<id>             a special name: it replaces the composed one
 //                             (legacy names a rule cannot make, for example
-//                             "Chin-Up", "Treadmill").
+//                             "Treadmill").
 // The equipment part shows only when the move has more than one equipment.
 
-/** The form of a part for a move name: 0 masculine or neuter, 1 feminine, 2 plural. */
-export function formOf(moveName) {
-  const w = moveName.split(' ')[0].toLowerCase();
-  if (/[ie]$/.test(w)) return 2;
-  if (/[ăa]$/.test(w)) return 1;
-  return 0;
-}
+/** The agreeing form (index into "a|b|c|d") for a move's grammatical form; no form: 0. */
+export const formIndex = (form) => ({ fs: 1, mp: 2, fp: 3, np: 3 })[form] ?? 0;
 
 /**
  * The name of variation [mods] of move [base] in the language of [look]
@@ -34,17 +36,19 @@ export function formOf(moveName) {
  */
 export function composeName(base, mods, equipShown, look) {
   const b = base.toLowerCase();
-  const move = look(`name.move.${b}`) ?? look(`move.${b}`) ?? base;
-  const form = formOf(move);
+  const slots = (look('name.order') ?? '').split(' ').filter(Boolean);
+  const moveSlot = slots.find((s) => mods[s] != null && look(`name.move.${b}.${mods[s]}`) != null);
+  const move = (moveSlot && look(`name.move.${b}.${mods[moveSlot]}`)) ?? look(`name.move.${b}`) ?? look(`move.${b}`) ?? base;
+  const form = formIndex(look(`name.form.${b}`));
   const words = [];
-  for (const slot of (look('name.order') ?? '').split(' ').filter(Boolean)) {
+  for (const slot of slots) {
     if (slot === 'move') {
       words.push(move);
       continue;
     }
     const v = mods[slot];
-    if (v == null || (slot === 'equip' && !equipShown)) continue;
-    let p = look(`name.${slot}.${v}`) ?? look(`name.${v}`) ?? v;
+    if (v == null || slot === moveSlot || (slot === 'equip' && !equipShown)) continue;
+    let p = look(`name.${b}.${v}`) ?? look(`name.${slot}.${v}`) ?? look(`name.${v}`) ?? v;
     if (p.includes('|')) {
       const forms = p.split('|');
       p = forms[Math.min(form, forms.length - 1)];

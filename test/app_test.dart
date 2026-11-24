@@ -128,7 +128,8 @@ void main() {
   test('languages (D68): the same keys in every file, plurals, placeholders, fallbacks', () {
     final en = I18n.parse(langFiles['en']!);
     for (final l in I18n.languages) {
-      final keys = I18n.parse(langFiles[l]!).keys.toSet();
+      // `name.form.<base>`: only a language with agreement has them (D80).
+      final keys = I18n.parse(langFiles[l]!).keys.where((k) => !k.startsWith('name.form.')).toSet();
       expect(keys, en.keys.toSet(), reason: l);
       // Romanian uses ș and ț with a comma below, not ş and ţ with a cedilla.
       expect(RegExp('[şţŞŢ]').hasMatch(langFiles[l]!), isFalse, reason: l);

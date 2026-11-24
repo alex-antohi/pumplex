@@ -78,6 +78,55 @@ void main() {
     }
   });
 
+  test('Romanian names agree with the form of their move', () {
+    final ro = I18n.parse(langFiles['ro']!);
+    // The agreeing parts: masculine sg, feminine sg, masculine pl, feminine pl.
+    const agree = {
+      'Incline': ['înclinat', 'înclinată', 'înclinați', 'înclinate'],
+      'Decline': ['declinat', 'declinată', 'declinați', 'declinate'],
+      'Band Assisted': ['asistat', 'asistată', 'asistați', 'asistate'],
+      'Plyo': ['pliometric', 'pliometrică', 'pliometrici', 'pliometrice'],
+      'Squeeze': ['strâns', 'strânsă', 'strânși', 'strânse'],
+      'Bulgarian': ['bulgăresc', 'bulgărească', 'bulgărești', 'bulgărești'],
+    };
+    for (final MapEntry(key: v, value: forms) in agree.entries) {
+      expect(ro['name.$v']!.split('|').map((p) => p.split(' ').first), forms, reason: v);
+    }
+    // Every part with forms has all four.
+    for (final MapEntry(:key, :value) in ro.entries) {
+      if (value.contains('|')) expect(value.split('|').length, 4, reason: key);
+    }
+    // Every move has its form; a few checked by hand.
+    for (final k in ro.keys.where((k) => k.startsWith('move.'))) {
+      expect(['ms', 'fs', 'ns', 'mp', 'fp', 'np'], contains(ro['name.form.${k.substring(5)}']), reason: k);
+    }
+    for (final (b, f) in [('dip', 'fp'), ('shoulder press', 'fs'), ('bench press', 'ns'), ('crunch', 'np'), ('reverse snow angel', 'mp')]) {
+      expect(ro['name.form.$b'], f, reason: b);
+    }
+    // Every Romanian name with an agreeing value uses the move's form (special names too).
+    var checked = 0;
+    for (final e in exerciseCatalog.all) {
+      final name = label(e.id, 'ro').toLowerCase();
+      final words = name.split(RegExp(r'[\s,]+')).toSet();
+      final want = nameForm(ro['name.form.${e.base.toLowerCase()}']);
+      for (final v in e.mods.values.where(agree.containsKey)) {
+        final forms = agree[v]!;
+        final used = [for (var i = 0; i < 4; i++) if (words.contains(forms[i])) i];
+        if (used.isEmpty) continue; // the move word says it ("Fandări bulgărești", "Tracțiuni supinate")
+        expect(used.map((i) => forms[i]).toSet(), {forms[want]}, reason: '${e.id}: $name');
+        checked++;
+      }
+    }
+    expect(checked, greaterThan(40));
+    expect(label('dip|bodyweight|band assisted', 'ro'), 'Dips asistate cu bandă');
+    expect(label('Incline_Cable_Chest_Press', 'ro'), 'Presă piept înclinată la cablu');
+    expect(label('Decline_Crunch', 'ro'), 'Abdomene declinate');
+    expect(label('split squat|barbell|bulgarian', 'ro'), 'Fandări bulgărești cu halteră');
+    // A move word per value: the chin-up of the pull-up grid.
+    expect(label('pull-up|bodyweight|weighted|medium grip|reverse grip', 'en'), 'Weighted Chin-Up');
+    expect(label('pull-up|bodyweight|weighted|medium grip|reverse grip', 'ro'), 'Tracțiuni supinate cu greutate');
+  });
+
   test('grid variations: a stable id, no name to translate, sensible levels', () {
     final grid = [for (final e in exerciseCatalog.all) if (e.id.contains('|')) e];
     expect(grid.length, greaterThanOrEqualTo(40));

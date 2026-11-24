@@ -286,26 +286,43 @@ String exerciseName(String id) => exerciseCatalog.byId[id]?.name ?? id.replaceAl
 /// [look] reads (key -> text, null when missing). The same rule as
 /// tools/exercise_names.mjs, which writes the English names into the list:
 /// - `name.order`: the slots in word order (`move` and the axis ids);
-/// - `name.move.<base>`, else `move.<base>`: the move's word;
-/// - `name.<axis>.<value>`, else `name.<value>`, else the value: a part;
-///   an empty part is left out (Medium Grip); a part `a|b|c` has a form per
-///   gender of the move's first word (masculine or neuter, feminine, plural);
+/// - `name.move.<base>.<value>`: the move's word for the variations with
+///   that value ("Chin-Up" for a reverse-grip Pull-Up); the value's own part
+///   is then left out;
+/// - else `name.move.<base>`, else `move.<base>`: the move's word;
+/// - `name.form.<base>`: the grammatical form of the move's word, in a
+///   language with agreement (Romanian): `ms` `fs` `ns` `mp` `fp` `np`
+///   (masculine, feminine, neuter; singular, plural);
+/// - `name.<base>.<value>`, else `name.<axis>.<value>`, else `name.<value>`,
+///   else the value: a part; an empty part is left out (Medium Grip); a part
+///   `a|b|c|d` agrees with the move: masculine singular, feminine singular,
+///   masculine plural, feminine plural (nameForm);
 /// - the equipment part only when the move has more than one equipment.
 /// A special name (`exercise.<id>`) is not looked at here (exerciseLabel).
 String composeName(CatalogExercise e, ExerciseGroup group, String? Function(String key) look) {
   final b = e.base.toLowerCase();
-  final move = look('name.move.$b') ?? look('move.$b') ?? e.base;
-  final form = nameForm(move);
+  final slots = (look('name.order') ?? '').split(' ').where((s) => s.isNotEmpty).toList();
+  String? moveSlot, move;
+  for (final slot in slots) {
+    final v = e.mods[slot];
+    final m = v == null ? null : look('name.move.$b.$v');
+    if (m != null) {
+      (moveSlot, move) = (slot, m);
+      break;
+    }
+  }
+  move ??= look('name.move.$b') ?? look('move.$b') ?? e.base;
+  final form = nameForm(look('name.form.$b'));
   final equipShown = {for (final v in group.variants) v.mods['equip']}.length > 1;
   final words = <String>[];
-  for (final slot in (look('name.order') ?? '').split(' ').where((s) => s.isNotEmpty)) {
+  for (final slot in slots) {
     if (slot == 'move') {
       words.add(move);
       continue;
     }
     final v = e.mods[slot];
-    if (v == null || (slot == 'equip' && !equipShown)) continue;
-    var p = look('name.$slot.$v') ?? look('name.$v') ?? v;
+    if (v == null || slot == moveSlot || (slot == 'equip' && !equipShown)) continue;
+    var p = look('name.$b.$v') ?? look('name.$slot.$v') ?? look('name.$v') ?? v;
     if (p.contains('|')) {
       final forms = p.split('|');
       p = forms[form.clamp(0, forms.length - 1)];
@@ -315,15 +332,17 @@ String composeName(CatalogExercise e, ExerciseGroup group, String? Function(Stri
   return words.join(' ');
 }
 
-/// The form of a name part for a move name (D80): 0 masculine or neuter,
-/// 1 feminine, 2 plural, from the end of its first word (Romanian:
-/// "Flotări" plural, "Presă" feminine, "Împins" neuter).
-int nameForm(String moveName) {
-  final w = moveName.split(' ').first.toLowerCase();
-  if (w.endsWith('i') || w.endsWith('e')) return 2;
-  if (w.endsWith('ă') || w.endsWith('a')) return 1;
-  return 0;
-}
+/// The agreeing form of a name part (`a|b|c|d`) for a move's grammatical
+/// [form] (`name.form.<base>`, D80): 0 masculine or neuter singular,
+/// 1 feminine singular, 2 masculine plural, 3 feminine or neuter plural
+/// (Romanian: "Împins înclinat", "Presă înclinată", "Îngeri înclinați",
+/// "Flotări înclinate"). No form (English): 0.
+int nameForm(String? form) => switch (form) {
+      'fs' => 1,
+      'mp' => 2,
+      'fp' || 'np' => 3,
+      _ => 0,
+    };
 
 /// What a modifier chip picks (D57): the exercise, and whether it keeps
 /// all of [current]'s other modifiers (`exact`). The equipment row may
