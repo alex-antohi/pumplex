@@ -19,8 +19,15 @@ import 'views/setup.dart';
 import 'views/sprite.dart';
 import 'views/workout.dart';
 
+/// The phone's bars are hidden (D81): immersive sticky, so a swipe from an
+/// edge shows them for a moment and the back gesture still works. Both the
+/// navigation bar and the status bar go (Android has no sticky mode for one
+/// bar only). Set at start and again on every resume.
+void hideSystemBars() => SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  hideSystemBars();
   final prefs = await SharedPreferences.getInstance();
   await I18n.instance.load(prefs);
   exerciseCatalog = await ExerciseCatalog.load();
@@ -101,7 +108,10 @@ class _GameShellState extends State<GameShell> {
   void initState() {
     super.initState();
     _resetDraft();
-    _life = AppLifecycleListener(onResume: _checkSession);
+    _life = AppLifecycleListener(onResume: () {
+      hideSystemBars(); // the phone may show its bars again while away (D81)
+      _checkSession();
+    });
     _store.addListener(_onStore);
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkSession());
   }

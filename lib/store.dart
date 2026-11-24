@@ -626,10 +626,32 @@ class LogStore extends ChangeNotifier {
     _prefs.setString(todayKey, jsonEncode({'date': _today, 'cards': saved}));
   }
 
-  /// A tap on a CHALK result row: card [key] joins Today and is shown (D79).
+  /// Card [key] joins Today and is shown (D79). A CHALK row no longer
+  /// does this: it only selects (D81).
   void addToToday(String key) {
     _addToToday([key]);
     setPickedCard(key);
+    notifyListeners();
+  }
+
+  /// A tap on a CHALK result row (D81): the carousel goes to card [key].
+  /// It does not join Today; the first set does that (D79).
+  void selectCard(String key) {
+    setPickedCard(key);
+    notifyListeners();
+  }
+
+  /// BACK TO TODAY on the CHALK sheet (D81): the words are wiped and the
+  /// carousel goes to the first Today card, or to the start of the list
+  /// when Today is empty (no card picked).
+  void backToToday() {
+    _chalk.clear();
+    final first = todayCards.firstOrNull;
+    if (first != null) {
+      setPickedCard(first);
+    } else {
+      _prefs.remove(pickedCardKey);
+    }
     notifyListeners();
   }
 

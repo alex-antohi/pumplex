@@ -39,6 +39,15 @@ What is built from `HANDOFF.md` (D70, D72) on branch `design-fixes`, and what is
    - Texts: `today.*` in en.json and ro.json.
    - Not built: the lime TODAY tag by the card title (the title row is shared with the chip-area work; the dots show Today instead).
 
+10. **Owner's CHALK / FORGE clean-up (proposed D81; it replaces parts of items 4, 5, 7 and 9 above).** Tests in `test/chalk_test.dart`, `test/today_test.dart`, `test/app_test.dart`.
+   - CHALK sheet, top to bottom: the CHALK title with **BACK TO TODAY** (`chalk-back-today`, `chalk.backToToday`: BACK TO TODAY / ÎNAPOI LA AZI), the word tiles (they scroll), then the **results at the bottom** (`chalk-results`). With 0 matches the bottom is NO SUCH MOVE. FORGE IT? (`chalk-forge`).
+   - Gone: the chalk line (`CHALK:`) and its hints, the tile counts (a tile with 0 results stays greyed), WIPE, SHOW n EXERCISES, the "TAP ONE = ADD TO TODAY" hint, the ANGLE and GRIP rows (words, index and labels: they are variations, picked on the card's chips, D55/D57). A picked tile is filled in its row; a second tap unpicks it.
+   - A tap on a result **selects** the card (`store.selectCard`): the carousel goes there and the sheet closes on it (one tap, the card shows at once). It does not add the card to Today; the first set does (D79). The row of the card on the carousel is highlighted (night fill, lime border, `chalk-result-on-<key>`); a card in Today shows TODAY. FORGE IT still adds to Today.
+   - BACK TO TODAY (`store.backToToday`): wipes the words, closes the sheet, the carousel goes to the first Today card (no card picked when Today is empty: the start of the list).
+   - Under the carousel: only the Today dots; no SUGGESTED / CHALK label and no divider after them. The thin line on the first card after Today stays.
+   - FORGE: no ANGLE or GRIP chips; a forged move has only the `equip` mod and a name from tool + move (KETTLEBELL CURL). An older forged move loses its ANGLE / GRIP words when loaded (its name changes too). A forged card has one exercise, so it has no angle or grip chips yet: still open (with D78 edit).
+   - App-wide: the phone's bars are hidden (`hideSystemBars` in `lib/main.dart`: `SystemUiMode.immersiveSticky`, at start and on every resume). Both bars go: Android has no sticky mode for the navigation bar alone. The views read the bottom inset from `MediaQuery`, so it is 0 and there is no gap. The back gesture still works (no `PopScope`, D60). Not checked on a real phone yet.
+
 ## Left to do (in this order)
 
 

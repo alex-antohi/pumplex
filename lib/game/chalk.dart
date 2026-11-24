@@ -2,8 +2,9 @@
 // lifter never types: they tap word tiles, and each word narrows the list.
 // CHALK searches ALL exercises: it ignores the class and the filters.
 //
-// The words come in rows: PATTERN, MOVE, TOOL, BODY, ANGLE, GRIP. A word is
-// `<row>.<id>` (for example `tool.dumbbell`); its label is the translation
+// The words come in rows: PATTERN, MOVE, TOOL, BODY. ANGLE and GRIP are
+// variations, picked on the exercise card's chips (D55, D57), not here. A
+// word is `<row>.<id>` (for example `tool.dumbbell`); its label is the translation
 // key `chalk.<row>.<id>`. An exercise has a word when it matches it; the
 // search keeps the exercises with every word of the chalk line (one word
 // per row).
@@ -11,7 +12,7 @@
 import 'exercises.dart';
 
 /// The rows of the CHALK sheet, top to bottom.
-const chalkRows = ['pattern', 'move', 'tool', 'body', 'angle', 'grip'];
+const chalkRows = ['pattern', 'move', 'tool', 'body'];
 
 /// One word tile: its row, its id and its English label (the fallback of
 /// the translation key `chalk.<row>.<id>`).
@@ -150,30 +151,12 @@ const chalkWords = <ChalkWord>[
   ChalkWord('body', 'arms', 'Arms'),
   ChalkWord('body', 'legs', 'Legs'),
   ChalkWord('body', 'core', 'Core'),
-  ChalkWord('angle', 'incline', 'Incline'),
-  ChalkWord('angle', 'flat', 'Flat'),
-  ChalkWord('angle', 'decline', 'Decline'),
-  ChalkWord('grip', 'close', 'Close grip'),
-  ChalkWord('grip', 'medium', 'Medium grip'),
-  ChalkWord('grip', 'wide', 'Wide grip'),
-  ChalkWord('grip', 'neutral', 'Neutral grip'),
-  ChalkWord('grip', 'overhand', 'Overhand grip'),
-  ChalkWord('grip', 'reverse', 'Reverse grip'),
 ];
 
 ChalkWord? chalkWordByKey(String key) => chalkWords.where((w) => w.key == key).firstOrNull;
 
-const _gripOfMod = {
-  'Close Grip': 'close',
-  'Medium Grip': 'medium',
-  'Wide Grip': 'wide',
-  'Neutral Grip': 'neutral',
-  'Overhand Grip': 'overhand',
-  'Reverse Grip': 'reverse',
-};
-
-/// The words of exercise [e] on card [g].
-Set<String> _wordsOf(CatalogExercise e, ExerciseGroup g) {
+/// The words of exercise [e].
+Set<String> _wordsOf(CatalogExercise e) {
   final w = <String>{};
   for (final MapEntry(:key, :value) in _patternWords.entries) {
     if (value.contains(e.pattern)) w.add('pattern.$key');
@@ -189,15 +172,6 @@ Set<String> _wordsOf(CatalogExercise e, ExerciseGroup g) {
   for (final b in bodyParts) {
     if (b.muscles.contains(e.muscle)) w.add('body.${b.id}');
   }
-  final angle = e.mods['angle'];
-  if (angle != null) {
-    w.add('angle.${angle.toLowerCase()}');
-  } else if (g.variants.any((v) => v.mods['angle'] != null)) {
-    w.add('angle.flat'); // a move with angles: no angle is flat (D57)
-  }
-  for (final m in [e.mods['width'], e.mods['hand']]) {
-    if (_gripOfMod[m] case final grip?) w.add('grip.$grip');
-  }
   return w;
 }
 
@@ -206,7 +180,7 @@ class ChalkIndex {
   ChalkIndex(this.catalog)
       : words = {
           for (final g in catalog.groups)
-            for (final e in g.variants) e.id: _wordsOf(e, g),
+            for (final e in g.variants) e.id: _wordsOf(e),
         };
 
   final ExerciseCatalog catalog;

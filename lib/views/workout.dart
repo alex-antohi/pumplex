@@ -14,8 +14,8 @@
 //   show (D50), one at a time, with a star button. Swipe it both ways,
 //   round and round. No targets (D52).
 // - TODAY (D79): the carousel shows the Today cards first, with dots and
-//   no total, then a thin line and SUGGESTED (the rest of the cards). An
-//   empty Today starts with the COPY A PAST DAY card.
+//   no total, then the rest of the cards (a thin line on the first one, no
+//   label, D81). An empty Today starts with the COPY A PAST DAY card.
 
 import 'dart:math';
 
@@ -391,15 +391,13 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
                                       onPick: (id) => _pick(e, id),
                                     )),
                                 ))),
-                                // Dots for the Today cards (no total, D79),
-                                // then a thin line and SUGGESTED.
+                                // Dots for the Today cards (no total, D79);
+                                // no label after them (D81).
                                 _TodayDots(
                                   key: const ValueKey('exercise-counter'),
                                   today: _todayCount,
                                   current: onCopy ? -1 : index - todayStart,
                                   onCopy: onCopy,
-                                  hasRest: count - todayStart > _todayCount,
-                                  restLabel: store.chalk.isEmpty ? t('today.suggested') : t('chalk.title'),
                                   onDot: (i) => jump(todayStart + i),
                                 ),
                                 const SizedBox(height: 6),
@@ -580,31 +578,27 @@ class _TopLine extends StatelessWidget {
 }
 
 /// Under the carousel (D79): one dot per Today card (the one shown filled),
-/// no total; then a thin line and SUGGESTED (bright on a card after Today).
-/// On the COPY card: SWIPE FOR SUGGESTED.
+/// no total, and no label after them (D81). On the COPY card: SWIPE FOR
+/// SUGGESTED.
 class _TodayDots extends StatelessWidget {
   const _TodayDots({
     super.key,
     required this.today,
     required this.current,
     required this.onCopy,
-    required this.hasRest,
-    required this.restLabel,
     required this.onDot,
   });
 
   /// How many Today cards, and the one shown (0-based; >= [today]: a card
   /// after Today; -1: the COPY card).
   final int today, current;
-  final bool onCopy, hasRest;
-  final String restLabel;
+  final bool onCopy;
   final ValueChanged<int> onDot;
 
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
     if (onCopy) return Text(t('today.swipe'), style: mono(11, p.ink.withValues(alpha: 0.6)));
-    final inRest = current >= today;
     return SizedBox(
       height: 18,
       child: FittedBox(
@@ -629,12 +623,6 @@ class _TodayDots extends StatelessWidget {
                   ),
                 ),
               ),
-            if (hasRest) ...[
-              if (today > 0) Container(width: 1, height: 14, margin: const EdgeInsets.symmetric(horizontal: 8), color: p.ink.withValues(alpha: 0.5)),
-              Text(restLabel,
-                  key: const ValueKey('suggested-label'),
-                  style: mono(11, inRest ? p.ink : p.ink.withValues(alpha: 0.5)).copyWith(fontWeight: inRest ? FontWeight.bold : null)),
-            ],
           ],
         ),
       ),

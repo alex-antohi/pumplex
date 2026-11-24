@@ -1,9 +1,10 @@
 // FORGE (D72, docs/moodboard/chalk/02-forge.html): when no exercise has all
 // the CHALK words, the lifter forges their own from the same words. A
 // forged move is a custom exercise: its name comes from the words (for
-// example DECLINE KETTLEBELL CURL), with an optional nickname. It joins the
-// exercise list like any card (sets and XP work the same), for every class
-// with its gear, and CHALK finds it.
+// example KETTLEBELL CURL), with an optional nickname. It has no angle and
+// no grip: those are variations, set later on the exercise card (D81). It
+// joins the exercise list like any card (sets and XP work the same), for
+// every class with its gear, and CHALK finds it.
 //
 // Kept on the phone as `custom_exercises_v1` (a list of [ForgedMove] JSON).
 // Not in the backup file yet, and there is no edit or delete yet: both are
@@ -58,27 +59,18 @@ const _patternFields = <String, String>{
   'jump': 'plyo',
 };
 
-const _gripFields = <String, (String, String)>{
-  'close': ('width', 'Close Grip'),
-  'medium': ('width', 'Medium Grip'),
-  'wide': ('width', 'Wide Grip'),
-  'neutral': ('hand', 'Neutral Grip'),
-  'overhand': ('hand', 'Overhand Grip'),
-  'reverse': ('hand', 'Reverse Grip'),
-};
-
 /// The word of [row] in the chalk [line], if any.
 String? chalkIdOf(Iterable<String> line, String row) =>
     line.where((k) => k.startsWith('$row.')).map((k) => k.substring(row.length + 1)).firstOrNull;
 
 /// The name the words give, in English (the exercise list's language):
-/// angle, grip, tool, then the move (or the pattern), for example
-/// "Decline Kettlebell Curl". Flat and Bodyweight are left out.
+/// the tool, then the move (or the pattern), for example "Kettlebell
+/// Curl". Bodyweight is left out.
 String forgeName(Iterable<String> line) {
   final parts = <String>[];
-  for (final row in ['angle', 'grip', 'tool', 'move']) {
+  for (final row in ['tool', 'move']) {
     final id = chalkIdOf(line, row);
-    if (id == null || id == 'flat' || id == 'bodyweight') continue;
+    if (id == null || id == 'bodyweight') continue;
     parts.add(chalkWordByKey('$row.$id')!.label);
   }
   if (chalkIdOf(line, 'move') == null) {
@@ -108,7 +100,8 @@ class ForgedMove {
   /// `custom_<n>`; saved sets use it like any exercise id.
   final String id;
 
-  /// The chalk words it was forged from (`<row>.<id>`).
+  /// The chalk words it was forged from (`<row>.<id>`). Only words the
+  /// CHALK rows have: an older move's ANGLE or GRIP word is dropped (D81).
   final Set<String> words;
 
   /// The muscle it trains (its body part follows from it).
@@ -121,7 +114,7 @@ class ForgedMove {
 
   factory ForgedMove.fromJson(Map<String, dynamic> j) => ForgedMove(
         id: j['id'] as String,
-        words: {for (final w in j['words'] as List? ?? const []) if (w is String) w},
+        words: {for (final w in j['words'] as List? ?? const []) if (w is String && chalkWordByKey(w) != null) w},
         muscle: j['muscle'] as String? ?? 'chest',
         nickname: j['nickname'] as String?,
       );
@@ -137,8 +130,6 @@ class ForgedMove {
   /// the first mode, last in the Suggested order.
   CatalogExercise toExercise() {
     final tool = _toolFields[chalkIdOf(words, 'tool')] ?? ('body only', null);
-    final angle = chalkIdOf(words, 'angle');
-    final grip = _gripFields[chalkIdOf(words, 'grip')];
     final pattern = _moveFields[chalkIdOf(words, 'move')]?.$3 ?? _patternFields[chalkIdOf(words, 'pattern')];
     return CatalogExercise(
       id: id,
@@ -150,11 +141,8 @@ class ForgedMove {
       force: null,
       mechanic: null,
       muscle: muscle,
-      mods: {
-        if (tool.$2 != null) 'equip': tool.$2!,
-        if (angle == 'incline' || angle == 'decline') 'angle': angle == 'incline' ? 'Incline' : 'Decline',
-        if (grip != null) grip.$1: grip.$2,
-      },
+      // No angle and no grip (D81): only the tool.
+      mods: {if (tool.$2 != null) 'equip': tool.$2!},
       pattern: pattern,
       unlock: const {'scrapper': 0, 'bruiser': 0, 'paladin': 0, 'cablemancer': 0},
     );

@@ -1,7 +1,8 @@
 // The FORGE card (D72, docs/moodboard/chalk/02-forge.html): opened from the
 // CHALK sheet's NO SUCH MOVE. FORGE IT? button. One scrolling card: the name
 // from the chalk words (or the nickname, big, with the words' name small
-// under it), the word chips (tap to change them), which classes have the
+// under it), the word chips TOOL, MOVE, PATTERN (tap to change them; no
+// ANGLE or GRIP: the exercise card sets those, D81), which classes have the
 // gear, BODY PART and MUSCLE (a first guess from the words), and an
 // optional NICKNAME typed on an arcade keyboard (QWERTY, a Romanian row,
 // no digits). BACK and FORGE IT sit in a bar at the bottom, over the
@@ -26,7 +27,7 @@ Future<void> showForge(NavigatorState nav, LogStore store, Set<String> words) =>
     nav.push(MaterialPageRoute<void>(fullscreenDialog: true, builder: (_) => ForgeScreen(store: store, words: words)));
 
 /// The rows of word chips on the card, top to bottom.
-const _forgeRows = ['tool', 'angle', 'grip', 'move', 'pattern'];
+const _forgeRows = ['tool', 'move', 'pattern'];
 
 class ForgeScreen extends StatefulWidget {
   const ForgeScreen({super.key, required this.store, required this.words});

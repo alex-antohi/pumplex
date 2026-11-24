@@ -1101,10 +1101,10 @@ void main() {
     final (store, _) = await _openApp(t);
     final list = store.cards;
     expect(find.byKey(ValueKey('exercise-${list[0].key}')), findsOneWidget);
-    // D79: no total; an empty Today shows no dots, only SUGGESTED.
+    // D79: no total; an empty Today shows no dots, and no SUGGESTED label (D81).
     expect(find.text('1 / ${list.length}'), findsNothing);
     expect(find.byKey(const ValueKey('today-dot-0')), findsNothing);
-    expect(find.text('SUGGESTED'), findsOneWidget);
+    expect(find.text('SUGGESTED'), findsNothing);
     // Up / down does nothing to the exercise carousel (D65).
     final before = t.getRect(find.byKey(const ValueKey('favorite-star')));
     await t.drag(find.byKey(const ValueKey('exercise-card')), const Offset(0, -200));
@@ -1381,6 +1381,24 @@ void main() {
     await _frames(t);
     expect(find.byKey(const ValueKey('tile-session')), findsOneWidget);
     expect(find.byType(PopScope), findsNothing); // nothing holds the back button
+  });
+
+  testWidgets('the phone bars are hidden (D81): immersive sticky at start and again on resume', (t) async {
+    final modes = <Object?>[];
+    t.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      if (call.method == 'SystemChrome.setEnabledSystemUIMode') modes.add(call.arguments);
+      return null;
+    });
+    addTearDown(() => t.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, null));
+    hideSystemBars();
+    await t.pump();
+    expect(modes, ['SystemUiMode.immersiveSticky']);
+    await _openApp(t);
+    modes.clear();
+    t.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    t.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await t.pump();
+    expect(modes, ['SystemUiMode.immersiveSticky']);
   });
 
   testWidgets('the BODY editor shows the saved body', (t) async {

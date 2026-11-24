@@ -1,6 +1,7 @@
-// TODAY (D79): the lifter's list for one day. The first set, a CHALK row
-// and FORGE IT add a card; the carousel shows Today first, then SUGGESTED;
-// the list ends with the day; COPY A PAST DAY copies cards, not sets.
+// TODAY (D79, D81): the lifter's list for one day. The first set, FORGE IT
+// and COPY add a card; a CHALK row only selects it (D81); the carousel
+// shows Today first, then the rest; the list ends with the day; COPY A
+// PAST DAY copies cards, not sets.
 
 import 'dart:convert';
 import 'dart:io';
@@ -42,17 +43,20 @@ void main() {
     return (LogStore(prefs, clock: () => now), prefs);
   }
 
-  test('the first set on a card adds it; a CHALK row adds it; one card once; kept on the phone', () async {
+  test('the first set on a card adds it; a CHALK row only selects; one card once; kept on the phone', () async {
     final (store, prefs) = await newStore();
     expect(store.todayCards, isEmpty);
-    final a = store.cards[3], b = store.cards[7];
+    final a = store.cards[3], b = store.cards[7], c = store.cards[9];
     store.addSet(store.variantFor(a).id);
     store.addSet(store.variantFor(a).id);
     expect(store.todayCards, [a.key]);
-    store.addToToday(b.key); // a CHALK row
+    store.selectCard(c.key); // a CHALK row: selected, not in Today (D81)
+    expect(store.pickedCard, c.key);
+    expect(store.todayCards, [a.key]);
+    store.addToToday(b.key);
     store.addToToday(a.key); // already there
     expect(store.todayCards, [a.key, b.key]);
-    expect(store.pickedCard, a.key); // the sheet closes on the card tapped
+    expect(store.pickedCard, a.key);
     // Taking the sets back does not drop the card (no remove gesture).
     store.removeSet(store.variantFor(a).id);
     store.removeSet(store.variantFor(a).id);
@@ -65,7 +69,7 @@ void main() {
 
   test('FORGE IT adds the forged move to Today', () async {
     final (store, _) = await newStore();
-    final move = store.forge({'angle.decline', 'tool.kettlebell', 'move.curl'}, 'biceps', null);
+    final move = store.forge({'tool.kettlebell', 'move.pulldown'}, 'lats', null);
     expect(store.todayCards, [move.id]);
     expect(store.carousel.first.key, move.id);
   });
@@ -111,7 +115,7 @@ void main() {
     expect(store.carousel.take(2).map((g) => g.key), [a.key, c.key]);
   });
 
-  testWidgets('a CHALK result row adds the card to Today; the sheet closes on it; TODAY mark', (t) async {
+  testWidgets('a CHALK result row selects the card (not in Today); the sheet closes on it; highlighted; TODAY mark after a set', (t) async {
     t.view.physicalSize = const Size(1080, 2340);
     t.view.devicePixelRatio = 2.75;
     t.view.padding = const FakeViewPadding(top: 110, bottom: 146);
@@ -130,16 +134,25 @@ void main() {
     await t.ensureVisible(find.byKey(ValueKey('chalk-result-${g.key}')));
     await t.tap(find.byKey(ValueKey('chalk-result-${g.key}')));
     await _frames(t, 20);
-    expect(find.byKey(const ValueKey('chalk-line')), findsNothing); // the sheet closed
-    expect(store.todayCards, [g.key]);
+    expect(find.byKey(const ValueKey('chalk-results')), findsNothing); // the sheet closed
+    expect(store.todayCards, isEmpty); // selected, not added (D81)
+    expect(store.pickedCard, g.key);
     expect(find.byKey(ValueKey('exercise-${g.key}')), findsOneWidget); // on that card
-    expect(find.byKey(const ValueKey('today-dot-0')), findsOneWidget);
-    // Open again: that row shows TODAY, the others "+".
+    expect(find.byKey(const ValueKey('today-dot-0')), findsNothing);
+    expect(find.byKey(const ValueKey('suggested-label')), findsNothing); // no label after the dots
+    expect(find.text('SUGGESTED'), findsNothing);
+    // Open again: that row is highlighted, no TODAY mark yet.
     await t.tap(find.byKey(const ValueKey('filter-chalk')));
     await _frames(t, 10);
     await t.ensureVisible(find.byKey(ValueKey('chalk-result-${g.key}')));
+    expect(find.byKey(ValueKey('chalk-result-on-${g.key}')), findsOneWidget);
+    expect(find.byKey(ValueKey('chalk-result-on-${results.first.key}')), findsNothing);
+    expect(find.byKey(ValueKey('chalk-result-today-${g.key}')), findsNothing);
+    // The first set puts it in Today (D79): the row shows TODAY.
+    store.addSet(store.variantFor(g).id);
+    await _frames(t, 4);
+    expect(store.todayCards, [g.key]);
     expect(find.byKey(ValueKey('chalk-result-today-${g.key}')), findsOneWidget);
-    expect(find.byKey(ValueKey('chalk-result-today-${results.first.key}')), findsNothing);
     expect(t.takeException(), isNull);
   });
 
