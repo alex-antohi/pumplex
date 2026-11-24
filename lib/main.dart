@@ -11,13 +11,16 @@ import 'game/rules.dart';
 import 'i18n.dart';
 import 'pumplex.dart';
 import 'store.dart';
-import 'views/carousel.dart';
 import 'views/intro.dart';
+import 'views/lifter_editor.dart';
 import 'views/profile.dart';
 import 'views/scene.dart';
 import 'views/setup.dart';
 import 'views/sprite.dart';
+import 'views/stage.dart';
 import 'views/workout.dart';
+
+export 'views/stage.dart' show Scene, stageRect;
 
 /// The phone's bars are hidden (D81): immersive sticky, so a swipe from an
 /// edge shows them for a moment and the back gesture still works. Both the
@@ -49,27 +52,6 @@ class GymApp extends StatelessWidget {
       home: GameShell(store: store),
     );
   }
-}
-
-/// Every view of the app. They are scenes of ONE screen (see GameShell).
-enum Scene { migrate, create, classSelect, area, summary, workout }
-
-/// Where the character stands in each scene, inside the content area.
-/// The views leave this rect free; the shell draws the one character there,
-/// so it glides from place to place when the scene changes.
-/// [bottomInset] is the phone's navigation bar, for views that keep it.
-/// [buttons] false: a setup screen without BACK / NEXT (the lifter editor).
-Rect stageRect(Scene s, Size a, {double bottomInset = 0, bool buttons = true}) {
-  final w = a.width, h = a.height;
-  return switch (s) {
-    // Inside the body card (D63).
-    Scene.create => Rect.fromLTWH(20, 16, w - 42, h * 0.40),
-    Scene.classSelect => classLayout(a, bottomInset, buttons: buttons).stage,
-    Scene.area => areaLayout(a, bottomInset, buttons: buttons).stage,
-    Scene.summary => Rect.fromLTWH(0, 10, w, h * 0.40),
-    Scene.migrate => Rect.fromLTWH(0, 10, w, h * 0.34),
-    Scene.workout => workoutStage(a, bottomInset),
-  };
 }
 
 /// The whole app is this one screen. Views change with a camera move
@@ -179,14 +161,10 @@ class _GameShellState extends State<GameShell> {
   /// sessions card (the lifter is a tile). none = the profile is closed.
   _Focus _focus = _Focus.none;
 
-  /// The property the lifter editor shows, in [_propSteps]: 0 body, 1 class
+  /// The property the lifter editor shows, in [lifterProps]: 0 body, 1 class
   /// and difficulty, 2 area (the setup screens, D60). Swipe up for the next,
   /// down for the one before, round and round (D62, D63).
   int _prop = 0;
-
-  /// The lifter editor's order (D63): BODY, CLASS, AREA. Up from BODY is
-  /// CLASS; down from BODY is AREA (round and round).
-  static const _propSteps = [Scene.create, Scene.classSelect, Scene.area];
 
   /// The session the sessions card shows (0 = the newest).
   int _sessionIndex = 0;
@@ -208,8 +186,6 @@ class _GameShellState extends State<GameShell> {
         _head = false;
       });
 
-
-
   /// Saves the draft as the profile (the lifter editor saves every change).
   void _saveDraft() => _store.setProfile(Profile(
         character: _char,
@@ -226,131 +202,46 @@ class _GameShellState extends State<GameShell> {
     return Rect.fromLTWH(16 + i * (side + 10), 10, side, side);
   }
 
-  /// The lifter editor (D60): the setup screen of property [prop] in a box
-  /// of [size], without BACK / NEXT. Every change saves at once (a slider
-  /// when it is let go).
-  Widget _editor(Size size, double inset, int prop) {
-    final scene = _propSteps[prop];
-    final stage = stageRect(scene, size, bottomInset: inset, buttons: false);
-    final view = switch (scene) {
-      Scene.create => CreateView(
-          stage: stage,
-          character: _char,
-          buttons: false,
-          onCharacter: (c) {
-            final tapped = c.sex != _char.sex || c.skin != _char.skin || c.hair != _char.hair || c.facialHair != _char.facialHair;
-            setState(() => _char = c);
-            if (tapped) _saveDraft();
-          },
-          onSlideEnd: _saveDraft,
-          onNext: () {},
-          headOpen: _head,
-          onHead: (open) => setState(() => _head = open),
-        ),
-      Scene.classSelect => ClassView(
-          stage: stage,
-          classId: _classId,
-          difficultyId: _difficultyId,
-          editing: true,
-          buttons: false,
-          onPick: (id) {
-            setState(() => _classId = id);
-            _saveDraft();
-          },
-          onDifficulty: (id) {
-            setState(() => _difficultyId = id);
-            _saveDraft();
-          },
-          onBack: () {},
-          onNext: () {},
-        ),
-      _ => AreaView(
-          stage: stage,
-          areaId: _areaId,
-          classId: _classId,
-          editing: true,
-          buttons: false,
-          onPick: (id) {
-            setState(() => _areaId = id);
-            _saveDraft();
-          },
-          onBack: () {},
-          onNext: () {},
-        ),
-    };
-    return Stack(
-      key: ValueKey('lifter-edit-$prop'),
-      children: [
-        Positioned.fill(child: view),
-        // Which property: body, class, area (swipe up / down).
-        Positioned(
-          right: 4,
-          top: 4,
-          child: IgnorePointer(
-            child: Column(
-              children: [
-                for (var i = 0; i < 3; i++)
-                  Container(
-                    key: ValueKey('prop-dot-$i'),
-                    width: 10,
-                    height: i == prop ? 22 : 10,
-                    margin: const EdgeInsets.only(bottom: 5),
-                    decoration: BoxDecoration(
-                      color: i == prop ? Pal.of(context).lime : Pal.of(context).panel2,
-                      border: Border.all(color: Pal.of(context).ink, width: 2),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-        // The screen's own lifter (the small workout window has its own).
-        Positioned.fromRect(
-          rect: stage,
-          child: IgnorePointer(
-            child: CharacterSprite(
-              key: const ValueKey('edit-lifter'),
-              character: _char,
-              classId: _classId,
-              pedestal: scene != Scene.area,
-              zoomHead: scene == Scene.create && _head,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+  /// The lifter editor (D60) for property [prop]: every change saves.
+  Widget _editor(double inset, int prop) => LifterEditor(
+        prop: prop,
+        inset: inset,
+        character: _char,
+        classId: _classId,
+        difficultyId: _difficultyId,
+        areaId: _areaId,
+        headOpen: _head,
+        onCharacter: (c) => setState(() => _char = c),
+        onSave: _saveDraft,
+        onHead: (open) => setState(() => _head = open),
+        onClass: (id) {
+          setState(() => _classId = id);
+          _saveDraft();
+        },
+        onDifficulty: (id) {
+          setState(() => _difficultyId = id);
+          _saveDraft();
+        },
+        onArea: (id) {
+          setState(() => _areaId = id);
+          _saveDraft();
+        },
+      );
+
   /// Under the minimised workout (D62).
-  Widget _lifterRegion(Size size, double inset) {
-    Widget sessions() => SessionsCard(
-          store: _store,
-          index: _sessionIndex,
-          onIndex: (i) => setState(() => _sessionIndex = i),
-        );
-    switch (_focus) {
-      case _Focus.sessions:
-        return Padding(
-          padding: EdgeInsets.fromLTRB(16, 0, 22, 14 + inset),
-          child: SingleChildScrollView(child: sessions()),
-        );
-      case _Focus.lifter:
-      case _Focus.none:
-        // A vertical carousel (D63): drag up / down, the next property follows
-        // the finger, round and round.
-        return VerticalCarousel(
-          key: const ValueKey('lifter-editor'),
-          index: _prop,
-          count: _propSteps.length,
-          onIndex: (i) => setState(() {
-            _prop = i;
-            _head = false;
-          }),
-          builder: (context, i) => LayoutBuilder(builder: (context, box) => _editor(box.biggest, inset, i)),
-        );
-    }
-  }
-
-
+  Widget _lifterPanel(double inset) => LifterPanel(
+        store: _store,
+        sessions: _focus == _Focus.sessions,
+        sessionIndex: _sessionIndex,
+        onSessionIndex: (i) => setState(() => _sessionIndex = i),
+        prop: _prop,
+        onProp: (i) => setState(() {
+          _prop = i;
+          _head = false;
+        }),
+        inset: inset,
+        editor: (i) => _editor(inset, i),
+      );
 
   void _go(Scene to, [Motion motion = Motion.zoomIn]) {
     if (to == _scene) return;
@@ -371,12 +262,7 @@ class _GameShellState extends State<GameShell> {
   // ------------------------------------------------------------------ setup
 
   void _finishSetup() {
-    _store.setProfile(Profile(
-      character: _char,
-      classId: _classId,
-      difficultyId: _difficultyId,
-      areaId: _areaId,
-    ));
+    _saveDraft();
     final first = !_editing;
     _editing = false;
     _go(Scene.workout);
@@ -388,10 +274,6 @@ class _GameShellState extends State<GameShell> {
       );
     }
   }
-
-  /// The setup steps a summary or profile EDIT opens (0 body, 1 class,
-  /// 2 difficulty, 3 area).
-  static const _setupSteps = [Scene.create, Scene.classSelect, Scene.area];
 
   void _pickClass(String id) {
     setState(() {
@@ -522,7 +404,7 @@ class _GameShellState extends State<GameShell> {
             difficultyId: _difficultyId,
             areaId: _areaId,
             editing: _editing,
-            onEdit: (step) => _go(_setupSteps[step], Motion.zoomOut),
+            onEdit: (step) => _go(lifterProps[step], Motion.zoomOut),
             onBack: _back,
             onGo: _finishSetup,
           ),
@@ -539,6 +421,55 @@ class _GameShellState extends State<GameShell> {
 
   bool get _inSetup => _isSetupScene(_scene);
 
+  /// The scene and the one character, shared by every scene; [shrink]
+  /// moves both into the minimised window (D61).
+  Widget _world(Matrix4 shrink, Rect stage, Character char, String classId) => Stack(
+        children: [
+          Positioned.fill(
+            child: Transform(
+              transform: shrink,
+              child: IgnorePointer(
+                ignoring: _lifter,
+                child: SceneSwitcher(
+                  scene: _scene,
+                  motion: _motion,
+                  child: _view(_scene, stage),
+                ),
+              ),
+            ),
+          ),
+          Positioned.fill(
+            child: Transform(
+              transform: shrink,
+              child: Stack(
+                children: [
+                  AnimatedPositioned.fromRect(
+                    rect: stage,
+                    duration: const Duration(milliseconds: 560),
+                    curve: Curves.easeInOutCubic,
+                    child: IgnorePointer(
+                      // Frozen in greyscale while the intro card shows.
+                      child: ColorFiltered(
+                        colorFilter: _intro == null
+                            ? const ColorFilter.mode(Colors.transparent, BlendMode.dst)
+                            : freezeFilter,
+                        child: CharacterSprite(
+                          character: char,
+                          classId: classId,
+                          // In an area scene the scene has its own ground.
+                          pedestal: _scene != Scene.workout && _scene != Scene.area,
+                          zoomHead: _scene == Scene.create && _head,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
@@ -548,180 +479,122 @@ class _GameShellState extends State<GameShell> {
     final classId = _inSetup || profile == null ? _classId : profile.classId;
     // The phone's back button leaves the app, everywhere (D60).
     return AnnotatedRegion<SystemUiOverlayStyle>(
-        value: SystemUiOverlayStyle.light,
-        child: Scaffold(
-          body: DotBackground(
-            child: Column(
-              children: [
-                // The phone status bar sits on the dark strip.
-                Container(
-                  color: kNight,
-                  child: const SafeArea(bottom: false, child: SizedBox(width: double.infinity)),
-                ),
-                _TopBar(
-                  info: _info,
-                  // On the workout (home) the bar shows the level and XP (D49).
-                  // Tap it for the lifter profile (D59).
-                  level: _scene == Scene.workout
-                      ? _TopLevel(xp: _store.totalXp, onTap: _openLifter)
-                      : null,
-                ),
-                Container(height: 6, color: p.violet),
-                Expanded(
-                  child: LayoutBuilder(builder: (context, box) {
-                    final inset = MediaQuery.paddingOf(context).bottom;
-                    final stage = stageRect(_scene, box.biggest, bottomInset: inset);
-                    final full = Offset.zero & box.biggest;
-                    final mini = _tileRect(box.biggest, 0);
-                    // The arena (a square of the workout) lands on the mini window.
-                    final arena = workoutArena(box.biggest, inset);
-                    final k = mini.width / arena.width;
-                    final tiles = _focus != _Focus.none;
-                    // The lifter profile (D59): the workout and the lifter shrink
-                    // into a window at the top left; the profile shows under it.
-                    return TweenAnimationBuilder<double>(
-                      tween: Tween(end: _lifter && _scene == Scene.workout ? 1 : 0),
-                      duration: const Duration(milliseconds: 420),
-                      curve: Curves.easeInOutCubic,
-                      builder: (context, t, _) {
-                        final s = 1 + (k - 1) * t;
-                        final shrink = Matrix4.translationValues(
-                          (mini.left - arena.left * k) * t,
-                          (mini.top - arena.top * k) * t,
-                          0,
-                        ).multiplied(Matrix4.diagonal3Values(s, s, 1));
-                        final window = Rect.lerp(full, mini, t)!;
-                        return Stack(
-                          children: [
-                            if (t > 0)
-                              Positioned(
-                                left: 0,
-                                right: 0,
-                                top: mini.bottom + 14,
-                                bottom: 0,
-                                child: Opacity(
-                                  opacity: t,
-                                  child: IgnorePointer(
-                                    ignoring: !_lifter,
-                                    child: LayoutBuilder(
-                                      builder: (context, region) => AnimatedSwitcher(
-                                        duration: const Duration(milliseconds: 200),
-                                        layoutBuilder: (current, previous) => Stack(
-                                          alignment: Alignment.topCenter,
-                                          children: [...previous, ?current],
-                                        ),
-                                        child: KeyedSubtree(
-                                          key: ValueKey(_focus),
-                                          child: _lifterRegion(region.biggest, inset),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            // The minimised workout is a card (D75): its hard
-                            // shadow, behind the window.
-                            if (t > 0)
-                              Positioned.fromRect(
-                                rect: window.inflate(2).shift(const Offset(5, 5)),
-                                child: ColoredBox(color: p.pink.withValues(alpha: t)),
-                              ),
-                            Positioned.fill(
-                              child: ClipRect(
-                                clipper: _WindowClip(window),
-                                child: Stack(
-                                  children: [
-                            Positioned.fill(
-                              child: Transform(
-                                transform: shrink,
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        body: DotBackground(
+          child: Column(
+            children: [
+              // The phone status bar sits on the dark strip.
+              Container(
+                color: kNight,
+                child: const SafeArea(bottom: false, child: SizedBox(width: double.infinity)),
+              ),
+              _TopBar(
+                info: _info,
+                // On the workout (home) the bar shows the level and XP (D49).
+                // Tap it for the lifter profile (D59).
+                level: _scene == Scene.workout
+                    ? _TopLevel(xp: _store.totalXp, onTap: _openLifter)
+                    : null,
+              ),
+              Container(height: 6, color: p.violet),
+              Expanded(
+                child: LayoutBuilder(builder: (context, box) {
+                  final inset = MediaQuery.paddingOf(context).bottom;
+                  final stage = stageRect(_scene, box.biggest, bottomInset: inset);
+                  final full = Offset.zero & box.biggest;
+                  final mini = _tileRect(box.biggest, 0);
+                  // The arena (a square of the workout) lands on the mini window.
+                  final arena = workoutArena(box.biggest, inset);
+                  final k = mini.width / arena.width;
+                  final tiles = _focus != _Focus.none;
+                  // The lifter profile (D59): the workout and the lifter shrink
+                  // into a window at the top left; the profile shows under it.
+                  return TweenAnimationBuilder<double>(
+                    tween: Tween(end: _lifter && _scene == Scene.workout ? 1 : 0),
+                    duration: const Duration(milliseconds: 420),
+                    curve: Curves.easeInOutCubic,
+                    builder: (context, t, _) {
+                      final s = 1 + (k - 1) * t;
+                      final shrink = Matrix4.translationValues(
+                        (mini.left - arena.left * k) * t,
+                        (mini.top - arena.top * k) * t,
+                        0,
+                      ).multiplied(Matrix4.diagonal3Values(s, s, 1));
+                      final window = Rect.lerp(full, mini, t)!;
+                      return Stack(
+                        children: [
+                          if (t > 0)
+                            Positioned(
+                              left: 0,
+                              right: 0,
+                              top: mini.bottom + 14,
+                              bottom: 0,
+                              child: Opacity(
+                                opacity: t,
                                 child: IgnorePointer(
-                                  ignoring: _lifter,
-                                  child: SceneSwitcher(
-                                    scene: _scene,
-                                    motion: _motion,
-                                    child: _view(_scene, stage),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            // The one character, shared by every scene.
-                            Positioned.fill(
-                              child: Transform(
-                                transform: shrink,
-                                child: Stack(
-                                  children: [
-                                    AnimatedPositioned.fromRect(
-                                      rect: stage,
-                                      duration: const Duration(milliseconds: 560),
-                                      curve: Curves.easeInOutCubic,
-                                      child: IgnorePointer(
-                                        // Frozen in greyscale while the intro card shows.
-                                        child: ColorFiltered(
-                                          colorFilter: _intro == null
-                                              ? const ColorFilter.mode(Colors.transparent, BlendMode.dst)
-                                              : freezeFilter,
-                                          child: CharacterSprite(
-                                            character: char,
-                                            classId: classId,
-                                            // In an area scene the scene has its own ground.
-                                            pedestal: _scene != Scene.workout && _scene != Scene.area,
-                                            zoomHead: _scene == Scene.create && _head,
-                                          ),
-                                        ),
-                                      ),
+                                  ignoring: !_lifter,
+                                  child: AnimatedSwitcher(
+                                    duration: const Duration(milliseconds: 200),
+                                    layoutBuilder: (current, previous) => Stack(
+                                      alignment: Alignment.topCenter,
+                                      children: [...previous, ?current],
                                     ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            // Beside the arena (D62): the part that gave up its
-                            // space, as a tile. Tap it to give it the space back.
-                            if (t > 0 && tiles)
-                              Positioned.fromRect(
-                                rect: _tileRect(box.biggest, 1),
-                                child: Opacity(
-                                  opacity: t,
-                                  child: _focus == _Focus.lifter
-                                      ? SessionTile(
-                                          store: _store,
-                                          index: _sessionIndex,
-                                          onTap: () => setState(() => _focus = _Focus.sessions),
-                                        )
-                                      : LifterTile(store: _store, onTap: () => setState(() => _focus = _Focus.lifter)),
-                                ),
-                              ),
-                            // The minimised workout window: tap it to go back.
-                            if (t > 0)
-                              Positioned.fromRect(
-                                rect: window.inflate(2),
-                                child: GestureDetector(
-                                  key: const ValueKey('mini-workout'),
-                                  behavior: HitTestBehavior.opaque,
-                                  onTap: _lifter ? _closeLifter : null,
-                                  // A card only while minimised (D75).
-                                  child: DecoratedBox(
-                                    decoration: BoxDecoration(
-                                      border: Border.all(color: p.ink.withValues(alpha: t), width: 3),
+                                    child: KeyedSubtree(
+                                      key: ValueKey(_focus),
+                                      child: _lifterPanel(inset),
                                     ),
                                   ),
                                 ),
                               ),
-                            // Freeze-frame intro card: level-ups, over the whole view.
-                            if (_intro != null) Positioned.fill(child: _introCard()),
-                          ],
-                        );
-                      },
-                    );
-                  }),
-                ),
-              ],
-            ),
+                            ),
+                          // The minimised workout is a card (D75): its hard
+                          // shadow, behind the window.
+                          if (t > 0)
+                            Positioned.fromRect(
+                              rect: window.inflate(2).shift(const Offset(5, 5)),
+                              child: ColoredBox(color: p.pink.withValues(alpha: t)),
+                            ),
+                          Positioned.fill(
+                            child: ClipRect(
+                              clipper: _WindowClip(window),
+                              child: _world(shrink, stage, char, classId),
+                            ),
+                          ),
+                          // Beside the arena (D62): the part that gave up its
+                          // space, as a tile. Tap it to give it the space back.
+                          if (t > 0 && tiles)
+                            Positioned.fromRect(
+                              rect: _tileRect(box.biggest, 1),
+                              child: Opacity(
+                                opacity: t,
+                                child: _focus == _Focus.lifter
+                                    ? SessionTile(
+                                        store: _store,
+                                        index: _sessionIndex,
+                                        onTap: () => setState(() => _focus = _Focus.sessions),
+                                      )
+                                    : LifterTile(store: _store, onTap: () => setState(() => _focus = _Focus.lifter)),
+                              ),
+                            ),
+                          // The minimised workout window: tap it to go back.
+                          if (t > 0)
+                            Positioned.fromRect(
+                              rect: window.inflate(2),
+                              child: MiniWorkoutFrame(t: t, onTap: _lifter ? _closeLifter : null),
+                            ),
+                          // Freeze-frame intro card: level-ups, over the whole view.
+                          if (_intro != null) Positioned.fill(child: _introCard()),
+                        ],
+                      );
+                    },
+                  );
+                }),
+              ),
+            ],
           ),
         ),
+      ),
     );
   }
 }
