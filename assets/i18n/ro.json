@@ -1106,6 +1106,8 @@
   "chalk.emptySlot": "LOC GOL",
   "chalk.noSuch": "NU EXISTĂ.",
   "chalk.dropOne": "SAU SCOATE UNA",
-  "chalk.dropGives": "→ {n} MIȘCĂRI",
-  "chalk.standard": "STANDARD"
+  "chalk.dropGives": "{n} MIȘCĂRI {words}",
+  "chalk.standard": "STANDARD",
+  "chalk.noSuchWhy": "Nimic nu are {words}. Forjează una sau scoate o piesă.",
+  "chalk.whatBack": "CE PRIMEȘTI ÎNAPOI"
 }

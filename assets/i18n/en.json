@@ -923,6 +923,8 @@
   "chalk.emptySlot": "EMPTY SLOT",
   "chalk.noSuch": "NO SUCH MOVE.",
   "chalk.dropOne": "OR DROP ONE",
-  "chalk.dropGives": "→ {n} MOVES",
-  "chalk.standard": "STANDARD"
+  "chalk.dropGives": "{n} {words} MOVES",
+  "chalk.standard": "STANDARD",
+  "chalk.noSuchWhy": "Nothing has {words}. Forge one, or drop a piece.",
+  "chalk.whatBack": "WHAT YOU GET BACK"
 }

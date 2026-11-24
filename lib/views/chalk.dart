@@ -42,7 +42,7 @@ String chalkLabel(ChalkWord w) => tOr('chalk.${w.key}', w.label);
 /// A row's title: `chalk.row.<row>`.
 String chalkRowLabel(String row) => tOr('chalk.row.$row', row);
 
-Future<void> showChalkSheet(BuildContext context, LogStore store) => showBrutalSheet(context, (_) => ChalkSheet(store: store));
+Future<void> showChalkSheet(BuildContext context, LogStore store) => showBrutalSheet(context, (_) => _ChalkScope(store: store, child: ChalkSheet(store: store)));
 
 /// The CHALK sheet's height, a fixed part of the screen (D81 follow-up).
 const kChalkSheetFraction = 0.82;
@@ -213,7 +213,11 @@ class _ChalkSheetState extends State<ChalkSheet> {
                       store.backToToday();
                       Navigator.of(context).pop();
                     },
-                    child: Text(t('chalk.backToToday')),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      PxIcon('back', size: 16, color: p.on),
+                      const SizedBox(width: 8),
+                      Text(t('chalk.backToToday')),
+                    ]),
                   ),
                 ),
               ],
@@ -300,7 +304,7 @@ class _LifterPanel extends StatelessWidget {
     Widget column(List<String> ids, CrossAxisAlignment align) => Column(
       crossAxisAlignment: align,
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [for (final id in ids) tag('body', id, trailing: null)],
+      children: [for (final id in ids) tag('body', id, trailing: id == 'back' ? PxIcon('restore', size: 14, color: line.contains('body.back') ? p.on : p.ink) : null)],
     );
 
     return Container(
@@ -376,8 +380,11 @@ class _GearRack extends StatelessWidget {
         Row(
           children: [
             Shout(t('chalk.gearRack'), size: 13, color: p.ink),
-            const Spacer(),
-            Text(t('chalk.tapTool'), style: mono(9.5, p.inkQuiet)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(t('chalk.tapTool'),
+                  textAlign: TextAlign.right, maxLines: 1, overflow: TextOverflow.ellipsis, style: mono(9.5, p.inkQuiet)),
+            ),
           ],
         ),
         const SizedBox(height: 6),
@@ -518,84 +525,119 @@ class _SayMove extends StatelessWidget {
   }
 }
 
-/// The LOADOUT bar: the picked words, each with ✕ (outlined pink when
-/// together they give nothing), and "+" to open the picture again.
+/// The store for the small pictures in the sheet (the lifter thumbnails).
+class _ChalkScope extends InheritedWidget {
+  const _ChalkScope({required this.store, required super.child});
+
+  final LogStore store;
+
+  static LogStore? of(BuildContext context) => context.dependOnInheritedWidgetOfExactType<_ChalkScope>()?.store;
+
+  @override
+  bool updateShouldNotify(_ChalkScope old) => old.store != store;
+}
+
+/// The small picture of a picked word: the tool's icon, else your lifter
+/// (a body part or a whole-body word), else nothing (a move).
+class _Thumb extends StatelessWidget {
+  const _Thumb({required this.word, this.size = 30});
+
+  final ChalkWord word;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final store = _ChalkScope.of(context);
+    final profile = store?.profile;
+    final Widget? art = word.row == 'tool'
+        ? Image.asset(chalkToolIcon(word.id), fit: BoxFit.contain, filterQuality: FilterQuality.none)
+        : profile != null && word.row != 'move'
+            ? FittedBox(
+                child: SizedBox(
+                  width: 48,
+                  height: 80,
+                  child: CharacterSprite(character: profile.character, classId: store!.gameClass.id, pedestal: false),
+                ),
+              )
+            : null;
+    if (art == null) return const SizedBox.shrink();
+    return Container(
+      width: size,
+      height: size,
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(color: _slotBg, border: Border.all(color: kNight, width: 2)),
+      child: ClipRect(child: art),
+    );
+  }
+}
+
+/// The picked pieces (D87), right under the title: each with its picture
+/// and ×, lime; outlined pink when together they give nothing. A tap drops
+/// the piece and opens the picture again.
 class _Loadout extends StatelessWidget {
   const _Loadout({required this.line, required this.bad, required this.onDrop, required this.onAdd});
 
   final Set<String> line;
   final bool bad;
   final ValueChanged<ChalkWord> onDrop;
+
+  /// Opens the picture to pick one more piece.
   final VoidCallback onAdd;
 
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
-    final words = [for (final k in line) ?chalkWordByKey(k)]
-      ..sort((a, b) => const ['body', 'pattern', 'tool', 'move'].indexOf(a.row) - const ['body', 'pattern', 'tool', 'move'].indexOf(b.row));
-    return Container(
+    const order = ['body', 'pattern', 'tool', 'move'];
+    final words = [for (final k in line) ?chalkWordByKey(k)]..sort((a, b) => order.indexOf(a.row) - order.indexOf(b.row));
+    return Wrap(
       key: const ValueKey('chalk-loadout'),
-      padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
-      decoration: BoxDecoration(
-        color: kNight,
-        border: Border.all(color: p.ink, width: 3),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(t('chalk.loadout'), style: mono(9.5, kChalk.withValues(alpha: 0.6))),
-          const SizedBox(height: 5),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              for (final w in words)
-                GestureDetector(
-                  key: ValueKey('chalk-word-${w.key}'),
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => onDrop(w),
-                  child: Container(
-                    height: 36,
-                    padding: const EdgeInsets.only(left: 6, right: 8),
-                    decoration: BoxDecoration(
-                      color: _slotBg,
-                      border: Border.all(color: bad ? p.pink : p.lime, width: 3),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (w.row == 'tool') ...[
-                          Image.asset(chalkToolIcon(w.id), width: 22, height: 22, fit: BoxFit.contain, filterQuality: FilterQuality.none),
-                          const SizedBox(width: 4),
-                        ],
-                        Text(chalkLabel(w).toUpperCase(), style: display(14, kNight)),
-                        const SizedBox(width: 6),
-                        Text('×', style: mono(16, kNight)),
-                      ],
-                    ),
-                  ),
-                ),
-              GestureDetector(
-                key: const ValueKey('chalk-unfold'),
-                behavior: HitTestBehavior.opaque,
-                onTap: onAdd,
-                child: Container(
-                  height: 36,
-                  width: 40,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(border: Border.all(color: kChalk.withValues(alpha: 0.6), width: 2)),
-                  child: Text('+', style: display(20, kChalk)),
-                ),
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final w in words)
+          GestureDetector(
+            key: ValueKey('chalk-word-${w.key}'),
+            behavior: HitTestBehavior.opaque,
+            onTap: () => onDrop(w),
+            child: Container(
+              height: 46,
+              padding: const EdgeInsets.fromLTRB(5, 4, 8, 4),
+              decoration: BoxDecoration(
+                color: bad ? _slotBg : p.lime,
+                border: Border.all(color: bad ? p.pink : kNight, width: 3),
+                boxShadow: [BoxShadow(color: kNight, offset: const Offset(3, 3))],
               ),
-            ],
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _Thumb(word: w, size: 34),
+                  if (w.row == 'tool' || w.row != 'move') const SizedBox(width: 6),
+                  Text(chalkLabel(w).toUpperCase(), style: display(14, kNight)),
+                  const SizedBox(width: 8),
+                  PxIcon('close', size: 14, color: kNight),
+                ],
+              ),
+            ),
           ),
-        ],
-      ),
+        GestureDetector(
+          key: const ValueKey('chalk-unfold'),
+          behavior: HitTestBehavior.opaque,
+          onTap: onAdd,
+          child: Container(
+            height: 46,
+            width: 42,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(border: Border.all(color: p.inkFaint, width: 2)),
+            child: PxIcon('plus', size: 18, color: p.inkSoft),
+          ),
+        ),
+      ],
     );
   }
 }
 
-/// NARROW: only the move words that still give something.
+/// NARROW: only the move words that still give something, on one line with
+/// its label.
 class _Narrow extends StatelessWidget {
   const _Narrow({required this.line, required this.off, required this.onPick});
 
@@ -606,37 +648,32 @@ class _Narrow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
-    final moves = [
-      for (final w in chalkWords)
-        if (w.row == 'move' && !off(w)) w,
-    ];
+    final moves = [for (final w in chalkWords) if (w.row == 'move' && !off(w)) w];
     if (moves.length < 2 && !moves.any((w) => line.contains(w.key))) return const SizedBox.shrink();
-    return Column(
+    return Wrap(
       key: const ValueKey('chalk-narrow'),
-      crossAxisAlignment: CrossAxisAlignment.start,
+      spacing: 6,
+      runSpacing: 6,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        Text(t('chalk.narrow'), style: mono(9.5, p.inkQuiet)),
-        const SizedBox(height: 4),
-        Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: [
-            for (final w in moves)
-              PickChip(
-                id: 'chalk-${w.key}',
-                label: chalkLabel(w),
-                selected: line.contains(w.key),
-                color: p.lime,
-                selectedBorder: p.on,
-                dense: true,
-                onTap: () => onPick(w),
-              ),
-          ],
+        Padding(
+          padding: const EdgeInsets.only(right: 4),
+          child: Shout(t('chalk.narrow'), size: 12, color: p.ink),
         ),
+        for (final w in moves)
+          PickChip(
+            id: 'chalk-${w.key}',
+            label: chalkLabel(w),
+            selected: line.contains(w.key),
+            color: p.lime,
+            selectedBorder: p.on,
+            onTap: () => onPick(w),
+          ),
       ],
     );
   }
 }
+
 
 /// A scroll area that shows it scrolls: an always-visible ink scrollbar on
 /// a lime track, and a fade at the bottom edge while more content is below.
@@ -736,18 +773,13 @@ String chalkPipLabel(CatalogExercise v, ExerciseGroup card) {
     for (final w in chalkWords.where((w) => w.row == 'tool')) ...clean(chalkLabel(w)).split(' '),
     ...clean(card.name).split(' '),
   };
-  final rest = [
-    for (final w in full)
-      if (!skip.contains(w)) w,
-  ];
+  final rest = [for (final w in full) if (!skip.contains(w)) w];
   if (rest.isNotEmpty) return rest.join(' ');
   return card.variants.length > 1 ? t('chalk.standard') : displayName(v).toUpperCase();
 }
 
 /// The results as loot cards (D87): one card per move, most common first.
-/// DO IT ▸ selects the move (its first matching variation) and closes
-/// CHALK. Each variation is a pip: its name selects it and closes, "+" adds
-/// it to Today (✓ TODAY once there, D82). The list ends with FORGE IT.
+/// The list ends with FORGE IT.
 class _LootCards extends StatelessWidget {
   const _LootCards({required this.store, required this.cards, required this.index, required this.onForge});
 
@@ -763,13 +795,29 @@ class _LootCards extends StatelessWidget {
       key: const ValueKey('chalk-results'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (final g in cards) ...[_LootCard(store: store, card: g, index: index), const SizedBox(height: 10)],
-        BrutalButton(key: const ValueKey('chalk-forge-it'), small: true, color: p.pink, onTap: onForge, child: Text(t('forge.go'))),
+        for (final g in cards) ...[
+          _LootCard(store: store, card: g, index: index),
+          const SizedBox(height: 12),
+        ],
+        BrutalButton(
+          key: const ValueKey('chalk-forge-it'),
+          small: true,
+          color: p.pink,
+          onTap: onForge,
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Image.asset(chalkToolIcon('hammer'), width: 18, height: 18, fit: BoxFit.contain, filterQuality: FilterQuality.none),
+            const SizedBox(width: 6),
+            Text(t('forge.go')),
+          ]),
+        ),
       ],
     );
   }
 }
 
+/// One loot card: on the left your lifter and the move's tool; on the right
+/// the move's name, body part · tool · how many, DO IT (selects the move and
+/// closes CHALK), and one pip per variation.
 class _LootCard extends StatelessWidget {
   const _LootCard({required this.store, required this.card, required this.index});
 
@@ -787,74 +835,96 @@ class _LootCard extends StatelessWidget {
     final p = Pal.of(context);
     final first = card.variants.first;
     final (:part, :tool) = index.tagsOf(first);
-    final info = [if (part != null) bodyPartLabel(part.id), if (tool != null) chalkLabel(tool), '${card.variants.length}'].join(' · ');
+    final info = [
+      if (part != null) bodyPartLabel(part.id),
+      if (tool != null) chalkLabel(tool),
+      '${card.variants.length}',
+    ].join(' · ');
     final picked = card.variants.any((v) => store.pickedCard == v.id);
-    return Brutal(
+    final profile = store.profile;
+    return Container(
       key: ValueKey('chalk-card-${card.key}'),
-      padding: const EdgeInsets.fromLTRB(10, 8, 8, 10),
-      color: p.panel,
-      borderColor: picked ? p.pink : p.ink,
-      border: 3,
-      shadow: p.ink,
-      offset: 4,
-      duration: Duration.zero,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (tool != null) ...[
-                Container(
-                  width: 34,
-                  height: 34,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: _slotBg,
-                    border: Border.all(color: kNight, width: 2),
-                  ),
-                  child: Image.asset(chalkToolIcon(tool.id), width: 26, height: 26, fit: BoxFit.contain, filterQuality: FilterQuality.none),
-                ),
-                const SizedBox(width: 8),
-              ],
-              Expanded(
+      decoration: BoxDecoration(
+        color: p.panel,
+        border: Border.all(color: picked ? p.pink : p.ink, width: 3),
+        boxShadow: [BoxShadow(color: p.ink, offset: const Offset(4, 4))],
+      ),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // The loot's picture: your lifter, and the tool under it.
+            Container(
+              width: 62,
+              padding: const EdgeInsets.fromLTRB(6, 8, 6, 8),
+              decoration: BoxDecoration(color: p.panel2, border: Border(right: BorderSide(color: p.ink, width: 3))),
+              child: Column(
+                children: [
+                  if (profile != null)
+                    SizedBox(
+                      height: 58,
+                      child: CharacterSprite(character: profile.character, classId: store.gameClass.id, pedestal: false),
+                    ),
+                  const Spacer(),
+                  if (tool != null)
+                    Container(
+                      width: 36,
+                      height: 36,
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(color: _slotBg, border: Border.all(color: kNight, width: 2)),
+                      child: Image.asset(chalkToolIcon(tool.id), fit: BoxFit.contain, filterQuality: FilterQuality.none),
+                    ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(10, 8, 8, 10),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(groupLabel(card.key, card.name).toUpperCase(), style: display(17, p.ink)),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: Text(groupLabel(card.key, card.name).toUpperCase(), style: display(20, p.ink))),
+                        const SizedBox(width: 6),
+                        GestureDetector(
+                          key: ValueKey('chalk-do-${card.key}'),
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => _select(context, first.id),
+                          child: Container(
+                            height: 30,
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            decoration: BoxDecoration(
+                              color: p.sky,
+                              border: Border.all(color: p.ink, width: 2),
+                              boxShadow: [BoxShadow(color: p.ink, offset: const Offset(2, 2))],
+                            ),
+                            child: Row(mainAxisSize: MainAxisSize.min, children: [
+                              Text(t('chalk.doIt'), style: mono(10, p.on)),
+                              const SizedBox(width: 4),
+                              PxIcon('next', size: 10, color: p.on),
+                            ]),
+                          ),
+                        ),
+                      ],
+                    ),
                     Text(info.toUpperCase(), style: mono(9.5, p.inkSoft)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        for (final v in card.variants)
+                          _Pip(store: store, v: v, label: chalkPipLabel(v, card), onSelect: () => _select(context, v.id)),
+                      ],
+                    ),
                   ],
                 ),
               ),
-              const SizedBox(width: 6),
-              GestureDetector(
-                key: ValueKey('chalk-do-${card.key}'),
-                behavior: HitTestBehavior.opaque,
-                onTap: () => _select(context, first.id),
-                child: Container(
-                  height: 36,
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: p.sky,
-                    border: Border.all(color: p.ink, width: 3),
-                    boxShadow: [BoxShadow(color: p.ink, offset: const Offset(2, 2))],
-                  ),
-                  child: Text(t('chalk.doIt'), style: display(14, p.on)),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              for (final v in card.variants)
-                _Pip(store: store, v: v, label: chalkPipLabel(v, card), onSelect: () => _select(context, v.id)),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -863,8 +933,8 @@ class _LootCard extends StatelessWidget {
 /// The "+" (and TODAY) spot of a pip: 44 px, a big enough target.
 const kChalkAddSize = 44.0;
 
-/// One variation on a loot card: its name (a tap selects it) and "+" (adds
-/// it to Today; ✓ TODAY once there).
+/// One variation on a loot card: its name (a tap selects it) and an orange
+/// "+" (adds it to Today). Once in Today the pip is lime with a ✓.
 class _Pip extends StatelessWidget {
   const _Pip({required this.store, required this.v, required this.label, required this.onSelect});
 
@@ -879,12 +949,14 @@ class _Pip extends StatelessWidget {
     final on = store.pickedCard == v.id;
     final inToday = store.inToday(v.id);
     final sets = store.setsToday(v.id);
+    final fill = inToday || on ? p.lime : p.panel;
     return Container(
       key: on ? ValueKey('chalk-result-on-${v.id}') : null,
       height: kChalkAddSize + 4, // the 2 px borders around the 44 px "+"
       decoration: BoxDecoration(
-        color: on ? p.lime : p.panel,
-        border: Border.all(color: on ? p.on : p.ink, width: 2),
+        color: fill,
+        border: Border.all(color: p.ink, width: 2),
+        boxShadow: on ? [BoxShadow(color: p.ink, offset: const Offset(2, 2))] : null,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -896,13 +968,11 @@ class _Pip extends StatelessWidget {
               onTap: onSelect,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Center(
-                  child: Text(
-                    sets > 0 ? '$label · ${tn('today.setsToday', sets)}'.toUpperCase() : label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: display(13, on ? p.on : p.ink),
-                  ),
+                child: Text(
+                  sets > 0 ? '$label · ${tn('today.setsToday', sets)}'.toUpperCase() : label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: display(13, inToday || on ? p.on : p.ink),
                 ),
               ),
             ),
@@ -910,18 +980,11 @@ class _Pip extends StatelessWidget {
           if (inToday)
             Container(
               key: ValueKey('chalk-result-today-${v.id}'),
+              width: kChalkAddSize,
               height: double.infinity,
               alignment: Alignment.center,
-              padding: const EdgeInsets.symmetric(horizontal: 6),
               color: kNight,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  PxIcon('check', size: 12, color: p.lime),
-                  const SizedBox(width: 3),
-                  Text(t('today.title'), style: display(11, p.lime)),
-                ],
-              ),
+              child: Semantics(label: t('today.title'), child: PxIcon('check', size: 20, color: p.lime)),
             )
           else
             Semantics(
@@ -936,9 +999,7 @@ class _Pip extends StatelessWidget {
                   width: kChalkAddSize,
                   height: double.infinity,
                   alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    border: Border(left: BorderSide(color: on ? p.on : p.ink, width: 2)),
-                  ),
+                  decoration: BoxDecoration(color: p.orange, border: Border(left: BorderSide(color: p.ink, width: 2))),
                   child: const _Plus(color: kNight),
                 ),
               ),
@@ -959,20 +1020,20 @@ class _Plus extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox.square(
-    key: const ValueKey('chalk-plus'),
-    dimension: size,
-    child: Stack(
-      alignment: Alignment.center,
-      children: [
-        Container(width: size, height: bar, color: color),
-        Container(width: bar, height: size, color: color),
-      ],
-    ),
-  );
+        key: const ValueKey('chalk-plus'),
+        dimension: size,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(width: size, height: bar, color: color),
+            Container(width: bar, height: size, color: color),
+          ],
+        ),
+      );
 }
 
-/// 0 matches: the empty loot slot with FORGE IT, and OR DROP ONE (what each
-/// dropped word brings back).
+/// 0 matches: the empty loot slot (dashed pink) that says why, FORGE IT, and
+/// OR DROP ONE: what each dropped piece brings back.
 class _EmptySlot extends StatelessWidget {
   const _EmptySlot({required this.line, required this.index, required this.onForge, required this.onDrop});
 
@@ -984,73 +1045,107 @@ class _EmptySlot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
-    final words = [for (final k in line) ?chalkWordByKey(k)];
+    const order = ['body', 'pattern', 'tool', 'move'];
+    final words = [for (final k in line) ?chalkWordByKey(k)]..sort((a, b) => order.indexOf(b.row) - order.indexOf(a.row));
+    final names = [for (final w in words.reversed) chalkLabel(w).toUpperCase()].join(' + ');
     return Column(
       key: const ValueKey('chalk-empty-slot'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: p.panel2,
-            border: Border.all(color: p.pink, width: 3),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 56,
-                height: 56,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(border: Border.all(color: p.inkFaint, width: 3)),
-                child: Text('?', style: display(30, p.inkFaint)),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        CustomPaint(
+          foregroundPainter: _DashedBorder(color: p.pink),
+          child: Container(
+            color: p.panel,
+            padding: const EdgeInsets.fromLTRB(16, 18, 12, 14),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Stack(
+                  clipBehavior: Clip.none,
                   children: [
-                    Text(t('chalk.emptySlot'), style: mono(10, p.inkQuiet)),
-                    Text(t('chalk.noSuch'), style: display(20, p.ink)),
+                    Container(
+                      width: 72,
+                      height: 72,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: p.panel2,
+                        border: Border.all(color: p.ink, width: 3),
+                        boxShadow: [BoxShadow(color: p.ink, offset: const Offset(3, 3))],
+                      ),
+                      child: Text('?', style: display(40, p.pink)),
+                    ),
+                    Positioned(
+                      left: -8,
+                      top: -12,
+                      child: Transform.rotate(
+                        angle: -0.06,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                          color: kNight,
+                          child: Text(t('chalk.emptySlot'), style: display(9, p.lime)),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
-              ),
-            ],
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(t('chalk.noSuch'), style: display(20, p.ink)),
+                      const SizedBox(height: 4),
+                      Text(t('chalk.noSuchWhy', {'words': names}), style: mono(10.5, p.inkSoft)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 14),
         BrutalButton(
           key: const ValueKey('chalk-forge'),
           color: p.pink,
           onTap: onForge,
-          child: FittedBox(fit: BoxFit.scaleDown, child: Text(t('forge.go'))),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Image.asset(chalkToolIcon('hammer'), width: 22, height: 22, fit: BoxFit.contain, filterQuality: FilterQuality.none),
+            const SizedBox(width: 8),
+            Text(t('forge.go')),
+          ]),
         ),
-        const SizedBox(height: 14),
-        Text(t('chalk.dropOne'), style: mono(10, p.inkQuiet)),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Shout(t('chalk.dropOne'), size: 12, color: p.ink),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(t('chalk.whatBack'),
+                  textAlign: TextAlign.right, maxLines: 1, overflow: TextOverflow.ellipsis, style: mono(9.5, p.inkQuiet)),
+            ),
+          ],
+        ),
         const SizedBox(height: 6),
         for (final w in words)
           Padding(
-            padding: const EdgeInsets.only(bottom: 6),
+            padding: const EdgeInsets.only(bottom: 8),
             child: GestureDetector(
               key: ValueKey('chalk-drop-${w.key}'),
               behavior: HitTestBehavior.opaque,
               onTap: () => onDrop(w),
               child: Container(
-                height: 44,
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                decoration: BoxDecoration(
-                  color: p.panel,
-                  border: Border.all(color: p.ink, width: 3),
-                ),
+                height: 52,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                decoration: BoxDecoration(color: p.panel, border: Border.all(color: p.ink, width: 3)),
                 child: Row(
                   children: [
-                    Text('× ${chalkLabel(w).toUpperCase()}', style: display(15, p.ink)),
-                    const Spacer(),
-                    Text(
-                      t('chalk.dropGives', {
-                        'n': index.search({...line}..remove(w.key)).length,
-                      }),
-                      style: mono(10.5, p.inkSoft),
-                    ),
+                    _Thumb(word: w, size: 36),
+                    const SizedBox(width: 8),
+                    PxIcon('close', size: 12, color: p.ink),
+                    const SizedBox(width: 6),
+                    Expanded(child: Text(chalkLabel(w).toUpperCase(), maxLines: 1, overflow: TextOverflow.ellipsis, style: display(15, p.ink))),
+                    const SizedBox(width: 6),
+                    Flexible(child: FittedBox(fit: BoxFit.scaleDown, child: _dropTag(p, w))),
                   ],
                 ),
               ),
@@ -1059,4 +1154,40 @@ class _EmptySlot extends StatelessWidget {
       ],
     );
   }
+
+  /// "26 CORE MOVES": what dropping [w] brings back, named by what stays.
+  Widget _dropTag(Pal p, ChalkWord w) {
+    final rest = {...line}..remove(w.key);
+    final n = index.search(rest).length;
+    final kept = [for (final k in rest) ?chalkWordByKey(k)].map((x) => chalkLabel(x).toUpperCase()).join(' ');
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(color: p.lime, border: Border.all(color: p.ink, width: 2)),
+      child: Text(t('chalk.dropGives', {'n': n, 'words': kept}), style: display(11, p.on)),
+    );
+  }
+}
+
+/// A dashed border, for the empty loot slot.
+class _DashedBorder extends CustomPainter {
+  _DashedBorder({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = color;
+    const dash = 9.0, gap = 5.0, w = 3.0;
+    for (var x = 0.0; x < size.width; x += dash + gap) {
+      canvas.drawRect(Rect.fromLTWH(x, 0, (dash).clamp(0, size.width - x), w), paint);
+      canvas.drawRect(Rect.fromLTWH(x, size.height - w, (dash).clamp(0, size.width - x), w), paint);
+    }
+    for (var y = 0.0; y < size.height; y += dash + gap) {
+      canvas.drawRect(Rect.fromLTWH(0, y, w, (dash).clamp(0, size.height - y)), paint);
+      canvas.drawRect(Rect.fromLTWH(size.width - w, y, w, (dash).clamp(0, size.height - y)), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashedBorder old) => old.color != color;
 }
