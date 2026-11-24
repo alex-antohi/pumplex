@@ -8,8 +8,9 @@
 //   for n (Romanian: 1 / 0, 2-19 / 20+ "de") and fills {n}.
 // - A key the language lacks falls back to English; a key English lacks
 //   falls back to [fallback] (or to the key itself).
-// - Exercise names (later): `exercise.<id>` and `move.<base, lower case>`,
-//   with the English name from the exercise list as the fallback
+// - Exercise names: `move.<base, lower case>` and, per variation, a name
+//   composed from the move and the `name.*` parts (D80, composeName), or a
+//   special `exercise.<id>`; the English name of the list is the fallback
 //   (exerciseLabel, groupLabel).
 
 import 'dart:convert';
@@ -18,6 +19,8 @@ import 'dart:ui' show PlatformDispatcher;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'game/exercises.dart';
 
 class I18n {
   I18n._();
@@ -115,8 +118,16 @@ String tOr(String key, String fallback, [Map<String, Object?> params = const {}]
 /// The plural form of [key] for [n] (`key.one` / `key.few` / `key.other`).
 String tn(String key, int n, [Map<String, Object?> params = const {}]) => I18n.instance.tn(key, n, params);
 
-/// An exercise's name: `exercise.<id>`, else the English [name].
-String exerciseLabel(String id, String name) => tOr('exercise.$id', name);
+/// An exercise's name: its special name `exercise.<id>`, else the name
+/// composed from its move and modifiers in the current language (D80,
+/// composeName), else the English [name] (a forged move, an old id).
+String exerciseLabel(String id, String name) {
+  final special = I18n.instance.lookup('exercise.$id');
+  if (special != null) return special;
+  final e = exerciseCatalog.byId[id];
+  final g = e == null || !e.isMove ? null : exerciseCatalog.groupOf(id);
+  return g == null ? name : composeName(e!, g, I18n.instance.lookup);
+}
 
 /// A workout card's name: `move.<base>` for a move (key `move:<base>`),
 /// else the exercise's `exercise.<id>`; the English [name] as the fallback.

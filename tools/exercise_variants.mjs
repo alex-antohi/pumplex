@@ -4,9 +4,11 @@
 // The full list is tools/exercise_db.json; tools/exercise_select.mjs then cuts
 // it down into assets/exercises/exercises.json (D67).
 import fs from 'node:fs';
+import { variationId } from './exercise_names.mjs';
 
 const args = process.argv.slice(2);
-const all = JSON.parse(fs.readFileSync(args[0], 'utf8'));
+// The grid variations (D80, `grid: true`) are made again on every run.
+const all = JSON.parse(fs.readFileSync(args[0], 'utf8')).filter((e) => !e.grid);
 
 // Each axis: [label, regex]. Axis order matters (stance before width).
 const AXES = {
@@ -151,7 +153,8 @@ const MOVE = {
   'Wide-Grip_Rear_Pull-Up': ['Pull-Up', { width: 'Wide Grip' }],
   Pullups: ['Pull-Up', {}],
   'Chin-Up': ['Pull-Up', { hand: 'Reverse Grip' }],
-  'Band_Assisted_Pull-Up': ['Pull-Up', { bands: 'Band Assisted' }],
+  // Band Assisted and Weighted are one Type row (D80: never both).
+  'Band_Assisted_Pull-Up': ['Pull-Up', { type: 'Band Assisted' }],
   Weighted_Pull_Ups: ['Pull-Up', { type: 'Weighted' }],
   Muscle_Up: ['Muscle-Up', {}],
   'Full_Range-Of-Motion_Lat_Pulldown': ['Lat Pulldown', { type: 'Full Range' }],
@@ -503,6 +506,121 @@ for (const r of rows) {
   if (!groups.has(k)) groups.set(k, []);
   groups.get(k).push(r);
 }
+
+// The variation grids (D80): a move's axes and their values, per
+// equipment. Every combination a gym or home lifter does is a variation;
+// `not` lists the combinations that make no sense (a partial set of
+// modifiers; a list = any of these values). `add` lists single extra
+// variations. A new variation copies its fields from the closest one of the
+// move with the same equipment; its level is `level` (else the closest
+// one's) plus the largest raise and the largest cut of `adj`. Its id is
+// variationId (tools/exercise_names.mjs): stable, never renamed.
+const GRID = [
+  // Knee push-ups with every grip width; decline push-ups too. A knee
+  // push-up is not done on an incline or a decline.
+  { move: 'Push-Up', equip: 'Bodyweight', level: 'beginner',
+    axes: { type: [null, 'Knee'], angle: [null, 'Incline', 'Decline'], width: ['Close Grip', 'Medium Grip', 'Wide Grip'] },
+    not: [{ type: 'Knee', angle: ['Incline', 'Decline'] }], adj: { Knee: -1, Decline: 1, 'Close Grip': 1 } },
+  // The incline squeeze press. No decline squeeze or neutral-grip squeeze.
+  { move: 'Bench Press', equip: 'Dumbbell',
+    axes: { angle: [null, 'Incline', 'Decline'], type: [null, 'Squeeze'], hand: [null, 'Neutral Grip'] },
+    not: [{ type: 'Squeeze', hand: 'Neutral Grip' }, { angle: 'Decline', type: 'Squeeze' }, { angle: 'Decline', hand: 'Neutral Grip' }] },
+  // Pull-up grips: overhand, chin-up (reverse) and neutral; band-assisted
+  // and weighted with each. No wide chin-up or wide neutral grip.
+  { move: 'Pull-Up', equip: 'Bodyweight', level: 'intermediate',
+    axes: { hand: [null, 'Reverse Grip', 'Neutral Grip'], width: ['Close Grip', 'Medium Grip', 'Wide Grip'], type: [null, 'Band Assisted', 'Weighted'] },
+    not: [{ width: 'Wide Grip', hand: ['Reverse Grip', 'Neutral Grip'] }, { width: 'Close Grip', hand: 'Neutral Grip' },
+      { type: ['Band Assisted', 'Weighted'], width: ['Close Grip', 'Wide Grip'] }],
+    adj: { 'Band Assisted': -1, Weighted: 1 } },
+  // Every stance on the Smith machine.
+  { move: 'Squat', equip: 'Smith Machine', axes: { stance: [null, 'Narrow Stance', 'Wide Stance'] } },
+  // Dumbbell curls: seated and alternating together; EZ bar grip widths.
+  { move: 'Bicep Curl', equip: 'Dumbbell', axes: { position: [null, 'Seated'], side: [null, 'Alternating', 'One Arm'] },
+    not: [{ position: 'Seated', side: 'One Arm' }] },
+  { move: 'Bicep Curl', equip: 'EZ Bar', axes: { width: ['Close Grip', 'Medium Grip', 'Wide Grip'] } },
+  { move: 'Bent-Over Row', equip: 'Dumbbell', axes: { hand: [null, 'Neutral Grip', 'Reverse Grip'] } },
+  // Seated cable row with a wide bar or an underhand bar.
+  { move: 'Seated Cable Row', equip: 'Cable', axes: { width: ['Medium Grip', 'Wide Grip'], hand: [null, 'Reverse Grip'] },
+    not: [{ width: 'Wide Grip', hand: 'Reverse Grip' }] },
+  // Dumbbell shoulder press: seated or standing, alternating or neutral grip.
+  { move: 'Shoulder Press', equip: 'Dumbbell',
+    axes: { position: ['Seated', 'Standing'], side: [null, 'Alternating'], hand: [null, 'Neutral Grip'] },
+    not: [{ side: 'Alternating', hand: 'Neutral Grip' }] },
+  { move: 'Shoulder Press', equip: 'Kettlebell', add: [{ side: 'One Arm' }] },
+  { move: 'Calf Raise', equip: 'Dumbbell', axes: { position: ['Standing', 'Seated'], side: [null, 'One Leg'] } },
+  { move: 'Lat Pulldown', equip: 'Cable', axes: { width: ['Close Grip', 'Medium Grip', 'Wide Grip'], hand: [null, 'Reverse Grip'] },
+    not: [{ width: 'Wide Grip', hand: 'Reverse Grip' }] },
+  { move: 'Triceps Pushdown', equip: 'Cable', add: [{ side: 'One Arm', hand: 'Reverse Grip' }] },
+  { move: 'Hammer Curl', equip: 'Dumbbell', add: [{ position: 'Seated' }] },
+  { move: 'Lateral Raise', equip: 'Dumbbell', add: [{ side: 'One Arm' }] },
+  { move: 'Front Raise', equip: 'Dumbbell', add: [{ side: 'Alternating' }] },
+  { move: 'Skullcrusher', equip: 'EZ Bar', add: [{ angle: 'Incline' }] },
+  { move: 'Skullcrusher', equip: 'Dumbbell', add: [{ angle: 'Incline' }] },
+  { move: 'Reverse Fly', equip: 'Dumbbell', add: [{ angle: 'Incline' }] },
+  { move: 'Split Squat', equip: 'Barbell', from: 'Dumbbell', level: 'intermediate', add: [{}, { type: 'Bulgarian' }] },
+  { move: 'Glute Bridge', equip: 'Dumbbell', from: 'Barbell', level: 'beginner', add: [{}] },
+  { move: 'Romanian Deadlift', equip: 'Kettlebell', from: 'Dumbbell', add: [{}] },
+  { move: 'Deadlift', equip: 'Kettlebell', from: 'Dumbbell', add: [{}] },
+  { move: 'Shrug', equip: 'Smith Machine', from: 'Barbell', add: [{}] },
+  { move: 'Reverse Curl', equip: 'EZ Bar', from: 'Barbell', add: [{}] },
+  { move: 'Dip', equip: 'Bodyweight', add: [{ type: 'Weighted' }, { type: 'Band Assisted' }],
+    adj: { 'Band Assisted': -1, Weighted: 1 }, level: 'intermediate' },
+  { move: 'Inverted Row', equip: 'Bodyweight', add: [{ hand: 'Reverse Grip' }] },
+  { move: 'Russian Twist', equip: 'Medicine Ball', from: 'Bodyweight', add: [{}] },
+  { move: 'Russian Twist', equip: 'Dumbbell', from: 'Bodyweight', add: [{}] },
+];
+// The database equipment of an equipment modifier (for a new equipment on a move).
+const EQUIP_DB = {
+  Bodyweight: 'body only', Barbell: 'barbell', Dumbbell: 'dumbbell', Kettlebell: 'kettlebells', Cable: 'cable', Machine: 'machine',
+  'Smith Machine': 'machine', Bands: 'bands', 'EZ Bar': 'e-z curl bar', 'Medicine Ball': 'medicine ball', 'Exercise Ball': 'exercise ball',
+};
+const matches = (mods, rule) => Object.entries(rule).every(([a, v]) => (Array.isArray(v) ? v : [v]).includes(mods[a] ?? null));
+// Two modifier sets are the same variation (no width = Medium Grip, D57).
+const sameMods = (a, b) => {
+  const norm = (m) => ({ ...m, width: m.width ?? (WIDTH_EQUIP.has(m.equip) ? 'Medium Grip' : undefined) });
+  const x = norm(a), y = norm(b);
+  return AX_ALL.every((k) => (x[k] ?? null) === (y[k] ?? null));
+};
+const AX_ALL = ['equip', 'type', ...Object.keys(AXES)];
+const combos = (axes) => Object.entries(axes).reduce((acc, [a, vs]) =>
+  acc.flatMap((m) => vs.map((v) => (v == null ? { ...m } : { ...m, [a]: v }))), [{}]);
+const generated = [];
+for (const spec of GRID) {
+  const g = groups.get(spec.move.toLowerCase());
+  if (!g) throw new Error(`GRID: no move ${spec.move}`);
+  const wanted = [...(spec.axes ? combos(spec.axes).filter((m) => !(spec.not ?? []).some((r) => matches(m, r))) : []), ...(spec.add ?? [])]
+    .map((m) => ({ equip: spec.equip, ...m }));
+  for (const mods of wanted) {
+    if (g.some((r) => sameMods(r.mods, mods))) continue;
+    const from = g.filter((r) => r.mods.equip === (spec.from ?? spec.equip));
+    if (!from.length) throw new Error(`GRID ${spec.move}: no ${spec.from ?? spec.equip} variation to copy`);
+    const shared = (r) => AX_ALL.filter((a) => a !== 'equip' && r.mods[a] && r.mods[a] === mods[a]).length
+      + (r.mods.width && r.mods.width === mods.width ? 0.5 : 0) + (r.mods.hand && r.mods.hand === mods.hand ? 0.5 : 0);
+    const src = [...from].sort((a, b) => shared(b) - shared(a) || Object.keys(a.mods).length - Object.keys(b.mods).length)[0];
+    const adj = Object.values(mods).map((v) => spec.adj?.[v] ?? 0);
+    const L = ['beginner', 'intermediate', 'expert'];
+    const lv = L.indexOf(spec.level ?? src.e.level) + Math.max(0, ...adj) + Math.min(0, ...adj);
+    const id = variationId(spec.move, mods);
+    if (all.some((e) => e.id === id) || generated.some((r) => r.e.id === id)) throw new Error(`GRID: id ${id} twice`);
+    const { id: _i, name: _n, custom: _c, ...fields } = src.e;
+    const e = { id, name: id, ...fields, equipment: spec.from ? EQUIP_DB[spec.equip] : src.e.equipment,
+      level: L[Math.max(0, Math.min(2, lv))], custom: true, grid: true };
+    const r = { e, base: spec.move, mods: { ...mods } };
+    if (!WIDTH_EQUIP.has(r.mods.equip)) delete r.mods.width;
+    g.push(r);
+    rows.push(r);
+    generated.push(r);
+  }
+}
+// A nonsense combination never comes back (D80).
+for (const r of rows) {
+  for (const spec of GRID) {
+    if (spec.move.toLowerCase() === r.base.toLowerCase() && r.mods.equip === spec.equip && (spec.not ?? []).some((n) => matches(r.mods, n))) {
+      throw new Error(`GRID ${spec.move}: ${r.e.id} is a combination the rules exclude`);
+    }
+  }
+}
+
 for (const g of groups.values()) {
   const withWidth = new Set(g.filter((r) => r.mods.width).map((r) => r.mods.equip));
   for (const r of g) if (!r.mods.width && withWidth.has(r.mods.equip)) r.mods.width = 'Medium Grip';

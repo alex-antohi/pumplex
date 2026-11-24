@@ -5,7 +5,11 @@
 // (github.com/yuhonas/free-exercise-db, Unlicense), cut down to the fields
 // the filters use and to the most common exercises
 // (tools/exercise_select.mjs, D67). Ids are the database ids; saved sets
-// point to them.
+// point to them. Since D80 a move's grid of axes adds the variations the
+// database lacks (tools/exercise_variants.mjs GRID); their ids are the move
+// and its modifier values (`push-up|bodyweight|knee|close grip`), and their
+// names are composed from translated parts (composeName), not translated
+// one by one.
 //
 // Commonness (D67): each card has a `rank` (1 = the most common) and, per
 // class, the first difficulty mode that shows it (`unlock`). The tool sets
@@ -273,9 +277,53 @@ class ExerciseCatalog {
 /// The app's exercise list (set in main.dart before the app starts).
 ExerciseCatalog exerciseCatalog = ExerciseCatalog.empty;
 
-/// Display name of an exercise id. An id that is no longer in the list
-/// (D67) shows as the id with spaces.
+/// Display name of an exercise id, in English. An id that is no longer in
+/// the list (D67) shows as the id with spaces.
 String exerciseName(String id) => exerciseCatalog.byId[id]?.name ?? id.replaceAll('_', ' ');
+
+/// The composed name of variation [e] of [group] (D80): the move's name and
+/// the name parts of its modifiers, in the word order of the language that
+/// [look] reads (key -> text, null when missing). The same rule as
+/// tools/exercise_names.mjs, which writes the English names into the list:
+/// - `name.order`: the slots in word order (`move` and the axis ids);
+/// - `name.move.<base>`, else `move.<base>`: the move's word;
+/// - `name.<axis>.<value>`, else `name.<value>`, else the value: a part;
+///   an empty part is left out (Medium Grip); a part `a|b|c` has a form per
+///   gender of the move's first word (masculine or neuter, feminine, plural);
+/// - the equipment part only when the move has more than one equipment.
+/// A special name (`exercise.<id>`) is not looked at here (exerciseLabel).
+String composeName(CatalogExercise e, ExerciseGroup group, String? Function(String key) look) {
+  final b = e.base.toLowerCase();
+  final move = look('name.move.$b') ?? look('move.$b') ?? e.base;
+  final form = nameForm(move);
+  final equipShown = {for (final v in group.variants) v.mods['equip']}.length > 1;
+  final words = <String>[];
+  for (final slot in (look('name.order') ?? '').split(' ').where((s) => s.isNotEmpty)) {
+    if (slot == 'move') {
+      words.add(move);
+      continue;
+    }
+    final v = e.mods[slot];
+    if (v == null || (slot == 'equip' && !equipShown)) continue;
+    var p = look('name.$slot.$v') ?? look('name.$v') ?? v;
+    if (p.contains('|')) {
+      final forms = p.split('|');
+      p = forms[form.clamp(0, forms.length - 1)];
+    }
+    if (p.isNotEmpty) words.add(p);
+  }
+  return words.join(' ');
+}
+
+/// The form of a name part for a move name (D80): 0 masculine or neuter,
+/// 1 feminine, 2 plural, from the end of its first word (Romanian:
+/// "Flotări" plural, "Presă" feminine, "Împins" neuter).
+int nameForm(String moveName) {
+  final w = moveName.split(' ').first.toLowerCase();
+  if (w.endsWith('i') || w.endsWith('e')) return 2;
+  if (w.endsWith('ă') || w.endsWith('a')) return 1;
+  return 0;
+}
 
 /// What a modifier chip picks (D57): the exercise, and whether it keeps
 /// all of [current]'s other modifiers (`exact`). The equipment row may

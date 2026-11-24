@@ -44,6 +44,7 @@
 // `custom: true` (D57, D69) must be kept. Ids do not change (saved sets
 // point to them).
 import fs from 'node:fs';
+import { composeName, equipShownOf } from './exercise_names.mjs';
 
 // Most common first. A name is a move (`base`) or the id of an exercise
 // (then it stands for the exercise's move).
@@ -230,73 +231,11 @@ const PIN = {
   },
 };
 
-// Clean display names (D69 clean-up): one spelling (Push-Up, Pull-Up),
-// singular names, gym words ("Leverage" machines are machines). The app
-// list gets these; the database file keeps its names, and ids never change.
-const NAME = {
-  Pushups: 'Push-Up', Pullups: 'Pull-Up', 'Push-Up_Wide': 'Wide-Grip Push-Up',
-  'Push-Ups_-_Close_Triceps_Position': 'Close-Grip Push-Up', 'Incline_Push-Up_Close-Grip': 'Incline Close-Grip Push-Up',
-  'Incline_Push-Up_Reverse_Grip': 'Incline Reverse-Grip Push-Up', 'Incline_Push-Up_Wide': 'Incline Wide-Grip Push-Up',
-  'Plyo_Push-up': 'Plyo Push-Up', 'Handstand_Push-Ups': 'Handstand Push-Up', Push_Up_to_Side_Plank: 'Push-Up to Side Plank',
-  'Close-Grip_Push-Up_off_of_a_Dumbbell': 'Close-Grip Dumbbell Push-Up', 'V-Bar_Pullup': 'V-Bar Pull-Up',
-  Butt_Lift_Bridge: 'Glute Bridge', Physioball_Hip_Bridge: 'Exercise Ball Glute Bridge',
-  Machine_Bench_Press: 'Machine Chest Press', Leverage_Chest_Press: 'Plate-Loaded Chest Press',
-  Leverage_Decline_Chest_Press: 'Machine Decline Chest Press', Leverage_Incline_Chest_Press: 'Machine Incline Chest Press',
-  Leverage_Shoulder_Press: 'Plate-Loaded Shoulder Press', Machine_Shoulder_Military_Press: 'Machine Shoulder Press',
-  Smith_Machine_Overhead_Shoulder_Press: 'Smith Machine Shoulder Press', Leverage_Deadlift: 'Machine Deadlift',
-  Leverage_Shrug: 'Machine Shrug', Leverage_High_Row: 'Machine High Row',
-  Seated_Cable_Rows: 'Seated Cable Row', 'Seated_One-arm_Cable_Pulley_Rows': 'One-Arm Seated Cable Row',
-  Dumbbell_Incline_Row: 'Incline Dumbbell Row', 'Bent_Over_Two-Arm_Long_Bar_Row': 'T-Bar Row',
-  'Bent_Over_One-Arm_Long_Bar_Row': 'One-Arm T-Bar Row',
-  Hyperextensions_With_No_Hyperextension_Bench: 'Back Extension',
-  Bent_Over_Dumbbell_Rear_Delt_Raise_With_Head_On_Bench: 'Head-Supported Rear Delt Raise',
-  Front_Squat_Clean_Grip: 'Front Squat', Front_Barbell_Squat: 'Cross-Arm Front Squat',
-  Split_Squat_with_Dumbbells: 'Dumbbell Split Squat', Dumbbell_Rear_Lunge: 'Dumbbell Reverse Lunge',
-  'Step-up_with_Knee_Raise': 'Step-Up with Knee Raise', Air_Bike: 'Bicycle Crunch', Flat_Bench_Lying_Leg_Raise: 'Lying Leg Raise',
-  Side_Bridge: 'Side Plank', Natural_Glute_Ham_Raise: 'Nordic Curl', Thigh_Abductor: 'Hip Abduction Machine',
-  Thigh_Adductor: 'Hip Adduction Machine', Band_Hip_Adductions: 'Band Hip Adduction', Freehand_Jump_Squat: 'Jump Squat',
-  Overhead_Slam: 'Medicine Ball Slam', Plie_Dumbbell_Squat: 'Dumbbell Sumo Squat', Rack_Pulls: 'Rack Pull',
-  Rope_Jumping: 'Jump Rope', Ball_Leg_Curl: 'Exercise Ball Leg Curl', Tricep_Dumbbell_Kickback: 'Dumbbell Triceps Kickback',
-  Mountain_Climbers: 'Mountain Climber', 'One-Arm_Kettlebell_Swings': 'One-Arm Kettlebell Swing',
-  Isometric_Chest_Squeezes: 'Isometric Chest Squeeze', Ab_Crunch_Machine: 'Machine Crunch',
-  Calf_Press_On_The_Leg_Press_Machine: 'Leg Press Calf Raise', Calf_Raise_On_A_Dumbbell: 'Calf Raise on a Dumbbell',
-  Pull_Through: 'Cable Pull-Through', 'One-Legged_Cable_Kickback': 'Cable Glute Kickback', Vertical_Swing: 'Dumbbell Swing',
-  Band_Pull_Apart: 'Band Pull-Apart', 'Barbell_Ab_Rollout_-_On_Knees': 'Kneeling Barbell Ab Rollout',
-  Underhand_Cable_Pulldowns: 'Underhand Lat Pulldown', 'Close-Grip_Front_Lat_Pulldown': 'Close-Grip Lat Pulldown',
-  Cable_One_Arm_Tricep_Extension: 'One-Arm Cable Triceps Pushdown', Lying_Dumbbell_Tricep_Extension: 'Lying Dumbbell Triceps Extension',
-  'Triceps_Pushdown_-_Rope_Attachment': 'Rope Triceps Pushdown', 'Triceps_Pushdown_-_V-Bar_Attachment': 'V-Bar Triceps Pushdown',
-  'Dips_-_Triceps_Version': 'Triceps Dip', Bench_Dips: 'Bench Dip', Body_Tricep_Press: 'Bodyweight Triceps Extension',
-  // Plurals and "- With Bands".
-  Narrow_Stance_Squats: 'Narrow Stance Squat', 'Squats_-_With_Bands': 'Band Squat', Crunches: 'Crunch',
-  Cable_Deadlifts: 'Cable Deadlift', 'Calf_Raises_-_With_Bands': 'Band Calf Raise', Standing_Calf_Raises: 'Standing Calf Raise',
-  Dumbbell_Lunges: 'Dumbbell Lunge', Lying_Leg_Curls: 'Lying Leg Curl', Leg_Extensions: 'Leg Extension',
-  'Cable_Hammer_Curls_-_Rope_Attachment': 'Cable Rope Hammer Curl', Hammer_Curls: 'Hammer Curl',
-  Incline_Hammer_Curls: 'Incline Hammer Curl', Cable_Shrugs: 'Cable Shrug', Bodyweight_Flyes: 'Bodyweight Fly',
-  Decline_Dumbbell_Flyes: 'Decline Dumbbell Fly', Dumbbell_Flyes: 'Dumbbell Fly', Flat_Bench_Cable_Flyes: 'Cable Fly',
-  Incline_Cable_Flye: 'Incline Cable Fly', Incline_Dumbbell_Flyes: 'Incline Dumbbell Fly',
-  'One-Arm_Flat_Bench_Dumbbell_Flye': 'One-Arm Dumbbell Fly', Machine_Preacher_Curls: 'Machine Preacher Curl',
-  Reverse_Flyes: 'Dumbbell Reverse Fly', Reverse_Machine_Flyes: 'Machine Reverse Fly', 'Back_Flyes_-_With_Bands': 'Band Reverse Fly',
-  'Cross_Over_-_With_Bands': 'Band Crossover', Narrow_Stance_Hack_Squats: 'Narrow Stance Hack Squat',
-  Barbell_Step_Ups: 'Barbell Step-Up', Dumbbell_Step_Ups: 'Dumbbell Step-Up', Concentration_Curls: 'Concentration Curl',
-  Seated_Good_Mornings: 'Seated Good Morning', Oblique_Crunches: 'Oblique Crunch',
-  'Shoulder_Press_-_With_Bands': 'Band Shoulder Press', 'Lateral_Raise_-_With_Bands': 'Band Lateral Raise',
-  'Upright_Row_-_With_Bands': 'Band Upright Row', 'Bench_Press_-_With_Bands': 'Bench Press with Bands',
-  // The variation audit and the gear `other` that is body only (D50).
-  'Band_Assisted_Pull-Up': 'Band-Assisted Pull-Up', Weighted_Pull_Ups: 'Weighted Pull-Up', Muscle_Up: 'Muscle-Up',
-  'Dips_-_Chest_Version': 'Chest Dip', Ring_Dips: 'Ring Dip', Ab_Roller: 'Ab Wheel Rollout',
-  Knee_Hip_Raise_On_Parallel_Bars: "Captain's Chair Knee Raise", Front_Box_Jump: 'Box Jump',
-  Running_Treadmill: 'Treadmill', Bicycling_Stationary: 'Stationary Bike', Rowing_Stationary: 'Rowing Machine',
-  Stairmaster: 'Stair Climber', Landmine_Linear_Jammer: 'Landmine Press', 'Kettlebell_Turkish_Get-Up_Squat_style': 'Turkish Get-Up',
-  Standing_Cable_Wood_Chop: 'Cable Wood Chop', Hyperextensions_With_No_Hyperextension_Bench: 'Floor Back Extension',
-  Hyperextensions_Back_Extensions: 'Back Extension', 'Full_Range-Of-Motion_Lat_Pulldown': 'Full-Range Lat Pulldown',
-  Alternating_Deltoid_Raise: 'Alternating Lateral Raise', 'Standing_Low-Pulley_Deltoid_Raise': 'One-Arm Cable Lateral Raise',
-  Front_Squats_With_Two_Kettlebells: 'Double Kettlebell Front Squat', 'Cable_Rope_Rear-Delt_Rows': 'Cable Rope Rear Delt Row',
-  Glute_Ham_Raise: 'Glute-Ham Raise', Cross_Body_Hammer_Curl: 'Cross-Body Hammer Curl', Cable_Russian_Twists: 'Cable Russian Twist',
-  Alternate_Heel_Touchers: 'Heel Touch', High_Cable_Curls: 'High Cable Curl', Side_Laterals_to_Front_Raise: 'Lateral to Front Raise',
-  Finger_Curls: 'Finger Curl', Hip_Extension_with_Bands: 'Band Hip Extension', Double_Leg_Butt_Kick: 'Double-Leg Butt Kick',
-  Single_Leg_Butt_Kick: 'Single-Leg Butt Kick', Zercher_Squats: 'Zercher Squat',
-  'Smith_Single-Leg_Split_Squat': 'Smith Machine Bulgarian Split Squat',
-};
+// Display names (D80): a special name from assets/i18n/en.json (`exercise.<id>`,
+// the clean names of the D69 clean-up that no rule makes), else the name
+// composed from the move and its modifiers (tools/exercise_names.mjs). The
+// database file keeps its names, and ids never change.
+const EN = JSON.parse(fs.readFileSync(new URL('../assets/i18n/en.json', import.meta.url), 'utf8'));
 
 // Variations of kept moves that are too rare to keep.
 const OBSCURE = new Set([
@@ -353,12 +292,6 @@ for (const [id, level] of Object.entries(LEVEL)) {
   if (e.level === level) throw new Error(`LEVEL: ${id} is already ${level}`);
   e.level = level;
 }
-for (const [id, name] of Object.entries(NAME)) {
-  const e = all.find((x) => x.id === id);
-  if (!e) throw new Error(`NAME: no exercise ${id}`);
-  if (e.name === name) throw new Error(`NAME: ${id} is already ${name}`);
-  e.name = name;
-}
 const cardOf = (e) => e.base ?? e.id;
 const visible = all.filter((e) => !OBSCURE.has(e.id) && Object.keys(CLASSES).some((c) => inClass(c, e)));
 const byId = new Map(all.map((e) => [e.id, e]));
@@ -367,6 +300,10 @@ const byCard = new Map();
 for (const e of visible) {
   if (!byCard.has(cardOf(e))) byCard.set(cardOf(e), []);
   byCard.get(cardOf(e)).push(e);
+}
+for (const vs of byCard.values()) {
+  const shown = equipShownOf(vs);
+  for (const e of vs) e.name = EN[`exercise.${e.id}`] ?? composeName(e.base, e.mods, shown, (k) => EN[k]);
 }
 // A name in COMMON and PATTERNS: a move, or an exercise id for its move.
 const cardName = (n) => (byCard.has(n) ? n : byId.has(n) ? cardOf(byId.get(n)) : n);

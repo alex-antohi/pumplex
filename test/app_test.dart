@@ -180,7 +180,7 @@ void main() {
   test('exercise names (D68): every exercise and move has a name key, search words are lists', () {
     final en = I18n.parse(langFiles['en']!);
     for (final e in exerciseCatalog.all) {
-      expect(en['exercise.${e.id}'], e.name, reason: e.id);
+      expect(exerciseLabel(e.id, ''), e.name, reason: e.id); // special or composed (D80)
       expect(en.containsKey('move.${e.base.toLowerCase()}'), isTrue, reason: e.base);
     }
     for (final g in exerciseCatalog.groups.where((g) => g.key.startsWith('move:'))) {
@@ -326,8 +326,8 @@ void main() {
     expect(gameClasses.map((c) => c.equipment).toSet().length, gameClasses.length);
     final all = exerciseCatalog.all;
     // The common exercises only (D67, D69), with the added bench presses
-    // (D57) and bodyweight exercises (D69).
-    expect(all.length, 479);
+    // (D57) and bodyweight exercises (D69), and the variation grids (D80).
+    expect(all.length, 524);
     expect(exerciseCatalog.groups.length, 164);
     // The clean-up (D69): every card is a move, with a clean move name.
     expect(exerciseCatalog.groups.where((g) => !g.key.startsWith('move:')), isEmpty);
@@ -421,7 +421,7 @@ void main() {
     expect(chipTarget(bench, flatBar, 'side', 'One Arm'), isNull);
     // All dips are one move, with a Type row.
     final dip = exerciseCatalog.byKey['move:dip']!;
-    expect(dip.variants.length, 7); // dip bars and rings are body only (D50)
+    expect(dip.variants.length, 9); // D80 adds weighted and band-assisted; dip bars and rings are body only (D50)
     expect(dip.axes.firstWhere((a) => a.$1.id == 'type').$2, containsAll(['Triceps', 'Bench']));
     expect(all.map((e) => e.id).toSet().length, all.length);
     expect(all.every((e) => !e.id.contains('.')), isTrue); // old ids have a dot (D54)
