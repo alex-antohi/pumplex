@@ -218,6 +218,13 @@ class ChalkIndex {
           for (final e in g.variants) ChalkResult(g, e),
       ];
 
+  /// What a results row shows under the name: the body part of [e] (by its
+  /// muscle) and its TOOL word, when it has them.
+  ({BodyPart? part, ChalkWord? tool}) tagsOf(CatalogExercise e) => (
+        part: bodyParts.where((b) => b.muscles.contains(e.muscle)).firstOrNull,
+        tool: (words[e.id] ?? const <String>{}).where((k) => k.startsWith('tool.')).map(chalkWordByKey).firstOrNull,
+      );
+
   /// How many exercises have every word of [line] (the rows of [results]).
   int count(Iterable<String> line) => catalog.groups.fold(0, (n, g) => n + g.variants.where((e) => _has(e, line)).length);
 }

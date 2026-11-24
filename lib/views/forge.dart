@@ -13,7 +13,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../game/chalk.dart';
-import '../game/content.dart';
 import '../game/exercises.dart';
 import '../game/forge.dart';
 import '../i18n.dart';
@@ -64,8 +63,7 @@ class _ForgeScreenState extends State<ForgeScreen> {
   Widget build(BuildContext context) {
     final p = Pal.of(context);
     final name = forgeName(_words);
-    final equipment = ForgedMove(id: '', words: _words, muscle: _body.$2).toExercise().equipment;
-    final classes = [for (final c in gameClasses) if (classEquipment[c.id]!.contains(equipment)) c.name];
+    final classes = [for (final c in forgeClasses(_words)) c.name];
     final part = bodyPartById(_body.$1)!;
     return Scaffold(
       backgroundColor: p.bg,
@@ -87,73 +85,84 @@ class _ForgeScreenState extends State<ForgeScreen> {
                         Shout(t('forge.title'), size: 13, color: p.ink),
                         const SizedBox(height: 8),
                         // The name on one line, smaller when long.
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: Text((_nick.trim().isEmpty ? name : _nick.trim()).toUpperCase(),
-                              key: const ValueKey('forge-name'),
-                              maxLines: 1,
-                              style: display(34, p.ink).copyWith(shadows: [Shadow(offset: const Offset(2, 2), color: p.orange)])),
+                        ShadowTitle(
+                          (_nick.trim().isEmpty ? name : _nick.trim()).toUpperCase(),
+                          textKey: const ValueKey('forge-name'),
+                          maxLines: 1,
+                          size: 34,
+                          shadowColor: p.orange,
                         ),
                         if (_nick.trim().isNotEmpty)
                           Text(name.toUpperCase(), key: const ValueKey('forge-chalk-name'), style: display(16, p.orange)),
                         const SizedBox(height: 12),
-                        for (final row in _forgeRows) ...[
-                          Text(chalkRowLabel(row).toUpperCase(), style: mono(10, p.ink)),
-                          const SizedBox(height: 4),
-                          Wrap(spacing: 6, runSpacing: 6, children: [
-                            for (final w in chalkWords.where((w) => w.row == row))
-                              _Pick(
-                                id: 'forge-${w.key}',
-                                label: chalkLabel(w),
-                                selected: _words.contains(w.key),
-                                color: kNight,
-                                fg: kChalk,
-                                onTap: () => _toggle(w),
-                              ),
-                          ]),
-                          const SizedBox(height: 10),
-                        ],
+                        for (final row in _forgeRows)
+                          ChipSection(
+                            title: chalkRowLabel(row),
+                            small: true,
+                            titleSize: 10,
+                            gap: 4,
+                            bottom: 10,
+                            children: [
+                              for (final w in chalkWords.where((w) => w.row == row))
+                                PickChip(
+                                  id: 'forge-${w.key}',
+                                  label: chalkLabel(w),
+                                  dense: true,
+                                  selected: _words.contains(w.key),
+                                  color: kNight,
+                                  selectedFg: p.chalk,
+                                  onTap: () => _toggle(w),
+                                ),
+                            ],
+                          ),
                         Text(
                           classes.isEmpty ? t('forge.noClass') : t('forge.showsFor', {'classes': classes.join(' · ')}),
                           key: const ValueKey('forge-shows-for'),
                           style: mono(11, p.violet),
                         ),
                         const SizedBox(height: 12),
-                        Text(t('label.bodyPart').toUpperCase(), style: mono(10, p.ink)),
-                        const SizedBox(height: 4),
-                        Wrap(spacing: 6, runSpacing: 6, children: [
-                          for (final b in bodyParts)
-                            _Pick(
-                              id: 'forge-body-${b.id}',
-                              label: bodyPartLabel(b.id),
-                              selected: _body.$1 == b.id,
-                              color: p.sky,
-                              fg: p.on,
-                              onTap: () => setState(() {
-                                _bodyPicked = true;
-                                _body = (b.id, b.muscles.first);
-                              }),
-                            ),
-                        ]),
-                        const SizedBox(height: 10),
-                        Text(t('label.muscle').toUpperCase(), style: mono(10, p.ink)),
-                        const SizedBox(height: 4),
-                        Wrap(spacing: 6, runSpacing: 6, children: [
-                          for (final m in part.muscles)
-                            _Pick(
-                              id: 'forge-muscle-$m',
-                              label: muscleLabel(m),
-                              selected: _body.$2 == m,
-                              color: p.violet,
-                              fg: p.on,
-                              onTap: () => setState(() {
-                                _bodyPicked = true;
-                                _body = (part.id, m);
-                              }),
-                            ),
-                        ]),
-                        const SizedBox(height: 12),
+                        ChipSection(
+                          title: t('label.bodyPart'),
+                          small: true,
+                          titleSize: 10,
+                          gap: 4,
+                          bottom: 10,
+                          children: [
+                            for (final b in bodyParts)
+                              PickChip(
+                                id: 'forge-body-${b.id}',
+                                label: bodyPartLabel(b.id),
+                                dense: true,
+                                selected: _body.$1 == b.id,
+                                color: p.sky,
+                                onTap: () => setState(() {
+                                  _bodyPicked = true;
+                                  _body = (b.id, b.muscles.first);
+                                }),
+                              ),
+                          ],
+                        ),
+                        ChipSection(
+                          title: t('label.muscle'),
+                          small: true,
+                          titleSize: 10,
+                          gap: 4,
+                          bottom: 12,
+                          children: [
+                            for (final m in part.muscles)
+                              PickChip(
+                                id: 'forge-muscle-$m',
+                                label: muscleLabel(m),
+                                dense: true,
+                                selected: _body.$2 == m,
+                                color: p.violet,
+                                onTap: () => setState(() {
+                                  _bodyPicked = true;
+                                  _body = (part.id, m);
+                                }),
+                              ),
+                          ],
+                        ),
                         Text(t('forge.nickname'), style: mono(10, p.ink)),
                         const SizedBox(height: 4),
                         GestureDetector(
@@ -171,7 +180,7 @@ class _ForgeScreenState extends State<ForgeScreen> {
                               alignment: Alignment.centerLeft,
                               child: Text(
                                 _nick.isEmpty ? t('forge.carve') : '${_nick.toUpperCase()}${_typing ? '_' : ''}',
-                                style: display(20, _nick.isEmpty ? kChalk.withValues(alpha: 0.35) : kChalk),
+                                style: display(20, _nick.isEmpty ? p.chalkFaint : p.chalk),
                               ),
                             ),
                           ),
@@ -183,27 +192,21 @@ class _ForgeScreenState extends State<ForgeScreen> {
               ),
             ),
             // BACK and FORGE IT, over the keyboard.
-            Padding(
+            ActionBar(
               padding: const EdgeInsets.fromLTRB(16, 4, 24, 12),
-              child: Row(
-                children: [
-                  BrutalButton(
-                    key: const ValueKey('forge-back'),
-                    small: true,
-                    color: p.sky,
-                    onTap: () => Navigator.of(context).pop(),
-                    child: Text(t('nav.back')),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: BrutalButton(
-                      key: const ValueKey('forge-it'),
-                      color: p.lime,
-                      onTap: _forge,
-                      child: Text(t('forge.go')),
-                    ),
-                  ),
-                ],
+              gap: 12,
+              back: BrutalButton(
+                key: const ValueKey('forge-back'),
+                small: true,
+                color: p.sky,
+                onTap: () => Navigator.of(context).pop(),
+                child: Text(t('nav.back')),
+              ),
+              main: BrutalButton(
+                key: const ValueKey('forge-it'),
+                color: p.lime,
+                onTap: _forge,
+                child: Text(t('forge.go')),
               ),
             ),
             if (_typing)
@@ -214,35 +217,6 @@ class _ForgeScreenState extends State<ForgeScreen> {
               ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-/// A chip on the FORGE card: filled when picked.
-class _Pick extends StatelessWidget {
-  const _Pick({required this.id, required this.label, required this.selected, required this.color, required this.fg, required this.onTap});
-
-  final String id, label;
-  final bool selected;
-  final Color color, fg;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = Pal.of(context);
-    return GestureDetector(
-      key: ValueKey(id),
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: selected ? color : p.panel,
-          border: Border.all(color: p.ink, width: 2),
-          boxShadow: selected ? [BoxShadow(color: p.ink, offset: const Offset(2, 2))] : null,
-        ),
-        child: Text(label.toUpperCase(), style: display(12, selected ? fg : p.ink)),
       ),
     );
   }

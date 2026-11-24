@@ -23,8 +23,9 @@ import '../pumplex.dart';
 import '../store.dart';
 import 'forge.dart';
 
-/// Chalk white, for the words on the dark floor.
-const kChalk = Color(0xFFF4F1FF);
+/// Chalk white, for the words on the dark floor (an alias of [Pal.chalk];
+/// workout.dart uses it).
+const kChalk = Pal.chalkWhite;
 
 /// A word's label in the current language: `chalk.<row>.<id>`.
 String chalkLabel(ChalkWord w) => tOr('chalk.${w.key}', w.label);
@@ -32,16 +33,8 @@ String chalkLabel(ChalkWord w) => tOr('chalk.${w.key}', w.label);
 /// A row's title: `chalk.row.<row>`.
 String chalkRowLabel(String row) => tOr('chalk.row.$row', row);
 
-Future<void> showChalkSheet(BuildContext context, LogStore store) {
-  final p = Pal.of(context);
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: p.bg,
-    shape: Border(top: BorderSide(color: p.ink, width: 4)),
-    builder: (_) => ChalkSheet(store: store),
-  );
-}
+Future<void> showChalkSheet(BuildContext context, LogStore store) =>
+    showBrutalSheet(context, (_) => ChalkSheet(store: store));
 
 /// The CHALK sheet's height, a fixed part of the screen: the same with 0,
 /// 3 or 30 results, so the sheet never jumps (D81 follow-up).
@@ -111,30 +104,26 @@ class ChalkSheet extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           for (final row in chalkRows)
-                            Padding(
+                            ChipSection(
                               key: ValueKey('chalk-row-$row'),
-                              padding: const EdgeInsets.only(bottom: 10),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Shout(chalkRowLabel(row), size: 13, color: p.ink),
-                                  const SizedBox(height: 6),
-                                  Wrap(
-                                    spacing: 6,
-                                    runSpacing: 6,
-                                    children: [
-                                      for (final w in chalkWords.where((w) => w.row == row))
-                                        _Tile(
-                                          word: w,
-                                          // Greyed when it gives nothing.
-                                          off: !line.contains(w.key) && index.count(chalkToggle(line, w)) == 0,
-                                          selected: line.contains(w.key),
-                                          onTap: () => store.setChalk(chalkToggle(line, w)),
-                                        ),
-                                    ],
+                              title: chalkRowLabel(row),
+                              bottom: 10,
+                              children: [
+                                // A word tile: its label only (no count,
+                                // D81); filled lime when picked (like the
+                                // selected result row), greyed when it gives
+                                // no exercise.
+                                for (final w in chalkWords.where((w) => w.row == row))
+                                  PickChip(
+                                    id: 'chalk-${w.key}',
+                                    label: chalkLabel(w),
+                                    off: !line.contains(w.key) && index.count(chalkToggle(line, w)) == 0,
+                                    selected: line.contains(w.key),
+                                    color: p.lime,
+                                    selectedBorder: p.on,
+                                    onTap: () => store.setChalk(chalkToggle(line, w)),
                                   ),
-                                ],
-                              ),
+                              ],
                             ),
                         ],
                       ),
@@ -224,7 +213,7 @@ class _ChalkScrollState extends State<ChalkScroll> {
               data: ScrollbarThemeData(
                 thumbColor: WidgetStatePropertyAll(p.ink),
                 trackColor: WidgetStatePropertyAll(p.lime.withValues(alpha: 0.45)),
-                trackBorderColor: WidgetStatePropertyAll(p.ink.withValues(alpha: 0.4)),
+                trackBorderColor: WidgetStatePropertyAll(p.inkFaint),
                 thickness: const WidgetStatePropertyAll(6),
                 radius: Radius.zero,
                 crossAxisMargin: 1,
@@ -329,8 +318,7 @@ class _ResultRow extends StatelessWidget {
     final inToday = store.inToday(g.key);
     final on = store.pickedCard == g.key && store.variantFor(g).id == v.id;
     final sets = store.groupSetsToday(g.key);
-    final part = bodyParts.where((b) => b.muscles.contains(v.muscle)).firstOrNull;
-    final tool = (index.words[v.id] ?? const <String>{}).where((k) => k.startsWith('tool.')).map(chalkWordByKey).firstOrNull;
+    final (:part, :tool) = index.tagsOf(v);
     final info = [
       if (part != null) bodyPartLabel(part.id),
       if (tool != null) chalkLabel(tool),
@@ -349,14 +337,15 @@ class _ResultRow extends StatelessWidget {
           store.selectCard(g.key);
           Navigator.of(context).pop();
         },
-        child: Container(
+        child: Brutal(
           key: on ? ValueKey('chalk-result-on-${v.id}') : null,
           padding: const EdgeInsets.fromLTRB(10, 4, 4, 4),
-          decoration: BoxDecoration(
-            color: on ? p.lime : p.panel,
-            border: Border.all(color: on ? p.on : p.ink, width: 3),
-            boxShadow: [BoxShadow(color: p.ink, offset: const Offset(3, 3))],
-          ),
+          color: on ? p.lime : p.panel,
+          borderColor: on ? p.on : p.ink,
+          border: 3,
+          shadow: p.ink,
+          offset: 3,
+          duration: Duration.zero,
           child: Row(
             children: [
               Expanded(
@@ -366,7 +355,7 @@ class _ResultRow extends StatelessWidget {
                     Text(displayName(v).toUpperCase(), style: display(15, fg)),
                     if (info.isNotEmpty) ...[
                       const SizedBox(height: 2),
-                      Text(info.toUpperCase(), style: mono(10, fg.withValues(alpha: 0.7))),
+                      Text(info.toUpperCase(), style: mono(10, on ? p.onSoft : p.inkSoft)),
                     ],
                   ],
                 ),
@@ -382,68 +371,20 @@ class _ResultRow extends StatelessWidget {
                   child: Text(t('today.title'), style: display(12, p.lime)),
                 )
               else
-                Semantics(
-                  button: true,
+                IconTapButton(
+                  key: ValueKey('chalk-result-add-${v.id}'),
                   label: '+ ${t('today.title')}',
-                  child: GestureDetector(
-                    key: ValueKey('chalk-result-add-${v.id}'),
-                    behavior: HitTestBehavior.opaque,
-                    // Adds the card to Today, on this exercise; the sheet
-                    // stays open.
-                    onTap: () {
-                      store.pickVariant(v.id);
-                      store.addToToday(g.key);
-                    },
-                    child: Container(
-                      width: kChalkAddSize,
-                      height: kChalkAddSize,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: kNight,
-                        border: Border.all(color: on ? p.on : p.ink, width: 2),
-                      ),
-                      child: Text('+', style: display(24, p.lime)),
-                    ),
-                  ),
+                  size: kChalkAddSize,
+                  borderColor: on ? p.on : p.ink,
+                  // Adds the card to Today, on this exercise; the sheet
+                  // stays open.
+                  onTap: () {
+                    store.pickVariant(v.id);
+                    store.addToToday(g.key);
+                  },
+                  icon: Text('+', style: display(24, p.lime)),
                 ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// A word tile: its label only (no count, D81); filled lime when picked
-/// (like the selected result row), greyed
-/// when it gives no exercise.
-class _Tile extends StatelessWidget {
-  const _Tile({required this.word, required this.off, required this.selected, required this.onTap});
-
-  final ChalkWord word;
-  final bool off, selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = Pal.of(context);
-    return Semantics(
-      button: true,
-      selected: selected,
-      child: GestureDetector(
-        key: ValueKey('chalk-${word.key}'),
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Opacity(
-          opacity: off ? 0.35 : 1,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-            decoration: BoxDecoration(
-              color: selected ? p.lime : p.panel,
-              border: Border.all(color: selected ? p.on : p.ink, width: 3),
-              boxShadow: selected ? [BoxShadow(color: p.ink, offset: const Offset(3, 3))] : null,
-            ),
-            child: Text(chalkLabel(word).toUpperCase(), style: display(13, selected ? p.on : p.ink)),
           ),
         ),
       ),

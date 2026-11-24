@@ -97,13 +97,12 @@ class _Tile extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      child: Container(
+      child: Brutal(
         padding: const EdgeInsets.all(6),
-        decoration: BoxDecoration(
-          color: p.panel,
-          border: Border.all(color: p.ink, width: 3),
-          boxShadow: [BoxShadow(color: color, offset: const Offset(4, 4))],
-        ),
+        border: 3,
+        shadow: color,
+        offset: 4,
+        duration: Duration.zero,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

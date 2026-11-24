@@ -27,25 +27,48 @@ class _Nav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
+    return ActionBar(
+      padding: _setupBarPadding(context),
+      back: onBack == null ? null : BrutalButton(color: p.sky, onTap: onBack, child: IconText('back', t('nav.back'))),
+      main: BrutalButton(
+        color: p.pink,
+        onTap: onNext,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(next, maxLines: 1, softWrap: false, textAlign: TextAlign.center, style: display(24, p.on)),
+        ),
+      ),
+    );
+  }
+}
+
+/// The padding of the setup screens' bottom bar (over the phone's bar).
+EdgeInsets _setupBarPadding(BuildContext context) =>
+    EdgeInsets.fromLTRB(16, 8, 22, 14 + MediaQuery.paddingOf(context).bottom);
+
+/// A small square toggle beside the body card: the sex buttons on the
+/// left, the language buttons on the right. [onColor] fills it when on.
+class _SideToggle extends StatelessWidget {
+  const _SideToggle({required this.id, required this.on, required this.onColor, required this.onTap, required this.child});
+
+  /// The key of the button (`sex-<sex>`, `lang-<lang>`).
+  final String id;
+  final bool on;
+  final Color onColor;
+  final VoidCallback onTap;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Pal.of(context);
     return Padding(
-      padding: EdgeInsets.fromLTRB(16, 8, 22, 14 + MediaQuery.paddingOf(context).bottom),
-      child: Row(
-        children: [
-          if (onBack != null) ...[
-            BrutalButton(color: p.sky, onTap: onBack, child: IconText('back', t('nav.back'))),
-            const SizedBox(width: 14),
-          ],
-          Expanded(
-            child: BrutalButton(
-              color: p.pink,
-              onTap: onNext,
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(next, maxLines: 1, softWrap: false, textAlign: TextAlign.center, style: display(24, p.on)),
-              ),
-            ),
-          ),
-        ],
+      padding: const EdgeInsets.only(bottom: 12),
+      child: BrutalButton(
+        key: ValueKey(id),
+        small: true,
+        color: on ? onColor : p.panel,
+        onTap: onTap,
+        child: SizedBox(width: 34, height: 26, child: Center(child: child)),
       ),
     );
   }
@@ -88,39 +111,6 @@ class CreateView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
-    Widget sexButton(String sex, String label) {
-      final on = character.sex == sex;
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: BrutalButton(
-          key: ValueKey('sex-$sex'),
-          small: true,
-          color: on ? p.pink : p.panel,
-          onTap: () => onCharacter(character.copyWith(sex: sex)),
-          child: SizedBox(width: 34, height: 26, child: Center(child: PxIcon(label, size: 24, color: on ? p.on : p.ink))),
-        ),
-      );
-    }
-
-    // The language (D68): EN / RO on the right, like the sex buttons on the left.
-    Widget langButton(String lang) {
-      final on = I18n.instance.language == lang;
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: BrutalButton(
-          key: ValueKey('lang-$lang'),
-          small: true,
-          color: on ? p.lime : p.panel,
-          onTap: () => switchLanguage(lang),
-          child: SizedBox(
-            width: 34,
-            height: 26,
-            child: Center(child: Text(lang.toUpperCase(), style: display(17, on ? p.on : p.ink))),
-          ),
-        ),
-      );
-    }
-
     final head = headRect(spriteGeometry(stage.size, character.height).sprite).shift(stage.topLeft);
     // Inside the card: its border starts at (20, 12) in the view.
     const o = Offset(-20, -12);
@@ -151,15 +141,35 @@ class CreateView extends StatelessWidget {
               Positioned(
                 left: 10,
                 top: stage.top - 6,
-                child: Column(children: [sexButton('male', 'male'), sexButton('female', 'female')]),
+                child: Column(children: [
+                  for (final sex in ['male', 'female'])
+                    _SideToggle(
+                      id: 'sex-$sex',
+                      on: character.sex == sex,
+                      onColor: p.pink,
+                      onTap: () => onCharacter(character.copyWith(sex: sex)),
+                      child: PxIcon(sex, size: 24, color: character.sex == sex ? p.on : p.ink),
+                    ),
+                ]),
               ),
             if (!headOpen)
               Positioned(
                 right: 10,
                 top: stage.top - 6,
+                // The language (D68): EN / RO on the right, like the sex
+                // buttons on the left.
                 child: Semantics(
                   label: t('lang.label'),
-                  child: Column(children: [for (final l in I18n.languages) langButton(l)]),
+                  child: Column(children: [
+                    for (final l in I18n.languages)
+                      _SideToggle(
+                        id: 'lang-$l',
+                        on: I18n.instance.language == l,
+                        onColor: p.lime,
+                        onTap: () => switchLanguage(l),
+                        child: Text(l.toUpperCase(), style: display(17, I18n.instance.language == l ? p.on : p.ink)),
+                      ),
+                  ]),
                 ),
               ),
             // An outline box marks the head: tap it for the head looks.
@@ -234,28 +244,21 @@ class CreateView extends StatelessWidget {
       ];
 
   List<Widget> _headPanel(Pal p) {
-    Widget row(String title, String kind, List<Look> looks, String current, Character Function(String) pick) => Padding(
-          padding: const EdgeInsets.only(bottom: 14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Shout(title, size: 14),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  for (final l in looks) ...[
-                    _LookButton(
-                      key: ValueKey('look-$kind-${l.id}'),
-                      look: l,
-                      on: l.id == current,
-                      onTap: () => onCharacter(pick(l.id)),
-                    ),
-                    const SizedBox(width: 12),
-                  ],
-                ],
+    Widget row(String title, String kind, List<Look> looks, String current, Character Function(String) pick) => ChipSection(
+          title: title,
+          titleSize: 14,
+          gap: 8,
+          spacing: 12,
+          bottom: 14,
+          children: [
+            for (final l in looks)
+              _LookButton(
+                key: ValueKey('look-$kind-${l.id}'),
+                look: l,
+                on: l.id == current,
+                onTap: () => onCharacter(pick(l.id)),
               ),
-            ],
-          ),
+          ],
         );
     return [
       Shout(t('head.title'), size: 14, color: p.pink),
@@ -453,7 +456,7 @@ class _ClassViewState extends State<ClassView> with SwipeCarousel<ClassView> {
 }
 
 /// The texts of one class in the card: the name and the equipment, big,
-/// with room around them. Also in the workout's CLASS filter sheet.
+/// with room around them.
 class ClassCardText extends StatelessWidget {
   const ClassCardText({super.key, required this.cls, required this.color});
 
@@ -462,20 +465,13 @@ class ClassCardText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final p = Pal.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 12, 18, 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(cls.name.toUpperCase(), style: display(38, p.ink).copyWith(shadows: [
-              Shadow(offset: const Offset(2, 2), color: color),
-            ])),
-          ),
+          ShadowTitle(cls.name.toUpperCase(), size: 38, shadowColor: color),
           const SizedBox(height: 8),
           FittedBox(
             fit: BoxFit.scaleDown,
@@ -490,7 +486,7 @@ class ClassCardText extends StatelessWidget {
 
 /// The difficulty card (D47, D74): the mode name on the right, who the mode
 /// is for, then the slider over the 6 modes. Give it a height (120 on the
-/// class screen). Also in the workout's DIFFICULTY filter sheet.
+/// class screen).
 class DifficultyCard extends StatelessWidget {
   const DifficultyCard({super.key, required this.index, required this.onChanged});
 
@@ -621,7 +617,7 @@ class _BodySlider extends StatelessWidget {
 /// Rarity-ladder colour of difficulty [i] (borderlands-reference.md §4):
 /// muted, lime, sky, violet, orange, pink. Harder reads as rarer.
 Color difficultyColor(Pal p, int i) =>
-    [const Color(0xFFC9B8E8), p.lime, p.sky, p.violet, p.orange, p.pink][i.clamp(0, 5)];
+    [p.muted, p.lime, p.sky, p.violet, p.orange, p.pink][i.clamp(0, 5)];
 
 // ----------------------------------------------------------- starting area
 
@@ -783,13 +779,7 @@ class _AreaText extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(area.name.toUpperCase(), style: display(30, p.ink).copyWith(shadows: [
-              Shadow(offset: const Offset(2, 2), color: accent),
-            ])),
-          ),
+          ShadowTitle(area.name.toUpperCase(), size: 30, shadowColor: accent),
           if (isDefault) ...[
             const SizedBox(height: 8),
             Tag(t('area.home'), bg: accent, fg: p.on, size: 12, angle: 0),
@@ -832,19 +822,6 @@ class SummaryView extends StatelessWidget {
     final d = difficulties[difficultyIndex(difficultyId)];
     final a = areaById(areaId);
     final color = classColor(p, cls.id);
-    Widget row(int step, String label, String value, Color color) => InkWell(
-          onTap: () => onEdit(step),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 7),
-            child: Row(
-              children: [
-                SizedBox(width: 92, child: Shout(label, color: color, size: 12)),
-                Expanded(child: Text(value.toUpperCase(), style: display(19, Colors.white))),
-                PxIcon('edit', size: 18, color: color),
-              ],
-            ),
-          ),
-        );
     return Column(
       children: [
         SizedBox(height: stage.bottom + 10),
@@ -861,10 +838,10 @@ class SummaryView extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   child: Column(
                     children: [
-                      row(1, t('label.class'), cls.name, color),
-                      row(1, t('label.gear'), cls.equipment, p.sky),
-                      row(1, t('label.difficulty'), d.name, p.pink),
-                      row(2, t('label.area'), a.name, p.orange),
+                      _SummaryRow(label: t('label.class'), value: cls.name, color: color, onTap: () => onEdit(1)),
+                      _SummaryRow(label: t('label.gear'), value: cls.equipment, color: p.sky, onTap: () => onEdit(1)),
+                      _SummaryRow(label: t('label.difficulty'), value: d.name, color: p.pink, onTap: () => onEdit(1)),
+                      _SummaryRow(label: t('label.area'), value: a.name, color: p.orange, onTap: () => onEdit(2)),
                     ],
                   ),
                 ),
@@ -876,6 +853,30 @@ class SummaryView extends StatelessWidget {
       ],
     );
   }
+}
+
+/// One summary line: the label, the value, the edit icon. Tap: that step.
+class _SummaryRow extends StatelessWidget {
+  const _SummaryRow({required this.label, required this.value, required this.color, required this.onTap});
+
+  final String label, value;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 7),
+          child: Row(
+            children: [
+              SizedBox(width: 92, child: Shout(label, color: color, size: 12)),
+              Expanded(child: Text(value.toUpperCase(), style: display(19, Pal.of(context).onNight))),
+              PxIcon('edit', size: 18, color: color),
+            ],
+          ),
+        ),
+      );
 }
 
 // --------------------------------------------------------------- migration
@@ -917,20 +918,13 @@ class MigrateView extends StatelessWidget {
             ],
           ),
         ),
-        Padding(
-          padding: EdgeInsets.fromLTRB(16, 8, 22, 14 + MediaQuery.paddingOf(context).bottom),
-          child: Row(
-            children: [
-              BrutalButton(color: p.sky, onTap: onLater, child: Text(t('migrate.later'))),
-              const SizedBox(width: 14),
-              Expanded(
-                child: BrutalButton(
-                  color: p.pink,
-                  onTap: onUpgrade,
-                  child: Text(t('migrate.upgrade'), textAlign: TextAlign.center, style: display(19, p.on)),
-                ),
-              ),
-            ],
+        ActionBar(
+          padding: _setupBarPadding(context),
+          back: BrutalButton(color: p.sky, onTap: onLater, child: Text(t('migrate.later'))),
+          main: BrutalButton(
+            color: p.pink,
+            onTap: onUpgrade,
+            child: Text(t('migrate.upgrade'), textAlign: TextAlign.center, style: display(19, p.on)),
           ),
         ),
       ],

@@ -50,6 +50,28 @@ class Pal extends ThemeExtension<Pal> {
 
   /// Text on the bright colours, in both themes.
   Color get on => kNight;
+
+  /// Chalk white, for words on the dark floor (kNight), in both themes.
+  static const chalkWhite = Color(0xFFF4F1FF);
+  Color get chalk => chalkWhite;
+
+  /// Text on a kNight panel, in both themes.
+  Color get onNight => const Color(0xFFFFFFFF);
+
+  /// The muted first step of the rarity ladder (difficulty 1).
+  Color get muted => const Color(0xFFC9B8E8);
+
+  /// Ink for secondary text (an info line under a name).
+  Color get inkSoft => ink.withValues(alpha: 0.7);
+
+  /// [on] for secondary text on a bright fill.
+  Color get onSoft => on.withValues(alpha: 0.7);
+
+  /// Ink for thin, quiet lines (a scrollbar track border).
+  Color get inkFaint => ink.withValues(alpha: 0.4);
+
+  /// [chalk] for a placeholder on the dark floor.
+  Color get chalkFaint => chalk.withValues(alpha: 0.35);
   List<Color> get rainbow => [pink, orange, lime, sky, violet, pink];
   List<Color> get accents => [pink, sky, orange, lime, violet];
 
@@ -173,6 +195,9 @@ class Brutal extends StatelessWidget {
     this.border = 4,
     this.angle = 0,
     this.margin,
+    this.padding,
+    this.borderColor,
+    this.duration = const Duration(milliseconds: 250),
   });
 
   final Widget child;
@@ -183,7 +208,13 @@ class Brutal extends StatelessWidget {
 
   /// Degrees.
   final double angle;
-  final EdgeInsetsGeometry? margin;
+  final EdgeInsetsGeometry? margin, padding;
+
+  /// The border; ink by default.
+  final Color? borderColor;
+
+  /// How long a colour change takes (zero: at once).
+  final Duration duration;
 
   @override
   Widget build(BuildContext context) {
@@ -191,11 +222,12 @@ class Brutal extends StatelessWidget {
     return Transform.rotate(
       angle: angle * pi / 180,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
+        duration: duration,
         margin: margin,
+        padding: padding,
         decoration: BoxDecoration(
           color: color ?? p.panel,
-          border: Border.all(color: p.ink, width: border),
+          border: Border.all(color: borderColor ?? p.ink, width: border),
           boxShadow: [BoxShadow(color: shadow ?? p.pink, offset: Offset(offset, offset))],
         ),
         child: child,
@@ -688,6 +720,207 @@ class IconText extends StatelessWidget {
         Flexible(child: Text(text, maxLines: 1, softWrap: false, overflow: TextOverflow.fade)),
         if (iconAfter) ...[const SizedBox(width: 6), i],
       ],
+    );
+  }
+}
+
+/// A pick chip: its label in capitals, filled with [color] when [selected],
+/// greyed when [off]. [dense] is the small FORGE size; the default is the
+/// CHALK size. [selectedFg] and [selectedBorder] are the text and border
+/// colours when picked. The [id] keys the tap area. Taps go through when
+/// [off] too.
+class PickChip extends StatelessWidget {
+  const PickChip({
+    super.key,
+    required this.id,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    required this.color,
+    this.selectedFg,
+    this.selectedBorder,
+    this.off = false,
+    this.dense = false,
+  });
+
+  final String id, label;
+  final bool selected, off, dense;
+  final VoidCallback onTap;
+  final Color color;
+  final Color? selectedFg, selectedBorder;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Pal.of(context);
+    final line = dense ? 2.0 : 3.0;
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: GestureDetector(
+        key: ValueKey(id),
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Opacity(
+          opacity: off ? 0.35 : 1,
+          child: Container(
+            padding: dense
+                ? const EdgeInsets.symmetric(horizontal: 8, vertical: 4)
+                : const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+            decoration: BoxDecoration(
+              color: selected ? color : p.panel,
+              border: Border.all(color: selected ? selectedBorder ?? p.ink : p.ink, width: line),
+              boxShadow: selected ? [BoxShadow(color: p.ink, offset: Offset(line, line))] : null,
+            ),
+            child: Text(label.toUpperCase(), style: display(dense ? 12 : 13, selected ? selectedFg ?? p.on : p.ink)),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A titled group of chips: the title, a gap, then the chips in a [Wrap].
+/// [small] titles are the small FORGE labels (mono); the default is a [Shout].
+class ChipSection extends StatelessWidget {
+  const ChipSection({
+    super.key,
+    required this.title,
+    required this.children,
+    this.small = false,
+    this.titleSize = 13,
+    this.gap = 6,
+    this.spacing = 6,
+    this.bottom = 0,
+  });
+
+  final String title;
+  final List<Widget> children;
+  final bool small;
+  final double titleSize, gap, spacing, bottom;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Pal.of(context);
+    return Padding(
+      padding: EdgeInsets.only(bottom: bottom),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (small)
+            Text(title.toUpperCase(), style: mono(titleSize, p.ink))
+          else
+            Shout(title, size: titleSize, color: p.ink),
+          SizedBox(height: gap),
+          Wrap(spacing: spacing, runSpacing: spacing, children: children),
+        ],
+      ),
+    );
+  }
+}
+
+/// A display title with a hard 2,2 shadow in [shadowColor], on one line:
+/// it shrinks (never wraps) when long.
+class ShadowTitle extends StatelessWidget {
+  const ShadowTitle(this.text, {super.key, required this.size, required this.shadowColor, this.textKey, this.maxLines});
+
+  final String text;
+  final double size;
+  final Color shadowColor;
+
+  /// The key of the [Text] (tests read it).
+  final Key? textKey;
+  final int? maxLines;
+
+  @override
+  Widget build(BuildContext context) => FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Text(
+          text,
+          key: textKey,
+          maxLines: maxLines,
+          style: display(size, Pal.of(context).ink).copyWith(shadows: [Shadow(offset: const Offset(2, 2), color: shadowColor)]),
+        ),
+      );
+}
+
+/// The bottom bar of a screen: an optional [back] button, then the [main]
+/// button taking the rest of the row.
+class ActionBar extends StatelessWidget {
+  const ActionBar({super.key, this.back, required this.main, required this.padding, this.gap = 14});
+
+  final Widget? back;
+  final Widget main;
+  final EdgeInsetsGeometry padding;
+  final double gap;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: padding,
+        child: Row(
+          children: [
+            if (back != null) ...[back!, SizedBox(width: gap)],
+            Expanded(child: main),
+          ],
+        ),
+      );
+}
+
+/// A bottom sheet in the PUMPLEX look: the page colour, a thick ink line
+/// on top, as tall as it needs.
+Future<void> showBrutalSheet(BuildContext context, WidgetBuilder builder) {
+  final p = Pal.of(context);
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: p.bg,
+    shape: Border(top: BorderSide(color: p.ink, width: 4)),
+    builder: builder,
+  );
+}
+
+/// A square button with only an icon (or a glyph), [size] wide and high
+/// (48 by default, a full tap target), with [label] for screen readers.
+class IconTapButton extends StatelessWidget {
+  const IconTapButton({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.size = 48,
+    this.color,
+    this.borderColor,
+    this.border = 2,
+  });
+
+  final Widget icon;
+  final String label;
+  final VoidCallback onTap;
+  final double size, border;
+
+  /// The fill (kNight by default) and the border (ink by default).
+  final Color? color, borderColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Pal.of(context);
+    return Semantics(
+      button: true,
+      label: label,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          width: size,
+          height: size,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: color ?? kNight,
+            border: Border.all(color: borderColor ?? p.ink, width: border),
+          ),
+          child: icon,
+        ),
+      ),
     );
   }
 }

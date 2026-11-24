@@ -407,7 +407,7 @@ void main() {
     expect(find.byKey(ValueKey('chalk-result-today-${a.exercise.id}')), findsOneWidget);
     // The picked exercise's row is filled with the lime (the app's yellow).
     final p = Theme.of(t.element(find.byKey(const ValueKey('chalk-sheet')))).extension<Pal>()!;
-    Color fill(String id) => ((t.widget<Container>(find.byKey(ValueKey('chalk-result-on-$id'))).decoration!) as BoxDecoration).color!;
+    Color fill(String id) => t.widget<Brutal>(find.byKey(ValueKey('chalk-result-on-$id'))).color!;
     expect(fill(a.exercise.id), p.lime);
     // A picked tile is lime too.
     final tile = find.descendant(of: find.byKey(const ValueKey('chalk-tool.barbell')), matching: find.byType(Container));

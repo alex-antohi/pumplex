@@ -11,6 +11,7 @@
 // still open (HANDOFF.md "Still open").
 
 import 'chalk.dart';
+import 'content.dart';
 import 'exercises.dart';
 
 /// The tool word -> the database equipment and the equipment modifier.
@@ -91,6 +92,16 @@ String forgeName(Iterable<String> line) {
     return (body, move != null && part.muscles.contains(move.$2) ? move.$2 : part.muscles.first);
   }
   return move == null ? null : (move.$1, move.$2);
+}
+
+/// The database equipment the TOOL word of [line] gives (no tool: body only).
+String forgeEquipment(Iterable<String> line) => (_toolFields[chalkIdOf(line, 'tool')] ?? ('body only', null)).$1;
+
+/// The classes with the gear for a move forged from [line] (the FORGE
+/// card's "shows for" line).
+List<GameClass> forgeClasses(Iterable<String> line) {
+  final equipment = forgeEquipment(line);
+  return [for (final c in gameClasses) if (classEquipment[c.id]!.contains(equipment)) c];
 }
 
 /// A forged move, as kept on the phone.
