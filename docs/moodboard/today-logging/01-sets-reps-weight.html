@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sets Reps Weight 01</title>
+<style>
+@font-face { font-family: 'Anton'; src: url('../../../assets/fonts/Anton-Regular.ttf'); }
+@font-face { font-family: 'Space Mono'; font-weight: 700; src: url('../../../assets/fonts/SpaceMono-Bold.ttf'); }
+@font-face { font-family: 'Space Mono'; font-weight: 400; src: url('../../../assets/fonts/SpaceMono-Regular.ttf'); }
+
+/* Pal.light (lib/pumplex.dart), Gainsgard sky / floor (lib/game/content.dart) — same tokens as chalk/03-today.html */
+:root {
+  --bg: #E3FBFF; --ink: #1A0B3B; --pink: #FF2E93; --lime: #B6FF00; --orange: #FF8A00;
+  --violet: #7B2CFF; --sky: #00C2FF; --panel: #FFFFFF; --panel2: #FFF0FA;
+  --night: #1A0B3B; --on: #1A0B3B; --chalk: #F4F1FF;
+  --gsky: #3A2A52; --gfloor: #8672A5; --accent: #FFA033;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #2b2440; color: #F6EEFF; font-family: 'Space Mono', monospace; font-weight: 700; padding: 18px 16px 24px; }
+h1 { font-family: 'Anton'; font-weight: 400; font-size: 24px; letter-spacing: 1px; }
+.sub { font-size: 11.5px; opacity: .75; margin: 4px 0 14px; max-width: 1180px; font-weight: 400; }
+.row { display: flex; gap: 22px; align-items: flex-start; flex-wrap: wrap; }
+.col { display: flex; flex-direction: column; gap: 8px; width: 374px; max-width: 100%; }
+.cap { font-size: 10.5px; line-height: 1.4; opacity: .88; font-weight: 400; }
+.cap b { font-family: 'Anton'; font-weight: 400; letter-spacing: 1px; font-size: 14px; color: var(--lime); }
+.cap em { font-style: normal; color: var(--pink); font-weight: 700; }
+
+/* the bottom of the world, so the card has its context */
+.world { height: 58px; background: var(--gfloor); position: relative; border: 3px solid #0c0816; border-bottom: none; overflow: hidden; }
+.world::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 18px; background: var(--gsky); }
+.mark { position: absolute; top: 8px; width: 7px; height: 38px; background: var(--chalk); border: 2px solid var(--ink); }
+.dmg { position: absolute; font-family: 'Anton'; color: var(--lime); -webkit-text-stroke: 1.2px var(--ink); text-shadow: 3px 3px 0 var(--ink); line-height: 1; }
+.crit { position: absolute; font-family: 'Anton'; font-size: 11px; letter-spacing: 1px; background: var(--pink); color: var(--chalk); padding: 3px 6px; border: 2px solid var(--ink); transform: rotate(-4deg); }
+
+/* the exercise card part (lib/views/workout.dart) */
+.part { background: var(--bg); color: var(--ink); border: 3px solid #0c0816; border-top: 3px solid var(--ink); padding-bottom: 12px; }
+.tag { display: inline-block; padding: 5px 10px; font-family: 'Anton'; font-weight: 400; font-size: 12px; letter-spacing: 1px; line-height: 1; white-space: nowrap; }
+.tags { display: flex; gap: 6px; align-items: center; padding: 10px 14px 0; }
+.star { display: inline-flex; padding: 4px 8px; background: var(--panel2); }
+.chalktag { background: var(--night); color: var(--chalk); padding: 5px 10px 3px; border-bottom: 2px solid rgba(244,241,255,.6); }
+.ex { padding: 10px 14px 0; }
+.title { display: flex; align-items: flex-start; gap: 6px; }
+.title .t { font-family: 'Anton'; font-size: 26px; line-height: 1; text-shadow: 2px 2px 0 var(--orange); flex: 1; }
+.todaytag { background: var(--lime); color: var(--on); font-size: 11px; transform: rotate(-3deg); margin-top: 4px; border: 2px solid var(--ink); padding: 3px 7px; }
+.axis { font-size: 10px; color: rgba(26,11,59,.7); margin-top: 8px; }
+.chips { display: flex; gap: 6px; margin-top: 4px; overflow: hidden; white-space: nowrap; }
+.mc { padding: 5px 9px; background: var(--panel); border: 2px solid var(--ink); font-family: 'Anton'; font-size: 13px; line-height: 1; flex: none; }
+.mc.on { background: var(--lime); box-shadow: 2px 2px 0 var(--ink); }
+.dots { display: flex; justify-content: center; align-items: center; gap: 7px; padding: 10px 0 0; }
+.dot { width: 10px; height: 10px; border: 2px solid var(--ink); background: var(--panel); }
+.dot.on { background: var(--lime); box-shadow: 2px 2px 0 var(--ink); }
+.dots .div { width: 2px; height: 14px; background: rgba(26,11,59,.3); margin: 0 4px; }
+.dots .then { font-size: 10px; color: rgba(26,11,59,.5); letter-spacing: 1px; }
+
+/* shared: stepper (BrutalButton sm) */
+.st { width: 34px; height: 34px; border: 3px solid var(--ink); box-shadow: 3px 3px 0 var(--ink); background: var(--sky); font-family: 'Anton'; font-size: 20px; display: flex; align-items: center; justify-content: center; line-height: 1; flex: none; color: var(--on); }
+.lbl { font-size: 9.5px; letter-spacing: 1px; color: rgba(26,11,59,.6); }
+.new { outline: 2px dashed var(--pink); outline-offset: 3px; }
+
+/* A · MINIMAL: the last-set strip */
+.last { margin: 12px 14px 0; background: var(--panel); border: 3px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); padding: 8px 10px; }
+.last .hd { display: flex; justify-content: space-between; align-items: baseline; }
+.last .hd .shout { font-family: 'Anton'; font-size: 13px; letter-spacing: 1.4px; }
+.last .hd i { font-style: normal; font-size: 9.5px; color: rgba(26,11,59,.55); }
+.pair { display: flex; gap: 10px; margin-top: 7px; }
+.cell { flex: 1; display: flex; align-items: center; gap: 6px; }
+.cell .v { flex: 1; text-align: center; font-family: 'Anton'; font-size: 22px; line-height: 1; }
+.cell .v small { font-family: 'Space Mono'; font-size: 10px; margin-left: 2px; }
+.trail { display: flex; gap: 5px; margin-top: 8px; flex-wrap: wrap; }
+.pip { font-size: 9.5px; padding: 2px 5px; border: 2px solid var(--ink); background: var(--panel2); }
+.pip.now { background: var(--lime); }
+
+/* B · GAME: the arcade scoreboard */
+.board { margin: 12px 14px 0; background: var(--night); border: 3px solid var(--ink); box-shadow: 4px 4px 0 var(--pink); padding: 8px 10px 9px; color: var(--chalk); }
+.board .hd { display: flex; justify-content: space-between; align-items: baseline; font-family: 'Anton'; font-size: 12px; letter-spacing: 1.4px; }
+.board .hd span:last-child { color: var(--accent); }
+.board .pair { margin-top: 7px; }
+.seg { flex: 1; text-align: center; background: #0c0816; border: 2px solid rgba(244,241,255,.5); padding: 4px 0 3px; font-family: 'Anton'; font-size: 26px; line-height: 1; color: var(--lime); letter-spacing: 2px; }
+.seg small { display: block; font-family: 'Space Mono'; font-size: 9px; letter-spacing: 1px; color: rgba(244,241,255,.55); }
+.board .st { background: var(--lime); }
+.board .x { font-family: 'Anton'; font-size: 18px; color: var(--accent); align-self: center; }
+.board .tot { margin-top: 7px; font-size: 10px; color: rgba(244,241,255,.6); display: flex; justify-content: space-between; }
+.board .tot b { color: var(--lime); font-family: 'Anton'; font-weight: 400; font-size: 13px; letter-spacing: 1px; }
+
+/* C · LOGGER: collapsed table */
+.log { margin: 12px 14px 0; border: 3px solid var(--ink); background: var(--panel); box-shadow: 4px 4px 0 var(--ink); }
+.lr { display: grid; grid-template-columns: 34px 1fr 62px 52px 34px; align-items: center; gap: 6px; padding: 4px 8px; border-top: 2px solid rgba(26,11,59,.15); font-size: 11px; }
+.lr.h { border-top: none; font-size: 9px; letter-spacing: 1px; color: rgba(26,11,59,.55); padding-top: 6px; }
+.lr .n { font-family: 'Anton'; font-size: 15px; }
+.lr .p { font-weight: 400; color: rgba(26,11,59,.55); font-size: 10px; }
+.lr .c { font-family: 'Anton'; font-size: 16px; text-align: center; background: var(--panel2); border: 2px solid var(--ink); padding: 2px 0 1px; }
+.ok { width: 26px; height: 26px; border: 2px solid var(--ink); display: flex; align-items: center; justify-content: center; font-family: 'Anton'; font-size: 15px; }
+.lr.done { background: rgba(182,255,0,.35); }
+.lr.done .ok { background: var(--lime); box-shadow: 2px 2px 0 var(--ink); }
+.lr.next { background: var(--panel2); }
+.lr.next .ok { border-style: dashed; color: rgba(26,11,59,.4); }
+.addset { text-align: center; font-family: 'Anton'; font-size: 12px; letter-spacing: 1.4px; padding: 5px 0 6px; border-top: 2px dashed rgba(26,11,59,.25); color: rgba(26,11,59,.6); }
+</style>
+</head>
+<body>
+<h1>TODAY · SETS, REPS, WEIGHT · 01</h1>
+<p class="sub">Exploratory. Not for building: it breaks D52 (sets only). Only the exercise card under the world is shown (tags, title, chips, Today dots). The pink dashed outline marks the new part. In all three, a tap on the world still adds one set (D48), and a long-press still takes one back, with its numbers (D17). Values carry forward from the last set, then from the last session.</p>
+
+<div class="row">
+
+<!-- A · MINIMAL -->
+<div class="col">
+  <div class="world"><span class="mark" style="left:150px"></span><span class="mark" style="left:162px"></span><span class="mark" style="left:174px"></span></div>
+  <div class="part">
+    <div class="tags">
+      <span class="tag" style="background:var(--night);color:var(--lime)">PLATE PALADIN</span>
+      <span class="tag" style="background:var(--panel2);color:var(--ink)">ALL BODY PARTS</span>
+      <span class="star"><svg width="16" height="16" viewBox="0 0 8 8" shape-rendering="crispEdges"><path fill="rgba(26,11,59,.4)" d="M3 0h2v2h3v2h-1v1h1v3h-2v-1h-2v1h-2v-3h1v-1h-1v-2h3z"/></svg></span>
+      <span class="tag chalktag">CHALK</span>
+    </div>
+    <div class="ex">
+      <div class="title"><span class="t">INCLINE DUMBBELL PRESS</span><span class="tag todaytag">TODAY</span></div>
+      <div class="axis">EQUIPMENT</div>
+      <div class="chips"><span class="mc">BARBELL</span><span class="mc on">DUMBBELL</span><span class="mc">SMITH MACHINE</span><span class="mc">MACHINE</span></div>
+      <div class="axis">ANGLE</div>
+      <div class="chips"><span class="mc">FLAT</span><span class="mc on">INCLINE</span><span class="mc">DECLINE</span></div>
+    </div>
+    <div class="last new">
+      <div class="hd"><span class="shout">SET 3</span><i>OPTIONAL · SAME AS SET 2</i></div>
+      <div class="pair">
+        <div class="cell"><span class="st">&minus;</span><span class="v">24<small>KG</small></span><span class="st">+</span></div>
+        <div class="cell"><span class="st">&minus;</span><span class="v">8<small>REPS</small></span><span class="st">+</span></div>
+      </div>
+      <div class="trail"><span class="pip">1 · 22×10</span><span class="pip">2 · 24×8</span><span class="pip now">3 · 24×8</span></div>
+    </div>
+    <div class="dots"><span class="dot"></span><span class="dot on"></span><span class="dot"></span><span class="div"></span><span class="then">SUGGESTED</span></div>
+  </div>
+  <p class="cap"><b>A · MINIMAL.</b> The strip shows only after a set and edits that set. The steppers are 2.5 kg and 1 rep; a hold repeats. The trail pips (tap one) fix an older set. Zero taps if nothing changed. <em>Against:</em> silent carry-forward can save wrong numbers.</p>
+</div>
+
+<!-- B · GAME -->
+<div class="col">
+  <div class="world">
+    <span class="mark" style="left:150px"></span><span class="mark" style="left:162px"></span><span class="mark" style="left:174px"></span>
+    <span class="dmg" style="left:196px;top:6px;font-size:34px">192</span>
+    <span class="crit" style="left:268px;top:14px">NEW BEST</span>
+  </div>
+  <div class="part">
+    <div class="tags">
+      <span class="tag" style="background:var(--night);color:var(--lime)">PLATE PALADIN</span>
+      <span class="tag" style="background:var(--panel2);color:var(--ink)">ALL BODY PARTS</span>
+      <span class="star"><svg width="16" height="16" viewBox="0 0 8 8" shape-rendering="crispEdges"><path fill="rgba(26,11,59,.4)" d="M3 0h2v2h3v2h-1v1h1v3h-2v-1h-2v1h-2v-3h1v-1h-1v-2h3z"/></svg></span>
+      <span class="tag chalktag">CHALK</span>
+    </div>
+    <div class="ex">
+      <div class="title"><span class="t">INCLINE DUMBBELL PRESS</span><span class="tag todaytag">TODAY</span></div>
+      <div class="axis">EQUIPMENT</div>
+      <div class="chips"><span class="mc">BARBELL</span><span class="mc on">DUMBBELL</span><span class="mc">SMITH MACHINE</span><span class="mc">MACHINE</span></div>
+      <div class="axis">ANGLE</div>
+      <div class="chips"><span class="mc">FLAT</span><span class="mc on">INCLINE</span><span class="mc">DECLINE</span></div>
+    </div>
+    <div class="board new">
+      <div class="hd"><span>NEXT HIT</span><span>DAMAGE MODE</span></div>
+      <div class="pair">
+        <span class="st">&minus;</span><div class="seg">24<small>KG</small></div><span class="st">+</span>
+        <span class="x">×</span>
+        <span class="st">&minus;</span><div class="seg">08<small>REPS</small></div><span class="st">+</span>
+      </div>
+      <div class="tot"><span>TODAY 3 HITS</span><b>DMG 560</b><span>BEST 528</span></div>
+    </div>
+    <div class="dots"><span class="dot"></span><span class="dot on"></span><span class="dot"></span><span class="div"></span><span class="then">SUGGESTED</span></div>
+  </div>
+  <p class="cap"><b>B · GAME.</b> Set the numbers first, then hit the world: kg × reps pops as damage over the target. A tap on a number cell opens the arcade keypad. Off by default, per card. <em>Against:</em> raw kg × reps is not a fair game score across moves and lifters.</p>
+</div>
+
+<!-- C · LOGGER -->
+<div class="col">
+  <div class="world"><span class="mark" style="left:150px"></span><span class="mark" style="left:162px"></span></div>
+  <div class="part">
+    <div class="tags">
+      <span class="tag" style="background:var(--night);color:var(--lime)">PLATE PALADIN</span>
+      <span class="tag" style="background:var(--panel2);color:var(--ink)">ALL BODY PARTS</span>
+      <span class="star"><svg width="16" height="16" viewBox="0 0 8 8" shape-rendering="crispEdges"><path fill="rgba(26,11,59,.4)" d="M3 0h2v2h3v2h-1v1h1v3h-2v-1h-2v1h-2v-3h1v-1h-1v-2h3z"/></svg></span>
+      <span class="tag chalktag">CHALK</span>
+    </div>
+    <div class="ex">
+      <div class="title"><span class="t">INCLINE DUMBBELL PRESS</span><span class="tag todaytag">TODAY</span></div>
+      <div class="axis">EQUIPMENT</div>
+      <div class="chips"><span class="mc">BARBELL</span><span class="mc on">DUMBBELL</span><span class="mc">SMITH MACHINE</span><span class="mc">MACHINE</span></div>
+    </div>
+    <div class="log new">
+      <div class="lr h"><span>SET</span><span>LAST TIME</span><span>KG</span><span>REPS</span><span></span></div>
+      <div class="lr done"><span class="n">1</span><span class="p">22 × 10</span><span class="c">22</span><span class="c">10</span><span class="ok">✓</span></div>
+      <div class="lr done"><span class="n">2</span><span class="p">24 × 8</span><span class="c">24</span><span class="c">8</span><span class="ok">✓</span></div>
+      <div class="lr next"><span class="n">3</span><span class="p">24 × 7</span><span class="c">24</span><span class="c">8</span><span class="ok">✓</span></div>
+      <div class="addset">HIT THE WALL = TICK SET 3 · + SET</div>
+    </div>
+    <div class="dots"><span class="dot"></span><span class="dot on"></span><span class="dot"></span><span class="div"></span><span class="then">SUGGESTED</span></div>
+  </div>
+  <p class="cap"><b>C · LOGGER.</b> Rows like Strong or Hevy, prefilled from last time. The world tap ticks the lit row. A tap on a cell opens +/- steppers. Only one chip row fits: the table eats the fixed chip height (D79). <em>Against:</em> the card becomes a spreadsheet, and the world is a big tick button.</p>
+</div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Forge Remodel 01</title>
+<style>
+@font-face { font-family: 'Anton'; src: url('../../../assets/fonts/Anton-Regular.ttf'); }
+@font-face { font-family: 'Space Mono'; font-weight: 700; src: url('../../../assets/fonts/SpaceMono-Bold.ttf'); }
+@font-face { font-family: 'Space Mono'; font-weight: 400; src: url('../../../assets/fonts/SpaceMono-Regular.ttf'); }
+
+/* Pal.dark from lib/pumplex.dart (the owner's phone runs the dark theme) */
+:root {
+  --bg: #12061F; --ink: #F6EEFF; --pink: #FF5FB0; --lime: #C6FF3D; --orange: #FFA033;
+  --violet: #A77BFF; --sky: #3FD2FF; --panel: #1F0D36; --panel2: #2A1148; --dot: rgba(255,95,176,.22);
+  --night: #1A0B3B; --on: #1A0B3B; --chalk: #F4F1FF; --muted: #C9B8E8;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #2b2440; color: #F6EEFF; font-family: 'Space Mono', monospace; padding: 20px 16px 28px; }
+h1 { font-family: 'Anton'; font-weight: 400; font-size: 28px; letter-spacing: 1px; }
+h2 { font-family: 'Anton'; font-weight: 400; font-size: 22px; letter-spacing: 1px; margin: 26px 0 4px; }
+h2 em { font-style: normal; font-size: 13px; padding: 3px 8px; margin-left: 8px; vertical-align: middle; color: var(--on); }
+.sub { font-size: 12px; opacity: .8; margin: 4px 0 12px; max-width: 900px; line-height: 1.45; }
+.row { display: flex; gap: 28px; align-items: flex-start; flex-wrap: wrap; }
+.col { display: flex; flex-direction: column; gap: 10px; }
+.cap { font-size: 11px; max-width: 390px; line-height: 1.45; opacity: .88; }
+.cap b { font-family: 'Anton'; font-weight: 400; letter-spacing: 1px; font-size: 14px; color: var(--lime); }
+
+.phone { width: 390px; height: 844px; position: relative; overflow: hidden; border-radius: 34px; border: 8px solid #0c0816;
+  background: var(--bg); color: var(--ink); }
+.a { font-family: 'Anton'; font-weight: 400; line-height: 1; }
+
+/* header: like CRETĂ + ÎNAPOI LA AZI */
+.head { display: flex; justify-content: space-between; align-items: center; padding: 26px 22px 0 18px; }
+.head .t { font-family: 'Anton'; font-size: 22px; letter-spacing: 2px; }
+.bb { display: inline-block; border: 4px solid var(--ink); box-shadow: 6px 6px 0 var(--ink); padding: 10px 16px; font-family: 'Anton'; font-size: 18px; letter-spacing: 1px; line-height: 1; text-align: center; color: var(--on); background: var(--lime); }
+.bb.sm { border-width: 3px; box-shadow: 4px 4px 0 var(--ink); padding: 6px 10px; font-size: 15px; background: var(--sky); }
+.bb.red { background: var(--pink); }
+
+/* Brutal card */
+.card { margin: 16px 24px 0 16px; background: var(--night); border: 4px solid var(--ink); box-shadow: 8px 8px 0 var(--orange); padding: 14px; }
+.lbl { font-size: 10px; font-weight: 700; letter-spacing: 1px; color: var(--muted); margin-top: 12px; display: flex; justify-content: space-between; align-items: center; }
+.lbl i { font-style: normal; color: var(--lime); }
+.name { font-family: 'Anton'; font-size: 34px; line-height: 1.05; text-shadow: 2px 2px 0 var(--orange); white-space: nowrap; margin-top: 6px; }
+.from { font-family: 'Anton'; font-size: 16px; color: var(--orange); margin-top: 3px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 5px; }
+/* PickChip (dense: 2px line, 12px; normal: 3px, 13px) */
+.pc { padding: 5px 9px; background: var(--night); border: 3px solid var(--ink); font-family: 'Anton'; font-size: 14px; line-height: 1; color: var(--ink); white-space: nowrap; }
+.pc.on { background: var(--lime); color: var(--on); box-shadow: 3px 3px 0 var(--ink); }
+.pc.sky { background: var(--sky); color: var(--on); box-shadow: 3px 3px 0 var(--ink); }
+.pc.vio { background: var(--violet); color: var(--on); box-shadow: 3px 3px 0 var(--ink); }
+.pc.dash { border-style: dashed; color: var(--lime); }
+.pc .v { font-size: 10px; margin-left: 4px; opacity: .7; }
+.guess { font-size: 9px; font-weight: 700; background: var(--orange); color: var(--on); padding: 1px 4px; margin-left: 6px; letter-spacing: 1px; }
+.note { font-size: 11px; font-weight: 700; color: var(--violet); margin-top: 10px; }
+
+/* the word row: 3 big slots, a tap opens that row's tiles */
+.slots { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 6px; }
+.slot { border: 3px solid var(--ink); background: var(--panel); padding: 6px 7px 7px; min-height: 58px; }
+.slot .k { font-size: 9px; font-weight: 700; color: var(--muted); letter-spacing: 1px; }
+.slot .w { font-family: 'Anton'; font-size: 18px; margin-top: 5px; line-height: 1; }
+.slot.on { background: var(--lime); color: var(--on); box-shadow: 3px 3px 0 var(--ink); }
+.slot.on .k { color: rgba(26,11,59,.7); }
+.slot.raw { border-style: dashed; }
+
+/* nickname field */
+.nick { margin-top: 5px; background: var(--bg); border: 3px solid var(--ink); padding: 8px 10px 6px; font-family: 'Anton'; font-size: 20px; color: rgba(244,241,255,.35); white-space: nowrap; overflow: hidden; }
+.nick.typing { border-color: var(--pink); color: var(--chalk); }
+.cursor { display: inline-block; width: .5em; height: .95em; background: var(--lime); margin-left: 2px; vertical-align: -2px; }
+
+/* bottom bar: BACK + FORGE IT */
+.bar { position: absolute; left: 0; right: 0; bottom: 0; background: var(--bg); padding: 10px 24px 26px 16px; display: flex; gap: 12px; align-items: center; z-index: 5; }
+.bar .bb:not(.sm) { flex: 1; }
+.bar.dock { position: static; padding: 8px 24px 8px 16px; }
+
+/* arcade keyboard (lib/views/forge.dart ArcadeKeyboard) */
+.kbwrap { position: absolute; left: 0; right: 0; bottom: 0; background: var(--bg); z-index: 5; }
+.kb { background: var(--night); padding: 6px 4px 20px; }
+.kr { display: flex; }
+.key { flex: 1; margin: 2px; height: 40px; display: flex; align-items: center; justify-content: center; background: var(--panel); border: 2px solid var(--ink); font-family: 'Anton'; font-size: 16px; color: var(--ink); }
+.key.hot { background: var(--lime); color: var(--on); }
+.key.del { background: var(--orange); color: var(--on); flex: 2; font-size: 14px; }
+.key.sp { flex: 5; font-size: 14px; }
+.key.ok { background: var(--lime); color: var(--on); flex: 2; }
+
+/* ANVIL stage */
+.stage { margin: 14px 24px 0 16px; height: 250px; position: relative; border: 4px solid var(--ink); box-shadow: 8px 8px 0 var(--orange);
+  background-color: var(--panel2); background-image: radial-gradient(var(--dot) 2px, transparent 2.5px); background-size: 20px 20px; overflow: hidden; }
+.stage .glow { position: absolute; left: 50%; bottom: 40px; width: 220px; height: 70px; transform: translateX(-50%); background: radial-gradient(ellipse, rgba(255,160,51,.45), transparent 70%); }
+.drop { position: absolute; padding: 6px 10px; border: 3px solid var(--ink); background: var(--lime); color: var(--on); font-family: 'Anton'; font-size: 16px; box-shadow: 3px 3px 0 var(--ink); }
+.drop.trail::after { content: ''; position: absolute; left: 50%; top: -38px; width: 3px; height: 32px; background: repeating-linear-gradient(var(--ink) 0 5px, transparent 5px 10px); opacity: .5; }
+.px { position: absolute; background: #0b0414; }
+.zap { position: absolute; width: 8px; height: 8px; background: var(--lime); }
+.zap.o { background: var(--orange); }
+.stagetag { position: absolute; left: 10px; top: 10px; background: #0b0414; color: var(--orange); font-family: 'Anton'; font-size: 13px; padding: 4px 8px; border: 2px solid var(--orange); letter-spacing: 1px; transform: rotate(-2deg); }
+
+/* loot reveal */
+.dim { position: absolute; inset: 0; background: rgba(11,4,20,.86); z-index: 6; }
+.rays { position: absolute; left: 50%; top: 330px; width: 700px; height: 700px; transform: translate(-50%,-50%);
+  background: repeating-conic-gradient(rgba(198,255,61,.13) 0 8deg, transparent 8deg 20deg); z-index: 6; }
+.loot { position: absolute; left: 34px; right: 34px; top: 150px; z-index: 7; background: var(--night); border: 4px solid var(--lime); box-shadow: 8px 8px 0 var(--orange), 0 0 0 4px #0b0414; padding: 16px 14px; transform: rotate(-1.5deg); }
+.newtag { position: absolute; left: 50%; top: 96px; transform: translateX(-50%) rotate(-3deg); z-index: 8; font-family: 'Anton'; font-size: 34px; letter-spacing: 2px; color: var(--chalk);
+  text-shadow: 3px 3px 0 var(--pink), 6px 6px 0 var(--sky); white-space: nowrap; }
+.rar { display: inline-block; background: var(--lime); color: var(--on); font-family: 'Anton'; font-size: 13px; padding: 3px 8px; letter-spacing: 2px; }
+.stat { display: flex; justify-content: space-between; border-top: 2px dashed rgba(246,238,255,.25); padding: 7px 0 6px; font-size: 12px; font-weight: 700; }
+.stat span:first-child { color: var(--muted); font-size: 10px; letter-spacing: 1px; padding-top: 2px; }
+.stat span:last-child { font-family: 'Anton'; font-weight: 400; font-size: 16px; }
+.skip { position: absolute; bottom: 120px; left: 0; right: 0; text-align: center; z-index: 8; font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 1px; }
+.lootbar { position: absolute; left: 0; right: 0; bottom: 0; z-index: 8; padding: 10px 24px 26px 16px; display: flex; gap: 12px; }
+.lootbar .bb:not(.sm) { flex: 1; }
+
+.verdict { margin-top: 14px; max-width: 900px; font-size: 12px; line-height: 1.5; border-left: 4px solid var(--lime); padding-left: 10px; }
+</style>
+</head>
+<body>
+<h1>FORJA · REMODEL 01</h1>
+<p class="sub">Two takes on the FORGE screen, after a 3-way debate (MINIMAL, ANVIL, WIZARD). Built theme: Pal.dark, Anton + Space Mono, PickChip, Brutal card, BrutalButton. Romanian text as on the owner's phone. FORGE = <b>FORJA</b> (the screen), FORGE IT = <b>FORJEAZĂ</b> (the button), CHALK's 0-result line = <b>NU EXISTĂ. O FORJEZI?</b> Replaces the built FAURĂ / FAUR-O.</p>
+
+<!-- ===================== A: MINIMAL (winner) ===================== -->
+<h2>A · FORJA SCURTĂ (MINIMAL) <em style="background:var(--lime)">CÂȘTIGĂTOR</em></h2>
+<p class="sub">One card, no scroll. The chalk words sit in 3 slots; a tap on a slot opens only that row's tiles. BODY shows one chip; the muscles of that part sit under it, the guess tagged. 2 taps from CHALK: FORJEAZĂ in CHALK, FORJEAZĂ here. A word CHALK lacks: the dashed "+ SCRIE" slot types the MOVE on the same keyboard.</p>
+<div class="row">
+<div class="col">
+<div class="phone">
+  <div class="head"><span class="t">FORJA</span><span class="bb sm">ÎNAPOI LA CRETĂ</span></div>
+  <div class="card">
+    <div class="lbl"><span>MIȘCARE NOUĂ</span><i>DIN CRETĂ</i></div>
+    <div class="name">FLEXII CU PROSOP</div>
+
+    <div class="lbl"><span>CUVINTE · ATINGE CA SĂ SCHIMBI</span></div>
+    <div class="slots">
+      <div class="slot on"><div class="k">MIȘCARE</div><div class="w">FLEXII</div></div>
+      <div class="slot on"><div class="k">UNEALTĂ</div><div class="w">PROSOP</div></div>
+      <div class="slot"><div class="k">TIPAR</div><div class="w">TRAS</div></div>
+    </div>
+    <div class="chips" style="margin-top:8px"><span class="pc dash">+ SCRIE MIȘCAREA</span></div>
+
+    <div class="lbl"><span>CORP</span></div>
+    <div class="chips"><span class="pc sky">BRAȚE <span class="v">▾</span></span></div>
+    <div class="lbl"><span>MUȘCHI <span class="guess">GHICIT</span></span></div>
+    <div class="chips"><span class="pc vio">BICEPS</span><span class="pc">TRICEPS</span><span class="pc">ANTEBRAȚE</span></div>
+
+    <div class="note">APARE LA: HAIDUC</div>
+
+    <div class="lbl"><span>PORECLĂ (OPȚIONAL)</span></div>
+    <div class="nick">ATINGE CA S-O SCRII</div>
+  </div>
+  <div class="bar"><span class="bb sm">ÎNAPOI</span><span class="bb">FORJEAZĂ</span></div>
+</div>
+<p class="cap"><b>OPENS READY.</b> All the chalk words are in. The guess (FLEXII → BRAȚE · BICEPS) is visible, so a wrong guess is one tap. The card fits one screen: no scroll, the thumb stays on the bottom bar. Long-press a forged card later (D78): the same card opens, the button reads SALVEAZĂ, and a pink TOPEȘTE (delete) sits in the bar.</p>
+</div>
+
+<div class="col">
+<div class="phone">
+  <div class="head"><span class="t">FORJA</span><span class="bb sm">ÎNAPOI LA CRETĂ</span></div>
+  <div class="card">
+    <div class="lbl"><span>MIȘCARE NOUĂ</span><i>DIN CRETĂ</i></div>
+    <div class="name" style="font-size:27px">ȘTERGARUL DE FIER</div>
+    <div class="from">FLEXII CU PROSOP</div>
+    <div class="slots">
+      <div class="slot on"><div class="k">MIȘCARE</div><div class="w">FLEXII</div></div>
+      <div class="slot on"><div class="k">UNEALTĂ</div><div class="w">PROSOP</div></div>
+      <div class="slot"><div class="k">TIPAR</div><div class="w">TRAS</div></div>
+    </div>
+    <div class="lbl"><span>PORECLĂ (OPȚIONAL)</span><i>17 LITERE</i></div>
+    <div class="nick typing" style="font-size:18px">ȘTERGARUL DE FIER<span class="cursor"></span></div>
+  </div>
+  <div class="kbwrap">
+    <div class="bar dock"><span class="bb sm">ÎNAPOI</span><span class="bb">FORJEAZĂ</span></div>
+    <div class="kb">
+      <div class="kr"><span class="key">Q</span><span class="key">W</span><span class="key">E</span><span class="key">R</span><span class="key">T</span><span class="key">Y</span><span class="key">U</span><span class="key">I</span><span class="key">O</span><span class="key">P</span></div>
+      <div class="kr" style="padding:0 10px"><span class="key">A</span><span class="key">S</span><span class="key">D</span><span class="key">F</span><span class="key">G</span><span class="key">H</span><span class="key">J</span><span class="key">K</span><span class="key">L</span></div>
+      <div class="kr" style="padding:0 20px"><span class="key">Z</span><span class="key">X</span><span class="key">C</span><span class="key">V</span><span class="key">B</span><span class="key">N</span><span class="key">M</span></div>
+      <div class="kr" style="padding:0 30px"><span class="key">Ă</span><span class="key">Â</span><span class="key">Î</span><span class="key hot">Ș</span><span class="key">Ț</span></div>
+      <div class="kr"><span class="key del">ȘTERGE</span><span class="key sp">SPAȚIU</span><span class="key ok">OK</span></div>
+    </div>
+  </div>
+</div>
+<p class="cap"><b>NICKNAME.</b> The keyboard docks; the card hides BODY and MUSCLE while you type, so the name and the slots stay in view. The nickname is the big name, the chalk name sits small under it in orange. 17 letters: the font drops from 34 to 27. FORJEAZĂ works before OK.</p>
+</div>
+</div>
+
+<!-- ===================== B: ANVIL (runner-up) ===================== -->
+<h2>B · NICOVALA (ANVIL) <em style="background:var(--orange)">LOCUL 2</em></h2>
+<p class="sub">The same short card under a fixed anvil stage. The chalk words drop onto the anvil; FORJEAZĂ saves at once, then 2 hammer strikes and a loot reveal (about 1.2 s, any tap skips; a repeat forge gets one 300 ms strike). The class colour frames the item. Still 2 taps, plus 1 to close the reveal.</p>
+<div class="row">
+<div class="col">
+<div class="phone">
+  <div class="head"><span class="t">FORJA</span><span class="bb sm">ÎNAPOI LA CRETĂ</span></div>
+  <div class="stage">
+    <div class="stagetag">NICOVALA HAIDUCULUI</div>
+    <div class="glow"></div>
+    <div class="drop trail" style="left:70px;top:72px;transform:rotate(-6deg)">FLEXII</div>
+    <div class="drop trail" style="left:176px;top:58px;transform:rotate(5deg)">PROSOP</div>
+    <!-- pixel anvil -->
+    <div class="px" style="left:70px;top:150px;width:200px;height:26px;background:#5a4a7a;border:4px solid #0b0414"></div>
+    <div class="px" style="left:40px;top:150px;width:40px;height:16px;background:#5a4a7a;border:4px solid #0b0414;border-right:0"></div>
+    <div class="px" style="left:74px;top:154px;width:192px;height:5px;background:#8a7ab0"></div>
+    <div class="px" style="left:120px;top:176px;width:100px;height:22px;background:#3d3058;border:4px solid #0b0414;border-top:0"></div>
+    <div class="px" style="left:96px;top:198px;width:148px;height:18px;background:#5a4a7a;border:4px solid #0b0414"></div>
+    <!-- hammer -->
+    <div class="px" style="left:262px;top:46px;width:12px;height:84px;background:#a6643c;border:3px solid #0b0414;transform:rotate(35deg);transform-origin:bottom"></div>
+    <div class="px" style="left:236px;top:30px;width:56px;height:28px;background:#c9b8e8;border:4px solid #0b0414;transform:rotate(35deg)"></div>
+    <div class="zap" style="left:60px;top:132px"></div><div class="zap o" style="left:286px;top:128px"></div><div class="zap" style="left:300px;top:150px;width:6px;height:6px"></div>
+  </div>
+  <div class="card" style="margin-top:18px;box-shadow:8px 8px 0 var(--pink)">
+    <div class="name" style="font-size:30px;margin-top:0">FLEXII CU PROSOP</div>
+    <div class="chips" style="margin-top:8px">
+      <span class="pc on">FLEXII</span><span class="pc on">PROSOP</span><span class="pc">TRAS</span><span class="pc dash">+ SCRIE</span>
+    </div>
+    <div class="lbl"><span>CORP · MUȘCHI <span class="guess">GHICIT</span></span><i>AJUSTEAZĂ ▾</i></div>
+    <div class="chips"><span class="pc sky">BRAȚE</span><span class="pc vio">BICEPS</span></div>
+    <div class="lbl"><span>PORECLĂ (OPȚIONAL)</span></div>
+    <div class="nick">ATINGE CA S-O SCRII</div>
+  </div>
+  <div class="bar"><span class="bb sm">ÎNAPOI</span><span class="bb">FORJEAZĂ</span></div>
+</div>
+<p class="cap"><b>THE STAGE.</b> Fixed header, the area's ground and the class name. The word chips fall on the anvil as you pick or change them. BODY and MUSCLE fold under AJUSTEAZĂ (1 more tap to fix a wrong guess). A typed word (+ SCRIE) is a dashed "raw ore" chip.</p>
+</div>
+
+<div class="col">
+<div class="phone">
+  <div class="head"><span class="t">FORJA</span><span class="bb sm">ÎNAPOI LA CRETĂ</span></div>
+  <div class="dim"></div>
+  <div class="rays"></div>
+  <div class="newtag">OBIECT NOU!</div>
+  <div class="loot">
+    <span class="rar">RAR · CUVÂNT NOU</span>
+    <div class="name" style="font-size:30px;margin-top:10px">FLEXII CU PROSOP</div>
+    <div class="from" style="margin-bottom:10px">FORJAT DE TINE · ZIUA 12</div>
+    <div class="stat"><span>CORP</span><span>BRAȚE · BICEPS</span></div>
+    <div class="stat"><span>UNEALTĂ</span><span>PROSOP</span></div>
+    <div class="stat"><span>TIPAR</span><span>TRAS</span></div>
+    <div class="stat"><span>APARE LA</span><span style="color:var(--lime)">HAIDUC</span></div>
+    <div class="stat"><span>XP PE SERIE</span><span>CA ORICE MIȘCARE</span></div>
+  </div>
+  <div class="skip">ADĂUGAT LA AZI · ATINGE ORIUNDE</div>
+  <div class="lootbar"><span class="bb sm">ÎNCĂ UNA</span><span class="bb">LA AZI</span></div>
+</div>
+<p class="cap"><b>THE REVEAL.</b> The move is saved before the hammer falls, so a skip or a locked phone loses nothing. RAR only for a new typed word, COMUN for a pure chalk mix. LA AZI closes it on the new Today card. ÎNCĂ UNA goes back to CRETĂ. Reduced motion: no rays, no strikes.</p>
+</div>
+</div>
+
+<p class="verdict"><b>Verdict:</b> A wins. It ties on taps (2), shows the guess, fits one screen, and D78 reuses the same card. B is A plus a stage and a reveal: more art, more strings (OBIECT NOU, RAR, COMUN, NICOVALA, ÎNCĂ UNA), and a 1.2 s beat between sets. B's reveal can be added to A later as an option. WIZARD (CE? → UNDE? → NUME) placed third: a guessed body part can never be skipped, so the typical forge is 3 taps over 2-3 screens.</p>
+</body>
+</html>
