@@ -18,9 +18,9 @@ import 'package:flutter/material.dart';
 import '../game/chalk.dart';
 import '../game/exercises.dart';
 import '../i18n.dart';
+import '../labels.dart' show bodyPartLabel;
 import '../pumplex.dart';
 import '../store.dart';
-import 'filters.dart' show bodyPartLabel;
 import 'forge.dart';
 
 /// Chalk white, for the words on the dark floor.
@@ -363,7 +363,7 @@ class _ResultRow extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text((v.nick ?? exerciseLabel(v.id, v.name)).toUpperCase(), style: display(15, fg)),
+                    Text(displayName(v).toUpperCase(), style: display(15, fg)),
                     if (info.isNotEmpty) ...[
                       const SizedBox(height: 2),
                       Text(info.toUpperCase(), style: mono(10, fg.withValues(alpha: 0.7))),

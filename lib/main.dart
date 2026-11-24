@@ -110,10 +110,10 @@ class _GameShellState extends State<GameShell> {
     _resetDraft();
     _life = AppLifecycleListener(onResume: () {
       hideSystemBars(); // the phone may show its bars again while away (D81)
-      _checkSession();
+      _onStore(); // one session per calendar day: a new day shows a new workout
     });
     _store.addListener(_onStore);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _checkSession());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _onStore());
   }
 
   @override
@@ -144,11 +144,6 @@ class _GameShellState extends State<GameShell> {
     _difficultyId = difficulties[difficultyIndex(p?.difficultyId)].id;
     _areaId = p == null ? defaultAreaFor(_classId).id : areaById(p.areaId).id;
     _areaPicked = p != null;
-  }
-
-  /// One session per calendar day: on open, a new day shows a new workout.
-  void _checkSession() {
-    if (mounted) setState(() {});
   }
 
   /// The one-time migration: backup file first, or nothing changes.

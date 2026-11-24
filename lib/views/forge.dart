@@ -17,10 +17,10 @@ import '../game/content.dart';
 import '../game/exercises.dart';
 import '../game/forge.dart';
 import '../i18n.dart';
+import '../labels.dart' show bodyPartLabel, muscleLabel;
 import '../pumplex.dart';
 import '../store.dart';
 import 'chalk.dart';
-import 'filters.dart' show bodyPartLabel, muscleLabel;
 
 /// Opens the FORGE card over the app, starting from the chalk [words].
 Future<void> showForge(NavigatorState nav, LogStore store, Set<String> words) =>

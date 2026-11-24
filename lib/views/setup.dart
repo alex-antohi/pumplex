@@ -623,27 +623,6 @@ class _BodySlider extends StatelessWidget {
 Color difficultyColor(Pal p, int i) =>
     [const Color(0xFFC9B8E8), p.lime, p.sky, p.violet, p.orange, p.pink][i.clamp(0, 5)];
 
-/// Difficulty [i] as a rank, e.g. "3 OF 6" (profile path row).
-String gems(int i) => t('difficulty.rank', {'n': i + 1, 'total': difficulties.length});
-
-/// XP gems: a row of gem icons, a picture of the multiplier (no numbers).
-class Gems extends StatelessWidget {
-  const Gems(this.count, {super.key, this.size = 12, required this.color});
-
-  final int count;
-  final double size;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (var i = 0; i < count; i++)
-            Padding(padding: const EdgeInsets.only(right: 2), child: PxIcon('gem', size: size, color: color)),
-        ],
-      );
-}
-
 // ----------------------------------------------------------- starting area
 
 /// Room under the area card: the dots row and the BACK / NEXT row.

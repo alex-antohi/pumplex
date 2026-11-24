@@ -67,13 +67,19 @@ class SessionPage extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: Text('${exerciseLabel(e.exerciseId, exerciseName(e.exerciseId)).toUpperCase()}  ${e.sets}',
-                      style: display(15, p.ink)),
+                  child: Text('${_name(e.exerciseId).toUpperCase()}  ${e.sets}', style: display(15, p.ink)),
                 ),
                 TallyMarks(count: e.sets, height: 14),
               ],
             ),
       ],
     );
+  }
+
+  /// A logged exercise's name: the forged nickname too; an id the list no
+  /// longer has keeps its English name.
+  static String _name(String id) {
+    final e = exerciseCatalog.byId[id];
+    return e == null ? exerciseLabel(id, exerciseName(id)) : displayName(e);
   }
 }

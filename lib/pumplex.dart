@@ -484,35 +484,6 @@ class _StarPainter extends CustomPainter {
   bool shouldRepaint(_StarPainter old) => old.fill != fill || old.ink != ink;
 }
 
-/// Grows and shrinks forever.
-class Pulse extends StatefulWidget {
-  const Pulse({super.key, required this.child, this.amount = 0.08});
-
-  final Widget child;
-  final double amount;
-
-  @override
-  State<Pulse> createState() => _PulseState();
-}
-
-class _PulseState extends State<Pulse> with SingleTickerProviderStateMixin {
-  late final _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 650))
-    ..repeat(reverse: true);
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => ScaleTransition(
-        scale: Tween(begin: 1.0, end: 1.0 + widget.amount)
-            .animate(CurvedAnimation(parent: _c, curve: Curves.easeInOut)),
-        child: widget.child,
-      );
-}
-
 /// Burst ids already shown this run, so each one explodes only once.
 final _celebrated = <String>{};
 

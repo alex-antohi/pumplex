@@ -13,17 +13,6 @@ import 'package:flutter/material.dart';
 import '../game/area_art.dart';
 import '../pumplex.dart';
 
-/// Rarity ladder for marks (docs/moodboard/areas/README.md): index 5 and up
-/// use the last colour.
-const markLadder = [
-  Color(0xFFC9B8E8),
-  Color(0xFFC6FF3D),
-  Color(0xFF3FD2FF),
-  Color(0xFFA77BFF),
-  Color(0xFFFFA033),
-  Color(0xFFFF5FB0),
-];
-
 /// The colour of every mark in the first round (D75): one colour for all.
 const markFirst = Color(0xFFC6FF3D);
 
@@ -40,15 +29,6 @@ const markLaps = [
 /// spots: 0 for the first round, 1 once the marks start again, and so on.
 int markLap(int i, int count, int spots) => count <= i ? 0 : (count - 1 - i) ~/ spots;
 
-/// The biggest whole-number scale at which the scene fits in [box] (min 1).
-int sceneScale(Size box) => max(1, min(box.width / sceneSize.width, box.height / sceneSize.height).floor());
-
-/// The scene rect at [scale], centred at the top of [avail].
-Rect sceneRectIn(Rect avail, int scale) {
-  final w = sceneSize.width * scale, h = sceneSize.height * scale;
-  return Rect.fromLTWH(avail.left + (avail.width - w) / 2, avail.top, w, h);
-}
-
 /// Where the shell draws the lifter for a scene at [scene] (scale [scale]):
 /// a body cell at 1 art px = [scale] px, feet on the shadow. The box is a
 /// bit taller than the cell so the height slider (×1.14) still fits.
@@ -57,21 +37,6 @@ Rect sceneLifterRect(AreaArt art, Rect scene, int scale) {
   final feet = scene.top + (art.lifterPos.dy + 64) * scale;
   return Rect.fromLTWH(scene.left + art.lifterPos.dx * scale, feet - h * 1.15, w, h * 1.15);
 }
-
-/// The ink frame around a scene at [scene], with a hard shadow in [shadow].
-/// Put it in the same [Stack] as the scene, before it.
-Widget sceneFrame(Rect scene, {required Color ink, required Color shadow}) => Positioned(
-      left: scene.left - 4,
-      top: scene.top - 4,
-      width: scene.width + 8,
-      height: scene.height + 8,
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: ink, width: 4),
-          boxShadow: [BoxShadow(color: shadow, offset: const Offset(6, 6))],
-        ),
-      ),
-    );
 
 class AreaScene extends StatefulWidget {
   const AreaScene({

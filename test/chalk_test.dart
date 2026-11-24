@@ -19,6 +19,7 @@ import 'package:gym_app/main.dart';
 import 'package:gym_app/pumplex.dart';
 import 'package:gym_app/store.dart';
 import 'package:gym_app/views/chalk.dart' show kChalkResultsHeight, kChalkSheetFraction;
+import 'package:gym_app/views/play.dart' show SessionPage;
 
 const _profile = Profile(
   character: Character(sex: 'female', height: 80, muscle: 100, fat: 0),
@@ -505,6 +506,20 @@ void main() {
     expect(old.words, line);
     expect(old.name, 'Kettlebell Curl');
     expect(old.toExercise().mods, {'equip': 'Kettlebell'});
+  });
+
+  testWidgets('past sessions show a forged move by its nickname', (t) async {
+    SharedPreferences.setMockInitialValues({'profile_v1': jsonEncode(_profile.toJson())});
+    final prefs = await SharedPreferences.getInstance();
+    final store = LogStore(prefs, clock: () => DateTime(2026, 11, 21, 10));
+    final move = store.forge({'tool.kettlebell', 'move.curl'}, 'biceps', 'Benchy');
+    store.addSet(move.id);
+    await t.pumpWidget(MaterialApp(
+      theme: pumplexTheme(Brightness.light),
+      home: Scaffold(body: SessionPage(session: store.todaySession!, xp: 0, live: true)),
+    ));
+    expect(find.text('BENCHY  1'), findsOneWidget);
+    expect(find.textContaining('KETTLEBELL CURL'), findsNothing);
   });
 
   testWidgets('FORGE card: no ANGLE or GRIP; a nickname on the arcade keyboard, FORGE IT', (t) async {

@@ -129,6 +129,10 @@ String exerciseLabel(String id, String name) {
   return g == null ? name : composeName(e!, g, I18n.instance.lookup);
 }
 
+/// The name an exercise shows: a forged move's nickname (D72), else its
+/// [exerciseLabel].
+String displayName(CatalogExercise e) => e.nick ?? exerciseLabel(e.id, e.name);
+
 /// A workout card's name: `move.<base>` for a move (key `move:<base>`),
 /// else the exercise's `exercise.<id>`; the English [name] as the fallback.
 String groupLabel(String key, String name) =>

@@ -12,12 +12,6 @@ enum Motion {
 
   /// Camera moves back: the reverse of [zoomIn].
   zoomOut,
-
-  /// The new scene slides in from the left (going back in time).
-  slideRight,
-
-  /// The new scene slides in from the right.
-  slideLeft,
 }
 
 const sceneDuration = Duration(milliseconds: 480);
@@ -66,27 +60,14 @@ class _SceneSwitcherState extends State<SceneSwitcher> with SingleTickerProvider
 
   Widget _place(Widget child, double t, {required bool incoming}) {
     // t: 0 = start of the change, 1 = done.
-    final w = MediaQuery.sizeOf(context).width;
     final fade = incoming ? t : 1 - t;
-    switch (widget.motion) {
-      case Motion.zoomIn:
-      case Motion.zoomOut:
-        final forward = widget.motion == Motion.zoomIn;
-        final from = incoming ? (forward ? 0.86 : 1.18) : 1.0;
-        final to = incoming ? 1.0 : (forward ? 1.18 : 0.86);
-        return Opacity(
-          opacity: fade.clamp(0.0, 1.0),
-          child: Transform.scale(scale: from + (to - from) * t, child: child),
-        );
-      case Motion.slideRight:
-      case Motion.slideLeft:
-        final dir = widget.motion == Motion.slideRight ? 1.0 : -1.0;
-        final dx = incoming ? -dir * w * (1 - t) : dir * w * 0.35 * t;
-        return Opacity(
-          opacity: (incoming ? 1.0 : 1 - t).clamp(0.0, 1.0),
-          child: Transform.translate(offset: Offset(dx, 0), child: child),
-        );
-    }
+    final forward = widget.motion == Motion.zoomIn;
+    final from = incoming ? (forward ? 0.86 : 1.18) : 1.0;
+    final to = incoming ? 1.0 : (forward ? 1.18 : 0.86);
+    return Opacity(
+      opacity: fade.clamp(0.0, 1.0),
+      child: Transform.scale(scale: from + (to - from) * t, child: child),
+    );
   }
 
   @override

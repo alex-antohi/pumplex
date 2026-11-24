@@ -20,14 +20,11 @@ import 'sprite.dart';
 /// round; "n / m" shows where you are. The shell keeps [index], so the
 /// card keeps its place when it moves.
 class SessionsCard extends StatefulWidget {
-  const SessionsCard({super.key, required this.store, required this.index, required this.onIndex, this.onSwiped});
+  const SessionsCard({super.key, required this.store, required this.index, required this.onIndex});
 
   final LogStore store;
   final int index;
   final ValueChanged<int> onIndex;
-
-  /// A swipe changed the session (the shell then gives the card the space).
-  final VoidCallback? onSwiped;
 
   @override
   State<SessionsCard> createState() => _SessionsCardState();
@@ -41,10 +38,7 @@ class _SessionsCardState extends State<SessionsCard> with SwipeCarousel<Sessions
   int get index => widget.index.clamp(0, count == 0 ? 0 : count - 1);
 
   @override
-  void select(int i) {
-    widget.onIndex(i);
-    widget.onSwiped?.call();
-  }
+  void select(int i) => widget.onIndex(i);
 
   @override
   Widget build(BuildContext context) {
