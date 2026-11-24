@@ -877,7 +877,9 @@ class LogStore extends ChangeNotifier {
   void _addSet(String id) {
     // A weighted move logs the set's weight and reps (D84), carried from
     // the set before (today, else the last day with this exercise).
-    final log = isWeighted(id) ? [..._logPadded(id, setsToday(id)), lastSetLog(id)?.carried ?? const SetLog()] : null;
+    // The first set takes what the strip set before it (D85).
+    final first = setsToday(id) == 0 ? _next.remove(id) : null;
+    final log = isWeighted(id) ? [..._logPadded(id, setsToday(id)), first ?? lastSetLog(id)?.carried ?? const SetLog()] : null;
     _edit((l) {
       final i = l.indexWhere((e) => e.exerciseId == id);
       return i < 0
@@ -932,6 +934,26 @@ class LogStore extends ChangeNotifier {
       if (!last.isEmpty) return last;
     }
     return null;
+  }
+
+  /// The coming first set of exercise [id] (D85): what the strip shows
+  /// before any set today. In memory only.
+  final Map<String, SetLog> _next = {};
+
+  /// The values the first set of [id] today will get: the strip's, else
+  /// the last day's last set (carried), else empty.
+  SetLog nextSetLog(String id) => _next[id] ?? lastSetLog(id)?.carried ?? const SetLog();
+
+  /// The lifter sets the coming first set of [id]: a value given is typed.
+  void setNextSetLog(String id, {double? kg, int? reps}) {
+    final old = nextSetLog(id);
+    _next[id] = SetLog(
+      kg: kg ?? old.kg,
+      reps: reps ?? old.reps,
+      kgTyped: old.kgTyped || kg != null,
+      repsTyped: old.repsTyped || reps != null,
+    );
+    notifyListeners();
   }
 
   /// The lifter sets set [index] (0 = the first) of exercise [id] today: a

@@ -1,12 +1,12 @@
-// MINIMAL weight and reps (D84, docs/moodboard/today-logging/MINIMAL.md).
-// After a set on a weighted move, a small strip on the exercise card lets
-// the lifter fix the weight and the reps of that set. Doing nothing is
-// fine: the values carry over from the set before (muted until touched).
+// MINIMAL weight and reps (D84, D85, docs/moodboard/today-logging/
+// MINIMAL.md). On a weighted move, a small strip on the exercise card shows
+// from the start: before the first set it sets the coming set (SET 1),
+// after a set it fixes the set just done. Doing nothing is fine: the values
+// carry over from the set before (muted until touched).
 //
-// - The header names the set the strip edits; "SAME AS SET n" while the
-//   values are carried and untouched.
-// - Steppers: 2.5 kg and 1 rep; a hold repeats. A tap on a number opens
-//   the arcade keypad (digits only) for a direct value.
+// - The header names the set the strip edits (no other text, D85).
+// - Steppers: a tap steps 2.5 kg or 1 rep; a hold repeats by 5 (kg and
+//   reps, D85). A tap on a number opens the arcade keypad (digits only).
 // - The trail: today's sets as pips (weight×reps); a tap edits that set,
 //   a tap on the last goes back to the newest.
 // Log only: weight and reps never change XP.
@@ -49,19 +49,23 @@ class _LogStripState extends State<LogStrip> {
     final store = widget.store;
     final p = Pal.of(context);
     final logs = store.setLogs(widget.id);
-    if (!store.isWeighted(widget.id) || logs.isEmpty) return const SizedBox.shrink();
+    if (!store.isWeighted(widget.id)) return const SizedBox.shrink();
+    // Before the first set: the coming set (D85).
+    final coming = logs.isEmpty;
     // A new set (or an undo): back to the newest.
     if (logs.length != _lastCount) {
       _lastCount = logs.length;
       _editing = null;
     }
-    final at = (_editing ?? logs.length - 1).clamp(0, logs.length - 1);
-    final l = logs[at];
-    final same = at > 0 && !l.kgTyped && !l.repsTyped && !l.isEmpty;
-    void setKg(double v) => store.setSetLog(widget.id, at, kg: (v.clamp(0, 999) * 2).round() / 2);
-    void setReps(int v) => store.setSetLog(widget.id, at, reps: v.clamp(0, 999));
+    final at = coming ? 0 : (_editing ?? logs.length - 1).clamp(0, logs.length - 1);
+    final l = coming ? store.nextSetLog(widget.id) : logs[at];
+    void save({double? kg, int? reps}) =>
+        coming ? store.setNextSetLog(widget.id, kg: kg, reps: reps) : store.setSetLog(widget.id, at, kg: kg, reps: reps);
+    void setKg(double v) => save(kg: (v.clamp(0, 999) * 2).round() / 2);
+    void setReps(int v) => save(reps: v.clamp(0, 999));
     // The value now (a held stepper repeats from the newest value).
     SetLog now() {
+      if (store.setLogs(widget.id).isEmpty) return store.nextSetLog(widget.id);
       final all = store.setLogs(widget.id);
       return at < all.length ? all[at] : const SetLog();
     }
@@ -79,22 +83,7 @@ class _LogStripState extends State<LogStrip> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                Text(t('log.set', {'n': at + 1}), key: const ValueKey('log-set'), style: display(15, p.ink)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    [t('log.optional'), if (same) t('log.sameAs', {'n': at})].join(' · '),
-                    key: const ValueKey('log-note'),
-                    textAlign: TextAlign.right,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: mono(10, p.inkSoft),
-                  ),
-                ),
-              ],
-            ),
+            Text(t('log.set', {'n': at + 1}), key: const ValueKey('log-set'), style: display(15, p.ink)),
             const SizedBox(height: 4),
             Row(
               children: [
@@ -104,7 +93,7 @@ class _LogStripState extends State<LogStrip> {
                     value: kgText(l.kg),
                     unit: t('log.kg'),
                     typed: l.kgTyped,
-                    onStep: (d) => setKg((now().kg ?? 0) + d * 2.5),
+                    onStep: (d, hold) => setKg((now().kg ?? 0) + d * (hold ? 5 : 2.5)),
                     onType: () => _type(context, kgText(l.kg), decimal: true, (s) {
                       final v = double.tryParse(s);
                       if (v != null) setKg(v);
@@ -118,7 +107,7 @@ class _LogStripState extends State<LogStrip> {
                     value: '${l.reps ?? '—'}',
                     unit: t('log.reps'),
                     typed: l.repsTyped,
-                    onStep: (d) => setReps((now().reps ?? 0) + d),
+                    onStep: (d, hold) => setReps((now().reps ?? 0) + d * (hold ? 5 : 1)),
                     onType: () => _type(context, '${l.reps ?? ''}', decimal: false, (s) {
                       final v = int.tryParse(s);
                       if (v != null) setReps(v);
@@ -172,7 +161,7 @@ class _LogStripState extends State<LogStrip> {
   }
 }
 
-/// [−] value unit [+]. A hold on a button repeats it. The value is muted
+/// [−] value unit [+]. A hold on a button repeats it, by 5 (D85). The value is muted
 /// while it is carried, in full ink once typed.
 class _Stepper extends StatelessWidget {
   const _Stepper({
@@ -186,7 +175,8 @@ class _Stepper extends StatelessWidget {
 
   final String id, value, unit;
   final bool typed;
-  final ValueChanged<int> onStep;
+  /// A step of [sign] (−1 or +1); [hold]: the repeat of a hold.
+  final void Function(int sign, bool hold) onStep;
   final VoidCallback onType;
 
   @override
@@ -194,7 +184,7 @@ class _Stepper extends StatelessWidget {
     final p = Pal.of(context);
     return Row(
       children: [
-        _RepeatButton(id: 'log-$id-minus', label: '−', onStep: () => onStep(-1)),
+        _RepeatButton(id: 'log-$id-minus', label: '−', onStep: (hold) => onStep(-1, hold)),
         Expanded(
           child: GestureDetector(
             key: ValueKey('log-$id-value'),
@@ -214,18 +204,18 @@ class _Stepper extends StatelessWidget {
             ),
           ),
         ),
-        _RepeatButton(id: 'log-$id-plus', label: '+', onStep: () => onStep(1)),
+        _RepeatButton(id: 'log-$id-plus', label: '+', onStep: (hold) => onStep(1, hold)),
       ],
     );
   }
 }
 
-/// A stepper button: a tap steps once, a hold repeats.
+/// A stepper button: a tap steps once; a hold repeats (onStep(true)).
 class _RepeatButton extends StatefulWidget {
   const _RepeatButton({required this.id, required this.label, required this.onStep});
 
   final String id, label;
-  final VoidCallback onStep;
+  final ValueChanged<bool> onStep;
 
   @override
   State<_RepeatButton> createState() => _RepeatButtonState();
@@ -253,11 +243,12 @@ class _RepeatButtonState extends State<_RepeatButton> {
       behavior: HitTestBehavior.opaque,
       onTap: () {
         HapticFeedback.selectionClick();
-        widget.onStep();
+        widget.onStep(false);
       },
       onLongPressStart: (_) {
-        widget.onStep();
-        _timer = Timer.periodic(const Duration(milliseconds: 110), (_) => widget.onStep());
+        HapticFeedback.mediumImpact();
+        widget.onStep(true);
+        _timer = Timer.periodic(const Duration(milliseconds: 160), (_) => widget.onStep(true));
       },
       onLongPressEnd: (_) => _stop(),
       onLongPressCancel: _stop,

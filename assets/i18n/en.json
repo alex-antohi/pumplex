@@ -907,8 +907,6 @@
   "exercise.Zottman_Curl": "Zottman Curl",
   "exercise.Towel_Row": "Towel Row",
   "log.set": "SET {n}",
-  "log.optional": "OPTIONAL",
-  "log.sameAs": "SAME AS SET {n}",
   "log.kg": "KG",
   "log.reps": "REPS"
 }

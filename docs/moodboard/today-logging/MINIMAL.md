@@ -1,6 +1,6 @@
 # MINIMAL: weight and reps on the exercise card
 
-Date: 24 Nov 2026. Status: **built (D84).** Code: `lib/views/set_log.dart` (strip, steppers, trail, keypad), `SetLog` in `lib/game/model.dart`, `LogStore.setLogs` / `setSetLog` / `lastSetLog` / `isWeighted` in `lib/store.dart`. Tests: `test/set_log_test.dart`. Open question 1 is settled by rule 3: the first set of a day carries the last session's values. Questions 2 and 3 stay open.
+Date: 24 Nov 2026. Status: **built (D84), changed by D85:** the strip shows from the start (before the first set it sets SET 1), no OPTIONAL / SAME AS text, and a hold steps by 5 (kg and reps). Code: `lib/views/set_log.dart` (strip, steppers, trail, keypad), `SetLog` in `lib/game/model.dart`, `LogStore.setLogs` / `setSetLog` / `lastSetLog` / `isWeighted` in `lib/store.dart`. Tests: `test/set_log_test.dart`. Open question 1 is settled by rule 3: the first set of a day carries the last session's values. Questions 2 and 3 stay open.
 
 Render: `01-sets-reps-weight.png` (mockup A). The debate chose MINIMAL over a game scoreboard (B) and a logger table (C).
 

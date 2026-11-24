@@ -89,7 +89,7 @@ void main() {
     expect(SessionExercise.fromJson({'exerciseId': db, 'sets': 2}).log, isEmpty); // old sets stay valid
   });
 
-  testWidgets('the strip: hidden before the first set, edits the newest, steppers, keypad, trail', (t) async {
+  testWidgets('the strip: there from the start (D85), edits the newest, steppers, hold by 5, keypad, trail', (t) async {
     t.view.physicalSize = const Size(1080, 2340);
     t.view.devicePixelRatio = 2.75;
     t.view.padding = const FakeViewPadding(top: 110, bottom: 146);
@@ -99,13 +99,19 @@ void main() {
     store.addToToday(db);
     await t.pumpWidget(GymApp(store: store));
     await _frames(t);
-    expect(find.byKey(const ValueKey('log-strip')), findsNothing); // before the first set
-    store.addSet(db);
-    await _frames(t, 4);
+    // There before the first set (D85): it sets the coming set 1.
     expect(find.byKey(const ValueKey('log-strip')), findsOneWidget);
     expect(find.text('SET 1'), findsOneWidget);
+    expect(find.text('OPTIONAL'), findsNothing); // no text in the corner (D85)
+    await t.tap(find.byKey(const ValueKey('log-kg-plus')));
+    await t.pump();
+    expect(store.nextSetLog(db), const SetLog(kg: 2.5, kgTyped: true));
+    store.addSet(db);
+    await _frames(t, 4);
+    expect(store.setLogs(db).single, const SetLog(kg: 2.5, kgTyped: true)); // the set took it
+    expect(find.text('SET 1'), findsOneWidget);
     // Steppers: 2.5 kg and 1 rep, saved as typed.
-    for (var i = 0; i < 4; i++) {
+    for (var i = 0; i < 3; i++) {
       await t.tap(find.byKey(const ValueKey('log-kg-plus')));
     }
     await t.tap(find.byKey(const ValueKey('log-reps-plus')));
@@ -121,20 +127,24 @@ void main() {
     await t.tap(find.byKey(const ValueKey('pad-ok')));
     await _frames(t, 10);
     expect(store.setLogs(db).single.reps, 8);
-    // A hold repeats the step.
+    // A hold steps by 5 (D85), kg and reps, and repeats.
     final g = await t.startGesture(t.getCenter(find.byKey(const ValueKey('log-reps-plus'))));
     await t.pump(const Duration(milliseconds: 600));
-    await t.pump(const Duration(milliseconds: 400));
     await g.up();
     await t.pump();
-    expect(store.setLogs(db).single.reps, greaterThan(10));
+    expect(store.setLogs(db).single.reps, 13);
+    final h = await t.startGesture(t.getCenter(find.byKey(const ValueKey('log-kg-minus'))));
+    await t.pump(const Duration(milliseconds: 600));
+    await h.up();
+    await t.pump();
+    expect(store.setLogs(db).single.kg, 5);
+    store.setSetLog(db, 0, kg: 10);
     store.setSetLog(db, 0, reps: 8);
     await t.pump();
-    // The next set: SAME AS SET 1, carried.
+    // The next set: carried.
     store.addSet(db);
     await _frames(t, 4);
     expect(find.text('SET 2'), findsOneWidget);
-    expect(find.textContaining('SAME AS SET 1'), findsOneWidget);
     expect(find.text('2 · 10×8'), findsOneWidget);
     // A tap on the first pip edits set 1; the last pip goes back.
     await t.tap(find.byKey(const ValueKey('log-pip-0')));
