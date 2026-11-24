@@ -84,16 +84,6 @@ int difficultyIndex(String? id) {
   return i < 0 ? 0 : i;
 }
 
-/// How an area shows the working sets (docs/moodboard/README.md "Starting
-/// areas": the action is the set, and the result stays in the world).
-enum MarkStyle {
-  shells, // a loot pile of shells on the sand
-  tally, // chalk tally marks on a wall
-  crosses, // spray-painted Xs on a scrap sign
-  tickets, // arcade tickets on the floor
-  flags, // flags up the slope to the summit
-}
-
 /// A starting area: the look, the palette and how a set is logged.
 /// Proposals from the design team. The scene art is in assets/areas
 /// (lib/game/area_art.dart).
@@ -101,7 +91,6 @@ class Area {
   const Area({
     required this.id,
     required this.icon,
-    required this.marks,
     required this.object,
     required this.sky,
     required this.floor,
@@ -115,7 +104,6 @@ class Area {
 
   /// Icon id in assets/icons (for lists).
   final String icon;
-  final MarkStyle marks;
 
   /// Icon id of the object to hit (the scene art is in lib/game/area_art.dart).
   final String object;
@@ -138,7 +126,6 @@ const areas = <Area>[
   Area(
     id: 'riptide',
     icon: 'area-riptide',
-    marks: MarkStyle.shells,
     object: 'object-chest',
     sky: 0xFF12061F,
     floor: 0xFFAD9293,
@@ -147,7 +134,6 @@ const areas = <Area>[
   Area(
     id: 'gainsgard',
     icon: 'area-gainsgard',
-    marks: MarkStyle.tally,
     object: 'object-wall',
     sky: 0xFF3A2A52,
     floor: 0xFF8672A5,
@@ -157,7 +143,6 @@ const areas = <Area>[
   Area(
     id: 'rustbelt',
     icon: 'area-rustbelt',
-    marks: MarkStyle.crosses,
     object: 'object-barrel',
     sky: 0xFF1F0D36,
     floor: 0xFFA6643C,
@@ -167,7 +152,6 @@ const areas = <Area>[
   Area(
     id: 'arcade',
     icon: 'area-arcade',
-    marks: MarkStyle.tickets,
     object: 'object-punch',
     sky: 0xFF12061F,
     floor: 0xFF724EB2,
@@ -177,7 +161,6 @@ const areas = <Area>[
   Area(
     id: 'frostbite',
     icon: 'area-frostbite',
-    marks: MarkStyle.flags,
     object: 'object-ice',
     sky: 0xFF1A0B3B,
     floor: 0xFFC9B8E8,

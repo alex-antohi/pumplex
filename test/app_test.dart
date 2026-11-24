@@ -18,7 +18,6 @@ import 'package:gym_app/store.dart';
 import 'package:gym_app/views/area_scene.dart';
 import 'package:gym_app/views/scene.dart';
 import 'package:gym_app/views/sprite.dart';
-import 'package:gym_app/views/workout.dart';
 
 // Seven days logged by the OLD app: 4 workouts, 3 rest days, and one
 // date with two workouts.
@@ -492,25 +491,12 @@ void main() {
     expect(difficulties.every((d) => d.name.endsWith('Mode')), isTrue);
     expect([for (final r in difficultyRules) r.xpMultiplier], [1.0, 1.2, 1.4, 1.6, 1.8, 2.0]);
     expect(areas.length, 5);
-    expect(areas.map((a) => a.marks).toSet(), MarkStyle.values.toSet()); // every mark style used
     for (final c in gameClasses) {
       expect(areas.where((a) => a.defaultFor == c.id).length, 1, reason: c.id);
       expect(defaultAreaFor(c.id).defaultFor, c.id);
     }
     expect(defaultAreaFor('paladin').id, 'gainsgard');
     expect(areaById('nope').id, areas.first.id);
-  });
-
-  testWidgets('every area mark style draws, grouped in fives', (t) async {
-    for (final style in MarkStyle.values) {
-      for (final n in [0, 1, 5, 12]) {
-        await t.pumpWidget(MaterialApp(
-          theme: pumplexTheme(Brightness.light),
-          home: Center(child: SetMarks(style: style, count: n, color: Colors.pink)),
-        ));
-        expect(t.takeException(), isNull, reason: '$style $n');
-      }
-    }
   });
 
   testWidgets('the workout: +1 SET, the area stamp on every 5th set, no CRUSHED (D52)', (t) async {
