@@ -16,7 +16,9 @@ import 'package:gym_app/game/exercises.dart';
 import 'package:gym_app/game/forge.dart';
 import 'package:gym_app/game/model.dart';
 import 'package:gym_app/main.dart';
+import 'package:gym_app/pumplex.dart';
 import 'package:gym_app/store.dart';
+import 'package:gym_app/views/chalk.dart' show kChalkResultsHeight, kChalkSheetFraction;
 
 const _profile = Profile(
   character: Character(sex: 'female', height: 80, muscle: 100, fat: 0),
@@ -186,6 +188,93 @@ void main() {
     expect(find.byKey(const ValueKey('chalk-forge')), findsOneWidget);
     expect(find.text('NO SUCH MOVE. FORGE IT?'), findsOneWidget);
     expect(t.getRect(find.byKey(const ValueKey('chalk-forge'))).top, greaterThanOrEqualTo(t.getRect(tiles).bottom));
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('CHALK sheet: a fixed height and a fixed results area with 0, 3 and 30 results', (t) async {
+    final store = await _openApp(t);
+    final index = ChalkIndex.of(exerciseCatalog);
+    // A line with a few results (1 to 3) and a line with 30 or more.
+    final few = [
+      for (final a in chalkWords)
+        for (final b in chalkWords)
+          if (a.row != b.row) {a.key, b.key},
+    ].firstWhere((l) => index.search(l).length == 3);
+    final many = chalkWords.map((w) => {w.key}).firstWhere((l) => index.search(l).length >= 30);
+    await t.tap(find.byKey(const ValueKey('filter-chalk')));
+    await _frames(t, 10);
+    final sheet = find.byKey(const ValueKey('chalk-sheet'));
+    final area = find.byKey(const ValueKey('chalk-results-area'));
+    final tiles = find.byKey(const ValueKey('chalk-tiles'));
+    final sizes = <String, (Rect, Rect, Rect)>{};
+    Future<void> measure(String name, Set<String> line) async {
+      store.setChalk(line);
+      await _frames(t, 4);
+      sizes[name] = (t.getRect(sheet), t.getRect(area), t.getRect(tiles));
+    }
+
+    await measure('no words', {});
+    await measure('0', _noMove);
+    expect(find.byKey(const ValueKey('chalk-forge')), findsOneWidget);
+    await measure('3', few);
+    expect(find.byKey(const ValueKey('chalk-forge')), findsNothing);
+    await measure('30', many);
+    final first = sizes.values.first;
+    for (final e in sizes.entries) {
+      expect(e.value, first, reason: e.key); // nothing moves
+    }
+    expect(first.$1.height, closeTo(t.view.physicalSize.height / t.view.devicePixelRatio * kChalkSheetFraction, 0.5));
+    expect(first.$2.height, kChalkResultsHeight);
+    // Many results scroll inside the area, with a visible scrollbar and a fade.
+    final list = find.byKey(const ValueKey('chalk-results-scroll'));
+    final bar = find.descendant(of: list, matching: find.byType(Scrollbar));
+    expect(bar, findsOneWidget);
+    expect(t.widget<Scrollbar>(bar).thumbVisibility, isTrue);
+    expect(find.descendant(of: list, matching: find.byKey(const ValueKey('chalk-fade'))), findsOneWidget);
+    // Three results fit: no fade.
+    store.setChalk(few);
+    await _frames(t, 4);
+    expect(find.descendant(of: list, matching: find.byKey(const ValueKey('chalk-fade'))), findsNothing);
+    // The tiles area has its own scrollbar too.
+    expect(t.widget<Scrollbar>(find.descendant(of: tiles, matching: find.byType(Scrollbar))).thumbVisibility, isTrue);
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('CHALK results: "+" adds to Today, a row tap selects without adding, the selected row is lime', (t) async {
+    final store = await _openApp(t);
+    store.setChalk({'tool.barbell', 'move.press'});
+    await _frames(t, 4);
+    await t.tap(find.byKey(const ValueKey('filter-chalk')));
+    await _frames(t, 10);
+    final found = ChalkIndex.of(exerciseCatalog).search(store.chalk);
+    final a = found[0], b = found[1];
+    // "+" is at least 44 px; a tap adds the card to Today and the sheet stays.
+    final add = find.byKey(ValueKey('chalk-result-add-${a.key}'));
+    expect(t.getSize(add).width, greaterThanOrEqualTo(44));
+    expect(t.getSize(add).height, greaterThanOrEqualTo(44));
+    await t.tap(add);
+    await _frames(t, 4);
+    expect(store.todayCards, [a.key]);
+    expect(find.byKey(const ValueKey('chalk-sheet')), findsOneWidget);
+    expect(add, findsNothing);
+    expect(find.byKey(ValueKey('chalk-result-today-${a.key}')), findsOneWidget);
+    // The picked card's row is filled with the lime (the app's yellow).
+    final p = Theme.of(t.element(find.byKey(const ValueKey('chalk-sheet')))).extension<Pal>()!;
+    Color fill(String key) => ((t.widget<Container>(find.byKey(ValueKey('chalk-result-on-$key'))).decoration!) as BoxDecoration).color!;
+    expect(fill(a.key), p.lime);
+    // A picked tile is lime too.
+    final tile = find.descendant(of: find.byKey(const ValueKey('chalk-tool.barbell')), matching: find.byType(Container));
+    expect((t.widget<Container>(tile).decoration! as BoxDecoration).color, p.lime);
+    // A tap on the rest of a row selects that card and closes the sheet; it
+    // does not add it to Today.
+    await t.tap(find.byKey(ValueKey('chalk-result-${b.key}')), warnIfMissed: false);
+    await _frames(t, 20);
+    expect(store.pickedCard, b.key);
+    expect(store.todayCards, [a.key]);
+    expect(find.byKey(const ValueKey('chalk-sheet')), findsNothing);
+    await t.tap(find.byKey(const ValueKey('filter-chalk')));
+    await _frames(t, 10);
+    expect(fill(b.key), p.lime);
     expect(t.takeException(), isNull);
   });
 

@@ -48,6 +48,13 @@ What is built from `HANDOFF.md` (D70, D72) on branch `design-fixes`, and what is
    - FORGE: no ANGLE or GRIP chips; a forged move has only the `equip` mod and a name from tool + move (KETTLEBELL CURL). An older forged move loses its ANGLE / GRIP words when loaded (its name changes too). A forged card has one exercise, so it has no angle or grip chips yet: still open (with D78 edit).
    - App-wide: the phone's bars are hidden (`hideSystemBars` in `lib/main.dart`: `SystemUiMode.immersiveSticky`, at start and on every resume). Both bars go: Android has no sticky mode for the navigation bar alone. The views read the bottom inset from `MediaQuery`, so it is 0 and there is no gap. The back gesture still works (no `PopScope`, D60). Not checked on a real phone yet.
 
+11. **Owner's phone test of D81: CHALK fixes** (`lib/views/chalk.dart`, tests in `test/chalk_test.dart`).
+   - **"+" is back** at the right of each result row (`chalk-result-add-<key>`, 44 x 44 px): a tap adds the card to Today (`store.addToToday`; it is also picked) and the sheet stays open. A card in Today shows the TODAY mark there instead. A tap on the rest of the row still selects the card and closes the sheet (no add).
+   - **Selected = lime** (the app's yellow, `Pal.lime`; no new colour): the selected result row and a picked word tile are lime with `p.on` (night) text and border. Before: night fill.
+   - **The sheet stays put**: a fixed height (`kChalkSheetFraction` = 0.82 of the screen, `chalk-sheet`), the same with no words, 0, 3 or 30 results. The results area at the bottom has a fixed height (`kChalkResultsHeight` = 270, `chalk-results-area`): few results leave space, many scroll inside it; with no words it is empty, at 0 it holds FORGE. The tiles take the rest (`chalk-tiles`) and scroll.
+   - **It shows it scrolls** (`ChalkScroll`): the tiles and the results each have a `Scrollbar` with `thumbVisibility: true` (ink thumb, lime track while it can scroll) and a fade to the floor colour at the bottom edge while more is below (`chalk-fade`).
+   - Not checked on a real phone yet.
+
 ## Left to do (in this order)
 
 

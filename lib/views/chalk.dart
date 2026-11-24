@@ -4,9 +4,10 @@
 // per kind: PATTERN, MOVE, TOOL, BODY (ANGLE and GRIP are chips on the
 // exercise card, D55/D57). A tile picked is filled; a second tap takes it
 // out. A tile that gives 0 exercises is greyed (no counts, D81). At the
-// bottom: the results, one row per card; a tap selects the card (the
-// carousel goes there and the sheet closes on it), it does not add it to
-// Today (the first set does, D79). With 0 matches the bottom shows NO SUCH
+// bottom, in a fixed height: the results, one row per card; a tap selects
+// the card (the carousel goes there and the sheet closes on it); the "+" at
+// the right adds it to Today (a card in Today shows TODAY). The sheet has a
+// fixed height, so nothing moves with the count. With 0 matches: NO SUCH
 // MOVE. FORGE IT?, which opens the FORGE card (lib/views/forge.dart).
 // CHALK searches ALL exercises and ignores the class and the filters.
 
@@ -40,6 +41,14 @@ Future<void> showChalkSheet(BuildContext context, LogStore store) {
   );
 }
 
+/// The CHALK sheet's height, a fixed part of the screen: the same with 0,
+/// 3 or 30 results, so the sheet never jumps (D81 follow-up).
+const kChalkSheetFraction = 0.82;
+
+/// The results area's fixed height at the bottom of the sheet: few results
+/// leave empty space, many scroll inside it.
+const kChalkResultsHeight = 270.0;
+
 class ChalkSheet extends StatelessWidget {
   const ChalkSheet({super.key, required this.store});
 
@@ -54,12 +63,12 @@ class ChalkSheet extends StatelessWidget {
         final index = ChalkIndex.of(exerciseCatalog);
         final line = store.chalk;
         final total = index.count(line);
-        return ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.92),
+        return SizedBox(
+          key: const ValueKey('chalk-sheet'),
+          height: MediaQuery.sizeOf(context).height * kChalkSheetFraction,
           child: SafeArea(
             top: false,
             child: Column(
-              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // The title and BACK TO TODAY (D81).
@@ -82,63 +91,77 @@ class ChalkSheet extends StatelessWidget {
                     ],
                   ),
                 ),
-                // The word tiles.
-                Flexible(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        for (final row in chalkRows)
-                          Padding(
-                            key: ValueKey('chalk-row-$row'),
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Shout(chalkRowLabel(row), size: 13, color: p.ink),
-                                const SizedBox(height: 6),
-                                Wrap(
-                                  spacing: 6,
-                                  runSpacing: 6,
-                                  children: [
-                                    for (final w in chalkWords.where((w) => w.row == row))
-                                      _Tile(
-                                        word: w,
-                                        // Greyed when it gives nothing.
-                                        off: !line.contains(w.key) && index.count(chalkToggle(line, w)) == 0,
-                                        selected: line.contains(w.key),
-                                        onTap: () => store.setChalk(chalkToggle(line, w)),
-                                      ),
-                                  ],
-                                ),
-                              ],
+                // The word tiles: all the space between the top and the
+                // results; they scroll in it.
+                Expanded(
+                  child: ChalkScroll(
+                    key: const ValueKey('chalk-tiles'),
+                    builder: (controller) => SingleChildScrollView(
+                      controller: controller,
+                      padding: const EdgeInsets.fromLTRB(16, 8, 20, 4),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          for (final row in chalkRows)
+                            Padding(
+                              key: ValueKey('chalk-row-$row'),
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Shout(chalkRowLabel(row), size: 13, color: p.ink),
+                                  const SizedBox(height: 6),
+                                  Wrap(
+                                    spacing: 6,
+                                    runSpacing: 6,
+                                    children: [
+                                      for (final w in chalkWords.where((w) => w.row == row))
+                                        _Tile(
+                                          word: w,
+                                          // Greyed when it gives nothing.
+                                          off: !line.contains(w.key) && index.count(chalkToggle(line, w)) == 0,
+                                          selected: line.contains(w.key),
+                                          onTap: () => store.setChalk(chalkToggle(line, w)),
+                                        ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
-                // At the bottom: the results, or FORGE at 0 (D81).
-                if (line.isNotEmpty && total > 0)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 4, 20, 12),
-                    child: _Results(store: store, cards: index.search(line), index: index),
-                  )
-                else if (line.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 4, 24, 16),
-                    child: BrutalButton(
-                      key: const ValueKey('chalk-forge'),
-                      color: p.pink,
-                      // The FORGE card, from these words.
-                      onTap: () {
-                        final nav = Navigator.of(context)..pop();
-                        showForge(nav, store, line);
-                      },
-                      child: FittedBox(fit: BoxFit.scaleDown, child: Text(t('chalk.forge'))),
-                    ),
+                // At the bottom, in a fixed height: the results, or FORGE
+                // at 0 (D81), or empty space before the first word.
+                SizedBox(
+                  key: const ValueKey('chalk-results-area'),
+                  height: kChalkResultsHeight,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 12, 12),
+                    child: line.isNotEmpty && total > 0
+                        ? _Results(store: store, cards: index.search(line), index: index)
+                        : line.isNotEmpty
+                            ? Align(
+                                alignment: Alignment.topCenter,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(right: 12),
+                                  child: BrutalButton(
+                                    key: const ValueKey('chalk-forge'),
+                                    color: p.pink,
+                                    // The FORGE card, from these words.
+                                    onTap: () {
+                                      final nav = Navigator.of(context)..pop();
+                                      showForge(nav, store, line);
+                                    },
+                                    child: FittedBox(fit: BoxFit.scaleDown, child: Text(t('chalk.forge'))),
+                                  ),
+                                ),
+                              )
+                            : const SizedBox.shrink(),
                   ),
+                ),
               ],
             ),
           ),
@@ -148,10 +171,98 @@ class ChalkSheet extends StatelessWidget {
   }
 }
 
+/// A scroll area that shows it scrolls: an always-visible ink scrollbar on
+/// a lime track, and a fade at the bottom edge while more content is below.
+class ChalkScroll extends StatefulWidget {
+  const ChalkScroll({super.key, required this.builder});
+
+  final Widget Function(ScrollController controller) builder;
+
+  @override
+  State<ChalkScroll> createState() => _ChalkScrollState();
+}
+
+class _ChalkScrollState extends State<ChalkScroll> {
+  final _controller = ScrollController();
+  bool _more = false, _scrolls = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  bool _onMetrics(ScrollMetrics m) {
+    final more = m.extentAfter > 0.5, scrolls = m.maxScrollExtent > 0.5;
+    if (more != _more || scrolls != _scrolls) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _more = more;
+            _scrolls = scrolls;
+          });
+        }
+      });
+    }
+    return false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Pal.of(context);
+    return NotificationListener<ScrollMetricsNotification>(
+      onNotification: (n) => _onMetrics(n.metrics),
+      child: NotificationListener<ScrollNotification>(
+        onNotification: (n) => _onMetrics(n.metrics),
+        child: Stack(
+          children: [
+            ScrollbarTheme(
+              data: ScrollbarThemeData(
+                thumbColor: WidgetStatePropertyAll(p.ink),
+                trackColor: WidgetStatePropertyAll(p.lime.withValues(alpha: 0.45)),
+                trackBorderColor: WidgetStatePropertyAll(p.ink.withValues(alpha: 0.4)),
+                thickness: const WidgetStatePropertyAll(6),
+                radius: Radius.zero,
+                crossAxisMargin: 1,
+              ),
+              child: Scrollbar(
+                controller: _controller,
+                thumbVisibility: true,
+                trackVisibility: _scrolls,
+                child: widget.builder(_controller),
+              ),
+            ),
+            if (_more)
+              Positioned(
+                key: const ValueKey('chalk-fade'),
+                left: 0,
+                right: 10,
+                bottom: 0,
+                height: 28,
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [p.bg.withValues(alpha: 0), p.bg],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// The CHALK results (D79, D81): one row per matching card, its exercise's
 /// name in the current language, its body part and tool. The card on the
-/// carousel is highlighted; a card in Today shows TODAY. A tap selects the
-/// card: the sheet closes on it. The list scrolls on its own.
+/// carousel is filled lime (the app's yellow). A tap on the row selects the
+/// card: the sheet closes on it. A "+" at the right adds the card to Today;
+/// a card in Today shows TODAY there. The list scrolls inside its fixed area.
 class _Results extends StatelessWidget {
   const _Results({required this.store, required this.cards, required this.index});
 
@@ -168,20 +279,25 @@ class _Results extends StatelessWidget {
       children: [
         Shout(t('today.results', {'n': cards.length}), size: 13, color: p.ink),
         const SizedBox(height: 6),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: 216),
-          child: ListView.separated(
-            shrinkWrap: true,
-            padding: const EdgeInsets.only(right: 4, bottom: 4),
-            itemCount: cards.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 6),
-            itemBuilder: (context, i) => _ResultRow(store: store, g: cards[i], index: index),
+        Expanded(
+          child: ChalkScroll(
+            key: const ValueKey('chalk-results-scroll'),
+            builder: (controller) => ListView.separated(
+              controller: controller,
+              padding: const EdgeInsets.only(right: 12, bottom: 4),
+              itemCount: cards.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 6),
+              itemBuilder: (context, i) => _ResultRow(store: store, g: cards[i], index: index),
+            ),
           ),
         ),
       ],
     );
   }
 }
+
+/// The "+" (and TODAY) spot at the right of a result row: 44 px high.
+const kChalkAddSize = 44.0;
 
 class _ResultRow extends StatelessWidget {
   const _ResultRow({required this.store, required this.g, required this.index});
@@ -204,7 +320,7 @@ class _ResultRow extends StatelessWidget {
       if (tool != null) chalkLabel(tool),
       if (sets > 0) tn('today.setsToday', sets),
     ].join(' · ');
-    final fg = on ? kChalk : p.ink;
+    final fg = on ? p.on : p.ink;
     return Semantics(
       button: true,
       selected: on,
@@ -217,10 +333,10 @@ class _ResultRow extends StatelessWidget {
         },
         child: Container(
           key: on ? ValueKey('chalk-result-on-${g.key}') : null,
-          padding: const EdgeInsets.fromLTRB(10, 7, 8, 7),
+          padding: const EdgeInsets.fromLTRB(10, 4, 4, 4),
           decoration: BoxDecoration(
-            color: on ? kNight : p.panel,
-            border: Border.all(color: on ? p.lime : p.ink, width: 3),
+            color: on ? p.lime : p.panel,
+            border: Border.all(color: on ? p.on : p.ink, width: 3),
             boxShadow: [BoxShadow(color: p.ink, offset: const Offset(3, 3))],
           ),
           child: Row(
@@ -232,20 +348,42 @@ class _ResultRow extends StatelessWidget {
                     Text((v.nick ?? exerciseLabel(v.id, v.name)).toUpperCase(), style: display(15, fg)),
                     if (info.isNotEmpty) ...[
                       const SizedBox(height: 2),
-                      Text(info.toUpperCase(), style: mono(10, fg.withValues(alpha: 0.65))),
+                      Text(info.toUpperCase(), style: mono(10, fg.withValues(alpha: 0.7))),
                     ],
                   ],
                 ),
               ),
-              if (inToday) ...[
-                const SizedBox(width: 8),
+              const SizedBox(width: 8),
+              if (inToday)
                 Container(
                   key: ValueKey('chalk-result-today-${g.key}'),
-                  padding: const EdgeInsets.fromLTRB(7, 4, 7, 3),
-                  color: on ? p.lime : kNight,
-                  child: Text(t('today.title'), style: display(12, on ? p.on : p.lime)),
+                  constraints: const BoxConstraints(minHeight: kChalkAddSize),
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.symmetric(horizontal: 7),
+                  color: kNight,
+                  child: Text(t('today.title'), style: display(12, p.lime)),
+                )
+              else
+                Semantics(
+                  button: true,
+                  label: '+ ${t('today.title')}',
+                  child: GestureDetector(
+                    key: ValueKey('chalk-result-add-${g.key}'),
+                    behavior: HitTestBehavior.opaque,
+                    // Adds the card to Today; the sheet stays open.
+                    onTap: () => store.addToToday(g.key),
+                    child: Container(
+                      width: kChalkAddSize,
+                      height: kChalkAddSize,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: kNight,
+                        border: Border.all(color: on ? p.on : p.ink, width: 2),
+                      ),
+                      child: Text('+', style: display(24, p.lime)),
+                    ),
+                  ),
                 ),
-              ],
             ],
           ),
         ),
@@ -254,7 +392,8 @@ class _ResultRow extends StatelessWidget {
   }
 }
 
-/// A word tile: its label only (no count, D81); filled when picked, greyed
+/// A word tile: its label only (no count, D81); filled lime when picked
+/// (like the selected result row), greyed
 /// when it gives no exercise.
 class _Tile extends StatelessWidget {
   const _Tile({required this.word, required this.off, required this.selected, required this.onTap});
@@ -278,11 +417,11 @@ class _Tile extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
             decoration: BoxDecoration(
-              color: selected ? kNight : p.panel,
-              border: Border.all(color: p.ink, width: 3),
+              color: selected ? p.lime : p.panel,
+              border: Border.all(color: selected ? p.on : p.ink, width: 3),
               boxShadow: selected ? [BoxShadow(color: p.ink, offset: const Offset(3, 3))] : null,
             ),
-            child: Text(chalkLabel(word).toUpperCase(), style: display(13, selected ? kChalk : p.ink)),
+            child: Text(chalkLabel(word).toUpperCase(), style: display(13, selected ? p.on : p.ink)),
           ),
         ),
       ),
