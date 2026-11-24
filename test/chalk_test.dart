@@ -320,6 +320,16 @@ void main() {
     await _frames(t, 4);
     expect(store.chalk, {'body.chest'});
     expect(find.byKey(const ValueKey('chalk-lifter')), findsOneWidget);
+    // A dimmed tool that clashes is still tappable: it leads to 0 matches.
+    store.setChalk({'body.core'});
+    await t.pump();
+    await t.ensureVisible(find.byKey(const ValueKey('chalk-tool.ezbar')));
+    await t.tap(find.byKey(const ValueKey('chalk-tool.ezbar')));
+    await _frames(t, 4);
+    expect(store.chalk, {'body.core', 'tool.ezbar'});
+    expect(find.byKey(const ValueKey('chalk-empty-slot')), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('chalk-unfold')));
+    await _frames(t, 4);
     // 0 matches: the empty slot, FORGE IT, and a drop row per word.
     store.setChalk(_noMove);
     await t.pump();

@@ -250,7 +250,8 @@ class _BodyTag extends StatelessWidget {
       child: GestureDetector(
         key: ValueKey('chalk-${word.key}'),
         behavior: HitTestBehavior.opaque,
-        onTap: off ? null : onTap,
+        // Dimmed, still tappable: a clash leads to 0 matches (FORGE, drop one).
+        onTap: onTap,
         child: Opacity(
           opacity: off ? 0.35 : 1,
           child: Container(
@@ -435,7 +436,8 @@ class _ToolSlot extends StatelessWidget {
       child: GestureDetector(
         key: ValueKey('chalk-${word.key}'),
         behavior: HitTestBehavior.opaque,
-        onTap: off ? null : onTap,
+        // Dimmed, still tappable: a clash leads to 0 matches (FORGE, drop one).
+        onTap: onTap,
         child: Opacity(
           opacity: off ? 0.3 : 1,
           child: SizedBox(
