@@ -1100,8 +1100,10 @@ void main() {
     final (store, _) = await _openApp(t);
     final list = store.cards;
     expect(find.byKey(ValueKey('exercise-${list[0].key}')), findsOneWidget);
-    expect(find.text('1 / ${list.length}'), findsOneWidget); // a counter, not dots
-    expect(find.byKey(const ValueKey('exercise-dot-0')), findsNothing);
+    // D79: no total; an empty Today shows no dots, only SUGGESTED.
+    expect(find.text('1 / ${list.length}'), findsNothing);
+    expect(find.byKey(const ValueKey('today-dot-0')), findsNothing);
+    expect(find.text('SUGGESTED'), findsOneWidget);
     // Up / down does nothing to the exercise carousel (D65).
     final before = t.getRect(find.byKey(const ValueKey('favorite-star')));
     await t.drag(find.byKey(const ValueKey('exercise-card')), const Offset(0, -200));
@@ -1130,7 +1132,6 @@ void main() {
     await t.fling(carousel, const Offset(-300, 0), 1000); // next
     await _frames(t, 10);
     expect(find.byKey(ValueKey('exercise-${list[1].key}')), findsOneWidget);
-    expect(find.text('2 / ${list.length}'), findsOneWidget);
     await t.tap(find.byKey(const ValueKey('world-object')));
     await _frames(t, 70);
     if (find.byKey(const ValueKey('intro-card')).evaluate().isNotEmpty) {
@@ -1138,6 +1139,14 @@ void main() {
       await _frames(t, 4);
     }
     expect((store.groupSetsToday(list[0].key), store.groupSetsToday(list[1].key)), (0, 1));
+    // The first set put the card in Today (D79): it comes first, with a dot.
+    expect(store.todayCards, [list[1].key]);
+    expect(find.byKey(ValueKey('exercise-${list[1].key}')), findsOneWidget);
+    expect(find.byKey(const ValueKey('today-dot-0')), findsOneWidget);
+    await t.fling(carousel, const Offset(-300, 0), 1000); // next: the rest, from the top
+    await _frames(t, 10);
+    expect(find.byKey(ValueKey('exercise-${list[0].key}')), findsOneWidget);
+    expect(find.byKey(const ValueKey('suggested-line')), findsOneWidget);
     await t.fling(carousel, const Offset(300, 0), 1000); // back
     await _frames(t, 10);
     await t.fling(carousel, const Offset(300, 0), 1000); // round to the last one
@@ -1192,7 +1201,8 @@ void main() {
     await t.tap(find.byKey(const ValueKey('filter-favorites')));
     await _frames(t, 10);
     expect(store.filter.favorites, isTrue);
-    expect(find.text('1 / 1'), findsOneWidget);
+    expect(store.carousel.map((g) => g.key), [second]);
+    expect(find.byKey(ValueKey('exercise-$second')), findsOneWidget);
     // Unstar it: nothing left, with a way back.
     await t.tap(find.byKey(const ValueKey('favorite-star')));
     await _frames(t, 10);
