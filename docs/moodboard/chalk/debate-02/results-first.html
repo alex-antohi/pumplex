@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chalk Results First</title>
+<style>
+@font-face { font-family: 'Anton'; src: url('../../../../assets/fonts/Anton-Regular.ttf'); }
+@font-face { font-family: 'Space Mono'; font-weight: 700; src: url('../../../../assets/fonts/SpaceMono-Bold.ttf'); }
+@font-face { font-family: 'Space Mono'; font-weight: 400; src: url('../../../../assets/fonts/SpaceMono-Regular.ttf'); }
+
+/* Pal.light from lib/pumplex.dart */
+:root {
+  --bg: #E3FBFF; --ink: #1A0B3B; --pink: #FF2E93; --lime: #B6FF00; --orange: #FF8A00;
+  --violet: #7B2CFF; --sky: #00C2FF; --panel: #FFFFFF; --panel2: #FFF0FA; --dot: rgba(255,46,147,.28);
+  --night: #1A0B3B; --on: #1A0B3B; --chalk: #F4F1FF; --quiet: rgba(26,11,59,.55);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #2b2440; color: #F6EEFF; font-family: 'Space Mono', monospace; padding: 20px 16px 40px; }
+h1 { font-family: 'Anton'; font-weight: 400; font-size: 26px; letter-spacing: 1px; }
+h2 { font-family: 'Anton'; font-weight: 400; font-size: 18px; letter-spacing: 1px; color: var(--lime); margin: 30px 0 8px; }
+.sub { font-size: 12px; opacity: .75; margin: 4px 0 18px; max-width: 900px; line-height: 1.5; }
+.row { display: flex; gap: 28px; align-items: flex-start; flex-wrap: wrap; }
+.col { display: flex; flex-direction: column; gap: 10px; width: 390px; }
+.cap { font-size: 11px; line-height: 1.45; opacity: .9; }
+.cap b { font-family: 'Anton'; font-weight: 400; letter-spacing: 1px; font-size: 14px; color: var(--lime); display: block; margin-bottom: 2px; }
+
+/* phone: immersive (D81), no status bar */
+.phone { width: 390px; height: 844px; position: relative; overflow: hidden; border-radius: 34px; border: 8px solid #0c0816;
+  background: #6a5f80; color: var(--ink); }
+.peek { position: absolute; left: 16px; right: 16px; top: 10px; height: 60px; background: var(--panel); border: 4px solid var(--ink); }
+.barrier { position: absolute; inset: 0; background: rgba(0,0,0,.54); }
+
+/* the sheet: 0.93 of the screen, results first */
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; top: 52px; background-color: var(--bg);
+  background-image: radial-gradient(circle at 12px 12px, var(--dot) 2px, transparent 2.5px); background-size: 24px 24px;
+  border-top: 4px solid var(--ink); display: flex; flex-direction: column; }
+.grab { width: 44px; height: 5px; background: var(--ink); opacity: .35; margin: 7px auto 0; }
+
+/* header: title + live count (the count is the score) */
+.head { display: flex; align-items: flex-end; justify-content: space-between; padding: 4px 16px 8px; border-bottom: 3px solid var(--ink); }
+.title { font-family: 'Anton'; font-size: 24px; letter-spacing: 1.5px; line-height: 1; }
+.title small { display: block; font-family: 'Space Mono'; font-size: 10px; font-weight: 700; letter-spacing: .5px; color: var(--quiet); margin-top: 3px; }
+.count { font-family: 'Anton'; font-size: 34px; line-height: .9; text-align: right; }
+.count span { font-family: 'Space Mono'; font-size: 10px; font-weight: 700; display: block; letter-spacing: 1px; }
+.count.zero { color: var(--pink); text-shadow: 2px 2px 0 var(--ink); }
+
+/* the list */
+.list { flex: 1; overflow: hidden; position: relative; }
+.grp { position: relative; display: flex; justify-content: space-between; align-items: center; height: 26px; padding: 0 16px;
+  background: var(--ink); color: var(--chalk); font-family: 'Anton'; font-size: 13px; letter-spacing: 1.4px; }
+.grp i { font-style: normal; font-family: 'Space Mono'; font-size: 10px; font-weight: 700; opacity: .7; letter-spacing: 0; }
+.r { display: flex; align-items: center; height: 52px; padding: 0 10px 0 16px; background: var(--panel); border-bottom: 2px solid rgba(26,11,59,.14); gap: 10px; }
+.r .nm { flex: 1; min-width: 0; }
+.r .t { font-family: 'Anton'; font-size: 18px; line-height: 1.05; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.r .t em { font-style: normal; color: var(--quiet); }
+.r .m { font-size: 10px; font-weight: 700; color: var(--quiet); margin-top: 2px; white-space: nowrap; display: flex; gap: 6px; align-items: center; }
+.vt { display: inline-block; padding: 1px 5px; border: 2px solid var(--ink); color: var(--ink); background: var(--panel2); font-size: 9px; line-height: 1.2; }
+.rank { font-family: 'Anton'; font-size: 13px; width: 20px; color: var(--quiet); text-align: right; }
+.plus { flex: none; width: 44px; height: 40px; border: 3px solid var(--ink); box-shadow: 3px 3px 0 var(--ink); background: var(--lime);
+  font-family: 'Anton'; font-size: 24px; line-height: 34px; text-align: center; }
+.plus.done { background: var(--ink); color: var(--lime); font-size: 11px; line-height: 34px; letter-spacing: .5px; box-shadow: none; }
+.r.sel { background: var(--lime); }
+.r.today .t::after { content: 'TODAY'; margin-left: 6px; font-family: 'Space Mono'; font-size: 9px; font-weight: 700; padding: 1px 4px; background: var(--ink); color: var(--lime); vertical-align: 3px; }
+.more { font-size: 10px; font-weight: 700; color: var(--violet); }
+.fade { position: absolute; left: 0; right: 0; bottom: 0; height: 34px; background: linear-gradient(transparent, var(--bg)); pointer-events: none; }
+.bar { position: absolute; right: 2px; top: 6px; width: 5px; height: 90px; background: var(--ink); }
+.toast { position: absolute; left: 16px; right: 16px; bottom: 12px; background: var(--ink); color: var(--chalk); border: 3px solid var(--ink); box-shadow: 4px 4px 0 var(--pink);
+  display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; font-size: 11px; font-weight: 700; }
+.toast b { font-family: 'Anton'; font-weight: 400; font-size: 15px; color: var(--lime); letter-spacing: 1px; }
+.lbl { font-family: 'Anton'; font-size: 13px; letter-spacing: 1.6px; padding: 10px 16px 6px; }
+
+/* the dock: thumb zone */
+.dock { background: var(--panel); border-top: 4px solid var(--ink); padding: 10px 0 14px; box-shadow: 0 -4px 0 rgba(26,11,59,.12); }
+.tabs { display: flex; gap: 6px; padding: 0 16px; }
+.back { flex: none; width: 48px; height: 48px; border: 3px solid var(--ink); background: var(--sky); box-shadow: 3px 3px 0 var(--ink);
+  font-family: 'Anton'; font-size: 11px; line-height: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+.back b { font-size: 18px; font-weight: 400; }
+.tab { flex: 1; min-width: 0; height: 48px; border: 3px solid var(--ink); background: var(--panel); padding: 4px 5px 0; overflow: hidden; }
+.tab .k { font-size: 9px; font-weight: 700; letter-spacing: .5px; color: var(--quiet); text-transform: uppercase; }
+.tab .w { font-family: 'Anton'; font-size: 15px; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--quiet); }
+.tab.on { background: var(--ink); }
+.tab.on .k { color: var(--lime); }
+.tab.on .w { color: var(--chalk); }
+.tab.set { background: var(--lime); box-shadow: 3px 3px 0 var(--ink); }
+.tab.set .k { color: var(--ink); }
+.tab.set .w { color: var(--ink); }
+.tab.on.set { background: var(--ink); box-shadow: 3px 3px 0 var(--lime); }
+.tab.on.set .w { color: var(--lime); }
+.notch { height: 0; position: relative; }
+.words { display: grid; grid-template-rows: repeat(2, 44px); grid-auto-flow: column; gap: 8px; padding: 12px 16px 2px; overflow: hidden; position: relative; }
+.words.one { grid-template-rows: 44px; }
+.w2 { height: 44px; display: inline-flex; align-items: center; padding: 0 13px; border: 3px solid var(--ink); background: var(--panel);
+  font-family: 'Anton'; font-size: 17px; white-space: nowrap; letter-spacing: .4px; }
+.w2.on { background: var(--lime); box-shadow: 3px 3px 0 var(--ink); }
+.w2.off { opacity: .5; border-style: dashed; color: var(--quiet); background: var(--bg); }
+.edge { position: absolute; right: 0; top: 10px; bottom: 0; width: 46px; background: linear-gradient(90deg, rgba(255,255,255,0), var(--panel) 70%);
+  display: flex; align-items: center; justify-content: flex-end; padding-right: 6px; font-family: 'Anton'; font-size: 18px; }
+.hint { font-size: 10px; font-weight: 700; color: var(--quiet); padding: 6px 16px 0; }
+
+/* 0 matches */
+.zero { padding: 18px 16px; display: flex; flex-direction: column; gap: 14px; }
+.stamp { font-family: 'Anton'; font-size: 40px; line-height: .95; letter-spacing: 1px; transform: rotate(-2deg); text-shadow: 3px 3px 0 var(--pink); }
+.floor { background: var(--night); border: 3px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); padding: 12px; color: var(--chalk); }
+.floor .k { font-size: 10px; font-weight: 700; opacity: .6; letter-spacing: 1px; margin-bottom: 6px; }
+.floor .cw { font-family: 'Anton'; font-size: 24px; letter-spacing: 1px; filter: url(#chalk); }
+.forge { border: 4px solid var(--ink); box-shadow: 6px 6px 0 var(--ink); background: var(--pink); padding: 14px; font-family: 'Anton'; font-size: 24px; letter-spacing: 1px; text-align: center; color: var(--on); }
+.forge small { display: block; font-family: 'Space Mono'; font-size: 10px; letter-spacing: 0; font-weight: 700; margin-top: 4px; }
+.drop { display: flex; align-items: center; justify-content: space-between; height: 52px; padding: 0 14px; border: 3px solid var(--ink); background: var(--panel); box-shadow: 3px 3px 0 var(--ink); }
+.drop .t { font-family: 'Anton'; font-size: 18px; }
+.drop .t s { text-decoration-thickness: 3px; text-decoration-color: var(--pink); }
+.drop .n { font-size: 11px; font-weight: 700; background: var(--sky); border: 2px solid var(--ink); padding: 3px 7px; }
+
+table { border-collapse: collapse; font-size: 12px; margin-top: 6px; max-width: 900px; }
+td, th { border: 2px solid #4b4166; padding: 6px 10px; text-align: left; vertical-align: top; }
+th { font-family: 'Anton'; font-weight: 400; letter-spacing: 1px; color: var(--lime); }
+
+/* flow notes: step badges, FLOW panels, arrows, TWO TASKS */
+.step { position: absolute; top: -11px; right: -11px; z-index: 5; width: 22px; height: 22px; border-radius: 50%; background: #FF2E93; color: #FFFFFF;
+  border: 2px solid #1A0B3B; box-shadow: 2px 2px 0 #1A0B3B; font-family: 'Space Mono'; font-weight: 700; font-size: 12px; line-height: 18px;
+  text-align: center; letter-spacing: 0; text-shadow: none; text-decoration: none; }
+.flow .step, .tasks .step { position: static; display: inline-block; vertical-align: 1px; margin-right: 4px; }
+.flow { background: #FFFFFF; border: 3px solid var(--ink); color: var(--ink); font-family: 'Space Mono'; font-size: 12px; line-height: 1.45; padding: 10px 12px; }
+.flow b, .tasks b { font-family: 'Anton'; font-weight: 400; letter-spacing: 1px; font-size: 14px; display: block; margin-bottom: 4px; }
+.flow p { margin: 0 0 6px; } .flow p:last-child { margin: 0; }
+.arrow { flex: none; width: 74px; margin-top: 380px; background: var(--panel); border: 3px solid var(--ink); color: var(--ink); text-align: center; padding: 4px 4px 8px; }
+.arrow big { display: block; font-family: 'Anton'; font-size: 40px; line-height: 1; }
+.arrow span { font-size: 10px; font-weight: 700; line-height: 1.3; display: block; }
+.tasks { background: #FFFFFF; border: 3px solid var(--ink); color: var(--ink); font-size: 12px; line-height: 1.6; padding: 10px 14px; max-width: 900px; margin: 12px 0 6px; }
+.tasks p { margin: 0 0 6px; } .tasks p:last-child { margin: 0; }
+.tasks i { font-style: normal; font-family: 'Anton'; font-size: 14px; letter-spacing: 1px; background: var(--lime); border: 2px solid var(--ink); padding: 0 6px; margin-right: 6px; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <filter id="chalk" x="-5%" y="-20%" width="110%" height="140%">
+    <feTurbulence type="fractalNoise" baseFrequency="2.2" numOctaves="1" seed="7" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="0.9" result="d"/>
+    <feColorMatrix in="n" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 -0.8 1.35" result="holes"/>
+    <feComposite in="d" in2="holes" operator="in"/>
+  </filter>
+</svg>
+
+<h1>CHALK · DEBATE 02 · RESULTS FIRST</h1>
+<div class="tasks">
+  <b>TWO TASKS</b>
+  <p><i>INCLINE DUMBBELL PRESS → TODAY · 4 ACTIONS</i> open CHALK · <span class="step">2</span>PRESS · <span class="step">3</span>DUMBBELL · <span class="step">4</span>+ on Incline Dumbbell Bench Press (row 2 under BENCH PRESS). The sheet stays open; <span class="step">6</span>← TODAY to leave is not counted, as in the taps table.</p>
+  <p><i>BARBELL SQUAT, DO IT NOW · 2 ACTIONS</i> open CHALK · <span class="step">1</span>tap row 5, Barbell Squat. The sheet closes on it.</p>
+</div>
+<p class="sub">The screen is the exercise list. The words live in a dock at the bottom, in thumb reach: four row tabs (PATTERN, MOVE, TOOL, BODY), each one showing its picked word, over one strip of 44 dp word tiles that scrolls sideways. Every tap narrows the list live, and the big count in the header ticks down like a score. Real data from assets/exercises/exercises.json. Light theme, Pal colours, Anton and Space Mono.</p>
+
+<div class="row">
+
+<!-- PHONE 1: just opened -->
+<div class="col">
+<div class="phone">
+  <div class="peek"></div><div class="barrier"></div>
+  <div class="sheet">
+    <div class="grab"></div>
+    <div class="head">
+      <div class="title">CHALK<small>MOST LIFTED FIRST · ONE ROW PER MOVE</small></div>
+      <div class="count">164<span>MOVES</span></div>
+    </div>
+    <div class="list">
+      <div class="bar"></div>
+      <div class="grp sticky">MOST LIFTED <i>tap a row to lift it · + adds to Today</i></div>
+      <div class="r"><span class="rank">1</span><div class="nm"><div class="t">Bench Press</div><div class="m">CHEST · BARBELL <span class="more">24 KINDS</span></div></div><div class="plus">+</div></div>
+      <div class="r"><span class="rank">2</span><div class="nm"><div class="t">Shoulder Press</div><div class="m">SHOULDERS · DUMBBELL <span class="more">21 KINDS</span></div></div><div class="plus">+</div></div>
+      <div class="r today"><span class="rank">3</span><div class="nm"><div class="t">Bicep Curl</div><div class="m">ARMS · DUMBBELL <span class="more">19 KINDS</span></div></div><div class="plus done">TODAY</div></div>
+      <div class="r"><span class="rank">4</span><div class="nm"><div class="t">Push-Up</div><div class="m">CHEST · BODYWEIGHT <span class="more">14 KINDS</span></div></div><div class="plus">+</div></div>
+      <div class="r sel" style="position:relative"><span class="step" style="top:15px;left:214px;right:auto">1</span><span class="rank">5</span><div class="nm"><div class="t">Barbell Squat</div><div class="m">LEGS · BARBELL <span class="more">13 KINDS</span></div></div><div class="plus">+</div></div>
+      <div class="r"><span class="rank">6</span><div class="nm"><div class="t">Pull-Up</div><div class="m">BACK · BODYWEIGHT <span class="more">13 KINDS</span></div></div><div class="plus">+</div></div>
+      <div class="r"><span class="rank">7</span><div class="nm"><div class="t">Barbell Deadlift</div><div class="m">BACK · BARBELL <span class="more">8 KINDS</span></div></div><div class="plus">+</div></div>
+      <div class="r"><span class="rank">8</span><div class="nm"><div class="t">Lat Pulldown</div><div class="m">BACK · CABLE <span class="more">8 KINDS</span></div></div><div class="plus">+</div></div>
+      <div class="r"><span class="rank">9</span><div class="nm"><div class="t">Crunch</div><div class="m">CORE · MACHINE <span class="more">6 KINDS</span></div></div><div class="plus">+</div></div>
+      <div class="r"><span class="rank">10</span><div class="nm"><div class="t">Plank</div><div class="m">CORE · BODYWEIGHT</div></div><div class="plus">+</div></div>
+      <div class="fade"></div>
+    </div>
+    <div class="dock">
+      <div class="tabs">
+        <div class="back"><b>←</b>TODAY</div>
+        <div class="tab"><div class="k">Pattern</div><div class="w">any</div></div>
+        <div class="tab on"><div class="k">Move</div><div class="w">any</div></div>
+        <div class="tab"><div class="k">Tool</div><div class="w">any</div></div>
+        <div class="tab"><div class="k">Body</div><div class="w">any</div></div>
+      </div>
+      <div class="words">
+        <span class="w2" style="position:relative">Press<span class="step">2</span></span><span class="w2">Fly</span>
+        <span class="w2">Curl</span><span class="w2">Raise</span>
+        <span class="w2">Row</span><span class="w2">Squat</span>
+        <span class="w2">Lunge</span><span class="w2">Deadlift</span>
+        <span class="w2">Pull-up</span><span class="w2">Push-up</span>
+        <span class="w2">Dip</span><span class="w2">Extension</span>
+        <div class="edge">›</div>
+      </div>
+      <div class="hint">MOVE · 22 WORDS · SWIPE FOR MORE</div>
+    </div>
+  </div>
+</div>
+<div class="flow"><b>FLOW</b>
+<p><span class="step">1</span>tap the Barbell Squat row → it goes lime, the sheet closes and the squat is your lift now.</p>
+<p><span class="step">2</span>tap PRESS in the MOVE strip → the list narrows live, the count drops, the dock steps to TOOL.</p>
+</div>
+<p class="cap"><b>1 · JUST OPENED</b>The list is there at once: one row per move (card), the most lifted first (D67 rank). 10 rows show. Barbell Squat is row 5, so "squat, now" is a tap on its row (lime: picked, the sheet closes on it). The dock opens on MOVE, the row that splits the list most. No hint box, no empty space.</p>
+</div>
+
+<div class="arrow"><big>→</big><span>pick a word</span></div>
+
+<!-- PHONE 2: PRESS + DUMBBELL -->
+<div class="col">
+<div class="phone">
+  <div class="peek"></div><div class="barrier"></div>
+  <div class="sheet">
+    <div class="grab"></div>
+    <div class="head">
+      <div class="title">CHALK<small>PRESS · DUMBBELL</small></div>
+      <div class="count">23<span>MOVES</span></div>
+    </div>
+    <div class="list">
+      <div class="bar" style="height:150px"></div>
+      <div class="grp sticky">BENCH PRESS <i>8</i></div>
+      <div class="r"><div class="nm"><div class="t"><em>Dumbbell</em> Bench Press</div><div class="m">CHEST</div></div><div class="plus">+</div></div>
+      <div class="r sel"><div class="nm"><div class="t">Incline <em>Dumbbell</em> Bench Press</div><div class="m">CHEST <span class="vt">INCLINE</span></div></div><div class="plus done" style="position:relative">✓ TODAY<span class="step" style="right:-9px">4</span></div></div>
+      <div class="r"><div class="nm"><div class="t">Decline <em>Dumbbell</em> Bench Press</div><div class="m">CHEST <span class="vt">DECLINE</span></div></div><div class="plus">+</div></div>
+      <div class="r"><div class="nm"><div class="t">Neutral-Grip <em>Dumbbell</em> Bench Press</div><div class="m">CHEST <span class="vt">NEUTRAL GRIP</span></div></div><div class="plus">+</div></div>
+      <div class="r"><div class="nm"><div class="t">Hammer Grip Incline DB Bench Press</div><div class="m">CHEST <span class="vt">INCLINE</span><span class="vt">NEUTRAL GRIP</span></div></div><div class="plus">+</div></div>
+      <div class="r"><div class="nm"><div class="t">One-Arm <em>Dumbbell</em> Bench Press</div><div class="m">CHEST <span class="vt">ONE ARM</span></div></div><div class="plus">+</div></div>
+      <div class="r"><div class="nm"><div class="t">Incline <em>Dumbbell</em> Squeeze Bench Press</div><div class="m">ARMS <span class="vt">INCLINE</span><span class="vt">SQUEEZE</span></div></div><div class="plus">+</div></div>
+      <div class="r"><div class="nm"><div class="t">Close-Grip <em>Dumbbell</em> Press</div><div class="m">ARMS <span class="vt">SQUEEZE</span></div></div><div class="plus">+</div></div>
+      <div class="grp">SHOULDER PRESS <i>8</i></div>
+      <div class="r"><div class="nm"><div class="t">Seated <em>Dumbbell</em> Shoulder Press</div><div class="m">SHOULDERS <span class="vt">SEATED</span></div></div><div class="plus">+</div></div>
+      <div class="toast"><span><b>ADDED</b> &nbsp;Incline Dumbbell Bench Press</span><span style="color:var(--lime);position:relative">UNDO<span class="step" style="right:-26px">5</span></span></div>
+    </div>
+    <div class="dock">
+      <div class="tabs" style="position:relative"><span class="step" style="left:273px;right:auto">3</span>
+        <div class="back" style="position:relative"><b>←</b>TODAY<span class="step">6</span></div>
+        <div class="tab"><div class="k">Pattern</div><div class="w">any</div></div>
+        <div class="tab set"><div class="k">Move</div><div class="w">Press</div></div>
+        <div class="tab set"><div class="k">Tool</div><div class="w">Dumbbell</div></div>
+        <div class="tab on"><div class="k">Body</div><div class="w">any</div></div>
+      </div>
+      <div class="words one">
+        <span class="w2">Chest</span><span class="w2">Shoulders</span><span class="w2">Arms</span>
+        <span class="w2 off">Back</span><span class="w2 off">Legs</span><span class="w2 off">Core</span>
+      </div>
+      <div class="hint">AFTER A WORD THE DOCK STEPS TO THE NEXT EMPTY ROW · TAP A LIME TAB TO CHANGE IT</div>
+    </div>
+  </div>
+</div>
+<div class="flow"><b>FLOW</b>
+<p><span class="step">3</span>tap DUMBBELL in the TOOL strip → 23 moves; the word sits in the lime TOOL tab, the dock steps to BODY.</p>
+<p><span class="step">4</span>tap + on Incline Dumbbell Bench Press → it turns ✓ TODAY, a toast says ADDED, the sheet stays open.</p>
+<p><span class="step">5</span>tap UNDO (only if wrong) → the row goes back to +.</p>
+<p><span class="step">6</span>tap ← TODAY → the sheet closes, Today shows the new press.</p>
+</div>
+<p class="cap"><b>2 · PRESS + DUMBBELL, 23 ROWS</b>Rows under sticky card headers (BENCH PRESS · 8), most common first inside a card. 9 rows show without a scroll (round 1: 3.5). The name greys the words you already picked and a tag shows what differs (INCLINE). + turns into ✓ TODAY with UNDO; the sheet stays open for the next one. The picked words sit in the lime tabs, always in view. Dead tiles go to the end, dashed.</p>
+</div>
+
+<div class="arrow"><big>→</big><span>pick a clashing word</span></div>
+
+<!-- PHONE 3: 0 matches -->
+<div class="col">
+<div class="phone">
+  <div class="peek"></div><div class="barrier"></div>
+  <div class="sheet">
+    <div class="grab"></div>
+    <div class="head">
+      <div class="title">CHALK<small>PULLOVER · KETTLEBELL</small></div>
+      <div class="count zero">0<span style="color:var(--ink);text-shadow:none">MOVES</span></div>
+    </div>
+    <div class="list">
+      <div class="zero">
+        <div class="stamp">NO SUCH MOVE.</div>
+        <div class="floor"><div class="k">YOUR WORDS</div><div class="cw">KETTLEBELL PULLOVER</div></div>
+        <div class="forge" style="position:relative"><span class="step">8</span>FORGE IT<small>MAKE IT YOURS · IT GOES INTO TODAY</small></div>
+        <div class="lbl" style="padding:6px 0 0">OR DROP ONE WORD</div>
+        <div class="drop" style="position:relative"><span class="t"><s>KETTLEBELL</s></span><span class="n">3 MOVES ›</span><span class="step">9</span></div>
+        <div class="drop"><span class="t"><s>PULLOVER</s></span><span class="n">30 MOVES ›</span></div>
+      </div>
+    </div>
+    <div class="dock">
+      <div class="tabs">
+        <div class="back"><b>←</b>TODAY</div>
+        <div class="tab"><div class="k">Pattern</div><div class="w">any</div></div>
+        <div class="tab set"><div class="k">Move</div><div class="w">Pullover</div></div>
+        <div class="tab set on"><div class="k">Tool</div><div class="w">Kettlebell</div></div>
+        <div class="tab"><div class="k">Body</div><div class="w">any</div></div>
+      </div>
+      <div class="words">
+        <span class="w2">Dumbbell</span><span class="w2">Barbell</span>
+        <span class="w2 on" style="position:relative">Kettlebell<span class="step">7</span></span><span class="w2 off">Cable</span>
+        <span class="w2 off">Machine</span><span class="w2 off">Smith machine</span>
+        <span class="w2 off">EZ bar</span><span class="w2 off">Bands</span>
+        <div class="edge">›</div>
+      </div>
+      <div class="hint">TAP KETTLEBELL AGAIN TO DROP IT · OR SWAP TO DUMBBELL</div>
+    </div>
+  </div>
+</div>
+<div class="flow"><b>FLOW</b>
+<p><span class="step">7</span>tap KETTLEBELL in the TOOL strip (MOVE is PULLOVER) → 0 moves; the list turns into the way out.</p>
+<p><span class="step">8</span>tap FORGE IT → you make the move yours and it goes into Today.</p>
+<p><span class="step">9</span>or tap the KETTLEBELL drop row → that word goes, the list comes back with 3 moves.</p>
+</div>
+<p class="cap"><b>3 · 0 MATCHES</b>The list area becomes the way out: the words in chalk, FORGE IT (pink, D83 flow), and one row per word you could drop, with what it brings back. The culprit is still in its lime tab and in the strip, so nothing hides (round 1 problem 3). The live tools (DUMBBELL, BARBELL) stay solid: one tap swaps.</p>
+</div>
+
+</div>
+
+<h2>TAPS, TODAY'S SCREEN VS RESULTS FIRST</h2>
+<table>
+  <tr><th>TASK</th><th>TODAY (round 1)</th><th>RESULTS FIRST</th></tr>
+  <tr><td>Incline dumbbell press into Today</td><td>7</td><td>4: open CHALK · PRESS · DUMBBELL (dock steps to BODY) · + on row 2 under BENCH PRESS</td></tr>
+  <tr><td>Barbell squat, do it now</td><td>5</td><td>2: open CHALK · tap row 5 (Barbell Squat, the card's top kind)</td></tr>
+  <tr><td>A move far down the rank (Cuban Press)</td><td>~5 + scrolls</td><td>4: open · PRESS · DUMBBELL · scroll once (row 23 of 23)</td></tr>
+</table>
+
+<h2>SIZES</h2>
+<table>
+  <tr><th>THING</th><th>NOW</th><th>HERE</th></tr>
+  <tr><td>Word tile</td><td>29 dp tall, wraps, 4 rows</td><td>44 dp tall, one sideways strip (2 lines for MOVE / PATTERN / TOOL, 1 for BODY)</td></tr>
+  <tr><td>Results visible</td><td>3.5 rows (64 dp, 270 dp box)</td><td>9-10 rows (52 dp, about 530 dp)</td></tr>
+  <tr><td>Back</td><td>BACK TO TODAY, top right</td><td>← TODAY, 48 dp, bottom left of the dock</td></tr>
+  <tr><td>Picked words</td><td>only as lime tiles, may scroll away</td><td>always in the 4 tabs</td></tr>
+</table>
+</body>
+</html>

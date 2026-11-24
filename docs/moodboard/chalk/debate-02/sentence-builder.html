@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chalk Sentence Builder</title>
+<style>
+@font-face { font-family: 'Anton'; src: url('../../../../assets/fonts/Anton-Regular.ttf'); }
+@font-face { font-family: 'Space Mono'; font-weight: 700; src: url('../../../../assets/fonts/SpaceMono-Bold.ttf'); }
+@font-face { font-family: 'Space Mono'; font-weight: 400; src: url('../../../../assets/fonts/SpaceMono-Regular.ttf'); }
+
+/* Pal.light from lib/pumplex.dart */
+:root {
+  --bg: #E3FBFF; --ink: #1A0B3B; --pink: #FF2E93; --lime: #B6FF00; --orange: #FF8A00;
+  --violet: #7B2CFF; --sky: #00C2FF; --panel: #FFFFFF; --panel2: #FFF0FA; --dot: rgba(255,46,147,.28);
+  --night: #1A0B3B; --on: #1A0B3B; --chalk: #F4F1FF; --quiet: rgba(26,11,59,.6); --accent: #FFA033;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #2b2440; color: #F6EEFF; font-family: 'Space Mono', monospace; padding: 20px 16px 28px; }
+h1 { font-family: 'Anton'; font-weight: 400; font-size: 26px; letter-spacing: 1px; }
+.sub { font-size: 12px; opacity: .8; margin: 4px 0 18px; max-width: 1240px; line-height: 1.5; }
+.sub b { color: var(--lime); font-weight: 700; }
+
+.row { display: flex; gap: 28px; align-items: flex-start; flex-wrap: wrap; }
+.col { display: flex; flex-direction: column; gap: 10px; width: 390px; }
+.cap { font-size: 11px; line-height: 1.45; opacity: .9; }
+.cap b { font-family: 'Anton'; font-weight: 400; letter-spacing: 1px; font-size: 14px; color: var(--lime); }
+.cap i { font-style: normal; color: #FFB7DA; }
+
+/* phone (immersive: no status bar, D81) */
+.phone { width: 390px; height: 844px; position: relative; overflow: hidden; border-radius: 34px; border: 8px solid #0c0816;
+  background-color: var(--bg);
+  background-image: radial-gradient(circle at 12px 12px, var(--dot) 2.5px, transparent 3px);
+  background-size: 24px 24px; color: var(--ink); }
+.behind { position: absolute; left: 16px; top: 18px; right: 16px; height: 300px; background: var(--panel); border: 4px solid var(--ink); box-shadow: 8px 8px 0 var(--accent); }
+.behind .nm { font-family: 'Anton'; font-size: 30px; padding: 18px 14px; text-shadow: 2px 2px 0 var(--orange); }
+.barrier { position: absolute; inset: 0; background: rgba(0,0,0,.54); }
+
+/* the sheet: 0.82 of the screen = 692 px, fixed */
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; height: 692px; background: var(--bg); border-top: 4px solid var(--ink);
+  display: flex; flex-direction: column; }
+.hd { display: flex; align-items: baseline; gap: 10px; padding: 12px 16px 8px; }
+.shout { font-family: 'Anton'; font-size: 17px; letter-spacing: 1.6px; }
+.hd .q { font-size: 10px; font-weight: 700; color: var(--quiet); letter-spacing: .5px; }
+
+/* the sentence: chalk on the dark floor */
+.floor { margin: 0 16px; background: var(--night); border: 3px solid var(--ink); box-shadow: 4px 4px 0 var(--pink); padding: 10px 10px 8px; position: relative;
+  background-image:
+    radial-gradient(ellipse 90px 18px at 22% 70%, rgba(255,255,255,.07), transparent 70%),
+    radial-gradient(ellipse 130px 14px at 75% 30%, rgba(255,255,255,.05), transparent 70%); }
+.sent { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 6px; }
+.slot { min-height: 48px; display: inline-flex; align-items: center; gap: 8px; padding: 0 8px; border: 2px dashed rgba(244,241,255,.6);
+  font-family: 'Anton'; font-size: 21px; letter-spacing: .6px; color: var(--chalk); line-height: 1; filter: url(#chalk); position: relative; }
+.slot .k { font-family: 'Space Mono'; font-size: 9px; font-weight: 700; letter-spacing: 1px; color: rgba(244,241,255,.5); position: absolute; top: -7px; left: 6px; background: var(--night); padding: 0 3px; filter: none; }
+.slot.ghost { color: rgba(244,241,255,.32); font-size: 17px; }
+
+.slot.filled { border-style: solid; border-color: var(--chalk); }
+.slot.open { border: 3px solid var(--lime); color: var(--lime); filter: none; box-shadow: 0 0 0 3px rgba(182,255,0,.18); }
+.slot.open::after { content: '▾'; font-family: 'Space Mono'; font-size: 13px; }
+.slot.bad { border-color: var(--pink); color: #FFB7DA; }
+.slot .x { font-family: 'Space Mono'; font-size: 13px; font-weight: 700; width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center;
+  border-left: 2px solid rgba(244,241,255,.35); margin-right: -6px; padding-left: 4px; color: rgba(244,241,255,.75); filter: none; }
+.glue { font-family: 'Space Mono'; font-size: 13px; font-weight: 700; color: rgba(244,241,255,.55); padding: 0 2px; }
+.tally { display: flex; justify-content: space-between; margin-top: 8px; font-size: 10px; font-weight: 700; color: rgba(244,241,255,.55); letter-spacing: .5px; }
+.tally .n { color: var(--lime); }
+.tally .n.zero { color: var(--pink); }
+
+/* the word panel: only the open slot's words */
+.panel { margin: 12px 16px 0; background: var(--panel); border: 3px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); padding: 10px 10px 4px; position: relative; flex: 1; overflow: hidden; }
+.panel::before { content: ''; position: absolute; top: -12px; left: var(--notch, 150px); border: 9px solid transparent; border-bottom: 9px solid var(--ink); border-top: 0; }
+.ptitle { display: flex; justify-content: space-between; font-size: 10px; font-weight: 700; letter-spacing: 1px; color: var(--quiet); margin-bottom: 8px; }
+.grp { display: flex; flex-wrap: wrap; gap: 6px 5px; margin-bottom: 8px; }
+.tile { height: 40px; display: inline-flex; align-items: center; padding: 0 8px; border: 3px solid var(--ink); background: var(--panel);
+  font-family: 'Anton'; font-size: 14.5px; letter-spacing: .4px; white-space: nowrap; }
+.tile.pat { background: var(--night); color: var(--chalk); border-color: var(--night); font-size: 14px; letter-spacing: 1px; }
+.tile.pat::after { content: ' ▸'; font-family: 'Space Mono'; font-size: 11px; margin-left: 4px; opacity: .7; }
+.tile.off { opacity: .45; border-style: dashed; }
+.tile.plain { background: transparent; border: 0; padding: 0 4px 0 0; font-family: 'Space Mono'; font-size: 10px; font-weight: 700; color: var(--quiet); letter-spacing: 1px; height: 40px; }
+
+/* results */
+.res { margin: 12px 16px 0; flex: 1; overflow: hidden; display: flex; flex-direction: column; position: relative; }
+.rh { display: flex; justify-content: space-between; font-size: 10px; font-weight: 700; letter-spacing: 1px; color: var(--quiet); margin-bottom: 6px; }
+.list { border: 3px solid var(--ink); background: var(--panel); box-shadow: 4px 4px 0 var(--ink); overflow: hidden; position: relative; }
+.r { height: 50px; display: flex; align-items: center; border-bottom: 2px solid rgba(26,11,59,.15); padding-left: 10px; }
+.r:last-child { border-bottom: 0; }
+.r .t { flex: 1; min-width: 0; }
+.r .nm { font-family: 'Anton'; font-size: 17px; letter-spacing: .4px; line-height: 1.05; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.r .tg { font-size: 9.5px; font-weight: 700; color: var(--quiet); letter-spacing: .4px; }
+.r .plus { width: 50px; height: 50px; flex: none; display: flex; align-items: center; justify-content: center; border-left: 3px solid var(--ink);
+  font-family: 'Anton'; font-size: 26px; background: var(--panel2); }
+.r.added { background: var(--lime); }
+.r.added .plus { background: var(--ink); color: var(--lime); font-size: 12px; font-family: 'Space Mono'; font-weight: 700; }
+.r.forge { background: repeating-linear-gradient(135deg, #fff 0 10px, #FFF0FA 10px 20px); }
+.r.forge .nm { color: var(--pink); }
+.r.forge .plus { background: var(--pink); color: var(--on); font-size: 18px; }
+.sbar { position: absolute; right: 0; top: 0; width: 6px; height: 100%; background: var(--lime); border-left: 2px solid var(--ink); }
+.sbar::after { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 78%; background: var(--ink); }
+
+/* 0 matches */
+.zero { font-family: 'Anton'; font-size: 20px; letter-spacing: .6px; margin: 2px 0 4px; }
+.zero small { display: block; font-family: 'Space Mono'; font-size: 10px; font-weight: 700; color: var(--quiet); letter-spacing: .4px; margin-top: 2px; }
+.fix { height: 52px; display: flex; align-items: center; gap: 10px; background: var(--panel); border: 3px solid var(--ink); box-shadow: 3px 3px 0 var(--ink); padding: 0 12px; margin-bottom: 9px; }
+.fix .w { font-family: 'Anton'; font-size: 17px; text-decoration: line-through; text-decoration-thickness: 3px; text-decoration-color: var(--pink); }
+.fix .arrow { font-size: 11px; font-weight: 700; color: var(--quiet); }
+.fix .c { margin-left: auto; font-family: 'Anton'; font-size: 15px; background: var(--lime); border: 2px solid var(--ink); padding: 3px 8px; }
+.bb { border: 4px solid var(--ink); box-shadow: 6px 6px 0 var(--ink); padding: 12px 16px; font-family: 'Anton'; font-size: 19px; letter-spacing: 1px; line-height: 1; text-align: center; color: var(--on); }
+.bb.forge { background: var(--pink); margin-top: 8px; }
+.bb.forge small { display: block; font-family: 'Space Mono'; font-size: 10px; letter-spacing: .3px; margin-top: 4px; font-weight: 700; }
+
+/* bottom bar: the thumb zone */
+.foot { display: flex; gap: 10px; padding: 12px 22px 18px 16px; align-items: center; }
+.bb.sm { border-width: 3px; box-shadow: 4px 4px 0 var(--ink); padding: 11px 14px; font-size: 16px; }
+.back { background: var(--sky); flex: 1; }
+.wipe { background: var(--panel); }
+
+/* little RO strip under phone 2 */
+.ro { background: var(--night); border: 3px solid #0c0816; padding: 8px 10px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.ro .slot { min-height: 36px; font-size: 17px; }
+.ro .lab { font-size: 9px; font-weight: 700; color: rgba(244,241,255,.55); letter-spacing: 1px; flex-basis: 100%; }
+
+/* FLOW explainer: step badges, flow panels, arrows, tasks box */
+.step { position: absolute; top: -10px; right: -10px; width: 22px; height: 22px; border-radius: 50%; background: #FF2E93; color: #FFFFFF;
+  border: 2px solid #1A0B3B; box-shadow: 2px 2px 0 #1A0B3B; font-family: 'Space Mono'; font-weight: 700; font-size: 11px; font-style: normal;
+  line-height: 18px; letter-spacing: 0; text-align: center; text-decoration: none; z-index: 5; filter: none; }
+.pin { position: relative; display: inline-flex; }
+.tgt { position: relative; }
+.flow { background: #FFFFFF; border: 3px solid #1A0B3B; color: #1A0B3B; font-family: 'Space Mono'; font-size: 12px; line-height: 1.45; padding: 10px 12px; width: 390px; }
+.flow h3, .tasks h3 { font-family: 'Anton'; font-weight: 400; font-size: 15px; letter-spacing: 1px; margin-bottom: 6px; }
+.flow p { margin-top: 5px; }
+.tasks b { font-weight: 700; }
+.arw { align-self: flex-start; margin-top: 380px; width: 76px; background: #FFFFFF; border: 3px solid #1A0B3B; color: #1A0B3B; text-align: center; padding: 4px 4px 6px; }
+.arw span { display: block; font-family: 'Anton'; font-size: 30px; line-height: 1; }
+.arw small { display: block; font-size: 10px; font-weight: 700; line-height: 1.3; }
+.tasks { background: #FFFFFF; border: 3px solid #1A0B3B; box-shadow: 4px 4px 0 #FF2E93; color: #1A0B3B; font-size: 12px; line-height: 1.5; padding: 10px 14px; margin-bottom: 16px; max-width: 1240px; }
+.tasks p { margin-top: 3px; }
+.tasks .ct { color: #FF2E93; font-weight: 700; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <filter id="chalk" x="-5%" y="-20%" width="110%" height="140%">
+    <feTurbulence type="fractalNoise" baseFrequency="2.2" numOctaves="1" seed="7" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="0.9" result="d"/>
+    <feColorMatrix in="n" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 -0.8 1.35" result="holes"/>
+    <feComposite in="d" in2="holes" operator="in"/>
+  </filter>
+</svg>
+
+<div class="tasks">
+  <h3>TWO TASKS</h3>
+  <p><b>INCLINE DUMBBELL PRESS → TODAY:</b> ① PRESS · ② TOOL slot · DUMBBELL · ③ + on INCLINE DUMBBELL PRESS · ⑧ BACK TO TODAY = <span class="ct">5 taps</span> (4 to add it, the 5th closes the sheet).</p>
+  <p><b>BARBELL SQUAT, DO IT NOW:</b> ① SQUAT (instead of PRESS) · ② TOOL slot · BARBELL · ④ tap the BARBELL SQUAT row = <span class="ct">4 taps</span> (2 if it already shows after SQUAT alone: SQUAT · row).</p>
+</div>
+
+<h1>CHALK · DEBATE 02 · SENTENCE BUILDER</h1>
+<p class="sub">The lifter writes a soapstone message: <b>[TOOL] [MOVE] for [BODY]</b>. Tapping a slot opens <b>only that slot's words</b>; picking a word closes the panel and the results fill the space under the sentence. PATTERN is not a row any more: it is the dark header tile of each MOVE group (PUSH ▸ = "any push"). The picked words are always on screen, so nothing is hidden at 0. BACK TO TODAY moves to the thumb zone. Sheet height 692 px (0.82, D81) in every state. Tiles 40 px, result rows 50 px, + is a 50 × 50 square.</p>
+
+<div class="row">
+
+<!-- PHONE 1: empty -->
+<div class="col">
+<div class="phone">
+  <div class="behind"><div class="nm">BENCH PRESS</div></div>
+  <div class="barrier"></div>
+  <div class="sheet">
+    <div class="hd"><span class="shout">CHALK</span><span class="q">WRITE A MESSAGE</span></div>
+    <div class="floor">
+      <div class="sent">
+        <span class="pin"><span class="slot ghost"><span class="k">TOOL</span>TOOL?</span><i class="step">2</i></span>
+        <span class="slot open"><span class="k" style="color:var(--lime)">MOVE</span>MOVE?</span>
+        <span class="glue">for</span>
+        <span class="slot ghost"><span class="k">BODY</span>BODY?</span>
+      </div>
+      <div class="tally"><span>START WITH THE MOVE</span><span class="n">312 MOVES</span></div>
+    </div>
+    <div class="panel" style="--notch:152px">
+      <div class="ptitle"><span>MOVE · TAP ONE</span><span>DARK = THE WHOLE GROUP</span></div>
+      <div class="grp"><span class="tile pat">PUSH</span><span class="tile tgt">PRESS<i class="step">1</i></span><span class="tile">FLY</span><span class="tile">PUSH-UP</span><span class="tile">DIP</span><span class="tile pat">PULL</span><span class="tile">ROW</span><span class="tile">PULL-UP</span><span class="tile">PULLDOWN</span><span class="tile">SHRUG</span><span class="tile">PULLOVER</span><span class="tile pat">SQUAT</span><span class="tile">SQUAT</span><span class="tile">LUNGE</span><span class="tile pat">HINGE</span><span class="tile">DEADLIFT</span><span class="tile">HIP THRUST</span><span class="tile">BRIDGE</span><span class="tile pat">CORE</span><span class="tile">CRUNCH</span><span class="tile">PLANK</span><span class="tile plain">ARMS +</span><span class="tile">CURL</span><span class="tile">WRIST CURL</span><span class="tile">EXTENSION</span><span class="tile">RAISE</span><span class="tile">PUSHDOWN</span><span class="tile">KICKBACK</span><span class="tile pat">SINGLE LEG</span><span class="tile pat">JUMP</span><span class="tile pat">CARRY</span><span class="tile pat">CARDIO</span></div>
+    </div>
+    <div class="foot"><span class="bb sm back">BACK TO TODAY</span></div>
+  </div>
+</div>
+<div class="flow"><h3>FLOW</h3>
+  <p>① tap PRESS → MOVE fills with PRESS, the word panel closes, results fill the space under the sentence.</p>
+  <p>② tap the TOOL slot → TOOL words open; tap DUMBBELL → the list narrows to 8 moves (screen 2).</p>
+</div>
+<p class="cap"><b>1 · EMPTY.</b> The sentence has three ghost slots; MOVE is open on arrival, so the first tap is already a word (no "open slot" tap). Only MOVE's 22 words + the 9 patterns show, grouped: every tile fits, nothing scrolls, 40 px tall (today 29). Patterns are the dark lead tiles, so the PATTERN row disappears without losing a word. <i>Replaces D86's hint line; keeps D81's fixed sheet.</i></p>
+</div>
+
+<div class="arw"><span>→</span><small>pick a word</small></div>
+
+<!-- PHONE 2: words picked, results -->
+<div class="col">
+<div class="phone">
+  <div class="behind"><div class="nm">BENCH PRESS</div></div>
+  <div class="barrier"></div>
+  <div class="sheet">
+    <div class="hd"><span class="shout">CHALK</span><span class="q">WRITE A MESSAGE</span></div>
+    <div class="floor">
+      <div class="sent">
+        <span class="slot filled"><span class="k">TOOL</span>DUMBBELL<span class="x">×</span></span>
+        <span class="pin"><span class="slot filled"><span class="k">MOVE</span>PRESS<span class="x">×</span></span><i class="step" style="top:-12px">5</i></span>
+        <span class="glue">for</span>
+        <span class="slot ghost"><span class="k">BODY</span>BODY?</span>
+      </div>
+      <div class="tally"><span>TAP A SLOT TO CHANGE IT</span><span class="n">8 MOVES</span></div>
+    </div>
+    <div class="res">
+      <div class="rh"><span>TAP = GO THERE · + = ADD TO TODAY</span><span>8 + FORGE</span></div>
+      <div class="list">
+        <div class="r"><div class="t"><div class="nm">DUMBBELL BENCH PRESS</div><div class="tg">CHEST · DUMBBELL</div></div><div class="plus">+</div></div>
+        <div class="r added" style="position:relative"><div class="t"><div class="nm">INCLINE DUMBBELL PRESS</div><div class="tg">CHEST · DUMBBELL</div></div><div class="plus">TODAY</div><i class="step" style="right:2px">3</i></div>
+        <div class="r" style="position:relative"><div class="t"><div class="nm">DUMBBELL SHOULDER PRESS</div><div class="tg">SHOULDERS · DUMBBELL</div></div><div class="plus">+</div><i class="step" style="top:-13px;right:54px">4</i></div>
+        <div class="r"><div class="t"><div class="nm">DECLINE DUMBBELL PRESS</div><div class="tg">CHEST · DUMBBELL</div></div><div class="plus">+</div></div>
+        <div class="r"><div class="t"><div class="nm">ARNOLD PRESS</div><div class="tg">SHOULDERS · DUMBBELL</div></div><div class="plus">+</div></div>
+        <div class="r"><div class="t"><div class="nm">NEUTRAL GRIP DB PRESS</div><div class="tg">CHEST · DUMBBELL</div></div><div class="plus">+</div></div>
+        <div class="r"><div class="t"><div class="nm">CLOSE GRIP DB PRESS</div><div class="tg">ARMS · DUMBBELL</div></div><div class="plus">+</div></div>
+        <div class="r"><div class="t"><div class="nm">SINGLE ARM DB PRESS</div><div class="tg">SHOULDERS · DUMBBELL</div></div><div class="plus">+</div></div>
+        <div class="r forge"><div class="t"><div class="nm">NOT HERE? FORGE IT</div><div class="tg">DUMBBELL PRESS · YOUR OWN</div></div><div class="plus">⚒</div></div>
+        <div class="sbar"></div>
+      </div>
+    </div>
+    <div class="foot"><span class="bb sm back">BACK TO TODAY</span><span class="bb sm wipe">WIPE</span></div>
+  </div>
+</div>
+<div class="flow"><h3>FLOW</h3>
+  <p>③ tap + on INCLINE DUMBBELL PRESS → row turns lime, + reads TODAY; you stay on the list.</p>
+  <p>④ tap a row name → CHALK closes and that move opens: do it now.</p>
+  <p>⑤ tap the MOVE slot → MOVE words open over the results; pick another word. Words that clash lead to screen 3.</p>
+</div>
+<p class="cap"><b>2 · DUMBBELL PRESS.</b> Panel closed after each pick: the results take all the space under the sentence, about 8 rows of 50 px (today 3.5 of 64), FORGE IT last (D82). The picked words stay readable in the sentence; × on a slot drops that word, a tap on the slot opens its words again (over the results). The ghost BODY slot invites one more narrowing. Incline was added with +: lime row, TODAY.</p>
+<div class="ro">
+  <span class="lab">ROMANIAN: THE SLOTS REORDER WITH THE GRAMMAR</span>
+  <span class="slot filled">PRESĂ</span><span class="glue">cu</span><span class="slot filled">GANTERE</span><span class="glue">pentru</span><span class="slot ghost">ORICE</span>
+</div>
+</div>
+
+<div class="arw"><span>→</span><small>pick a clashing word</small></div>
+
+<!-- PHONE 3: 0 matches -->
+<div class="col">
+<div class="phone">
+  <div class="behind"><div class="nm">BENCH PRESS</div></div>
+  <div class="barrier"></div>
+  <div class="sheet">
+    <div class="hd"><span class="shout">CHALK</span><span class="q">WRITE A MESSAGE</span></div>
+    <div class="floor" style="box-shadow:4px 4px 0 var(--ink)">
+      <div class="sent">
+        <span class="slot filled bad"><span class="k">TOOL</span>KETTLEBELL<span class="x">×</span></span>
+        <span class="slot filled"><span class="k">MOVE</span>CURL<span class="x">×</span></span>
+        <span class="glue">for</span>
+        <span class="slot filled bad"><span class="k">BODY</span>LEGS<span class="x">×</span></span>
+      </div>
+      <div class="tally"><span>NO MOVE HAS ALL 3 WORDS</span><span class="n zero">0 MOVES</span></div>
+    </div>
+    <div class="res">
+      <div class="zero">NOBODY WROTE THIS YET<small>ONE WORD OUT GETS YOU MOVES:</small></div>
+      <div class="fix" style="position:relative"><span class="w">KETTLEBELL</span><span class="arrow">→ CURL for LEGS</span><span class="c">4</span><i class="step" style="top:-11px;right:4px">6</i></div>
+      <div class="fix"><span class="w">LEGS</span><span class="arrow">→ KETTLEBELL CURL</span><span class="c">2</span></div>
+      <div class="fix"><span class="w">CURL</span><span class="arrow">→ KETTLEBELL · LEGS</span><span class="c">11</span></div>
+      <div class="bb forge" style="position:relative">NO SUCH MOVE. FORGE IT?<small>KETTLEBELL CURL · LEGS → FORGE CARD</small><i class="step" style="top:-11px;right:4px">7</i></div>
+    </div>
+    <div class="foot"><span class="bb sm back" style="position:relative">BACK TO TODAY<i class="step">8</i></span><span class="bb sm wipe">WIPE</span></div>
+  </div>
+</div>
+<div class="flow"><h3>FLOW</h3>
+  <p>⑥ tap a repair row (KETTLEBELL out) → that word leaves the sentence, 4 moves come back as a list (screen 2).</p>
+  <p>⑦ tap FORGE IT → the FORGE card opens with KETTLEBELL · CURL · LEGS already in its slots.</p>
+  <p>⑧ tap BACK TO TODAY → the sheet closes and Today shows (Incline added at ③).</p>
+</div>
+<p class="cap"><b>3 · 0 MATCHES.</b> The whole message stays in view; the slots that cause the dead end are pink. Under it, one-tap repairs: each drops one word and says how many moves come back (the count is <code>index.count(line − word)</code>, cheap). FORGE IT takes the same sentence to the FORGE card (D83), whose MOVE / TOOL / BODY slots now look like this sentence.</p>
+</div>
+
+</div>
+</body>
+</html>

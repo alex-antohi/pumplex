@@ -908,5 +908,21 @@
   "exercise.Towel_Row": "Towel Row",
   "log.set": "SET {n}",
   "log.kg": "KG",
-  "log.reps": "REPS"
+  "log.reps": "REPS",
+  "chalk.whereWith": "WHERE? WITH WHAT?",
+  "chalk.wholeBody": "WHOLE BODY:",
+  "chalk.gearRack": "GEAR RACK",
+  "chalk.tapTool": "TAP A TOOL",
+  "chalk.sayMove": "OR SAY THE MOVE",
+  "chalk.showMoves": "SHOW {n} MOVES",
+  "chalk.moves": "{n} MOVES · + ADDS TO TODAY",
+  "chalk.zero": "0 MATCHES",
+  "chalk.loadout": "LOADOUT",
+  "chalk.narrow": "NARROW",
+  "chalk.doIt": "DO IT",
+  "chalk.emptySlot": "EMPTY SLOT",
+  "chalk.noSuch": "NO SUCH MOVE.",
+  "chalk.dropOne": "OR DROP ONE",
+  "chalk.dropGives": "→ {n} MOVES",
+  "chalk.standard": "STANDARD"
 }

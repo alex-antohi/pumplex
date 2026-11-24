@@ -18,7 +18,7 @@ import 'package:gym_app/game/model.dart';
 import 'package:gym_app/main.dart';
 import 'package:gym_app/pumplex.dart';
 import 'package:gym_app/store.dart';
-import 'package:gym_app/views/chalk.dart' show kChalkHintHeight, kChalkResultsHeight, kChalkSheetFraction;
+import 'package:gym_app/views/chalk.dart' show chalkToolIcon, kChalkSheetFraction;
 import 'package:gym_app/views/play.dart' show SessionPage;
 
 /// The cards of the class and mode, in the Suggested order: the cards the
@@ -222,13 +222,12 @@ void main() {
     await _frames(t, 4);
     await t.tap(find.byKey(const ValueKey('filter-chalk')));
     await _frames(t, 10);
-    for (final name in ['CABLE FLY', 'DUMBBELL FLY']) {
-      expect(find.descendant(of: find.byKey(const ValueKey('chalk-results')), matching: find.text(name, skipOffstage: false)),
-          findsOneWidget,
-          reason: name);
+    // Every fly is a pip on the FLY loot card (D87), the Dumbbell Fly too.
+    for (final r in ChalkIndex.of(exerciseCatalog).results(store.chalk)) {
+      expect(find.byKey(ValueKey('chalk-result-${r.exercise.id}'), skipOffstage: false), findsOneWidget, reason: r.exercise.id);
     }
-    final rows = ChalkIndex.of(exerciseCatalog).results(store.chalk);
-    expect(find.text('RESULTS · ${rows.length}'), findsOneWidget);
+    expect(find.byKey(const ValueKey('chalk-result-Dumbbell_Flyes'), skipOffstage: false), findsOneWidget);
+    expect(find.text('${ChalkIndex.of(exerciseCatalog).search(store.chalk).length} MOVES · + ADDS TO TODAY'), findsOneWidget);
     // A tap on the Dumbbell Fly row picks that exercise on the Fly card.
     final row = find.byKey(const ValueKey('chalk-result-Dumbbell_Flyes'));
     await t.ensureVisible(row);
@@ -282,122 +281,69 @@ void main() {
     expect(t.takeException(), isNull);
   });
 
-  testWidgets('CHALK sheet (D81): tiles with no counts, no ANGLE / GRIP, results at the bottom, FORGE at 0', (t) async {
+  testWidgets('CHALK visual map (D87): lifter + body tags + gear rack; a tool folds into LOADOUT and loot cards; 0 = empty slot',
+      (t) async {
     final store = await _openApp(t);
-    expect(_cards(store).any((g) => g.variants.any((e) => e.equipment == 'barbell')), isFalse); // a Scrapper has no barbell
     await t.tap(find.byKey(const ValueKey('filter-chalk')));
     await _frames(t, 10);
-    // No chalk line, no hints, no WIPE and no SHOW n EXERCISES.
-    expect(find.byKey(const ValueKey('chalk-line')), findsNothing);
-    expect(find.byKey(const ValueKey('chalk-tip')), findsNothing);
-    expect(find.byKey(const ValueKey('chalk-wipe')), findsNothing);
-    expect(find.byKey(const ValueKey('chalk-show')), findsNothing);
-    expect(find.textContaining('WIPE'), findsNothing);
-    expect(find.textContaining('TAP ONE'), findsNothing);
-    expect(find.textContaining('CHALK:'), findsNothing);
-    expect(find.byKey(const ValueKey('chalk-back-today')), findsOneWidget);
-    // No ANGLE and no GRIP rows.
-    expect(find.byKey(const ValueKey('chalk-row-angle')), findsNothing);
-    expect(find.byKey(const ValueKey('chalk-row-grip')), findsNothing);
-    expect(find.byKey(const ValueKey('chalk-angle.incline')), findsNothing);
-    expect(find.byKey(const ValueKey('chalk-grip.wide')), findsNothing);
-    expect(find.text('ANGLE'), findsNothing);
-    expect(find.text('GRIP'), findsNothing);
-    // The sheet scrolls: bring a tile into view before the tap.
-    Future<void> tapTile(String key) async {
-      await t.ensureVisible(find.byKey(ValueKey('chalk-$key')));
-      await t.pump();
-      await t.tap(find.byKey(ValueKey('chalk-$key')));
-      await _frames(t, 4);
+    final sheet = t.getRect(find.byKey(const ValueKey('chalk-sheet')));
+    expect(sheet.height, closeTo(t.view.physicalSize.height / t.view.devicePixelRatio * kChalkSheetFraction, 0.5));
+    // Opened: the lifter, six body tags, the whole-body words, the gear rack.
+    expect(find.byKey(const ValueKey('chalk-lifter')), findsOneWidget);
+    for (final id in ['shoulders', 'arms', 'legs', 'chest', 'core', 'back']) {
+      expect(find.byKey(ValueKey('chalk-body.$id')), findsOneWidget, reason: id);
     }
-
-    // A tile shows only its word: no count.
-    final tile = find.byKey(const ValueKey('chalk-tool.barbell'));
-    expect(find.descendant(of: tile, matching: find.byType(Text)).evaluate().map((e) => (e.widget as Text).data), ['BARBELL']);
-    expect(find.byKey(const ValueKey('chalk-results')), findsNothing); // no words: no list
-    // ... but a hint in the results area, gone once a word is picked.
-    expect(find.descendant(of: find.byKey(const ValueKey('chalk-results-area')), matching: find.text('PICK A WORD TO SEARCH')),
-        findsOneWidget);
-    await tapTile('tool.barbell');
-    expect(find.byKey(const ValueKey('chalk-pick-hint')), findsNothing);
-    await tapTile('move.press');
-    expect(store.chalk, {'tool.barbell', 'move.press'});
-    // A second tap on a tile unpicks it; then put it back.
-    await tapTile('move.press');
-    expect(store.chalk, {'tool.barbell'});
-    await tapTile('move.press');
-    expect(store.chalk, {'tool.barbell', 'move.press'});
-    for (final e in find.descendant(of: find.byKey(const ValueKey('chalk-row-tool')), matching: find.byType(Text)).evaluate()) {
-      expect((e.widget as Text).data, isNot(matches(RegExp(r'^\d+$'))));
+    for (final id in ['jump', 'carry', 'cardio']) {
+      expect(find.byKey(ValueKey('chalk-pattern.$id')), findsOneWidget, reason: id);
     }
-    // The results sit at the bottom, under the tiles (which scroll).
-    final tiles = find.ancestor(of: find.byKey(const ValueKey('chalk-row-body')), matching: find.byType(SingleChildScrollView));
-    expect(find.byKey(const ValueKey('chalk-results')), findsOneWidget);
-    expect(t.getRect(find.byKey(const ValueKey('chalk-results'))).top, greaterThanOrEqualTo(t.getRect(tiles).bottom));
-    expect(ChalkIndex.of(exerciseCatalog).search(store.chalk).every((g) => g.variants.every((e) => e.name.toLowerCase().contains('press'))), isTrue);
-    // No exercise has all the words: the bottom shows NO SUCH MOVE. FORGE IT?
-    await tapTile('move.press'); // out
-    await tapTile('move.pulldown');
-    await tapTile('tool.kettlebell');
-    expect(store.chalk, _noMove);
-    expect(find.byKey(const ValueKey('chalk-results')), findsNothing);
-    expect(find.byKey(const ValueKey('chalk-forge')), findsOneWidget);
-    expect(find.text('NO SUCH MOVE. FORGE IT?'), findsOneWidget);
-    expect(t.getRect(find.byKey(const ValueKey('chalk-forge'))).top, greaterThanOrEqualTo(t.getRect(tiles).bottom));
-    expect(t.takeException(), isNull);
-  });
-
-  testWidgets('CHALK sheet: a fixed height and a fixed results area with 0, 3 and 30 results', (t) async {
-    final store = await _openApp(t);
-    final index = ChalkIndex.of(exerciseCatalog);
-    // A line with a few results (1 to 3) and a line with 30 or more.
-    final few = [
-      for (final a in chalkWords)
-        for (final b in chalkWords)
-          if (a.row != b.row) {a.key, b.key},
-    ].firstWhere((l) => index.results(l).length == 3);
-    final many = chalkWords.map((w) => {w.key}).firstWhere((l) => index.results(l).length >= 30);
-    await t.tap(find.byKey(const ValueKey('filter-chalk')));
-    await _frames(t, 10);
-    final sheet = find.byKey(const ValueKey('chalk-sheet'));
-    final area = find.byKey(const ValueKey('chalk-results-area'));
-    final tiles = find.byKey(const ValueKey('chalk-tiles'));
-    final sizes = <String, (Rect, Rect, Rect)>{};
-    Future<void> measure(String name, Set<String> line) async {
-      store.setChalk(line);
-      await _frames(t, 4);
-      sizes[name] = (t.getRect(sheet), t.getRect(area), t.getRect(tiles));
+    final tools = chalkWords.where((w) => w.row == 'tool').toList();
+    for (final w in tools) {
+      expect(find.byKey(ValueKey('chalk-${w.key}')), findsOneWidget, reason: w.key);
+      expect(File(chalkToolIcon(w.id)).existsSync(), isTrue, reason: chalkToolIcon(w.id)); // an icon per tool
     }
-
-    await measure('no words', {});
-    // Before the first word only the hint (D86): the tiles get the sheet.
-    final empty = sizes.remove('no words')!;
-    await measure('0', _noMove);
-    expect(find.byKey(const ValueKey('chalk-forge')), findsOneWidget);
-    await measure('3', few);
-    expect(find.byKey(const ValueKey('chalk-forge')), findsNothing);
-    await measure('30', many);
-    final first = sizes.values.first;
-    for (final e in sizes.entries) {
-      expect(e.value, first, reason: e.key); // nothing moves
-    }
-    expect(first.$1.height, closeTo(t.view.physicalSize.height / t.view.devicePixelRatio * kChalkSheetFraction, 0.5));
-    expect(first.$2.height, kChalkResultsHeight);
-    expect(empty.$1, first.$1); // the sheet itself never moves
-    expect(empty.$2.height, kChalkHintHeight);
-    expect(empty.$3.height, closeTo(first.$3.height + kChalkResultsHeight - kChalkHintHeight, 0.5));
-    // Many results scroll inside the area, with a visible scrollbar and a fade.
-    final list = find.byKey(const ValueKey('chalk-results-scroll'));
-    final bar = find.descendant(of: list, matching: find.byType(Scrollbar));
-    expect(bar, findsOneWidget);
-    expect(t.widget<Scrollbar>(bar).thumbVisibility, isTrue);
-    expect(find.descendant(of: list, matching: find.byKey(const ValueKey('chalk-fade'))), findsOneWidget);
-    // Three results fit: no fade.
-    store.setChalk(few);
+    // A body tag stays on the picture; a tool folds it into the LOADOUT bar.
+    await t.tap(find.byKey(const ValueKey('chalk-body.chest')));
     await _frames(t, 4);
-    expect(find.descendant(of: list, matching: find.byKey(const ValueKey('chalk-fade'))), findsNothing);
-    // The tiles area has its own scrollbar too.
-    expect(t.widget<Scrollbar>(find.descendant(of: tiles, matching: find.byType(Scrollbar))).thumbVisibility, isTrue);
+    expect(find.byKey(const ValueKey('chalk-lifter')), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('chalk-tool.dumbbell')));
+    await _frames(t, 4);
+    expect(store.chalk, {'body.chest', 'tool.dumbbell'});
+    expect(find.byKey(const ValueKey('chalk-lifter')), findsNothing);
+    expect(find.byKey(const ValueKey('chalk-loadout')), findsOneWidget);
+    expect(find.byKey(const ValueKey('chalk-word-tool.dumbbell')), findsOneWidget);
+    // Loot cards: one per move, DO IT on each.
+    final cards = ChalkIndex.of(exerciseCatalog).search(store.chalk);
+    expect(find.byKey(ValueKey('chalk-card-${cards.first.key}')), findsOneWidget);
+    expect(find.byKey(ValueKey('chalk-do-${cards.first.key}')), findsOneWidget);
+    // ✕ on a loadout piece drops it and opens the picture again.
+    await t.tap(find.byKey(const ValueKey('chalk-word-tool.dumbbell')));
+    await _frames(t, 4);
+    expect(store.chalk, {'body.chest'});
+    expect(find.byKey(const ValueKey('chalk-lifter')), findsOneWidget);
+    // 0 matches: the empty slot, FORGE IT, and a drop row per word.
+    store.setChalk(_noMove);
+    await t.pump();
+    await t.ensureVisible(find.byKey(const ValueKey('chalk-show')));
+    await t.tap(find.byKey(const ValueKey('chalk-show')));
+    await _frames(t, 4);
+    expect(find.byKey(const ValueKey('chalk-empty-slot')), findsOneWidget);
+    expect(find.byKey(const ValueKey('chalk-forge')), findsOneWidget);
+    for (final k in _noMove) {
+      expect(find.byKey(ValueKey('chalk-drop-$k')), findsOneWidget, reason: k);
+    }
+    await t.tap(find.byKey(ValueKey('chalk-drop-${_noMove.first}')));
+    await _frames(t, 4);
+    expect(store.chalk, _noMove.skip(1).toSet());
+    // DO IT selects the move and closes CHALK.
+    store.setChalk({'body.chest', 'tool.dumbbell'});
+    await t.pump();
+    await t.ensureVisible(find.byKey(const ValueKey('chalk-show')));
+    await t.tap(find.byKey(const ValueKey('chalk-show')));
+    await _frames(t, 4);
+    await t.tap(find.byKey(ValueKey('chalk-do-${cards.first.key}')));
+    await _frames(t, 20);
+    expect(find.byKey(const ValueKey('chalk-sheet')), findsNothing);
+    expect(store.pickedCard, cards.first.variants.first.id);
     expect(t.takeException(), isNull);
   });
 
@@ -424,11 +370,10 @@ void main() {
     expect(find.byKey(ValueKey('chalk-result-today-${a.exercise.id}')), findsOneWidget);
     // The picked exercise's row is filled with the lime (the app's yellow).
     final p = Theme.of(t.element(find.byKey(const ValueKey('chalk-sheet')))).extension<Pal>()!;
-    Color fill(String id) => t.widget<Brutal>(find.byKey(ValueKey('chalk-result-on-$id'))).color!;
+    Color fill(String id) => (t.widget<Container>(find.byKey(ValueKey('chalk-result-on-$id'))).decoration! as BoxDecoration).color!;
     expect(fill(a.exercise.id), p.lime);
-    // A picked tile is lime too.
-    final tile = find.descendant(of: find.byKey(const ValueKey('chalk-tool.barbell')), matching: find.byType(Container));
-    expect((t.widget<Container>(tile).decoration! as BoxDecoration).color, p.lime);
+    // The picked tool sits in the LOADOUT bar (D87).
+    expect(find.byKey(const ValueKey('chalk-word-tool.barbell')), findsOneWidget);
     // A tap on the rest of a row selects that card and closes the sheet; it
     // does not add it to Today.
     await t.scrollUntilVisible(find.byKey(ValueKey('chalk-result-${b.exercise.id}')), 60, scrollable: _resultsList);

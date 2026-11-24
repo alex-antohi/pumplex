@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chalk Steps Tabs</title>
+<style>
+@font-face { font-family: 'Anton'; src: url('../../../../assets/fonts/Anton-Regular.ttf'); }
+@font-face { font-family: 'Space Mono'; font-weight: 700; src: url('../../../../assets/fonts/SpaceMono-Bold.ttf'); }
+@font-face { font-family: 'Space Mono'; font-weight: 400; src: url('../../../../assets/fonts/SpaceMono-Regular.ttf'); }
+
+/* Pal.light from lib/pumplex.dart */
+:root {
+  --bg: #E3FBFF; --ink: #1A0B3B; --pink: #FF2E93; --lime: #B6FF00; --orange: #FF8A00;
+  --violet: #7B2CFF; --sky: #00C2FF; --panel: #FFFFFF; --panel2: #FFF0FA; --dot: rgba(255,46,147,.28);
+  --quiet: rgba(26,11,59,.55); --faint: rgba(26,11,59,.25); --chalk: #F4F1FF; --accent: #FFA033;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #2b2440; color: #F6EEFF; font-family: 'Space Mono', monospace; padding: 20px 16px 28px; }
+h1 { font-family: 'Anton'; font-weight: 400; font-size: 26px; letter-spacing: 1px; }
+.sub { font-size: 12px; opacity: .75; margin: 4px 0 18px; max-width: 1240px; line-height: 1.45; }
+.row { display: flex; gap: 28px; align-items: flex-start; flex-wrap: wrap; }
+.col { display: flex; flex-direction: column; gap: 10px; width: 390px; }
+.cap { font-size: 11px; line-height: 1.45; opacity: .9; }
+.cap b { font-family: 'Anton'; font-weight: 400; letter-spacing: 1px; font-size: 14px; color: var(--lime); display: block; margin-bottom: 2px; }
+
+/* phone */
+.phone { width: 390px; height: 844px; position: relative; overflow: hidden; border-radius: 34px; border: 8px solid #0c0816;
+  background-color: var(--bg); background-image: radial-gradient(circle at 12px 12px, var(--dot) 2.5px, transparent 3px);
+  background-size: 24px 24px; color: var(--ink); }
+.card { position: absolute; left: 16px; top: 28px; right: 16px; height: 200px; background: var(--panel); border: 4px solid var(--ink); box-shadow: 8px 8px 0 var(--accent); padding: 12px; }
+.card .n { font-family: 'Anton'; font-size: 30px; line-height: 1; text-shadow: 2px 2px 0 var(--orange); margin-top: 110px; }
+.barrier { position: absolute; inset: 0; background: rgba(0,0,0,.54); }
+
+/* sheet: 0.82 of the screen, like kChalkSheetFraction */
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; height: 680px; background: var(--bg); border-top: 4px solid var(--ink); }
+.head { height: 46px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
+.head .t { font-family: 'Anton'; font-size: 22px; letter-spacing: 1.5px; }
+.head .step { font-size: 10px; font-weight: 700; color: var(--quiet); letter-spacing: .5px; }
+
+/* the tabs are the slots: each shows its picked word (the chalk line) */
+.tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 0 12px; position: relative; z-index: 2; }
+.tab { height: 62px; border: 3px solid var(--ink); background: var(--panel); padding: 6px 6px 5px; position: relative; display: flex; flex-direction: column; justify-content: space-between; }
+.tab .lab { font-size: 10px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; display: flex; gap: 4px; align-items: center; }
+.tab .lab i { font-style: normal; width: 8px; height: 8px; border: 2px solid var(--ink); display: inline-block; }
+.tab .w { font-family: 'Anton'; font-size: 16px; line-height: 1.05; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tab .w.empty { color: var(--faint); }
+.tab.act { height: 68px; border-bottom: none; margin-bottom: -6px; }
+.tab.t-tool.act, .t-tool i.c { background: var(--orange); }
+.tab.t-move.act, .t-move i.c { background: var(--pink); }
+.tab.t-body.act, .t-body i.c { background: var(--sky); }
+.tab.t-pat.act, .t-pat i.c { background: var(--violet); }
+.tab.t-pat.act .lab, .tab.t-pat.act .w { color: var(--chalk); }
+.tab.filled:not(.act) { box-shadow: 3px 3px 0 var(--ink); }
+.tab .x { position: absolute; right: -3px; top: -3px; width: 26px; height: 26px; background: var(--ink); color: var(--chalk); font-size: 13px; font-weight: 700; display: grid; place-items: center; }
+.tab.bad { background: var(--panel2); outline: 3px dashed var(--pink); outline-offset: 2px; }
+
+/* the tab's panel: big tiles, one row of words only */
+.panel { margin: 0 12px; border: 3px solid var(--ink); background: var(--panel); box-shadow: 4px 4px 0 var(--ink); padding: 12px 10px; position: relative; z-index: 1; }
+.panel.p-tool { border-top-color: var(--ink); }
+.grid { display: grid; gap: 8px; }
+.g2 { grid-template-columns: 1fr 1fr; }
+.g3 { grid-template-columns: 1fr 1fr 1fr; }
+.tile { height: 54px; border: 3px solid var(--ink); background: var(--panel); box-shadow: 3px 3px 0 var(--ink); display: grid; place-items: center; text-align: center;
+  font-family: 'Anton'; font-size: 19px; line-height: 1.05; letter-spacing: .5px; text-transform: uppercase; padding: 0 4px; }
+.tile.sm { font-size: 15px; }
+/* long Romanian words wrap inside their column instead of widening the grid */
+.grid > .tile, .tabs > .tab { min-width: 0; overflow-wrap: anywhere; }
+.tile.on { background: var(--lime); box-shadow: 4px 4px 0 var(--ink); }
+.tile.on::after { content: ''; }
+.tile.off { background: transparent; border-style: dashed; box-shadow: none; color: var(--quiet); }
+.tile.bad { background: var(--lime); outline: 3px dashed var(--pink); outline-offset: 2px; }
+.fold { margin-top: 10px; border-top: 2px dashed var(--faint); padding-top: 8px; font-size: 10px; font-weight: 700; color: var(--quiet); letter-spacing: .5px; display: flex; justify-content: space-between; }
+.thumb { position: absolute; width: 46px; height: 46px; border-radius: 50%; border: 3px dashed var(--pink); background: rgba(255,46,147,.12); pointer-events: none; }
+
+/* results drawer, pinned above the bottom bar */
+.drawer { position: absolute; left: 0; right: 0; bottom: 62px; background: var(--panel); border-top: 4px solid var(--ink); box-shadow: 0 -5px 0 var(--faint); padding: 0 12px 8px; }
+.handle { width: 54px; height: 6px; background: var(--ink); margin: 7px auto 6px; }
+.dh { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px; }
+.dh .c { font-family: 'Anton'; font-size: 21px; letter-spacing: 1px; }
+.dh .m { font-size: 10px; font-weight: 700; color: var(--quiet); }
+.res { height: 52px; border: 3px solid var(--ink); display: flex; align-items: center; margin-bottom: 6px; background: var(--panel); }
+.res .nm { flex: 1; padding: 0 10px; min-width: 0; }
+.res .nm b { font-family: 'Anton'; font-weight: 400; font-size: 16px; line-height: 1.05; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.res .nm span { font-size: 10px; font-weight: 700; color: var(--quiet); }
+.plus { width: 52px; height: 46px; border-left: 3px solid var(--ink); display: grid; place-items: center; background: var(--lime); }
+.plus::before { content: ''; width: 26px; height: 26px; background:
+  linear-gradient(var(--ink), var(--ink)) center/26px 7px no-repeat, linear-gradient(var(--ink), var(--ink)) center/7px 26px no-repeat; }
+.hint { font-size: 11px; font-weight: 700; color: var(--quiet); padding: 2px 0 6px; line-height: 1.4; }
+.bb { border: 4px solid var(--ink); box-shadow: 5px 5px 0 var(--ink); padding: 12px 14px; font-family: 'Anton'; font-size: 19px; letter-spacing: 1px; line-height: 1; text-align: center; color: var(--ink); }
+.bb small { display: block; font-family: 'Space Mono'; font-size: 10px; letter-spacing: 0; margin-top: 4px; font-weight: 700; }
+.fix { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.fix div { border: 3px solid var(--ink); padding: 7px 8px; background: var(--panel); font-size: 10px; font-weight: 700; line-height: 1.3; }
+.fix div b { font-family: 'Anton'; font-weight: 400; font-size: 15px; display: block; letter-spacing: .5px; }
+
+/* bottom bar: BACK in the thumb zone */
+.bar { position: absolute; left: 0; right: 0; bottom: 0; height: 62px; background: var(--bg); border-top: 3px solid var(--ink); display: flex; align-items: center; gap: 10px; padding: 0 12px; }
+.bar .back { background: var(--sky); border: 3px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); height: 46px; padding: 0 14px; display: grid; place-items: center; font-family: 'Anton'; font-size: 16px; letter-spacing: 1px; }
+.bar .note { font-size: 10px; font-weight: 700; color: var(--quiet); line-height: 1.35; }
+
+/* flow overlay: step badges, FLOW panels, arrows, TWO TASKS */
+.tile, .res .nm, .plus, .bb, .fix div, .fold, .bar .back { position: relative; }
+.badge { position: absolute; top: -11px; right: -10px; z-index: 6; width: 22px; height: 22px; border-radius: 50%; background: var(--pink); color: #FFFFFF;
+  border: 2px solid var(--ink); box-shadow: 2px 2px 0 var(--ink); font-family: 'Space Mono'; font-weight: 700; font-size: 11px; line-height: 1;
+  display: grid; place-items: center; letter-spacing: 0; text-transform: none; text-shadow: none; pointer-events: none; }
+.flow { width: 390px; background: var(--panel); border: 3px solid var(--ink); color: var(--ink); font-family: 'Space Mono'; font-size: 12px; line-height: 1.45; padding: 10px 12px; }
+.flow h3, .tasks h3 { font-family: 'Anton'; font-weight: 400; font-size: 16px; letter-spacing: 1px; margin-bottom: 6px; }
+.flow p + p { margin-top: 5px; }
+.flow p b, .tasks b { font-weight: 700; }
+.arrow { width: 84px; align-self: flex-start; margin-top: 380px; text-align: center; color: #F6EEFF; }
+.arrow .a { font-family: 'Space Mono'; font-weight: 700; font-size: 40px; line-height: 1; color: var(--ink); background: var(--panel); border: 3px solid var(--ink); box-shadow: 3px 3px 0 var(--pink); width: 56px; height: 48px; display: grid; place-items: center; margin: 0 auto 8px; }
+.arrow .l { font-size: 11px; font-weight: 700; line-height: 1.35; }
+.tasks { max-width: 1240px; background: var(--panel); border: 3px solid var(--ink); box-shadow: 4px 4px 0 var(--pink); color: var(--ink); font-size: 12px; line-height: 1.5; padding: 10px 14px; margin-bottom: 18px; }
+.tasks p + p { margin-top: 4px; }
+.tasks .cnt { background: var(--lime); border: 2px solid var(--ink); padding: 0 6px; font-weight: 700; white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="tasks">
+  <h3>TWO TASKS, TAP BY TAP</h3>
+  <p><b>Incline dumbbell press → Today:</b> open CHALK · ① DUMBBELL · ② PRESS · ③ CHEST · ④ "+" on INCLINE DUMBBELL BENCH PRESS <span class="cnt">5 actions</span> (4 if you skip ③: the row already peeks after ②)</p>
+  <p><b>Barbell squat, do it now:</b> open CHALK · ① BARBELL (same tile spot as ①) · ② SQUAT on the MOVE tab · the drawer rises with the few matches · tap the BARBELL SQUAT row (like ⑤) <span class="cnt">4 actions</span></p>
+</div>
+<h1>CHALK · DEBATE 02 · STEPS / TABS</h1>
+<p class="sub">One row of words at a time, like inventory tabs. The four tabs (TOOL, MOVE, BODY, PATTERN) are also the slots that hold the picked words, so the chalk line never scrolls away. A pick fills its slot and jumps to the next empty tab; the results drawer rises by itself once the list is short (8 or fewer). Tiles are 54 dp tall in 2 or 3 columns. BACK sits in the bottom bar, in thumb reach. Counts in state 3 are illustrative.</p>
+
+<div class="row">
+
+<!-- 1. just opened -->
+<div class="col">
+<div class="phone">
+  <div class="card"><div class="n">BARBELL SQUAT</div></div>
+  <div class="barrier"></div>
+  <div class="sheet">
+    <div class="head"><span class="t">CHALK</span><span class="step">STEP 1 · WHAT'S IN YOUR HAND?</span></div>
+    <div class="tabs">
+      <div class="tab t-tool act"><span class="lab"><i></i>Tool</span><span class="w">PICK</span></div>
+      <div class="tab t-move"><span class="lab"><i></i>Move</span><span class="w empty">ANY</span><span class="badge">2</span></div>
+      <div class="tab t-body"><span class="lab"><i></i>Body</span><span class="w empty">ANY</span></div>
+      <div class="tab t-pat"><span class="lab"><i></i>Pattern</span><span class="w empty">ANY</span></div>
+    </div>
+    <div class="panel">
+      <div class="grid g2">
+        <div class="tile">Dumbbell<span class="badge">1</span></div><div class="tile">Barbell</div>
+        <div class="tile">Kettlebell</div><div class="tile">Cable</div>
+        <div class="tile">Machine</div><div class="tile">Smith machine</div>
+        <div class="tile">EZ bar</div><div class="tile">Bands</div>
+        <div class="tile">Ball</div><div class="tile">Towel</div>
+        <div class="tile">Bodyweight</div><div class="tile off">—</div>
+      </div>
+    </div>
+    <div class="drawer">
+      <div class="handle"></div>
+      <div class="dh"><span class="c">TAP A WORD</span><span class="m">1 PER TAB · ANY ORDER</span></div>
+      <div class="hint">Pick a tool, then a move. Tap any tab to start there.</div>
+    </div>
+    <div class="bar"><div class="back">◀ TODAY</div><div class="note">Closes CHALK.<br>Clears the words (D81).</div></div>
+  </div>
+</div>
+<div class="flow">
+  <h3>FLOW</h3>
+  <p><b>① tap DUMBBELL</b> → it fills the TOOL slot and the sheet jumps by itself to the MOVE tab.</p>
+  <p><b>② on MOVE, tap PRESS</b> → it fills the MOVE slot and jumps to BODY. Results start to peek in the drawer. (You can also tap any tab to start there.)</p>
+</div>
+<p class="cap"><b>1 · JUST OPENED</b>The TOOL tab is open: 11 big tiles, all visible, no scroll, 54 dp tall (round 1: 29 dp). The other rows wait behind their tabs. The drawer only holds the hint (D86). BACK moves from top-right to the bottom bar.</p>
+</div>
+
+<div class="arrow"><div class="a">→</div><div class="l">pick a tool</div></div>
+
+<!-- 2. mid-way -->
+<div class="col">
+<div class="phone">
+  <div class="card"><div class="n">BARBELL SQUAT</div></div>
+  <div class="barrier"></div>
+  <div class="sheet">
+    <div class="head"><span class="t">CHALK</span><span class="step">STEP 3 · WHERE DOES IT HIT?</span></div>
+    <div class="tabs">
+      <div class="tab t-tool filled"><span class="lab"><i class="c"></i>Tool</span><span class="w">DUMBBELL</span><span class="x">✕</span></div>
+      <div class="tab t-move filled"><span class="lab"><i class="c"></i>Move</span><span class="w">PRESS</span><span class="x">✕</span></div>
+      <div class="tab t-body act"><span class="lab"><i></i>Body</span><span class="w">PICK</span></div>
+      <div class="tab t-pat"><span class="lab"><i></i>Pattern</span><span class="w empty">ANY</span></div>
+    </div>
+    <div class="panel">
+      <div class="grid g3">
+        <div class="tile">Chest<span class="badge">3</span></div><div class="tile">Shoulders</div><div class="tile">Arms</div>
+        <div class="tile off">Back</div><div class="tile off">Legs</div><div class="tile off">Core</div>
+      </div>
+      <div class="thumb" style="left:28px; top:12px"></div>
+    </div>
+    <div class="drawer">
+      <div class="handle"></div>
+      <div class="dh"><span class="c">21 MOVES</span><span class="m">▲ DRAG UP · OR PICK A BODY</span></div>
+      <div class="res"><div class="nm"><b>DUMBBELL BENCH PRESS</b><span>CHEST · DUMBBELL</span><span class="badge" style="right:6px">5</span></div><div class="plus"></div></div>
+      <div class="res"><div class="nm"><b>INCLINE DUMBBELL BENCH PRESS</b><span>CHEST · DUMBBELL</span></div><div class="plus"><span class="badge">4</span></div></div>
+      <div class="res"><div class="nm"><b>SEATED DUMBBELL SHOULDER PRESS</b><span>SHOULDERS · DUMBBELL</span></div><div class="plus"></div></div>
+      <div class="res" style="opacity:.45"><div class="nm"><b>DUMBBELL ARNOLD PRESS</b><span>SHOULDERS · DUMBBELL</span></div><div class="plus"></div></div>
+    </div>
+    <div class="bar"><div class="back">◀ TODAY</div><div class="note">Tap a slot to reopen its tab.<br>✕ drops that word.</div></div>
+  </div>
+</div>
+<div class="flow">
+  <h3>FLOW</h3>
+  <p><b>③ tap CHEST</b> → 21 matches drop to ~9; the drawer rises by itself (8 or fewer, or drag the handle up any time) and the tiles shrink to a strip.</p>
+  <p><b>④ tap "+" on INCLINE DUMBBELL BENCH PRESS</b> → it goes to Today. The words stay for the next add.</p>
+  <p><b>⑤ tap a row's name</b> → lift that move now.</p>
+</div>
+<p class="cap"><b>2 · MID-WAY, RESULTS PEEKING</b>DUMBBELL then PRESS filled their slots and the sheet jumped to BODY. 21 matches, so the drawer peeks with the top 3.5 rows; incline DB press is already there to "+". Picking CHEST (dashed ring) cuts it to ~9 and the drawer rises to show them all, tiles shrink to a strip.</p>
+</div>
+
+<div class="arrow"><div class="a">→</div><div class="l">pick a clashing word</div></div>
+
+<!-- 3. zero matches, Romanian -->
+<div class="col">
+<div class="phone">
+  <div class="card"><div class="n">GENUFLEXIUNI</div></div>
+  <div class="barrier"></div>
+  <div class="sheet">
+    <div class="head"><span class="t">CRETĂ</span><span class="step">0 · SCOATE UN CUVÂNT SAU FORJEAZĂ</span></div>
+    <div class="tabs">
+      <div class="tab t-tool filled bad"><span class="lab"><i class="c"></i>Unealtă</span><span class="w">KETTLEBELL</span><span class="x">✕</span></div>
+      <div class="tab t-move act"><span class="lab"><i></i>Mișcare</span><span class="w">HELCOMETRU</span><span class="badge">6</span></div>
+      <div class="tab t-body"><span class="lab"><i></i>Corp</span><span class="w empty">ORICE</span></div>
+      <div class="tab t-pat"><span class="lab"><i></i>Tipar</span><span class="w empty">ORICE</span></div>
+    </div>
+    <div class="panel">
+      <div class="grid g3">
+        <div class="tile sm">Presă</div><div class="tile sm">Flexii</div><div class="tile sm">Ridicări</div>
+        <div class="tile sm">Ramat</div><div class="tile sm">Genuflexiuni</div><div class="tile sm">Fandări</div>
+        <div class="tile sm">Îndreptări</div><div class="tile sm">Flexii încheietură</div><div class="tile sm bad">Helcometru</div>
+      </div>
+      <div class="fold"><span>+ 13 CUVINTE FĂRĂ REZULTAT CU KETTLEBELL</span><span>▾</span><span class="badge" style="right:14px">9</span></div>
+    </div>
+    <div class="drawer" style="background:var(--panel2)">
+      <div class="handle"></div>
+      <div class="dh"><span class="c">0 MIȘCĂRI</span><span class="m">KETTLEBELL + HELCOMETRU</span></div>
+      <div class="bb" style="background:var(--pink)">NU EXISTĂ. O FORJEZI?<small>KETTLEBELL · HELCOMETRU → FORJA (D83)</small><span class="badge" style="top:-8px">7</span></div>
+      <div class="fix">
+        <div><b>✕ KETTLEBELL</b>→ 6 mișcări<span class="badge">8</span></div>
+        <div><b>✕ HELCOMETRU</b>→ 18 mișcări</div>
+      </div>
+    </div>
+    <div class="bar"><div class="back">◀ ÎNAPOI LA AZI<span class="badge" style="top:-12px; right:-6px">10</span></div><div class="note">Romanian: 3 columns,<br>long words wrap to 2 lines.</div></div>
+  </div>
+</div>
+<div class="flow">
+  <h3>FLOW</h3>
+  <p><b>⑥ on MOVE, tap HELCOMETRU</b> (clashes with KETTLEBELL; it lands in the MOVE slot) → 0 matches. Both words get a pink ring and the drawer turns into the forge panel.</p>
+  <p><b>⑦ tap FORGE (FORJEAZĂ)</b> → opens the forge with both words filled in (D83).</p>
+  <p><b>⑧ tap a ✕ fix</b> → drops that one word: ✕ KETTLEBELL brings back 6 moves, ✕ HELCOMETRU 18. The drawer shows them.</p>
+  <p><b>⑨ tap "+ 13 words"</b> → unfolds the moves that have no result with KETTLEBELL.</p>
+  <p><b>⑩ tap BACK TO TODAY</b> → closes CHALK and clears the words.</p>
+</div>
+<p class="cap"><b>3 · 0 MATCHES (ROMANIAN)</b>Both words that clash stay in sight: KETTLEBELL in its slot, HELCOMETRU in the open tab, both ringed pink. The drawer turns into the forge panel: FORJEAZĂ first, then two one-tap fixes that drop one word each, with the count you'd get. Words with no result for the tool fold away, so the MOVE tab shows 9, not 22.</p>
+</div>
+
+</div>
+</body>
+</html>

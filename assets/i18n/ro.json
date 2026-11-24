@@ -1091,5 +1091,21 @@
   "exercise.Towel_Row": "Ramat cu prosop",
   "log.set": "SERIA {n}",
   "log.kg": "KG",
-  "log.reps": "REPETĂRI"
+  "log.reps": "REPETĂRI",
+  "chalk.whereWith": "UNDE? CU CE?",
+  "chalk.wholeBody": "TOT CORPUL:",
+  "chalk.gearRack": "RAFTUL CU UNELTE",
+  "chalk.tapTool": "ATINGE O UNEALTĂ",
+  "chalk.sayMove": "SAU SPUNE MIȘCAREA",
+  "chalk.showMoves": "ARATĂ {n} MIȘCĂRI",
+  "chalk.moves": "{n} MIȘCĂRI · + ADAUGĂ LA AZI",
+  "chalk.zero": "0 POTRIVIRI",
+  "chalk.loadout": "ECHIPAMENT",
+  "chalk.narrow": "RESTRÂNGE",
+  "chalk.doIt": "FĂ-O",
+  "chalk.emptySlot": "LOC GOL",
+  "chalk.noSuch": "NU EXISTĂ.",
+  "chalk.dropOne": "SAU SCOATE UNA",
+  "chalk.dropGives": "→ {n} MIȘCĂRI",
+  "chalk.standard": "STANDARD"
 }

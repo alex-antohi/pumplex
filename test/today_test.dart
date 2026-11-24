@@ -342,7 +342,7 @@ void main() {
     final results = ChalkIndex.of(exerciseCatalog).results(store.chalk);
     expect(results.length, greaterThan(2));
     final r = results[1], g = r.card, id = r.exercise.id;
-    expect(find.text('RESULTS · ${results.length}'), findsOneWidget);
+    expect(find.text('${ChalkIndex.of(exerciseCatalog).search(store.chalk).length} MOVES · + ADDS TO TODAY'), findsOneWidget);
     await t.ensureVisible(find.byKey(ValueKey('chalk-result-$id')));
     await t.tap(find.byKey(ValueKey('chalk-result-$id')));
     await _frames(t, 20);

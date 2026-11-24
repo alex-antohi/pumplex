@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chalk Visual Map</title>
+<style>
+@font-face { font-family: 'Anton'; src: url('../../../../assets/fonts/Anton-Regular.ttf'); }
+@font-face { font-family: 'Space Mono'; font-weight: 700; src: url('../../../../assets/fonts/SpaceMono-Bold.ttf'); }
+@font-face { font-family: 'Space Mono'; font-weight: 400; src: url('../../../../assets/fonts/SpaceMono-Regular.ttf'); }
+
+/* Pal.light from lib/pumplex.dart */
+:root {
+  --bg: #E3FBFF; --ink: #1A0B3B; --pink: #FF2E93; --lime: #B6FF00; --orange: #FF8A00;
+  --violet: #7B2CFF; --sky: #00C2FF; --panel: #FFFFFF; --panel2: #FFF0FA; --dot: rgba(255,46,147,.28);
+  --night: #1A0B3B; --on: #1A0B3B; --chalk: #F4F1FF; --accent: #FFA033;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #2b2440; color: #F6EEFF; font-family: 'Space Mono', monospace; padding: 20px 16px 28px; }
+h1 { font-family: 'Anton'; font-weight: 400; font-size: 26px; letter-spacing: 1px; }
+.sub { font-size: 12px; opacity: .8; margin: 4px 0 18px; max-width: 900px; line-height: 1.45; }
+.row { display: flex; gap: 28px; align-items: flex-start; flex-wrap: wrap; }
+.col { display: flex; flex-direction: column; gap: 10px; }
+.cap { font-size: 11px; max-width: 390px; line-height: 1.45; opacity: .9; }
+.cap b { font-family: 'Anton'; font-weight: 400; letter-spacing: 1px; font-size: 14px; color: var(--lime); }
+.cap i { font-style: normal; color: var(--accent); }
+
+/* phone */
+.phone { width: 390px; height: 844px; position: relative; overflow: hidden; border-radius: 34px; border: 8px solid #0c0816;
+  background-color: var(--bg); background-image: radial-gradient(circle at 12px 12px, var(--dot) 2.5px, transparent 3px);
+  background-size: 24px 24px; color: var(--ink); }
+.card { position: absolute; left: 16px; top: 16px; width: 342px; height: 300px; background: var(--panel);
+  border: 4px solid var(--ink); box-shadow: 8px 8px 0 var(--accent); overflow: hidden; }
+.card img { position: absolute; image-rendering: pixelated; }
+.barrier { position: absolute; inset: 0; background: rgba(0,0,0,.54); }
+
+/* the sheet (0.82 of the screen, D81) */
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; height: 679px; background: var(--bg); border-top: 4px solid var(--ink);
+  display: flex; flex-direction: column; }
+.head { display: flex; align-items: baseline; gap: 10px; padding: 12px 16px 6px; }
+.title { font-family: 'Anton'; font-size: 22px; letter-spacing: 1.5px; }
+.hint { font-size: 11px; font-weight: 700; opacity: .6; }
+.lab { font-family: 'Anton'; font-size: 13px; letter-spacing: 1.6px; text-transform: uppercase; padding: 0 16px; display: flex; justify-content: space-between; align-items: baseline; }
+.lab small { font-family: 'Space Mono'; font-size: 10px; letter-spacing: 0; font-weight: 700; opacity: .55; }
+
+/* the lifter: body_atlas cell (fat 50, muscle 50, male) + paladin outfit, 3x nearest */
+.lifter { position: relative; width: 156px; height: 192px; }
+.lifter .l { position: absolute; inset: 0; image-rendering: pixelated; background-repeat: no-repeat;
+  background-size: 780px 1920px; background-position: -312px -384px; }
+.l.body { background-image: url('../../../../assets/body/body_atlas.png'); }
+.l.fit { background-image: url('../../../../assets/outfits/paladin.png'); }
+.zone { position: absolute; border: 2px dashed rgba(26,11,59,.55); }
+.zone.on { border: 3px solid var(--ink); background: rgba(255,46,147,.45); }
+
+/* body panel: tags left and right of the lifter */
+.bodyp { margin: 4px 16px 0; height: 236px; background: var(--panel); border: 4px solid var(--ink); box-shadow: 5px 5px 0 var(--ink);
+  display: grid; grid-template-columns: 1fr 156px 1fr; align-items: center; position: relative;
+  background-image: linear-gradient(transparent 196px, rgba(26,11,59,.08) 196px); }
+.tags { display: flex; flex-direction: column; gap: 10px; padding: 0 6px; }
+.tags.r { align-items: flex-end; }
+.bt { font-family: 'Anton'; font-size: 14px; letter-spacing: .6px; line-height: 1; height: 40px; padding: 0 9px; display: inline-flex; align-items: center; gap: 6px;
+  background: var(--panel); border: 3px solid var(--ink); white-space: nowrap; position: relative; }
+.bt.on { background: var(--lime); box-shadow: 3px 3px 0 var(--ink); }
+.bt .pin { width: 8px; height: 8px; background: var(--pink); border: 2px solid var(--ink); }
+.bt.turn { background: var(--panel2); }
+.ground { position: absolute; left: 0; right: 0; bottom: 0; height: 36px; display: flex; gap: 6px; justify-content: center; align-items: center;
+  border-top: 3px solid var(--ink); background: var(--panel2); font-size: 10px; font-weight: 700; }
+.gt { font-family: 'Anton'; font-size: 13px; letter-spacing: .6px; border: 2px solid var(--ink); background: var(--panel); padding: 5px 8px 4px; line-height: 1; }
+
+/* gear rack: a pegboard of pixel tools */
+.rack { margin: 4px 16px 0; padding: 8px 6px 6px; background: #2c1b56; border: 4px solid var(--ink); box-shadow: 5px 5px 0 var(--ink);
+  background-image: radial-gradient(circle, rgba(244,241,255,.18) 1.5px, transparent 2px); background-size: 12px 12px;
+  display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px 5px; }
+.slot { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.slot .box { width: 48px; height: 48px; background: var(--panel); border: 3px solid var(--ink); display: grid; place-items: center; position: relative; }
+.slot.on .box { background: var(--lime); box-shadow: 0 0 0 3px var(--lime), 3px 3px 0 3px var(--ink); }
+.slot.off .box { opacity: .3; }
+.slot .nm { font-size: 9px; font-weight: 700; color: var(--chalk); line-height: 1; white-space: nowrap; letter-spacing: -.2px; }
+.px { display: block; }
+
+/* word tiles (fallback): 40 dp */
+.chips { display: flex; flex-wrap: wrap; gap: 7px; padding: 6px 16px 0; }
+.chip { height: 40px; display: inline-flex; align-items: center; padding: 0 11px; background: var(--panel); border: 3px solid var(--ink);
+  font-family: 'Anton'; font-size: 15px; letter-spacing: .5px; white-space: nowrap; }
+.chip.on { background: var(--lime); box-shadow: 3px 3px 0 var(--ink); }
+.chip.more { background: var(--panel2); border-style: dashed; }
+
+/* loadout bar: what is picked, always visible */
+.loadout { margin: 2px 16px 0; display: flex; gap: 8px; align-items: stretch; }
+.eq { display: flex; align-items: center; gap: 7px; background: var(--lime); border: 3px solid var(--ink); box-shadow: 3px 3px 0 var(--ink); padding: 4px 8px 4px 4px; height: 56px; }
+.eq.bad { background: var(--panel); border-color: var(--pink); box-shadow: 3px 3px 0 var(--pink); }
+.eq .t { font-family: 'Anton'; font-size: 15px; letter-spacing: .5px; line-height: 1; }
+.eq .x { font-size: 13px; font-weight: 700; margin-left: 2px; }
+.eq.ghost { background: transparent; box-shadow: none; border: 3px dashed rgba(26,11,59,.35); color: rgba(26,11,59,.5); }
+.mini { width: 40px; height: 46px; position: relative; overflow: hidden; background: var(--panel); border: 2px solid var(--ink); }
+.mini .l { position: absolute; left: -6px; top: -4px; width: 52px; height: 64px; image-rendering: pixelated; background-repeat: no-repeat;
+  background-size: 260px 640px; background-position: -104px -128px; }
+.mini .z { position: absolute; background: rgba(255,46,147,.6); outline: 2px solid var(--ink); }
+.tbox { width: 46px; height: 46px; background: var(--panel); border: 2px solid var(--ink); display: grid; place-items: center; }
+
+/* loot cards: one per move, its variations as + pips */
+.loot { padding: 12px 16px 0; display: flex; flex-direction: column; gap: 8px; overflow: hidden; flex: 1; }
+.lc { background: var(--panel); border: 4px solid var(--ink); box-shadow: 5px 5px 0 var(--ink); display: grid; grid-template-columns: 60px 1fr; }
+.lc .art { border-right: 3px solid var(--ink); position: relative; background: var(--panel2); overflow: hidden; }
+.lc .art .l { position: absolute; left: -1px; top: 4px; width: 52px; height: 64px; image-rendering: pixelated; background-repeat: no-repeat;
+  background-size: 260px 640px; background-position: -104px -128px; }
+.lc .art .z { position: absolute; background: rgba(255,46,147,.6); outline: 2px solid var(--ink); }
+.lc .art .tool { position: absolute; right: 2px; bottom: 2px; width: 34px; height: 34px; background: var(--panel); border: 2px solid var(--ink); display: grid; place-items: center; }
+.lc .info { padding: 6px 6px 7px 8px; }
+.lc .nm { font-family: 'Anton'; font-size: 21px; line-height: 1; letter-spacing: .4px; display: flex; justify-content: space-between; align-items: center; }
+.lc .go { font-family: 'Space Mono'; font-size: 10px; font-weight: 700; border: 2px solid var(--ink); padding: 3px 6px; background: var(--sky); letter-spacing: 0; }
+.lc .meta { font-size: 10px; font-weight: 700; opacity: .6; margin: 2px 0 5px; }
+.pips { display: flex; flex-wrap: wrap; gap: 5px; }
+.pip { height: 36px; display: inline-flex; align-items: center; border: 3px solid var(--ink); font-family: 'Anton'; font-size: 12.5px; letter-spacing: .1px; background: var(--panel); white-space: nowrap; }
+.pip span { padding: 0 4px; }
+.pip b { align-self: stretch; display: grid; place-items: center; width: 22px; border-left: 3px solid var(--ink); background: var(--orange); font-family: 'Space Mono'; font-size: 16px; }
+.pip.today { background: var(--lime); }
+.pip.today b { background: var(--ink); color: var(--lime); font-size: 13px; }
+
+/* 0 matches */
+.empty { margin: 8px 16px 0; border: 4px dashed var(--pink); background: var(--panel); padding: 14px 14px 16px; display: grid; grid-template-columns: 84px 1fr; gap: 12px; align-items: center; }
+.empty .q { width: 84px; height: 84px; border: 4px solid var(--ink); background: var(--panel2); display: grid; place-items: center; font-family: 'Anton'; font-size: 50px; color: var(--pink); position: relative; }
+.empty .msg { font-family: 'Anton'; font-size: 24px; line-height: 1.05; letter-spacing: .5px; }
+.empty .msg small { display: block; font-family: 'Space Mono'; font-size: 11px; letter-spacing: 0; font-weight: 700; opacity: .65; margin-top: 4px; }
+.bb { border: 4px solid var(--ink); box-shadow: 6px 6px 0 var(--ink); height: 56px; display: flex; align-items: center; justify-content: center; gap: 10px;
+  font-family: 'Anton'; font-size: 19px; letter-spacing: 1px; color: var(--on); }
+.bb.forge { margin: 14px 22px 0 16px; background: var(--pink); }
+.drop { margin: 18px 16px 0; display: flex; flex-direction: column; gap: 10px; }
+.dr { display: flex; align-items: center; gap: 10px; background: var(--panel); border: 3px solid var(--ink); height: 52px; padding: 0 10px 0 6px; }
+.dr .t { font-family: 'Anton'; font-size: 16px; letter-spacing: .5px; flex: 1; }
+.dr .n { font-size: 11px; font-weight: 700; background: var(--lime); border: 2px solid var(--ink); padding: 3px 7px; }
+
+/* bottom bar in the thumb zone */
+.bottom { margin-top: auto; padding: 10px 22px 18px 16px; display: flex; gap: 12px; }
+.bb.back { flex: 1; background: var(--sky); }
+.note { position: absolute; font-size: 10px; font-weight: 700; background: var(--night); color: var(--lime); padding: 3px 6px; transform: rotate(-2deg); }
+
+/* FLOW annotations: step badges, flow panels, arrows, two tasks */
+.stp { position: absolute; top: -12px; right: -12px; z-index: 6; width: 22px; height: 22px; border-radius: 50%; background: #FF2E93;
+  border: 2px solid #1A0B3B; box-shadow: 2px 2px 0 #1A0B3B; color: #FFFFFF; font-family: 'Space Mono', monospace; font-weight: 700;
+  font-size: 11px; letter-spacing: 0; line-height: 1; display: grid; place-items: center; }
+.stp.in { position: relative; top: auto; right: auto; display: inline-grid; vertical-align: middle; flex: none; }
+.eq, .chip, .lc .go, .bb, .dr, .pip { position: relative; }
+.flow { width: 390px; background: #FFFFFF; border: 3px solid var(--ink); color: var(--ink); font-family: 'Space Mono', monospace; font-size: 12px;
+  line-height: 1.4; padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 7px; }
+.flow .h { font-family: 'Anton'; font-weight: 400; font-size: 14px; letter-spacing: 1px; }
+.flow .s { display: grid; grid-template-columns: 24px 1fr; gap: 6px; align-items: start; }
+.flow .s.aux { opacity: .7; }
+.flow .s.aux .dot { width: 22px; text-align: center; font-weight: 700; }
+.arrow { margin-top: 380px; width: 84px; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.arrow .ar { width: 50px; height: 40px; background: var(--panel); border: 3px solid var(--ink); box-shadow: 3px 3px 0 var(--pink); color: var(--ink);
+  font-family: 'Space Mono', monospace; font-weight: 700; font-size: 24px; display: grid; place-items: center; line-height: 1; }
+.arrow .al { font-size: 11px; font-weight: 700; line-height: 1.35; color: #F6EEFF; }
+.tasks { max-width: 900px; background: var(--panel); border: 3px solid var(--ink); color: var(--ink); font-size: 12px; line-height: 1.5;
+  padding: 10px 14px 12px; margin: 0 0 22px; display: flex; flex-direction: column; gap: 8px; }
+.tasks .h { font-family: 'Anton'; font-weight: 400; font-size: 15px; letter-spacing: 1px; }
+.tasks .t { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 7px; }
+.tasks .t b { font-weight: 700; }
+.tasks .n { font-weight: 700; background: var(--lime); border: 2px solid var(--ink); padding: 1px 6px; }
+</style>
+</head>
+<body>
+
+<h1>CHALK · DEBATE 02 · VISUAL MAP</h1>
+<p class="sub">Lead with pictures. WHERE: tap a muscle on your own lifter. WITH WHAT: pick a tool off the gear rack. The words stay as a fallback strip. Results are loot cards, one per move, each variation a "+" pip. Real Pal colours, Anton / Space Mono, the real body atlas and Plate Paladin outfit; the tool icons are new 12×12 pixel art (drawn here, not in assets yet).</p>
+
+<div class="tasks">
+  <div class="h">TWO TASKS IN THIS LAYOUT</div>
+  <div class="t"><b>INCLINE DUMBBELL PRESS → TODAY:</b> open CHALK · <span class="stp in">1</span> CHEST · <span class="stp in">2</span> DUMBBELL · <span class="stp in">5</span> INCLINE + · <span class="stp in">7</span> BACK TO TODAY <span class="n">5 actions (today 7)</span></div>
+  <div class="t"><b>BARBELL SQUAT, DO IT NOW:</b> open CHALK · <span class="stp in">1</span> LEGS · <span class="stp in">2</span> BARBELL · <span class="stp in">6</span> SQUAT card DO IT ▸ <span class="n">4 actions (today 5)</span></div>
+</div>
+
+<div class="row">
+
+<!-- ============ PHONE 1: just opened ============ -->
+<div class="col">
+<div class="phone">
+  <div class="card">
+    <img src="../../../../assets/areas/gainsgard/background.png" style="left:0;top:0;width:342px;height:292px" alt="">
+    <img src="../../../../assets/areas/gainsgard/floor.png" style="left:0;top:222px;width:342px;height:70px" alt="">
+  </div>
+  <div class="barrier"></div>
+  <div class="sheet">
+    <div class="head"><span class="title">CHALK</span><span class="hint">WHERE? WITH WHAT?</span></div>
+
+    <div class="bodyp">
+      <div class="tags">
+        <span class="bt"><span class="pin"></span>SHOULDERS</span>
+        <span class="bt"><span class="pin"></span>ARMS</span>
+        <span class="bt"><span class="pin"></span>LEGS</span>
+      </div>
+      <div class="lifter" style="margin-top:-36px">
+        <div class="l body"></div><div class="l fit"></div>
+        <div class="zone" style="left:36px;top:45px;width:84px;height:15px"></div>
+        <div class="zone" style="left:51px;top:51px;width:54px;height:24px"></div>
+        <div class="zone" style="left:54px;top:78px;width:48px;height:27px"></div>
+        <div class="zone" style="left:51px;top:108px;width:54px;height:66px"></div>
+      </div>
+      <div class="tags r">
+        <span class="bt">CHEST<span class="pin"></span><span class="stp" style="left:-10px;right:auto">1</span></span>
+        <span class="bt">CORE<span class="pin"></span></span>
+        <span class="bt turn">BACK <svg class="px" width="16" height="16" viewBox="0 0 8 8" shape-rendering="crispEdges"><path fill="#1A0B3B" d="M2 0h4v1h1v1h1v3h-1v-2h-1v-1h-4v1h-1v1h-1v-2h1v-1h1zM0 5h1v1h1v1h4v1h-4v-1h-1v-1h-1z"/></svg></span>
+      </div>
+      <div class="ground">WHOLE BODY: <span class="gt">JUMP</span><span class="gt">CARRY</span><span class="gt">CARDIO</span></div>
+    </div>
+
+    <div class="lab" style="margin-top:14px">GEAR RACK <small>tap a tool</small></div>
+    <div class="rack" id="rack1"></div>
+
+    <div class="lab" style="margin-top:14px">OR SAY THE MOVE <small>words, as today</small></div>
+    <div class="chips">
+      <span class="chip">PRESS</span><span class="chip">ROW</span><span class="chip">SQUAT</span><span class="chip">CURL</span><span class="chip">DEADLIFT</span><span class="chip more">+17 ▸</span>
+    </div>
+
+    <div class="bottom"><span class="bb back">◂ BACK TO TODAY</span></div>
+  </div>
+</div>
+<div class="flow">
+  <div class="h">FLOW · SCREEN 1</div>
+  <div class="s"><span class="stp in">1</span><span>tap a body tag (CHEST) → the tag turns lime and that zone on your lifter lights pink.</span></div>
+  <div class="s"><span class="stp in">2</span><span>tap a tool on the gear rack (DUMBBELL) → the picture panel folds into the LOADOUT bar and loot cards appear (screen 2).</span></div>
+  <div class="s aux"><span class="dot">·</span><span>BACK turns the lifter round for back muscles; the ground row holds JUMP / CARRY / CARDIO.</span></div>
+  <div class="s aux"><span class="dot">·</span><span>no picture fits? tap a word under OR SAY THE MOVE, it narrows like today.</span></div>
+</div>
+<p class="cap"><b>1 · JUST OPENED: A CHARACTER SCREEN.</b> Your own lifter (body atlas + class outfit, the art the app already ships) with six 40 dp body tags beside it; the dashed zones on the sprite are tappable too, but the tags are the real targets. BACK turns the lifter around. The ground holds the whole-body patterns. Below, the gear rack: 11 tools as 48 dp pixel slots. Every option is on screen, nothing scrolls. BACK TO TODAY moves to the thumb zone. <i>RO: the labels under the slots are short (Gantere, Halteră, Cablu, Aparat); the icon carries the meaning.</i></p>
+</div>
+
+<div class="arrow"><span class="ar">→</span><span class="al">pick body + tool</span></div>
+
+<!-- ============ PHONE 2: chest + dumbbell ============ -->
+<div class="col">
+<div class="phone">
+  <div class="card">
+    <img src="../../../../assets/areas/gainsgard/background.png" style="left:0;top:0;width:342px;height:292px" alt="">
+  </div>
+  <div class="barrier"></div>
+  <div class="sheet">
+    <div class="head"><span class="title">CHALK</span><span class="hint">3 MOVES · + ADDS TO TODAY</span></div>
+
+    <div class="loadout">
+      <span class="eq"><span class="mini"><span class="l" style="background-image:url('../../../../assets/body/body_atlas.png')"></span><span class="l" style="background-image:url('../../../../assets/outfits/paladin.png')"></span><span class="z" style="left:11px;top:13px;width:18px;height:8px"></span></span><span class="t">CHEST</span><span class="x">✕</span><span class="stp">3</span></span>
+      <span class="eq"><span class="tbox" data-icon="dumbbell" data-s="3"></span><span class="t">DUMBBELL</span><span class="x">✕</span></span>
+    </div>
+
+    <div class="chips" style="padding-top:10px;align-items:center"><span class="lab" style="padding:0">NARROW</span>
+      <span class="chip">PRESS<span class="stp">4</span></span><span class="chip">FLY</span><span class="chip">PULLOVER</span>
+    </div>
+
+    <div class="loot">
+      <div class="lc">
+        <div class="art"><span class="l" style="background-image:url('../../../../assets/body/body_atlas.png')"></span><span class="l" style="background-image:url('../../../../assets/outfits/paladin.png')"></span><span class="z" style="left:21px;top:21px;width:18px;height:8px"></span><span class="tool" data-icon="dumbbell" data-s="2"></span></div>
+        <div class="info">
+          <div class="nm">BENCH PRESS <span class="go">DO IT ▸<span class="stp" style="right:-17px;top:-13px">6</span></span></div>
+          <div class="meta">CHEST · DUMBBELL · 6</div>
+          <div class="pips">
+            <span class="pip"><span>FLAT</span><b>+</b></span>
+            <span class="pip today"><span>INCLINE</span><b>✓</b><span class="stp" style="right:-16px">5</span></span>
+            <span class="pip"><span>DECLINE</span><b>+</b></span>
+            <span class="pip"><span>NEUTRAL</span><b>+</b></span>
+            <span class="pip"><span>HAMMER</span><b>+</b></span>
+            <span class="pip"><span>ONE ARM</span><b>+</b></span>
+          </div>
+        </div>
+      </div>
+      <div class="lc">
+        <div class="art"><span class="l" style="background-image:url('../../../../assets/body/body_atlas.png')"></span><span class="l" style="background-image:url('../../../../assets/outfits/paladin.png')"></span><span class="z" style="left:21px;top:21px;width:18px;height:8px"></span><span class="tool" data-icon="dumbbell" data-s="2"></span></div>
+        <div class="info">
+          <div class="nm">FLY <span class="go">DO IT ▸</span></div>
+          <div class="meta">CHEST · DUMBBELL · 4</div>
+          <div class="pips">
+            <span class="pip"><span>FLAT</span><b>+</b></span>
+            <span class="pip"><span>INCLINE</span><b>+</b></span>
+            <span class="pip"><span>DECLINE</span><b>+</b></span>
+            <span class="pip"><span>ONE ARM</span><b>+</b></span>
+          </div>
+        </div>
+      </div>
+      <div class="lc">
+        <div class="art"><span class="l" style="background-image:url('../../../../assets/body/body_atlas.png')"></span><span class="l" style="background-image:url('../../../../assets/outfits/paladin.png')"></span><span class="z" style="left:21px;top:21px;width:18px;height:8px"></span><span class="tool" data-icon="dumbbell" data-s="2"></span></div>
+        <div class="info">
+          <div class="nm">PULLOVER <span class="go">DO IT ▸</span></div>
+          <div class="meta">CHEST · DUMBBELL · 2</div>
+          <div class="pips">
+            <span class="pip"><span>BENT</span><b>+</b></span>
+            <span class="pip"><span>STRAIGHT</span><b>+</b></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom"><span class="bb back">◂ BACK TO TODAY<span class="stp">7</span></span></div>
+  </div>
+</div>
+<div class="flow">
+  <div class="h">FLOW · SCREEN 2</div>
+  <div class="s"><span class="stp in">3</span><span>tap ✕ on a LOADOUT piece → it drops; the picture panel unfolds so you can pick again.</span></div>
+  <div class="s"><span class="stp in">4</span><span>tap a NARROW word (PRESS) → only cards for that move stay.</span></div>
+  <div class="s"><span class="stp in">5</span><span>tap a variation "+" (INCLINE) → added to Today; the pip turns lime with ✓.</span></div>
+  <div class="s"><span class="stp in">6</span><span>tap DO IT ▸ on a card → picks that move and closes CHALK; you start it now.</span></div>
+  <div class="s"><span class="stp in">7</span><span>tap BACK TO TODAY → CHALK closes; Today shows what you added.</span></div>
+</div>
+<p class="cap"><b>2 · CHEST + DUMBBELL: LOOT.</b> The picture panel folds into a LOADOUT bar (what you picked, always visible, tap ✕ to drop). NARROW shows only the move words that still match; dead tiles are hidden, not greyed. Results are one loot card per move (12 rows today become 3 cards), each variation a 36 dp pip: "+" adds it to Today (INCLINE shows ✓ TODAY), DO IT ▸ selects the card and closes. Incline dumbbell press: CHALK, CHEST, DUMBBELL, INCLINE + , BACK = <i>5 actions (today 7)</i>.</p>
+</div>
+
+<div class="arrow"><span class="ar">→</span><span class="al">pick a clashing tool</span></div>
+
+<!-- ============ PHONE 3: 0 matches ============ -->
+<div class="col">
+<div class="phone">
+  <div class="card">
+    <img src="../../../../assets/areas/gainsgard/background.png" style="left:0;top:0;width:342px;height:292px" alt="">
+  </div>
+  <div class="barrier"></div>
+  <div class="sheet">
+    <div class="head"><span class="title">CHALK</span><span class="hint">0 MATCHES</span></div>
+
+    <div class="loadout">
+      <span class="eq bad"><span class="mini"><span class="l" style="background-image:url('../../../../assets/body/body_atlas.png')"></span><span class="l" style="background-image:url('../../../../assets/outfits/paladin.png')"></span><span class="z" style="left:13px;top:23px;width:15px;height:9px"></span></span><span class="t">CORE</span><span class="x">✕</span></span>
+      <span class="eq bad"><span class="tbox" data-icon="ezbar" data-s="3"></span><span class="t">EZ BAR</span><span class="x">✕</span></span>
+    </div>
+
+    <div class="empty">
+      <div class="q">?<span class="note" style="left:-10px;top:-14px">EMPTY SLOT</span></div>
+      <div class="msg">NO SUCH MOVE.<small>No exercise works the core with an EZ bar. Forge one, or drop a piece.</small></div>
+    </div>
+    <div class="bb forge">⚒ FORGE IT<span class="stp">8</span></div>
+
+    <div class="drop">
+      <div class="lab" style="padding:0">OR DROP ONE <small>what you get back</small></div>
+      <div class="dr"><span class="tbox" data-icon="ezbar" data-s="3" style="width:40px;height:40px"></span><span class="t">✕ EZ BAR</span><span class="n">26 CORE MOVES</span><span class="stp">9</span></div>
+      <div class="dr"><span class="mini" style="width:40px;height:40px"><span class="l" style="background-image:url('../../../../assets/body/body_atlas.png')"></span><span class="l" style="background-image:url('../../../../assets/outfits/paladin.png')"></span><span class="z" style="left:13px;top:23px;width:15px;height:9px"></span></span><span class="t">✕ CORE</span><span class="n">9 EZ BAR MOVES</span></div>
+    </div>
+
+    <div class="bottom"><span class="bb back">◂ BACK TO TODAY<span class="stp">10</span></span></div>
+  </div>
+</div>
+<div class="flow">
+  <div class="h">FLOW · SCREEN 3</div>
+  <div class="s aux"><span class="dot">·</span><span>got here: CORE + EZ BAR, no move fits; both stay in the LOADOUT bar, outlined pink.</span></div>
+  <div class="s"><span class="stp in">8</span><span>tap FORGE IT → opens the ANVIL flow to make the move (it still asks for a MOVE).</span></div>
+  <div class="s"><span class="stp in">9</span><span>tap an OR DROP ONE row (✕ EZ BAR) → that piece drops; loot cards return (26 core moves).</span></div>
+  <div class="s"><span class="stp in">10</span><span>tap BACK TO TODAY → CHALK closes, nothing added.</span></div>
+</div>
+<p class="cap"><b>3 · 0 MATCHES: THE EMPTY LOOT SLOT.</b> The words that caused it stay in the loadout bar, outlined pink, never scrolled away. The empty slot offers FORGE IT (into the ANVIL flow, D83: it still asks for a MOVE there). OR DROP ONE says what each drop brings back (move counts, from the real list). Barbell squat, do it now: CHALK, LEGS, BARBELL, SQUAT DO IT ▸ = <i>4 actions (today 5)</i>; Squat is the first card.</p>
+</div>
+
+</div>
+
+<script>
+// 12x12 pixel tools: '#' ink, 'o' fill, '.' clear. New art for this mockup.
+const ICONS = {
+  dumbbell: ["............","............","............",".##......##.","#oo#....#oo#","#oo######oo#","#oo######oo#","#oo#....#oo#",".##......##.","............","............","............"],
+  barbell:  ["............","............","..#......#..",".##......##.",".##......##.","############",".##......##.",".##......##.","..#......#..","............","............","............"],
+  kettlebell:["...######...","..#......#..","..#......#..","..########..",".#oooooooo#.","#oooooooooo#","#oo#oooooo##","#oooooooooo#","#oooooooooo#",".#oooooooo#.","..########..","............"],
+  cable:    ["..####......",".#oooo#.....",".#o##o#.....",".#oooo#.....","..####......","....#.......","....#.......","....#.......","....#.......","..#####.....","..#ooo#.....","..#####....."],
+  machine:  [".##########.",".#oooooooo#.",".##########.",".#oooooooo#.",".##########.",".#oooooooo#.",".##########.",".....##.....",".....##.....","...######...","...#....#...","............"],
+  smith:    ["##........##","##........##","############","##.##..##.##","##.##..##.##","##........##","##........##","##........##","##........##","##........##","####....####","............"],
+  ezbar:    ["............","............",".#........#.","##........##","##........##","####.##.####","##..#..#..##","##........##",".#........#.","............","............","............"],
+  bands:    ["............","..########..",".#oooooooo#.","#o#......#o#","#o#......#o#","#o#......#o#","#o#......#o#",".#oooooooo#.","..########..","............","............","............"],
+  ball:     ["............","...######...",".##oooooo##.","#oooooo..oo#","#ooooooo.oo#","#oooooooooo#","#oooooooooo#",".##oooooo##.","...######...","............","............","............"],
+  towel:    ["............",".##########.",".#oooooooo#.",".#oooooooo#.",".##########.",".#oooooooo#.",".#oooooooo#.",".##########.",".#.#.#.#.#..","............","............","............"],
+  bodyweight:["....##......","....##......","............","..######....",".#..##..#...",".#..##..#...","....##......","...#..#.....","...#..#.....","..#....#....","..#....#....","............"],
+};
+const FILL = { kettlebell:'#FF8A00', cable:'#00C2FF', machine:'#7B2CFF', bands:'#FF2E93', ball:'#00C2FF', towel:'#FF2E93', dumbbell:'#FF8A00' };
+function svg(name, s) {
+  const g = ICONS[name]; let r = '';
+  g.forEach((row, y) => [...row].forEach((c, x) => {
+    if (c === '#') r += `<rect x="${x}" y="${y}" width="1" height="1" fill="#1A0B3B"/>`;
+    if (c === 'o') r += `<rect x="${x}" y="${y}" width="1" height="1" fill="${FILL[name] || '#FF8A00'}"/>`;
+  }));
+  return `<svg class="px" width="${12*s}" height="${12*s}" viewBox="0 0 12 12" shape-rendering="crispEdges">${r}</svg>`;
+}
+document.querySelectorAll('[data-icon]').forEach(el => el.innerHTML = svg(el.dataset.icon, +el.dataset.s || 3));
+const TOOLS = [['dumbbell','DUMBBELL'],['barbell','BARBELL'],['kettlebell','KETTLEBELL'],['cable','CABLE'],['machine','MACHINE'],['smith','SMITH'],
+  ['ezbar','EZ BAR'],['bands','BANDS'],['ball','BALL'],['towel','TOWEL'],['bodyweight','NO GEAR']];
+document.getElementById('rack1').innerHTML = TOOLS.map(([k, n]) => `<div class="slot"><div class="box">${svg(k, 3)}</div><div class="nm">${n}</div></div>`).join('');
+document.querySelector('#rack1 .slot .box').insertAdjacentHTML('beforeend', '<span class="stp">2</span>');
+</script>
+</body>
+</html>

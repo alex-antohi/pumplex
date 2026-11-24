@@ -25,6 +25,7 @@ flutter:
     - assets/exercises/
     - assets/i18n/
     - assets/icons/
+    - assets/icons/tools/
     - assets/outfits/
     - assets/areas/riptide/
     - assets/areas/gainsgard/
