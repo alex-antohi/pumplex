@@ -702,6 +702,8 @@
   "forge.another": "FORGE ANOTHER",
   "forge.toToday": "TO TODAY",
   "forge.anvil": "THE ANVIL",
+  "forge.needMove": "PICK A MOVE",
+  "forge.myMove": "My move",
   "kb.del": "DEL",
   "kb.space": "SPACE",
   "kb.ok": "OK",

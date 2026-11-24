@@ -25,6 +25,7 @@ import 'package:flutter/services.dart';
 
 import '../dates.dart';
 import '../game/area_art.dart';
+import '../game/chalk.dart' show ChalkIndex;
 import '../game/content.dart';
 import '../game/exercises.dart';
 import '../i18n.dart';
@@ -887,6 +888,10 @@ class _ExerciseText extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // A card with no chips (a forged move, a one-variation
+                    // move): its tool and body · muscle, read only, so the
+                    // card is not empty.
+                    if (full.axesFor(v).isEmpty) _info(p),
                     for (final (axis, values) in full.axesFor(v)) ...[
                       const SizedBox(height: 10),
                       Padding(
@@ -919,6 +924,30 @@ class _ExerciseText extends StatelessWidget {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  /// The tool and body · muscle of [v] as read-only chips (no tap, no
+  /// lime: nothing to pick).
+  Widget _info(Pal p) {
+    final tags = ChalkIndex.of(exerciseCatalog).tagsOf(v);
+    Widget chip(String id, String label) => Container(
+          key: ValueKey(id),
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+          decoration: BoxDecoration(color: p.panel, border: Border.all(color: p.ink.withValues(alpha: 0.5), width: 2)),
+          child: Text(label.toUpperCase(), style: display(13, p.inkSoft)),
+        );
+    return Padding(
+      key: const ValueKey('card-info'),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        children: [
+          if (tags.tool case final tool?) chip('card-info-tool', chalkLabel(tool)),
+          if (tags.part case final part?) chip('card-info-body', '${bodyPartLabel(part.id)} · ${muscleLabel(v.muscle)}'),
         ],
       ),
     );

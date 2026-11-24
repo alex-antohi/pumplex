@@ -267,7 +267,8 @@ void main() {
     await _frames(t, 20);
     expect(find.byKey(const ValueKey('forge-card')), findsOneWidget);
     // From the picked words.
-    expect(t.widget<Text>(find.byKey(const ValueKey('forge-name'))).data, forgeName(store.chalk).toUpperCase());
+    expect(t.widget<Text>(find.byKey(const ValueKey('forge-name'))).data,
+        forgeName(store.chalk, look: I18n.instance.lookup).toUpperCase());
     expect(find.byKey(const ValueKey('chalk-sheet')), findsNothing);
     // 0 results: NO SUCH MOVE. FORGE IT?, and no list.
     await t.tap(find.byKey(const ValueKey('forge-back')));

@@ -240,12 +240,18 @@ class LogStore extends ChangeNotifier {
       ..clear()
       ..addAll([for (final id in _json(_favoritesKey, const []) as List) if (id is String) id]);
     _picked.clear();
+    final forgedJson = _uiList(forgedKey);
     _forged
       ..clear()
       ..addAll([
-        for (final j in _uiList(forgedKey))
+        for (final j in forgedJson)
           if (j is Map && j['id'] is String) ForgedMove.fromJson(Map<String, dynamic>.from(j)),
       ]);
+    // An older entry kept an English name: keep only the words (the name
+    // is composed in the current language), once.
+    if (forgedJson.any((j) => j is Map && j.containsKey('name'))) {
+      _prefs.setString(forgedKey, jsonEncode([for (final f in _forged) f.toJson()]));
+    }
     exerciseCatalog = catalogWithForged(exerciseCatalog, _forged);
     try {
       final raw = _json(pickedVariantsKey, const {});

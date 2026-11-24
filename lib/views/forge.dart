@@ -10,7 +10,9 @@
 // one), and an optional NICKNAME on the arcade keyboard (QWERTY, a
 // Romanian row, no digits). While the keyboard is up, BODY and MUSCLE hide.
 // BACK and FORGE IT sit in a bar at the bottom, over the keyboard; FORGE IT
-// works before OK. The forged move goes into Today and is selected (D79,
+// works before OK. FORGE IT needs a move (a MOVE word or a typed one):
+// until then it is off, the MOVE slot is pink and PICK A MOVE sits under it.
+// TO TODAY clears the CHALK words; FORGE ANOTHER keeps them. The forged move goes into Today and is selected (D79,
 // D82), then the ANVIL reveal plays: the words drop onto an anvil, a
 // hammer strikes, and the move shows as a NEW ITEM! loot card with FORGE
 // ANOTHER (back to CHALK) and TO TODAY (closes on the new Today card).
@@ -122,8 +124,13 @@ class _ForgeScreenState extends State<ForgeScreen> {
 
   String? get _nickOrNull => _nick.trim().isEmpty ? null : _nick.trim();
 
+  /// FORGE IT needs a move (D83): a MOVE word or a typed one. Until then
+  /// the button is off, the MOVE slot is pink and PICK A MOVE sits under
+  /// the button.
+  bool get _ready => forgeReady(_words, typed: _typed);
+
   void _forge() {
-    if (_reveal != null) return;
+    if (_reveal != null || !_ready) return;
     HapticFeedback.heavyImpact();
     if (_editing) {
       widget.store.editForged(widget.edit!.id, _words, _body.$2, _nickOrNull, typed: _typed);
@@ -151,6 +158,13 @@ class _ForgeScreenState extends State<ForgeScreen> {
     }
   }
 
+  /// TO TODAY on the loot card: the CHALK words go (the move is in Today),
+  /// so "+ CHALK" has no count. FORGE ANOTHER keeps them (D83).
+  void _toToday() {
+    widget.store.setChalk(const {});
+    _close();
+  }
+
   void _close() {
     if (_closing || !mounted) return;
     _closing = true;
@@ -170,7 +184,7 @@ class _ForgeScreenState extends State<ForgeScreen> {
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
-    final name = forgeName(_words, typed: _typed);
+    final name = forgeName(_words, typed: _typed, look: I18n.instance.lookup);
     final nick = _nick.trim();
     return Scaffold(
       backgroundColor: p.bg,
@@ -186,18 +200,25 @@ class _ForgeScreenState extends State<ForgeScreen> {
                   child: Row(
                     children: [
                       Shout(t('forge.title'), size: 18, color: p.ink),
-                      const Spacer(),
-                      if (widget.onBackToChalk != null)
-                        BrutalButton(
-                          key: const ValueKey('forge-back-chalk'),
-                          small: true,
-                          color: p.sky,
-                          onTap: () {
-                            _close();
-                            widget.onBackToChalk!();
-                          },
-                          child: Text(t('forge.backToChalk')),
+                      const SizedBox(width: 12),
+                      // Shrinks to fit ("ÎNAPOI LA CRETĂ" is long).
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: widget.onBackToChalk == null
+                              ? null
+                              : BrutalButton(
+                                  key: const ValueKey('forge-back-chalk'),
+                                  small: true,
+                                  color: p.sky,
+                                  onTap: () {
+                                    _close();
+                                    widget.onBackToChalk!();
+                                  },
+                                  child: FittedBox(fit: BoxFit.scaleDown, child: Text(t('forge.backToChalk'))),
+                                ),
                         ),
+                      ),
                     ],
                   ),
                 ),
@@ -300,10 +321,19 @@ class _ForgeScreenState extends State<ForgeScreen> {
                   main: BrutalButton(
                     key: const ValueKey('forge-it'),
                     color: p.lime,
-                    onTap: _forge,
+                    onTap: _ready ? _forge : null,
                     child: FittedBox(fit: BoxFit.scaleDown, child: Text(t(_editing ? 'forge.save' : 'forge.go'))),
                   ),
                 ),
+                // What FORGE IT still needs, under the button (D83).
+                if (!_ready)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 24, 10),
+                    child: Text(t('forge.needMove'),
+                        key: const ValueKey('forge-need-move'),
+                        textAlign: TextAlign.right,
+                        style: display(15, p.pink)),
+                  ),
                 if (_typing != null)
                   ArcadeKeyboard(
                     onKey: _type,
@@ -316,7 +346,7 @@ class _ForgeScreenState extends State<ForgeScreen> {
           // The ANVIL reveal: over the whole screen (status bar too), on top
           // of the card in this same route; it takes every tap (D83).
           if (_reveal != null)
-            Positioned.fill(child: ForgeReveal(move: _reveal!, onAnother: _another, onToday: _close)),
+            Positioned.fill(child: ForgeReveal(move: _reveal!, onAnother: _another, onToday: _toToday)),
         ],
       ),
     );
@@ -334,6 +364,7 @@ class _ForgeScreenState extends State<ForgeScreen> {
                 final word = typed ? _typed.trim() : id == null ? '—' : chalkLabel(chalkWordByKey('$row.$id')!);
                 final filled = typed || id != null;
                 final open = _open == row;
+                final missing = row == 'move' && !_ready; // FORGE IT needs it: pink
                 return GestureDetector(
                   key: ValueKey('forge-slot-$row'),
                   behavior: HitTestBehavior.opaque,
@@ -343,7 +374,7 @@ class _ForgeScreenState extends State<ForgeScreen> {
                     padding: const EdgeInsets.fromLTRB(7, 4, 7, 4),
                     decoration: BoxDecoration(
                       color: filled ? p.lime : kNight,
-                      border: Border.all(color: open ? p.pink : p.ink, width: 3),
+                      border: Border.all(color: open || missing ? p.pink : p.ink, width: 3),
                       boxShadow: filled ? [BoxShadow(color: p.ink, offset: const Offset(3, 3))] : null,
                     ),
                     child: Column(
@@ -977,11 +1008,11 @@ class _LootCard extends StatelessWidget {
                   FittedBox(
                     fit: BoxFit.scaleDown,
                     alignment: Alignment.centerLeft,
-                    child: Text((move.nickname ?? move.name).toUpperCase(),
+                    child: Text((move.nickname ?? forgedLabel(move)).toUpperCase(),
                         key: const ValueKey('forge-loot-name'),
                         style: display(30, Pal.chalkWhite).copyWith(shadows: [Shadow(offset: const Offset(2, 2), color: p.pink)])),
                   ),
-                  if (move.nickname != null) Text(move.name.toUpperCase(), style: display(14, p.orange)),
+                  if (move.nickname != null) Text(forgedLabel(move).toUpperCase(), style: display(14, p.orange)),
                   Padding(
                     padding: const EdgeInsets.only(top: 2, bottom: 10),
                     child: Text(t('forge.forgedBy'), style: display(13, p.orange)),
