@@ -4,11 +4,35 @@
 // The full list is tools/exercise_db.json; tools/exercise_select.mjs then cuts
 // it down into assets/exercises/exercises.json (D67).
 import fs from 'node:fs';
-import { variationId } from './exercise_names.mjs';
+import { AXIS_ORDER, checkFrozen, variationId } from './exercise_names.mjs';
 
 const args = process.argv.slice(2);
 // The grid variations (D80, `grid: true`) are made again on every run.
 const all = JSON.parse(fs.readFileSync(args[0], 'utf8')).filter((e) => !e.grid);
+
+// Merged and removed exercises (D90 step 1): old id -> the id that replaces
+// it. The old row stays in the full list with `alias` (no move, no
+// modifiers); tools/exercise_select.mjs leaves it out of the app list and
+// writes the old id into the `aliases` of the kept exercise, so saved sets,
+// favorites and Today still find it (lib/game/exercises.dart resolveId).
+const ALIAS = {
+  // The same lift under two names.
+  'Standing_Bent-Over_Two-Arm_Dumbbell_Triceps_Extension': 'Tricep_Dumbbell_Kickback', // a kickback
+  Lying_Triceps_Press: 'EZ-Bar_Skullcrusher', // a lying EZ bar triceps extension
+  Parallel_Bar_Dip: 'Dips_-_Triceps_Version', // the upright dip on parallel bars
+  'Floor_Glute-Ham_Raise': 'Natural_Glute_Ham_Raise', // both: kneel, feet held, lower the body
+  'Full_Range-Of-Motion_Lat_Pulldown': 'lat pulldown|cable|medium grip', // a lat pulldown
+  'Close-Grip_Push-Up_off_of_a_Dumbbell': 'Push-Ups_-_Close_Triceps_Position', // a close-grip push-up
+  'Bent-Knee_Hip_Raise': 'Reverse_Crunch', // lying, knees bent, hips curl up
+  Scissors_Jump: 'Split_Jump', // a jumping lunge with a leg switch
+  Rope_Crunch: 'Cable_Crunch', // the kneeling cable crunch uses the rope too
+  // Olympic lifts (D56): only the Power Clean stays (the owner's choice, 23 Nov 2026).
+  Dumbbell_Clean: 'Power_Clean',
+  'One-Arm_Kettlebell_Clean': 'Power_Clean',
+  'Two-Arm_Kettlebell_Clean': 'Power_Clean',
+  Clean_and_Press: 'Barbell_Push_Press',
+  Kettlebell_Sumo_High_Pull: 'sumo deadlift|kettlebell',
+};
 
 // Each axis: [label, regex]. Axis order matters (stance before width).
 const AXES = {
@@ -78,13 +102,16 @@ const OVERRIDE = {
   'Close-Grip EZ-Bar Press': 'Bench Press', 'Seated Cable Rows': 'Seated Cable Row',
 };
 // Exercises whose names the parser cannot split: move name and modifiers by hand.
+// The axes split out of `type` (D90 step 1): `load` (Weighted, Band
+// Assisted) and `setup` (the station or extra gear: a bench, rings, a
+// towel, a trap bar, a plate-loaded machine, a cardio machine ...). `type`
+// keeps only the ways of doing the move (Knee, Plyo, Walking, Bulgarian ...).
 const EXPLICIT = {
   'Dips - Chest Version': ['Dip', { type: 'Chest' }],
-  'Dips - Triceps Version': ['Dip', { type: 'Triceps' }],
-  'Bench Dips': ['Dip', { type: 'Bench' }],
-  'Weighted Bench Dip': ['Dip', { type: 'Weighted Bench' }],
-  'Parallel Bar Dip': ['Dip', { type: 'Parallel Bar' }],
-  'Ring Dips': ['Dip', { type: 'Rings' }],
+  'Dips - Triceps Version': ['Dip', {}], // the standard dip (upright, parallel bars)
+  'Bench Dips': ['Dip', { setup: 'Bench' }],
+  'Weighted Bench Dip': ['Dip', { setup: 'Bench', load: 'Weighted' }],
+  'Ring Dips': ['Dip', { setup: 'Rings' }],
   'Dip Machine': ['Dip', {}],
   // Dumbbells have no grip width: pressed together, it is a squeeze press.
   'Close-Grip Dumbbell Press': ['Bench Press', { type: 'Squeeze' }],
@@ -114,13 +141,13 @@ const FIX = {
 const MOVE = {
   // Bench Press is barbell, dumbbell and Smith; a machine is a Chest Press.
   // A "Leverage" machine is plate-loaded; it is its own Type where a plain
-  // machine has the same angle.
+  // machine has the same angle (Setup row).
   Machine_Bench_Press: ['Chest Press', {}],
-  Leverage_Chest_Press: ['Chest Press', { type: 'Plate-Loaded' }],
+  Leverage_Chest_Press: ['Chest Press', { setup: 'Plate-Loaded' }],
   Leverage_Decline_Chest_Press: ['Chest Press', { angle: 'Decline' }],
   Leverage_Incline_Chest_Press: ['Chest Press', { angle: 'Incline' }],
   Machine_Shoulder_Military_Press: ['Shoulder Press', {}],
-  Leverage_Shoulder_Press: ['Shoulder Press', { type: 'Plate-Loaded' }],
+  Leverage_Shoulder_Press: ['Shoulder Press', { setup: 'Plate-Loaded' }],
   Smith_Machine_Overhead_Shoulder_Press: ['Shoulder Press', {}],
   // Rows: the ways a lifter names them.
   Bent_Over_Barbell_Row: ['Bent-Over Row', {}],
@@ -153,11 +180,10 @@ const MOVE = {
   'Wide-Grip_Rear_Pull-Up': ['Pull-Up', { width: 'Wide Grip' }],
   Pullups: ['Pull-Up', {}],
   'Chin-Up': ['Pull-Up', { hand: 'Reverse Grip' }],
-  // Band Assisted and Weighted are one Type row (D80: never both).
-  'Band_Assisted_Pull-Up': ['Pull-Up', { type: 'Band Assisted' }],
-  Weighted_Pull_Ups: ['Pull-Up', { type: 'Weighted' }],
+  // Band Assisted and Weighted are one Load row (D80: never both).
+  'Band_Assisted_Pull-Up': ['Pull-Up', { load: 'Band Assisted' }],
+  Weighted_Pull_Ups: ['Pull-Up', { load: 'Weighted' }],
   Muscle_Up: ['Muscle-Up', {}],
-  'Full_Range-Of-Motion_Lat_Pulldown': ['Lat Pulldown', { type: 'Full Range' }],
   'Straight-Arm_Pulldown': ['Straight-Arm Pulldown', {}],
   'Rope_Straight-Arm_Pulldown': ['Straight-Arm Pulldown', { attach: 'Rope' }],
   'Scapular_Pull-Up': ['Scapular Pull-Up', {}],
@@ -183,14 +209,17 @@ const MOVE = {
   Cable_One_Arm_Tricep_Extension: ['Triceps Pushdown', { side: 'One Arm' }],
   Machine_Triceps_Extension: ['Triceps Extension', {}],
   Tricep_Dumbbell_Kickback: ['Triceps Kickback', {}],
+  // A bent-over dumbbell triceps extension is a kickback (D90 step 1).
+  'Standing_Bent-Over_One-Arm_Dumbbell_Triceps_Extension': ['Triceps Kickback', { side: 'One Arm' }],
+  'Seated_Bent-Over_Two-Arm_Dumbbell_Triceps_Extension': ['Triceps Kickback', { position: 'Seated' }],
+  'Seated_Bent-Over_One-Arm_Dumbbell_Triceps_Extension': ['Triceps Kickback', { side: 'One Arm', position: 'Seated' }],
   Standing_Towel_Triceps_Extension: ['Towel Triceps Extension', {}],
   Body_Tricep_Press: ['Skullcrusher', {}],
-  'Close-Grip_Push-Up_off_of_a_Dumbbell': ['Close-Grip Dumbbell Push-Up', {}],
   // Rear delts: a rear delt raise is a reverse fly.
   Cable_Rear_Delt_Fly: ['Reverse Fly', {}],
   Dumbbell_Lying_Rear_Lateral_Raise: ['Reverse Fly', { position: 'Lying' }],
   'Dumbbell_Lying_One-Arm_Rear_Lateral_Raise': ['Reverse Fly', { position: 'Lying', side: 'One Arm' }],
-  Bent_Over_Dumbbell_Rear_Delt_Raise_With_Head_On_Bench: ['Reverse Fly', { type: 'Head Supported' }],
+  Bent_Over_Dumbbell_Rear_Delt_Raise_With_Head_On_Bench: ['Reverse Fly', { setup: 'Head Supported' }],
   'Seated_Bent-Over_Rear_Delt_Raise': ['Reverse Fly', { position: 'Seated' }],
   Face_Pull: ['Face Pull', {}],
   Band_Pull_Apart: ['Band Pull-Apart', {}],
@@ -204,10 +233,10 @@ const MOVE = {
   'Stiff-Legged_Barbell_Deadlift': ['Romanian Deadlift', { type: 'Stiff-Legged' }],
   'Stiff-Legged_Dumbbell_Deadlift': ['Romanian Deadlift', { type: 'Stiff-Legged' }],
   'Smith_Machine_Stiff-Legged_Deadlift': ['Romanian Deadlift', { type: 'Stiff-Legged' }],
-  Trap_Bar_Deadlift: ['Deadlift', { type: 'Trap Bar' }],
+  Trap_Bar_Deadlift: ['Deadlift', { setup: 'Trap Bar' }],
   Goblet_Squat: ['Goblet Squat', {}],
   Front_Squat_Clean_Grip: ['Front Squat', {}],
-  Front_Barbell_Squat: ['Front Squat', { type: 'Cross-Arm' }],
+  Front_Barbell_Squat: ['Front Squat', { hand: 'Cross-Arm' }], // a grip
   Front_Squats_With_Two_Kettlebells: ['Front Squat', {}],
   Plie_Dumbbell_Squat: ['Squat', { stance: 'Wide Stance' }],
   Dumbbell_Rear_Lunge: ['Lunge', { type: 'Reverse' }],
@@ -220,18 +249,18 @@ const MOVE = {
   'One-Legged_Cable_Kickback': ['Glute Kickback', {}],
   Pull_Through: ['Pull-Through', {}],
   Rack_Pulls: ['Rack Pull', {}],
-  Hyperextensions_With_No_Hyperextension_Bench: ['Back Extension', { type: 'Floor' }],
+  Hyperextensions_With_No_Hyperextension_Bench: ['Back Extension', { setup: 'Floor' }],
   Hyperextensions_Back_Extensions: ['Back Extension', {}],
   Weighted_Ball_Hyperextension: ['Back Extension', {}],
   Kneeling_Arm_Drill: ['Kneeling Arm Drill', {}],
   Standing_Long_Jump: ['Standing Long Jump', {}],
   Front_Box_Jump: ['Box Jump', {}],
-  Kettlebell_Sumo_High_Pull: ['Kettlebell Sumo High Pull', {}],
   'One-Arm_Kettlebell_Swings': ['Kettlebell Swing', { side: 'One Arm' }],
   Vertical_Swing: ['Dumbbell Swing', {}],
+  // A standing band hip extension is a band glute kickback (D90 step 1).
+  Hip_Extension_with_Bands: ['Glute Kickback', {}],
   Ball_Leg_Curl: ['Leg Curl', {}],
   Natural_Glute_Ham_Raise: ['Nordic Curl', {}],
-  'Floor_Glute-Ham_Raise': ['Nordic Curl', { type: 'Floor' }],
   Glute_Ham_Raise: ['Nordic Curl', {}],
   Thigh_Abductor: ['Hip Abduction', {}],
   Thigh_Adductor: ['Hip Adduction', {}],
@@ -239,26 +268,28 @@ const MOVE = {
   // Calf raises: a position everywhere (variation audit).
   Smith_Machine_Calf_Raise: ['Calf Raise', { position: 'Standing' }],
   'Calf_Raises_-_With_Bands': ['Calf Raise', { position: 'Standing' }],
-  Calf_Press_On_The_Leg_Press_Machine: ['Calf Raise', { type: 'Leg Press' }],
+  Calf_Press_On_The_Leg_Press_Machine: ['Calf Raise', { setup: 'Leg Press' }],
   Rocking_Standing_Calf_Raise: ['Calf Raise', { type: 'Rocking' }],
   Calf_Raise_On_A_Dumbbell: ['Calf Raise on a Dumbbell', {}],
   Freehand_Jump_Squat: ['Jump Squat', {}],
   Weighted_Jump_Squat: ['Jump Squat', {}],
   // Core.
   Ab_Crunch_Machine: ['Crunch', {}],
+  // The cable crunch is the rope crunch (D90 step 1): kneeling or standing.
+  Cable_Crunch: ['Crunch', { position: 'Kneeling' }],
+  Standing_Rope_Crunch: ['Crunch', { position: 'Standing' }],
   Exercise_Ball_Crunch: ['Crunch', {}],
-  Rope_Crunch: ['Rope Crunch', { position: 'Kneeling' }],
   Standing_Cable_Wood_Chop: ['Wood Chop', {}],
   Cable_Russian_Twists: ['Russian Twist', {}],
   Alternate_Heel_Touchers: ['Heel Touch', {}],
   Air_Bike: ['Bicycle Crunch', {}],
   Flat_Bench_Lying_Leg_Raise: ['Lying Leg Raise', {}],
   Hanging_Pike: ['Hanging Leg Raise', { type: 'Pike' }],
-  Knee_Hip_Raise_On_Parallel_Bars: ['Hanging Leg Raise', { type: "Captain's Chair" }],
+  Knee_Hip_Raise_On_Parallel_Bars: ['Hanging Leg Raise', { type: 'Knee', setup: "Captain's Chair" }],
   Side_Bridge: ['Side Plank', {}],
   Barbell_Ab_Rollout: ['Ab Rollout', {}],
   'Barbell_Ab_Rollout_-_On_Knees': ['Ab Rollout', { position: 'Kneeling' }],
-  Ab_Roller: ['Ab Rollout', { type: 'Ab Wheel' }],
+  Ab_Roller: ['Ab Rollout', { setup: 'Ab Wheel' }],
   'Exercise_Ball_Pull-In': ['Ball Pull-In', {}],
   Mountain_Climbers: ['Mountain Climber', {}],
   Overhead_Slam: ['Ball Slam', {}],
@@ -290,16 +321,16 @@ const MOVE = {
   Alternating_Deltoid_Raise: ['Lateral Raise', { side: 'Alternating' }],
   'Standing_Low-Pulley_Deltoid_Raise': ['Lateral Raise', { side: 'One Arm' }],
   Side_Laterals_to_Front_Raise: ['Lateral to Front Raise', {}],
-  Power_Clean: ['Clean', {}],
+  Power_Clean: ['Power Clean', {}], // the only olympic lift (D56; the owner kept it)
   Landmine_Linear_Jammer: ['Landmine Press', {}],
   JM_Press: ['JM Press', {}],
   'Kettlebell_Turkish_Get-Up_Squat_style': ['Turkish Get-Up', {}],
-  // One cardio machine card with a Type row.
-  Running_Treadmill: ['Cardio Machine', { type: 'Treadmill' }],
-  Bicycling_Stationary: ['Cardio Machine', { type: 'Bike' }],
-  Rowing_Stationary: ['Cardio Machine', { type: 'Rower' }],
-  Elliptical_Trainer: ['Cardio Machine', { type: 'Elliptical' }],
-  Stairmaster: ['Cardio Machine', { type: 'Stairs' }],
+  // One cardio machine card with a Setup row.
+  Running_Treadmill: ['Cardio Machine', { setup: 'Treadmill' }],
+  Bicycling_Stationary: ['Cardio Machine', { setup: 'Bike' }],
+  Rowing_Stationary: ['Cardio Machine', { setup: 'Rower' }],
+  Elliptical_Trainer: ['Cardio Machine', { setup: 'Elliptical' }],
+  Stairmaster: ['Cardio Machine', { setup: 'Stairs' }],
 };
 
 // Exercises the database lacks but a gym has (D57, D69): [id, name, fields,
@@ -321,7 +352,7 @@ const EXTRA = [
   // Natural_Glute_Ham_Raise, australian pull-up = Inverted_Row).
   ['Pike_Push-Up', 'Pike Push-Up', bw('strength', 'beginner', 'push', 'compound', 'shoulders'), 'Pike Push-Up', {}],
   ['Elevated_Pike_Push-Up', 'Elevated Pike Push-Up', bw('strength', 'intermediate', 'push', 'compound', 'shoulders'),
-    'Pike Push-Up', { type: 'Elevated' }],
+    'Pike Push-Up', { angle: 'Decline' }], // feet up, like the feet-elevated row
   ['Wall_Walk', 'Wall Walk', bw('strength', 'intermediate', 'push', 'compound', 'shoulders'), 'Wall Walk', {}],
   ['Wall_Handstand_Hold', 'Wall Handstand Hold', bw('strength', 'intermediate', 'static', 'compound', 'shoulders'),
     'Wall Handstand Hold', {}],
@@ -331,11 +362,11 @@ const EXTRA = [
   ['Single-Leg_Calf_Raise', 'Single-Leg Calf Raise', bw('strength', 'intermediate', 'push', 'isolation', 'calves'),
     'Calf Raise', { side: 'One Leg', position: 'Standing' }],
   ['Pogo_Hops', 'Pogo Hops', bw('plyometrics', 'beginner', 'push', 'compound', 'calves'), 'Pogo Hops', {}],
-  ['Towel_Bicep_Curl', 'Towel Bicep Curl', bw('strength', 'beginner', 'pull', 'isolation', 'biceps'), 'Bicep Curl', { type: 'Towel' }],
+  ['Towel_Bicep_Curl', 'Towel Bicep Curl', bw('strength', 'beginner', 'pull', 'isolation', 'biceps'), 'Bicep Curl', { setup: 'Towel' }],
   ['Inverted_Bicep_Curl', 'Inverted Bicep Curl', bw('strength', 'intermediate', 'pull', 'isolation', 'biceps'),
     'Bicep Curl', { type: 'Inverted' }],
   ['Dead_Hang', 'Dead Hang', bw('strength', 'beginner', 'static', 'isolation', 'forearms'), 'Dead Hang', {}],
-  ['Towel_Hang', 'Towel Hang', bw('strength', 'intermediate', 'static', 'isolation', 'forearms'), 'Dead Hang', { type: 'Towel' }],
+  ['Towel_Hang', 'Towel Hang', bw('strength', 'intermediate', 'static', 'isolation', 'forearms'), 'Dead Hang', { setup: 'Towel' }],
   ['Superman', 'Superman', bw('strength', 'beginner', 'static', 'isolation', 'lower back'), 'Superman', {}],
   ['Bodyweight_Bulgarian_Split_Squat', 'Bodyweight Bulgarian Split Squat', bw('strength', 'intermediate', 'push', 'compound', 'quadriceps'),
     'Split Squat', { type: 'Bulgarian' }],
@@ -352,7 +383,7 @@ const EXTRA = [
   // More bodyweight exercises for the thin Scrapper slots (D69): horizontal
   // pull, biceps and rear delt. The rows are chips of Inverted Row
   // (variation audit); the curl and the hold stay their own cards.
-  ['Towel_Row', 'Towel Row', bw('strength', 'beginner', 'pull', 'compound', 'middle back'), 'Inverted Row', { type: 'Towel' }],
+  ['Towel_Row', 'Towel Row', bw('strength', 'beginner', 'pull', 'compound', 'middle back'), 'Inverted Row', { setup: 'Towel' }],
   ['Feet-Elevated_Inverted_Row', 'Feet-Elevated Inverted Row', bw('strength', 'intermediate', 'pull', 'compound', 'middle back'),
     'Inverted Row', { angle: 'Decline' }],
   ['One-Arm_Inverted_Row', 'One-Arm Inverted Row', bw('strength', 'expert', 'pull', 'compound', 'middle back'),
@@ -485,8 +516,12 @@ function parse(name) {
   return { base: title(rest || name), mods };
 }
 
-// Old base and mods fields are dropped first, so the tool can run on its own output.
-const rows = all.map(({ base: _oldBase, mods: _oldMods, ...raw }) => {
+// Grips the name parser reads the wrong way round on one move (D90 step 1).
+// A wrist curl is palms up (no grip value); palms down is the reverse wrist curl.
+const FLIP_HAND = { 'Wrist Curl': { 'Reverse Grip': null, 'Overhand Grip': 'Reverse Grip' } };
+
+// Old base, mods and alias fields are dropped first, so the tool can run on its own output.
+const rows = all.map(({ base: _oldBase, mods: _oldMods, alias: _oldAlias, ...raw }) => {
   const e = { ...raw, ...FIX[raw.name], ...FIX[raw.id] };
   const p = EXPLICIT[e.name] ? { base: EXPLICIT[e.name][0], mods: { ...EXPLICIT[e.name][1] } } : parse(e.name);
   let base = OVERRIDE[e.name] ?? p.base;
@@ -496,12 +531,22 @@ const rows = all.map(({ base: _oldBase, mods: _oldMods, ...raw }) => {
   else if (move) [base, p.mods] = [move[0], { ...move[1] }];
   const mods = { equip: equipLabel(e), ...p.mods };
   if (mods.bands === 'Bands' && mods.equip === 'Bands') delete mods.bands;
+  // Two arms is the default, not a value (D90 step 1): "Double" and
+  // "Two-Arm" only leave the name.
+  if (mods.side === 'Two Arms') delete mods.side;
+  const flip = FLIP_HAND[base]?.[mods.hand];
+  if (flip !== undefined) {
+    if (flip) mods.hand = flip;
+    else delete mods.hand;
+  }
   if (!WIDTH_EQUIP.has(mods.equip)) delete mods.width;
   return { e, base, mods };
 });
 
+for (const id of Object.keys(ALIAS)) if (!rows.some((r) => r.e.id === id)) throw new Error(`ALIAS: no exercise ${id}`);
 const groups = new Map();
-for (const r of rows) {
+// An aliased exercise is in no move (its id points to another exercise).
+for (const r of rows.filter((x) => !ALIAS[x.e.id])) {
   const k = r.base.toLowerCase();
   if (!groups.has(k)) groups.set(k, []);
   groups.get(k).push(r);
@@ -529,9 +574,9 @@ const GRID = [
   // Pull-up grips: overhand, chin-up (reverse) and neutral; band-assisted
   // and weighted with each. No wide chin-up or wide neutral grip.
   { move: 'Pull-Up', equip: 'Bodyweight', level: 'intermediate',
-    axes: { hand: [null, 'Reverse Grip', 'Neutral Grip'], width: ['Close Grip', 'Medium Grip', 'Wide Grip'], type: [null, 'Band Assisted', 'Weighted'] },
+    axes: { hand: [null, 'Reverse Grip', 'Neutral Grip'], width: ['Close Grip', 'Medium Grip', 'Wide Grip'], load: [null, 'Band Assisted', 'Weighted'] },
     not: [{ width: 'Wide Grip', hand: ['Reverse Grip', 'Neutral Grip'] }, { width: 'Close Grip', hand: 'Neutral Grip' },
-      { type: ['Band Assisted', 'Weighted'], width: ['Close Grip', 'Wide Grip'] }],
+      { load: ['Band Assisted', 'Weighted'], width: ['Close Grip', 'Wide Grip'] }],
     adj: { 'Band Assisted': -1, Weighted: 1 } },
   // Every stance on the Smith machine.
   { move: 'Squat', equip: 'Smith Machine', axes: { stance: [null, 'Narrow Stance', 'Wide Stance'] } },
@@ -564,7 +609,7 @@ const GRID = [
   { move: 'Deadlift', equip: 'Kettlebell', from: 'Dumbbell', add: [{}] },
   { move: 'Shrug', equip: 'Smith Machine', from: 'Barbell', add: [{}] },
   { move: 'Reverse Curl', equip: 'EZ Bar', from: 'Barbell', add: [{}] },
-  { move: 'Dip', equip: 'Bodyweight', add: [{ type: 'Weighted' }, { type: 'Band Assisted' }],
+  { move: 'Dip', equip: 'Bodyweight', add: [{ load: 'Weighted' }, { load: 'Band Assisted' }],
     adj: { 'Band Assisted': -1, Weighted: 1 }, level: 'intermediate' },
   { move: 'Inverted Row', equip: 'Bodyweight', add: [{ hand: 'Reverse Grip' }] },
   { move: 'Russian Twist', equip: 'Medicine Ball', from: 'Bodyweight', add: [{}] },
@@ -589,7 +634,7 @@ const sameMods = (a, b) => {
   const x = norm(a), y = norm(b);
   return AX_ALL.every((k) => (x[k] ?? null) === (y[k] ?? null));
 };
-const AX_ALL = ['equip', 'type', ...Object.keys(AXES)];
+const AX_ALL = AXIS_ORDER;
 const combos = (axes) => Object.entries(axes).reduce((acc, [a, vs]) =>
   acc.flatMap((m) => vs.map((v) => (v == null ? { ...m } : { ...m, [a]: v }))), [{}]);
 const generated = [];
@@ -633,7 +678,7 @@ for (const g of groups.values()) {
   const withWidth = new Set(g.filter((r) => r.mods.width).map((r) => r.mods.equip));
   for (const r of g) if (!r.mods.width && withWidth.has(r.mods.equip)) r.mods.width = 'Medium Grip';
 }
-const AX = ['equip', 'type', ...Object.keys(AXES)];
+const AX = AXIS_ORDER;
 const keyOf = (r) => AX.map((a) => r.mods[a] ?? '').join('|');
 // Two exercises with the same modifiers in one group: the shorter name
 // stays, the other becomes its own move.
@@ -660,11 +705,15 @@ if (args.includes('--report')) {
   }
 }
 for (const id of Object.keys(MOVE)) if (!all.some((e) => e.id === id)) throw new Error(`MOVE: no exercise ${id}`);
+for (const id of Object.keys(MOVE)) if (ALIAS[id]) throw new Error(`MOVE: ${id} is an alias`);
+// No id of the app list is lost (D90): each one is a row here or an alias.
+checkFrozen(rows.filter((r) => !ALIAS[r.e.id]).map((r) => r.e.id), ALIAS, 'exercise_variants');
 const wi = args.indexOf('--write');
 if (wi >= 0) {
   // Every exercise gets its move (D69 clean-up): a card with one exercise
-  // is a move too, so search finds a clean move name for every card.
-  const out = rows.map((r) => ({ ...r.e, base: r.base, mods: r.mods }));
+  // is a move too, so search finds a clean move name for every card. An
+  // aliased one gets only its alias.
+  const out = rows.map((r) => (ALIAS[r.e.id] ? { ...r.e, alias: ALIAS[r.e.id] } : { ...r.e, base: r.base, mods: r.mods }));
   fs.writeFileSync(args[wi + 1], '[\n' + out.map((r) => JSON.stringify(r)).join(',\n') + '\n]\n');
   console.log('written', out.length, 'in groups:', inGroup.size);
 }

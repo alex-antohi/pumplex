@@ -170,7 +170,7 @@ Set<String> _wordsOf(CatalogExercise e) {
   final equipment = e.equipment.isEmpty ? 'body only' : e.equipment;
   final tool = e.mods['equip'] != null ? chalkToolOfMod[e.mods['equip']] : chalkToolOfEquipment[equipment];
   if (tool != null) w.add('tool.$tool');
-  if (e.mods['type'] == 'Towel' || chalkTowel.hasMatch(e.name)) w.add('tool.towel');
+  if (e.mods['setup'] == 'Towel' || chalkTowel.hasMatch(e.name)) w.add('tool.towel');
   for (final b in bodyParts) {
     if (b.muscles.contains(e.muscle)) w.add('body.${b.id}');
   }

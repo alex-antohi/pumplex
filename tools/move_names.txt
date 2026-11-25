@@ -5,9 +5,7 @@ Ball Pull-In
 Ball Slam
 Band Pull-Apart
 Bench Press
-Bent-Knee Hip Raise
 Bent-Over Row
-Bent-Over Triceps Extension
 Bicep Curl
 Bicycle Crunch
 Bird Dog
@@ -22,10 +20,7 @@ Carioca Quick Step
 Chest Press
 Chest-Supported Row
 Chin-Up Hold
-Clean
-Clean and Press
 Clock Push-Up
-Close-Grip Dumbbell Push-Up
 Concentration Curl
 Cossack Squat
 Cross-Body Crunch
@@ -65,7 +60,6 @@ High Pulley Row
 High Row
 Hip Abduction
 Hip Adduction
-Hip Extension
 Hip Thrust
 Hollow Body Hold
 Internal Rotation
@@ -75,7 +69,6 @@ Jackknife Sit-Up
 JM Press
 Jump Rope
 Jump Squat
-Kettlebell Sumo High Pull
 Kettlebell Swing
 Knee Tuck Jump
 Kneeling Arm Drill
@@ -104,6 +97,7 @@ Pike Push-Up
 Pistol Squat
 Plank
 Pogo Hops
+Power Clean
 Preacher Curl
 Prone Y-T-W Raise
 Pull-Through
@@ -122,11 +116,9 @@ Reverse Hyperextension
 Reverse Snow Angel
 Rocket Jump
 Romanian Deadlift
-Rope Crunch
 Russian Twist
 Scaption
 Scapular Pull-Up
-Scissors Jump
 Seated Cable Row
 Shoulder Press
 Shrug
@@ -150,7 +142,6 @@ Thruster
 Towel Triceps Extension
 Triceps Extension
 Triceps Kickback
-Triceps Press
 Triceps Pushdown
 Tuck Crunch
 Turkish Get-Up

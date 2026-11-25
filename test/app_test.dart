@@ -356,8 +356,9 @@ void main() {
     final all = exerciseCatalog.all;
     // The common exercises only (D67, D69), with the added bench presses
     // (D57) and bodyweight exercises (D69), and the variation grids (D80).
-    expect(all.length, 527);
-    expect(exerciseCatalog.groups.length, 164);
+    // D90 step 1 merged 14 exercises and 9 cards (aliases keep their ids).
+    expect(all.length, 513);
+    expect(exerciseCatalog.groups.length, 155);
     // The clean-up (D69): every card is a move, with a clean move name.
     expect(exerciseCatalog.groups.where((g) => !g.key.startsWith('move:')), isEmpty);
     expect(exerciseCatalog.groupKeyOf('Plank'), 'move:plank');
@@ -387,7 +388,7 @@ void main() {
     for (final id in ['Ring_Dips', 'Weighted_Pull_Ups', 'Ab_Roller', 'Muscle_Up', 'Front_Box_Jump']) {
       expect(exerciseCatalog.byId[id]?.equipment, 'body only', reason: id);
     }
-    expect(exerciseCatalog.byId['Trap_Bar_Deadlift']!.mods['type'], 'Trap Bar');
+    expect(exerciseCatalog.byId['Trap_Bar_Deadlift']!.mods['setup'], 'Trap Bar');
     for (final id in ['Pike_Push-Up', 'Towel_Bicep_Curl', 'Bodyweight_Calf_Raise', 'Dead_Hang', 'Pistol_Squat', 'Burpee',
       'Towel_Row', 'Feet-Elevated_Inverted_Row', 'Chin-Up_Hold', 'Doorframe_Curl', 'Reverse_Snow_Angel']) {
       expect(exerciseCatalog.byId[id]?.equipment, 'body only', reason: id);
@@ -448,10 +449,12 @@ void main() {
     // The equipment row may change other modifiers; other rows stay in the equipment.
     expect(chipTarget(bench, flatBar, 'equip', 'Dumbbell')!.v.mods['equip'], 'Dumbbell');
     expect(chipTarget(bench, flatBar, 'side', 'One Arm'), isNull);
-    // All dips are one move, with a Type row.
+    // All dips are one move, with a Type, a Load and a Setup row (D90).
     final dip = exerciseCatalog.byKey['move:dip']!;
-    expect(dip.variants.length, 9); // D80 adds weighted and band-assisted; dip bars and rings are body only (D50)
-    expect(dip.axes.firstWhere((a) => a.$1.id == 'type').$2, containsAll(['Triceps', 'Bench']));
+    expect(dip.variants.length, 8); // D80 adds weighted and band-assisted; dip bars and rings are body only (D50)
+    expect(dip.axes.firstWhere((a) => a.$1.id == 'type').$2, [null, 'Chest']);
+    expect(dip.axes.firstWhere((a) => a.$1.id == 'setup').$2, [null, 'Bench', 'Rings']);
+    expect(dip.axes.firstWhere((a) => a.$1.id == 'load').$2, [null, 'Band Assisted', 'Weighted']);
     expect(all.map((e) => e.id).toSet().length, all.length);
     expect(all.every((e) => !e.id.contains('.')), isTrue); // old ids have a dot (D54)
     expect(exerciseCatalog.byId['Pushups']!.equipment, 'body only');

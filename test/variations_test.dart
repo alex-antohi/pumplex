@@ -40,6 +40,13 @@ void main() {
   test('old ids keep their exercise, their move and a name close to the old one', () {
     expect(legacy.length, greaterThan(250));
     for (final MapEntry(key: id, value: old) in legacy.entries) {
+      // A merged or removed exercise (D90): its id is an alias of the kept one.
+      final alias = exerciseCatalog.aliasOf[id];
+      if (alias != null) {
+        expect(exerciseCatalog.byId[alias], isNotNull, reason: id);
+        expect(exerciseCatalog.groupKeyOf(id), exerciseCatalog.groupKeyOf(alias), reason: id);
+        continue;
+      }
       final e = exerciseCatalog.byId[id];
       expect(e, isNotNull, reason: id); // saved sets and favorites still find it
       expect(exerciseCatalog.groupKeyOf(id), 'move:${e!.base.toLowerCase()}', reason: id);
@@ -167,7 +174,7 @@ void main() {
         exerciseCatalog.byKey['move:$move']!.variants.any((v) => bad(v.mods));
     expect(any('push-up', (m) => m['type'] == 'Knee' && m['angle'] != null), isFalse); // no knee incline or decline
     expect(any('pull-up', (m) => m['width'] == 'Wide Grip' && m['hand'] != null), isFalse); // no wide chin-up
-    expect(any('pull-up', (m) => m['type'] != null && m['width'] != 'Medium Grip'), isFalse);
+    expect(any('pull-up', (m) => m['load'] != null && m['width'] != 'Medium Grip'), isFalse);
     expect(any('bench press', (m) => m['type'] == 'Squeeze' && (m['hand'] != null || m['angle'] == 'Decline')), isFalse);
     // Dumbbells and kettlebells have no grip width (D57).
     expect(exerciseCatalog.all.where((e) => {'Dumbbell', 'Kettlebell'}.contains(e.mods['equip']) && e.mods['width'] != null),

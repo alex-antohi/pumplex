@@ -25,6 +25,7 @@
 //                             (legacy names a rule cannot make, for example
 //                             "Treadmill").
 // The equipment part shows only when the move has more than one equipment.
+import fs from 'node:fs';
 
 /** The agreeing form (index into "a|b|c|d") for a move's grammatical form; no form: 0. */
 export const formIndex = (form) => ({ fs: 1, mp: 2, fp: 3, np: 3 })[form] ?? 0;
@@ -61,7 +62,30 @@ export function composeName(base, mods, equipShown, look) {
 /** Whether the variations [rows] of one move use more than one equipment. */
 export const equipShownOf = (rows) => new Set(rows.map((r) => r.mods?.equip)).size > 1;
 
-/** The stable id of a generated variation (D80): the move and its modifier values, lower case. */
-export const AXIS_ORDER = ['equip', 'type', 'angle', 'width', 'hand', 'stance', 'side', 'position', 'attach', 'bands', 'chains'];
+/**
+ * The stable id of a generated variation (D80): the move and its modifier values, lower case.
+ * `load` and `setup` (D90 step 1: split out of `type`) come right after `type`, so a value
+ * that moved out of `type` keeps its place in the id: no id changes.
+ */
+export const AXIS_ORDER = ['equip', 'type', 'load', 'setup', 'angle', 'width', 'hand', 'stance', 'side', 'position', 'attach',
+  'bands', 'chains'];
 export const variationId = (base, mods) =>
   [base, ...AXIS_ORDER.filter((a) => mods[a]).map((a) => mods[a])].join('|').toLowerCase();
+
+/**
+ * Frozen ids (D90): every id of assets/exercises/exercises.json on 25 Nov
+ * 2026 (tools/frozen_ids.txt) stays. It is an exercise of [ids], or an
+ * alias in [aliases] (the old id of a merged or removed exercise -> the id
+ * that replaces it). Saved sets, favorites and Today point to these ids.
+ * Throws when an id is lost or an alias points nowhere.
+ */
+export function checkFrozen(ids, aliases, what) {
+  const frozen = fs.readFileSync(new URL('frozen_ids.txt', import.meta.url), 'utf8').split('\n').map((l) => l.trim()).filter(Boolean);
+  const have = new Set(ids);
+  const lost = frozen.filter((id) => !have.has(id) && !(id in aliases));
+  if (lost.length) throw new Error(`${what}: ids lost (keep them or add an alias, D90): ${lost.join(', ')}`);
+  for (const [from, to] of Object.entries(aliases)) {
+    if (have.has(from)) throw new Error(`${what}: alias ${from} is still an exercise`);
+    if (!have.has(to)) throw new Error(`${what}: alias ${from} -> ${to}: no such exercise`);
+  }
+}

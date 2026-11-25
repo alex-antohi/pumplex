@@ -273,10 +273,10 @@ class ForgedMove {
       force: null,
       mechanic: null,
       muscle: muscle,
-      // No angle and no grip (D81): only the tool (a towel: its type too).
+      // No angle and no grip (D81): only the tool (a towel: its setup too, D90).
       mods: {
         if (tool.$2 != null) 'equip': tool.$2!,
-        if (chalkIdOf(words, 'tool') == 'towel') 'type': 'Towel',
+        if (chalkIdOf(words, 'tool') == 'towel') 'setup': 'Towel',
       },
       pattern: pattern,
       unlock: const {'scrapper': 0, 'bruiser': 0, 'paladin': 0, 'cablemancer': 0},

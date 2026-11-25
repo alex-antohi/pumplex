@@ -229,7 +229,8 @@ class LogStore extends ChangeNotifier {
       ..clear()
       ..addAll({
         for (final e in (_json(_sessionsKey, const {}) as Map).entries)
-          e.key as String: Session.fromJson(e.key as String, Map<String, dynamic>.from(e.value as Map)),
+          e.key as String: Session.fromJson(e.key as String, Map<String, dynamic>.from(e.value as Map))
+              .withExerciseIds(exerciseCatalog.resolveId), // old ids of merged exercises (D90)
       });
     _events
       ..clear()
@@ -238,7 +239,7 @@ class LogStore extends ChangeNotifier {
       ]);
     _favorites
       ..clear()
-      ..addAll([for (final id in _json(_favoritesKey, const []) as List) if (id is String) id]);
+      ..addAll([for (final id in _json(_favoritesKey, const []) as List) if (id is String) exerciseCatalog.resolveId(id)]);
     _picked.clear();
     final forgedJson = _uiList(forgedKey);
     _forged
@@ -257,7 +258,11 @@ class LogStore extends ChangeNotifier {
       final raw = _json(pickedVariantsKey, const {});
       if (raw is Map) {
         for (final e in raw.entries) {
-          if (e.key is String && e.value is List) _picked[e.key as String] = [for (final id in e.value as List) if (id is String) id];
+          if (e.key is String && e.value is List) {
+            _picked[e.key as String] = [
+              for (final id in {for (final id in e.value as List) if (id is String) exerciseCatalog.resolveId(id)}) id,
+            ];
+          }
         }
       }
     } on FormatException {
@@ -468,7 +473,10 @@ class LogStore extends ChangeNotifier {
   /// still there after leaving the workout or the app (D75). UI state only:
   /// not in the backup.
   static const pickedCardKey = 'workout_card_v1';
-  String? get pickedCard => _prefs.getString(pickedCardKey);
+  String? get pickedCard {
+    final id = _prefs.getString(pickedCardKey);
+    return id == null ? null : exerciseCatalog.resolveId(id); // an old id of a merged exercise (D90)
+  }
   void setPickedCard(String key) {
     if (key != _preview) _preview = null; // leaving the preview drops it (D82)
     if (_prefs.getString(pickedCardKey) != key) _prefs.setString(pickedCardKey, key);
@@ -605,7 +613,8 @@ class LogStore extends ChangeNotifier {
       final j = _json(todayKey, const {});
       if (j is Map && j['date'] is String && j['exercises'] is List) {
         _todayDate = j['date'] as String;
-        _todaySaved.addAll([for (final k in j['exercises'] as List) if (k is String) k]);
+        // An old id of a merged exercise goes to the one that replaces it (D90).
+        _todaySaved.addAll({for (final k in j['exercises'] as List) if (k is String) exerciseCatalog.resolveId(k)});
       }
     } on FormatException {
       // A broken value is only UI data: start with an empty Today.

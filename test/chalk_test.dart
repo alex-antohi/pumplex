@@ -177,7 +177,7 @@ void main() {
         for (final MapEntry(:key, :value) in chalkMoveWords.entries)
           if (value.hasMatch(name)) 'move.$key',
         if (tool != null) 'tool.$tool',
-        if (mods['type'] == 'Towel' || chalkTowel.hasMatch(name)) 'tool.towel',
+        if (mods['setup'] == 'Towel' || chalkTowel.hasMatch(name)) 'tool.towel',
         for (final b in bodyParts)
           if (b.muscles.contains(muscle)) 'body.${b.id}',
       };

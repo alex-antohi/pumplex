@@ -11,6 +11,11 @@
 // names are composed from translated parts (composeName), not translated
 // one by one.
 //
+// Aliases (D90): a merged or removed exercise keeps its old id as an alias
+// of the exercise that replaces it (`aliases` in the list). The app reads
+// saved sets, favorites, Today and the picks through [ExerciseCatalog.resolveId],
+// so no old id is lost (tools/frozen_ids.txt; the data tools check it).
+//
 // Commonness (D67): each card has a `rank` (1 = the most common) and, per
 // class, the first difficulty mode that shows it (`unlock`). The tool sets
 // both, so every class and mode covers the whole body and each mode has
@@ -47,6 +52,7 @@ class CatalogExercise {
     this.pattern,
     this.unlock = const {},
     this.nick,
+    this.aliases = const [],
   })  : isMove = base != null,
         base = base ?? name;
 
@@ -93,6 +99,9 @@ class CatalogExercise {
   /// A forged move's nickname (D72, lib/game/forge.dart): the big name.
   final String? nick;
 
+  /// Old ids that now mean this exercise (merged or removed, D90).
+  final List<String> aliases;
+
   factory CatalogExercise.fromJson(Map<String, dynamic> j) => CatalogExercise(
         id: j['id'] as String,
         name: j['name'] as String,
@@ -107,6 +116,7 @@ class CatalogExercise {
         rank: j['rank'] as int? ?? 1 << 20,
         pattern: j['pattern'] as String?,
         unlock: Map<String, int>.from(j['unlock'] as Map? ?? const {}),
+        aliases: ((j['aliases'] as List?) ?? const []).cast<String>(),
       );
 }
 
@@ -123,6 +133,11 @@ class ModifierAxis {
 const modifierAxes = <ModifierAxis>[
   ModifierAxis('equip', 'Equipment', 'Any'),
   ModifierAxis('type', 'Type', 'Standard'),
+  // Split out of Type (D90): Weighted, Band Assisted; the station or extra
+  // gear (Bench, Rings, Towel, Trap Bar ...). Right after Type, as in the
+  // generated ids (tools/exercise_names.mjs AXIS_ORDER).
+  ModifierAxis('load', 'Load', 'Standard'),
+  ModifierAxis('setup', 'Setup', 'Standard'),
   ModifierAxis('angle', 'Angle', 'Flat'),
   ModifierAxis('width', 'Grip width', 'Standard'),
   ModifierAxis('hand', 'Grip', 'Standard'),
@@ -196,7 +211,9 @@ int topLevelFor(int difficulty) => (difficulty.clamp(0, 5)) ~/ 2;
 
 /// The exercise list, loaded once at start (main.dart).
 class ExerciseCatalog {
-  ExerciseCatalog(this.all) : byId = {for (final e in all) e.id: e} {
+  ExerciseCatalog(this.all)
+      : byId = {for (final e in all) e.id: e},
+        aliasOf = {for (final e in all) for (final a in e.aliases) a: e.id} {
     final byBase = <String, List<CatalogExercise>>{};
     for (final e in all) {
       (byBase[e.base.toLowerCase()] ??= []).add(e);
@@ -219,6 +236,13 @@ class ExerciseCatalog {
   final List<CatalogExercise> all;
   final Map<String, CatalogExercise> byId;
 
+  /// Old id of a merged or removed exercise -> the id that replaces it (D90).
+  final Map<String, String> aliasOf;
+
+  /// The id to use for a saved id: an alias goes to the exercise that
+  /// replaces it; any other id stays (also an unknown one).
+  String resolveId(String id) => byId.containsKey(id) ? id : aliasOf[id] ?? id;
+
   /// One per card (D55).
   final List<ExerciseGroup> groups = [];
   final Map<String, ExerciseGroup> byKey = {};
@@ -231,7 +255,7 @@ class ExerciseCatalog {
   /// old move key whose move was renamed or split (D69 clean-up) points to
   /// the move of its main exercise, so saved favorites follow.
   String groupKeyOf(String id) =>
-      _groupOf[id]?.key ?? (byKey.containsKey(id) ? id : _groupOf[movedMoves[id]]?.key ?? id);
+      _groupOf[resolveId(id)]?.key ?? (byKey.containsKey(id) ? id : _groupOf[movedMoves[id]]?.key ?? id);
 
   /// Old move keys -> the exercise whose move now holds them (D69 clean-up
   /// and the variation audit). Cards that were one exercise had the
@@ -247,7 +271,7 @@ class ExerciseCatalog {
     'move:butterfly': 'Butterfly',
     'move:low cable crossover': 'Low_Cable_Crossover',
     'move:sumo squat': 'Plie_Dumbbell_Squat',
-    'move:power clean': 'Power_Clean',
+    // ('move:power clean' is a card again since D90: the Power Clean is its only lift.)
     'move:leg press calf raise': 'Calf_Press_On_The_Leg_Press_Machine',
     'move:rocking calf raise': 'Rocking_Standing_Calf_Raise',
     'move:walking lunge': 'Barbell_Walking_Lunge',
@@ -260,7 +284,18 @@ class ExerciseCatalog {
     'move:towel row': 'Towel_Row',
     'move:feet-elevated inverted row': 'Feet-Elevated_Inverted_Row',
     'move:one-arm inverted row': 'One-Arm_Inverted_Row',
-    'move:glute-ham raise': 'Floor_Glute-Ham_Raise',
+    'move:glute-ham raise': 'Natural_Glute_Ham_Raise',
+    // The list clean-up of D90 (step 1): merged and removed moves.
+    'move:bent-over triceps extension': 'Tricep_Dumbbell_Kickback',
+    'move:triceps press': 'EZ-Bar_Skullcrusher',
+    'move:close-grip dumbbell push-up': 'Push-Ups_-_Close_Triceps_Position',
+    'move:bent-knee hip raise': 'Reverse_Crunch',
+    'move:scissors jump': 'Split_Jump',
+    'move:rope crunch': 'Cable_Crunch',
+    'move:hip extension': 'Hip_Extension_with_Bands',
+    'move:clean': 'Power_Clean',
+    'move:clean and press': 'Barbell_Push_Press',
+    'move:kettlebell sumo high pull': 'sumo deadlift|kettlebell',
   };
 
   static const asset = 'assets/exercises/exercises.json';
@@ -277,7 +312,7 @@ ExerciseCatalog exerciseCatalog = ExerciseCatalog.empty;
 
 /// Display name of an exercise id, in English. An id that is no longer in
 /// the list (D67) shows as the id with spaces.
-String exerciseName(String id) => exerciseCatalog.byId[id]?.name ?? id.replaceAll('_', ' ');
+String exerciseName(String id) => exerciseCatalog.byId[exerciseCatalog.resolveId(id)]?.name ?? id.replaceAll('_', ' ');
 
 /// The composed name of variation [e] of [group] (D80): the move's name and
 /// the name parts of its modifiers, in the word order of the language that

@@ -1,7 +1,8 @@
 // Cuts the exercise list down and picks, per class and difficulty mode, the
 // cards that make a real workout (D67, D69). Reads the full list
 // (tools/exercise_db.json: the 692 database exercises of D56 and the added
-// ones of D57 and D69, with `base` and `mods` from exercise_variants.mjs)
+// ones of D57 and D69, with `base` and `mods` from exercise_variants.mjs;
+// a merged or removed exercise has only `alias`, D90)
 // and writes the app list:
 //   node tools/exercise_variants.mjs tools/exercise_db.json --write tools/exercise_db.json
 //   node tools/exercise_select.mjs tools/exercise_db.json assets/exercises/exercises.json [--report] [--slots] [--cards]
@@ -15,6 +16,9 @@
 //            that shows the card for that class. Only classes that show
 //            the card are listed.
 //   level    the database level, or the app's level from LEVEL.
+//   aliases  old ids that now mean this exercise (merged or removed, D90).
+//            The app reads saved sets, favorites and Today through them.
+//            Every id of tools/frozen_ids.txt must be an exercise or an alias.
 //
 // Rules (D69), per class and mode, in this order:
 // 1. Levels: LEVEL changes the level of some exercises (too hard or too
@@ -44,7 +48,7 @@
 // `custom: true` (D57, D69) must be kept. Ids do not change (saved sets
 // point to them).
 import fs from 'node:fs';
-import { composeName, equipShownOf } from './exercise_names.mjs';
+import { checkFrozen, composeName, equipShownOf } from './exercise_names.mjs';
 
 // Most common first. A name is a move (`base`) or the id of an exercise
 // (then it stands for the exercise's move).
@@ -70,25 +74,25 @@ const COMMON = [
   // 6: known and used, less often.
   ['Sumo Deadlift', 'Box Squat', 'Floor Press', 'Reverse Curl', 'Triceps Extension',
     'Rack Pull', 'Pallof_Press', 'Glute Kickback', 'Pull-Through', 'Jump Squat', 'Star_Jump', 'Jump Rope',
-    'Cardio Machine', 'Clean', 'Kettlebell_Thruster', 'Side Bend', 'Landmine_Linear_Jammer', 'Muscle_Up', 'Front_Box_Jump',
-    'Oblique Crunch', 'Rope Crunch', 'Leg Pull-In', 'Bent-Knee_Hip_Raise',
+    'Cardio Machine', 'Power Clean', 'Kettlebell_Thruster', 'Side Bend', 'Landmine_Linear_Jammer', 'Muscle_Up', 'Front_Box_Jump',
+    'Oblique Crunch', 'Leg Pull-In',
     'High Row', 'External Rotation', 'Internal Rotation', 'Monster_Walk', 'Handstand Push-Up', 'Scapular Pull-Up',
     'Nordic Curl', 'Reverse_Hyperextension', 'Jackknife_Sit-Up', 'Ball Slam', 'Renegade Row',
     'Towel Triceps Extension', 'Tuck_Crunch', 'Cross-Body_Crunch', 'Dead Hang', 'Superman', 'Wall_Sit', 'Hollow_Body_Hold',
     'Bird_Dog', 'Prone_Y-T-W_Raise', 'Cossack_Squat', 'Rear Delt Row'],
   // 7: seen now and then.
-  ['Alternate_Heel_Touchers', 'Ball Pull-In', 'Medicine_Ball_Chest_Pass', 'Kettlebell_Sumo_High_Pull',
-    'JM_Press', 'Tate_Press', 'Bent-Over Triceps Extension', 'Triceps Press', 'Close-Grip Dumbbell Push-Up',
+  ['Alternate_Heel_Touchers', 'Ball Pull-In', 'Medicine_Ball_Chest_Pass',
+    'JM_Press', 'Tate_Press',
     'Spider_Curl', 'Drag_Curl', 'Zottman_Curl', 'High_Cable_Curls',
     'High Pulley Row', 'Deficit_Deadlift',
-    'Push Press', 'Kettlebell_Halo', 'Clean_and_Press', 'Kettlebell_Turkish_Get-Up_Squat_style',
+    'Push Press', 'Kettlebell_Halo', 'Kettlebell_Turkish_Get-Up_Squat_style',
     'Side_Laterals_to_Front_Raise', 'Push-Up to Side Plank', 'Split_Jump', 'Standing_Long_Jump', 'Knee_Tuck_Jump',
     'Lateral_Bound', 'Wall_Walk', 'Wall_Handstand_Hold',
     'Pogo_Hops', 'L-Sit', 'Dumbbell Swing', 'Flutter_Kicks', 'Reverse_Snow_Angel', 'Chin-Up_Hold'],
   // 8: rare; here so that the small classes (Scrapper) have enough cards.
   ['Kneeling_Arm_Drill', 'Clock_Push-Up', 'Isometric Chest Squeeze', 'Finger_Curls',
-    'Hip_Extension_with_Bands', 'Carioca_Quick_Step', 'Fast_Skipping', 'Double_Leg_Butt_Kick',
-    'Rocket_Jump', 'Scissors_Jump', 'Zercher_Squats', 'Cuban_Press', 'Dumbbell_Scaption',
+    'Carioca_Quick_Step', 'Fast_Skipping', 'Double_Leg_Butt_Kick',
+    'Rocket_Jump', 'Zercher_Squats', 'Cuban_Press', 'Dumbbell_Scaption',
     'Doorframe_Curl', 'Calf Raise on a Dumbbell'],
 ];
 
@@ -98,7 +102,7 @@ const PATTERNS = {
   hpush: ['Bench Press', 'Push-Up', 'Chest Press', 'Floor Press', 'Push-Up to Side Plank', 'Clock_Push-Up',
     'Medicine_Ball_Chest_Pass'],
   vpush: ['Shoulder Press', 'Arnold Press', 'Handstand Push-Up', 'Push Press', 'Pike Push-Up', 'Wall_Walk', 'Wall_Handstand_Hold',
-    'Kettlebell_Thruster', 'Clean_and_Press', 'Landmine_Linear_Jammer'],
+    'Kettlebell_Thruster', 'Landmine_Linear_Jammer'],
   hpull: ['Bent-Over Row', 'One-Arm Row', 'Seated Cable Row', 'Inverted Row', 'T-Bar Row', 'Chest-Supported Row', 'High Row',
     'Renegade Row'],
   vpull: ['Pull-Up', 'Lat Pulldown', 'Straight-Arm Pulldown', 'Scapular Pull-Up', 'High Pulley Row', 'Muscle_Up'],
@@ -106,17 +110,16 @@ const PATTERNS = {
     'Zercher_Squats', 'Wall_Sit'],
   hinge: ['Deadlift', 'Romanian Deadlift', 'Hip Thrust', 'Glute Bridge', 'Back Extension',
     'Good Morning', 'Kettlebell Swing', 'Sumo Deadlift', 'Rack Pull', 'Glute Kickback', 'Pull-Through', 'Reverse_Hyperextension',
-    'Deficit_Deadlift', 'Hip_Extension_with_Bands', 'Superman', 'Dumbbell Swing'],
+    'Deficit_Deadlift', 'Superman', 'Dumbbell Swing'],
   single: ['Lunge', 'Step-Up', 'Split Squat', 'Pistol Squat'],
   calves: ['Calf Raise', 'Pogo_Hops', 'Calf Raise on a Dumbbell'],
   biceps: ['Bicep Curl', 'Hammer Curl', 'Preacher Curl', 'Concentration Curl', 'Spider_Curl', 'Drag_Curl',
     'Zottman_Curl', 'High_Cable_Curls', 'Chin-Up_Hold', 'Doorframe_Curl'],
   triceps: ['Dip', 'Triceps Pushdown', 'Overhead Triceps Extension', 'Skullcrusher', 'Triceps Kickback', 'Triceps Extension',
-    'Towel Triceps Extension', 'JM_Press', 'Tate_Press', 'Bent-Over Triceps Extension',
-    'Triceps Press', 'Close-Grip Dumbbell Push-Up'],
+    'Towel Triceps Extension', 'JM_Press', 'Tate_Press'],
   rear: ['Face Pull', 'Reverse Fly', 'Band Pull-Apart', 'Prone_Y-T-W_Raise', 'Rear Delt Row', 'Cuban_Press', 'Reverse_Snow_Angel'],
   flex: ['Crunch', 'Sit-Up', 'Hanging Leg Raise', 'Bicycle Crunch', 'Reverse Crunch', 'Lying Leg Raise', 'Oblique Crunch',
-    'Rope Crunch', 'Leg Pull-In', 'Bent-Knee_Hip_Raise', 'Jackknife_Sit-Up', 'Tuck_Crunch',
+    'Leg Pull-In', 'Jackknife_Sit-Up', 'Tuck_Crunch',
     'Cross-Body_Crunch', 'Alternate_Heel_Touchers', 'Flutter_Kicks', 'L-Sit'],
   antiext: ['Plank', 'Dead_Bug', 'Side Plank', 'Ball Pull-In', 'Ab Rollout', 'Hollow_Body_Hold', 'Bird_Dog', 'Pallof_Press'],
   forearms: ['Wrist Curl', 'Reverse Curl', 'Dead Hang', 'Finger_Curls'],
@@ -126,13 +129,13 @@ const PATTERNS = {
   raise: ['Lateral Raise', 'Front Raise', 'Upright Row', 'Kettlebell_Halo', 'Side_Laterals_to_Front_Raise', 'Dumbbell_Scaption',
     'External Rotation', 'Internal Rotation', 'Kneeling_Arm_Drill'],
   fly: ['Fly', 'Crossover', 'Pullover', 'Isometric Chest Squeeze'],
-  shrug: ['Shrug', 'Kettlebell_Sumo_High_Pull'],
+  shrug: ['Shrug'],
   carry: ["Farmer's Walk"],
   hamcurl: ['Leg Curl', 'Nordic Curl'],
   rotation: ['Russian_Twist', 'Standing_Cable_Wood_Chop', 'Side Bend'],
-  power: ['Clean', 'Ball Slam', 'Kettlebell_Turkish_Get-Up_Squat_style'],
+  power: ['Power Clean', 'Ball Slam', 'Kettlebell_Turkish_Get-Up_Squat_style'],
   plyo: ['Mountain Climber', 'Burpee', 'Jump Squat', 'Star_Jump', 'Split_Jump', 'Standing_Long_Jump', 'Knee_Tuck_Jump',
-    'Lateral_Bound', 'Carioca_Quick_Step', 'Fast_Skipping', 'Double_Leg_Butt_Kick', 'Rocket_Jump', 'Scissors_Jump',
+    'Lateral_Bound', 'Carioca_Quick_Step', 'Fast_Skipping', 'Double_Leg_Butt_Kick', 'Rocket_Jump',
     'Front_Box_Jump'],
   cardio: ['Cardio Machine', 'Jump Rope'],
 };
@@ -154,7 +157,7 @@ const LEVEL = {
   // Too hard for beginners. Chin-ups and pull-ups are the same level.
   Pullups: 'intermediate', 'Chin-Up': 'intermediate', 'Dips_-_Triceps_Version': 'intermediate',
   'Plyo_Push-up': 'intermediate', Knee_Tuck_Jump: 'intermediate', 'Decline_Push-Up': 'intermediate',
-  'V-Bar_Pullup': 'intermediate', Parallel_Bar_Dip: 'intermediate', Muscle_Up: 'expert',
+  'V-Bar_Pullup': 'intermediate', Muscle_Up: 'expert',
   // A barbell lunge is a barbell lunge, walking or not.
   Barbell_Walking_Lunge: 'intermediate',
   // Machines and cables that beginners use.
@@ -181,10 +184,12 @@ const PIN = {
     // The variation audit merged 6 Scrapper cards into chips (rows, chin-up,
     // plyo push-up, glute-ham raise): these keep the steps even.
     Tuck_Crunch: M.sweat, Lateral_Bound: M.sweat, Alternate_Heel_Touchers: M.sweat,
-    Flutter_Kicks: M.pain, 'Bent-Knee_Hip_Raise': M.pain, Hollow_Body_Hold: M.pain, Reverse_Crunch: M.pain,
-    'Floor_Glute-Ham_Raise': M.pain, 'Jackknife_Sit-Up': M.pain,
+    // D90 step 1: Bent-Knee Hip Raise is now Reverse Crunch, Floor Glute-Ham
+    // Raise the Nordic Curl, Scissors Jump the Split Jump.
+    Flutter_Kicks: M.pain, Hollow_Body_Hold: M.pain, Reverse_Crunch: M.pain,
+    Natural_Glute_Ham_Raise: M.pain, 'Jackknife_Sit-Up': M.pain,
     'L-Sit': M.brutal, Rocket_Jump: M.brutal,
-    Double_Leg_Butt_Kick: M.nightmare, Carioca_Quick_Step: M.nightmare, Fast_Skipping: M.nightmare, Scissors_Jump: M.nightmare,
+    Double_Leg_Butt_Kick: M.nightmare, Carioca_Quick_Step: M.nightmare, Fast_Skipping: M.nightmare,
   },
   bruiser: {
     Inverted_Row: M.sofa, Butt_Lift_Bridge: M.sofa, Dead_Bug: M.sofa,
@@ -201,9 +206,9 @@ const PIN = {
     // kettlebell sumo deadlift with the Paladin's sumo deadlift.
     'face pull|bands': M.sweat, 'hip abduction|bands': M.sweat, 'sumo deadlift|kettlebell': M.pain,
     // The rare moves the keep rule brought back, placed by gear (D50) in late modes.
-    'Hip Extension': M.sweat, Halo: M.pain,
-    Scaption: M.brutal, 'Lateral to Front Raise': M.brutal, 'Kettlebell Sumo High Pull': M.brutal,
-    'Bent-Over Triceps Extension': M.brutal,
+    // The band hip extension is now a Glute Kickback chip (D90 step 1).
+    Hip_Extension_with_Bands: M.sweat, Halo: M.pain,
+    Scaption: M.brutal, 'Lateral to Front Raise': M.brutal,
     'Zottman Curl': M.nightmare, 'Cuban Press': M.nightmare,
   },
   paladin: {
@@ -219,7 +224,7 @@ const PIN = {
     // The rare moves the keep rule brought back, placed by gear (D50) in late modes.
     'Spider Curl': M.sweat, 'JM Press': M.pain,
     'Drag Curl': M.brutal, 'Deficit Deadlift': M.brutal, 'Tate Press': M.brutal,
-    'Triceps Press': M.nightmare, 'Clean and Press': M.nightmare, 'Finger Curl': M.nightmare,
+    'Finger Curl': M.nightmare,
   },
   cablemancer: {
     Leg_Press: M.sofa, Leg_Extensions: M.sofa, Butterfly: M.sofa, Face_Pull: M.sofa, Reverse_Machine_Flyes: M.sofa,
@@ -227,7 +232,7 @@ const PIN = {
     Cable_Crossover: M.warmup, Leverage_High_Row: M.warmup, 'Sit-Up': M.warmup,
     Bird_Dog: M.warmup,
     Thigh_Abductor: M.sweat, Thigh_Adductor: M.sweat, 'Cable_Hammer_Curls_-_Rope_Attachment': M.sweat,
-    Pull_Through: M.pain, Pallof_Press: M.pain, Rope_Crunch: M.pain,
+    Pull_Through: M.pain, Pallof_Press: M.pain,
     Standing_Cable_Wood_Chop: M.brutal,
     // The rare moves the keep rule brought back, placed by gear (D50) in late modes.
     'Triceps Extension': M.pain, 'High Pulley Row': M.brutal, 'High Cable Curl': M.brutal,
@@ -289,7 +294,9 @@ const MAIN = new Set(['chest', 'lats', 'middle back', 'lower back', 'shoulders',
   'hamstrings', 'glutes', 'calves', 'abdominals']);
 
 const args = process.argv.slice(2);
-const all = JSON.parse(fs.readFileSync(args[0], 'utf8'));
+// Merged and removed exercises (D90): only their alias goes into the list.
+const aliasOf = {};
+const all = JSON.parse(fs.readFileSync(args[0], 'utf8')).filter((e) => !(e.alias && (aliasOf[e.id] = e.alias)));
 for (const [id, level] of Object.entries(LEVEL)) {
   const e = all.find((x) => x.id === id);
   if (!e) throw new Error(`LEVEL: no exercise ${id}`);
@@ -443,6 +450,11 @@ for (const e of out) {
 }
 const lost = all.filter((e) => e.custom && !out.some((o) => o.id === e.id));
 if (lost.length) throw new Error(`custom exercises dropped: ${lost.map((e) => e.id).join(', ')}`);
+// Old ids keep working (D90): each alias goes on the exercise it points to,
+// and no id of tools/frozen_ids.txt is lost.
+checkFrozen(out.map((e) => e.id), aliasOf, 'exercise_select');
+const outById = new Map(out.map((e) => [e.id, e]));
+for (const [from, to] of Object.entries(aliasOf).sort()) (outById.get(to).aliases ??= []).push(from);
 
 // A slot's state in one class and mode: OK (the target or more), THIN
 // (fewer; THIN*: and no other card exists), MISSING (none), n/a (the class has no card of the pattern in

@@ -289,6 +289,28 @@ class Session {
         exercises: exercises ?? this.exercises,
       );
 
+  /// The session with each exercise id changed by [to] (an old id of a
+  /// merged exercise goes to the one that replaces it, D90). Entries that
+  /// get the same id become one: their sets add up, the logs follow in order.
+  Session withExerciseIds(String Function(String id) to) {
+    final out = <String, SessionExercise>{};
+    var changed = false;
+    for (final e in exercises) {
+      final id = to(e.exerciseId);
+      if (id != e.exerciseId) changed = true;
+      final had = out[id];
+      if (had == null) {
+        out[id] = SessionExercise(exerciseId: id, sets: e.sets, log: e.log);
+      } else {
+        changed = true;
+        // An old entry may have fewer logs than sets: pad, so each log stays on its set.
+        final log = [...had.log, for (var i = had.log.length; i < had.sets; i++) const SetLog(), ...e.log];
+        out[id] = SessionExercise(exerciseId: id, sets: had.sets + e.sets, log: log.any((l) => !l.isEmpty) ? log : const []);
+      }
+    }
+    return changed ? copyWith(exercises: out.values.toList()) : this;
+  }
+
   Map<String, dynamic> toJson() => {
         'classId': classId,
         'difficultyId': difficultyId,
