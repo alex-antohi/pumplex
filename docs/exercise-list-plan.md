@@ -96,11 +96,24 @@ Keep Push-Up (rank 4) and Hip Thrust (rank 29) where they are: the sample is hea
 - Hand-translated names: 198 → about 90.
 - Real-program coverage: 86% → about 96%.
 
+## Difficulty score 1–6 (D91)
+
+Measured on 25 Nov 2026: the 3 database levels are lopsided. Of 527 exercises, 69% are beginner, 28% intermediate and 4% expert (20 exercises). Per class (by gear): Haiduc 62 / 30 / 8, Bruiser 65 / 31 / 4, Paladin 59 / 36 / 5, Cablemancer 77 / 19 / 4. Three levels are also too coarse for six modes.
+
+- Each exercise gets a **difficulty score from 1 to 6**, one per mode (1 Sofa … 6 Nightmare). It replaces the 3 levels in the app list. The database file keeps its levels.
+- A base lift has a base score. A variation changes it with the level changes of its values (D80), for example Knee −1, Decline +1, One Arm +1. The score stays inside 1–6.
+- **HARD badge** (D89): an exercise shows HARD when its score is above the lifter's mode.
+- **XP** (D71, D77): the rate of a set is the lower of the mode's rate and the rate of the exercise's score. D77's three tiers become six: score n pays at most mode n's rate.
+- **Target shape per class (by gear): a bell curve.** About 7%, 16%, 27%, 27%, 16% and 7% for scores 1 to 6.
+- **The curve is a target, not a quota.** Score each lift honestly; never call an easy lift hard to fill a slot. Real gym lifts lean easy, and machines stay easier than free weights, so the hard end may stay thin.
+- The build tool prints the curve per class, and per class and body part, and warns when a class is far from the target. Use the warning to choose which lifts to add (the skills in "What to add" fill the hard end).
+- Old data: sets and favorites do not store a level, so nothing needs a migration. XP already earned stays.
+
 ## Build steps
 
 1. **Clean.** Merge the duplicate lifts (keep aliases). Fix Two Arms and the Wrist Curl grips. Split `type` into real axes. Remove Deadlift on Cable and Machine if it is not a real lift.
 2. **Add bases and tools by hand.** Rings/TRX, the items in "What to add", and the rank changes.
-3. **Write the grid.** The top 40 cards first, then the rest. Run the review file and read every new name.
+3. **Write the grid.** The top 40 cards first, then the rest. Give every base its difficulty score (1–6) and every value its level change. Run the review file and read every new name. Check the curve report per class.
 4. **Move names.** Hand names become composed where a rule gives the same name. Keep the keys of old ids for saved sets.
 
 After each step: run the data tools, `flutter analyze`, `flutter test`. Saved sets, favorites, Today and forged moves must keep working.
