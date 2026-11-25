@@ -28,7 +28,9 @@ const _toolFields = <String, (String, String?)>{
   'smith': ('machine', 'Smith Machine'),
   'ezbar': ('e-z curl bar', 'EZ Bar'),
   'bands': ('bands', 'Bands'),
-  'ball': ('exercise ball', null),
+  // One Ball since D90 step 2 (an older forged ball move loads as this).
+  'ball': ('ball', 'Ball'),
+  'rings': ('rings', 'Rings'),
   // A towel is a second tool on Bodyweight (chalk.dart's chalkTowel).
   'towel': ('body only', 'Bodyweight'),
   'bodyweight': ('body only', 'Bodyweight'),
@@ -45,7 +47,8 @@ const _toolPart = <String, String>{
   'smith': 'Smith Machine',
   'ezbar': 'EZ Bar',
   'bands': 'Bands',
-  'ball': 'Exercise Ball',
+  'ball': 'Ball',
+  'rings': 'Rings',
   'towel': 'Towel',
   'bodyweight': 'Bodyweight',
 };

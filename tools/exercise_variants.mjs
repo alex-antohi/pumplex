@@ -32,6 +32,22 @@ const ALIAS = {
   'Two-Arm_Kettlebell_Clean': 'Power_Clean',
   Clean_and_Press: 'Barbell_Push_Press',
   Kettlebell_Sumo_High_Pull: 'sumo deadlift|kettlebell',
+  // D90 step 2: Bands and Chains stay only on Bench Press, Squat and
+  // Deadlift. The other powerlifting band and chain rows go to their plain lift.
+  Box_Squat_with_Bands: 'Box_Squat',
+  Box_Squat_with_Chains: 'Box_Squat',
+  Floor_Press_with_Chains: 'Floor_Press',
+  Rack_Pull_with_Bands: 'Rack_Pulls',
+  Sumo_Deadlift_with_Bands: 'Sumo_Deadlift',
+  Sumo_Deadlift_with_Chains: 'Sumo_Deadlift',
+};
+
+// Old ids of grid variations (D80) that a new modifier value renamed (D90
+// step 2): old id -> the id that replaces it. The tool writes each as an
+// alias row (`grid: true`, so it is made again on every run).
+const GRID_ALIAS = {
+  // The two balls are one tool, Ball.
+  'russian twist|medicine ball': 'russian twist|ball',
 };
 
 // Each axis: [label, regex]. Axis order matters (stance before width).
@@ -111,7 +127,7 @@ const EXPLICIT = {
   'Dips - Triceps Version': ['Dip', {}], // the standard dip (upright, parallel bars)
   'Bench Dips': ['Dip', { setup: 'Bench' }],
   'Weighted Bench Dip': ['Dip', { setup: 'Bench', load: 'Weighted' }],
-  'Ring Dips': ['Dip', { setup: 'Rings' }],
+  'Ring Dips': ['Dip', {}], // the Rings/TRX tool (D90 step 2), no longer a setup
   'Dip Machine': ['Dip', {}],
   // Dumbbells have no grip width: pressed together, it is a squeeze press.
   'Close-Grip Dumbbell Press': ['Bench Press', { type: 'Squeeze' }],
@@ -121,10 +137,11 @@ const EXPLICIT = {
 const FIX = {
   'Bench Press - With Bands': { equipment: 'barbell' }, // a barbell bench press with bands
   'Rope Jumping': { equipment: 'body only' }, // a jump rope is cheap home gear (D69 clean-up)
-  // Gear `other` that is body only (D50): dip bars, rings, a pull-up bar,
+  // Gear `other` that is body only (D50): dip bars, a pull-up bar,
   // an ab wheel, a captain's chair, a box. All other `other` gear stays hidden.
+  // Rings are their own tool since D90 step 2 (equipment `rings`).
   'Dips_-_Chest_Version': { equipment: 'body only' }, Parallel_Bar_Dip: { equipment: 'body only' },
-  Ring_Dips: { equipment: 'body only' }, Weighted_Bench_Dip: { equipment: 'body only' },
+  Ring_Dips: { equipment: 'rings' }, Weighted_Bench_Dip: { equipment: 'body only' },
   'Band_Assisted_Pull-Up': { equipment: 'body only' }, Weighted_Pull_Ups: { equipment: 'body only' },
   Ab_Roller: { equipment: 'body only' }, Knee_Hip_Raise_On_Parallel_Bars: { equipment: 'body only' },
   Muscle_Up: { equipment: 'body only' }, Front_Box_Jump: { equipment: 'body only' },
@@ -253,8 +270,20 @@ const MOVE = {
   Hyperextensions_Back_Extensions: ['Back Extension', {}],
   Weighted_Ball_Hyperextension: ['Back Extension', {}],
   Kneeling_Arm_Drill: ['Kneeling Arm Drill', {}],
-  Standing_Long_Jump: ['Standing Long Jump', {}],
-  Front_Box_Jump: ['Box Jump', {}],
+  // The one-variation jump cards fold into 4 cards (D90 step 2): Jump Squat
+  // (both feet, up), Jumping Lunge (split stance), Long Jump (forward or
+  // sideways) and Running Drill. Burpee and Mountain Climber stay cards.
+  Standing_Long_Jump: ['Long Jump', {}],
+  Lateral_Bound: ['Long Jump', { type: 'Lateral' }],
+  Front_Box_Jump: ['Jump Squat', { setup: 'Box' }],
+  Knee_Tuck_Jump: ['Jump Squat', { type: 'Tuck' }],
+  Star_Jump: ['Jump Squat', { type: 'Star' }],
+  Rocket_Jump: ['Jump Squat', { type: 'Rocket' }],
+  Split_Jump: ['Jumping Lunge', {}], // a split jump is the jumping lunge
+  Fast_Skipping: ['Running Drill', { type: 'Skipping' }],
+  Carioca_Quick_Step: ['Running Drill', { type: 'Carioca' }],
+  Double_Leg_Butt_Kick: ['Running Drill', { type: 'Butt Kick' }],
+  Single_Leg_Butt_Kick: ['Running Drill', { type: 'Butt Kick', side: 'One Leg' }],
   'One-Arm_Kettlebell_Swings': ['Kettlebell Swing', { side: 'One Arm' }],
   Vertical_Swing: ['Dumbbell Swing', {}],
   // A standing band hip extension is a band glute kickback (D90 step 1).
@@ -294,7 +323,6 @@ const MOVE = {
   Mountain_Climbers: ['Mountain Climber', {}],
   Overhead_Slam: ['Ball Slam', {}],
   Rope_Jumping: ['Jump Rope', {}],
-  Double_Leg_Butt_Kick: ['Butt Kick', {}],
   Isometric_Chest_Squeezes: ['Isometric Chest Squeeze', {}],
   'Handstand_Push-Ups': ['Handstand Push-Up', {}],
   Push_Up_to_Side_Plank: ['Push-Up to Side Plank', {}],
@@ -455,6 +483,15 @@ const EXTRA = [
     'Bicep Curl', { side: 'One Arm' }],
   ['Cable_Hip_Abduction', 'Cable Hip Abduction', gear('cable', 'strength', 'beginner', 'push', 'isolation', 'abductors'),
     'Hip Abduction', {}],
+  // New bases (D90 step 2, docs/exercise-list-plan.md "What to add"). New
+  // ids are `base|values` (D80). The calisthenics skills: Shrimp Squat and
+  // Support Hold (the BWF Recommended Routine), Back Bridge and Front Lever
+  // (the owner's choice; no program in the sample uses them: a low rank).
+  // Their Rings/TRX variations are in GRID.
+  ['shrimp squat|bodyweight', 'Shrimp Squat', bw('strength', 'intermediate', 'push', 'compound', 'quadriceps'), 'Shrimp Squat', {}],
+  ['support hold|bodyweight', 'Support Hold', bw('strength', 'beginner', 'static', 'compound', 'triceps'), 'Support Hold', {}],
+  ['back bridge|bodyweight', 'Back Bridge', bw('strength', 'intermediate', 'static', 'compound', 'lower back'), 'Back Bridge', {}],
+  ['front lever|bodyweight', 'Front Lever', bw('strength', 'expert', 'static', 'compound', 'lats'), 'Front Lever', {}],
 ];
 for (const [id, name, from, base, mods] of EXTRA) {
   EXPLICIT[name] = [base, mods];
@@ -479,9 +516,13 @@ const MERGE = {
   'side lateral raise': 'Lateral Raise', 'front lat pulldown': 'Lat Pulldown', 'glute': 'Glute Stretch', 'hamstring': 'Hamstring Stretch',
   'power squat': 'Squat', 'back fly': 'Reverse Fly', 'hamstring curl': 'Leg Curl', 'weighted sit-up': 'Sit-Up',
 };
+// The tools (D90 step 2): Bodyweight, Dumbbell, Barbell, EZ Bar, Kettlebell,
+// Cable, Machine, Smith Machine, Bands, Ball, Rings/TRX. The two database
+// balls (exercise ball, medicine ball) are one tool, Ball (equipment `ball`).
+const BALLS = new Set(['exercise ball', 'medicine ball']);
 const EQUIP_LABEL = {
   'body only': 'Bodyweight', barbell: 'Barbell', dumbbell: 'Dumbbell', kettlebells: 'Kettlebell', cable: 'Cable', machine: 'Machine',
-  bands: 'Bands', 'e-z curl bar': 'EZ Bar', 'medicine ball': 'Medicine Ball', 'exercise ball': 'Exercise Ball', 'foam roll': 'Foam Roll',
+  bands: 'Bands', 'e-z curl bar': 'EZ Bar', ball: 'Ball', rings: 'Rings', 'foam roll': 'Foam Roll',
   other: 'Other',
 };
 function equipLabel(e) {
@@ -523,6 +564,7 @@ const FLIP_HAND = { 'Wrist Curl': { 'Reverse Grip': null, 'Overhand Grip': 'Reve
 // Old base, mods and alias fields are dropped first, so the tool can run on its own output.
 const rows = all.map(({ base: _oldBase, mods: _oldMods, alias: _oldAlias, ...raw }) => {
   const e = { ...raw, ...FIX[raw.name], ...FIX[raw.id] };
+  if (BALLS.has(e.equipment)) e.equipment = 'ball';
   const p = EXPLICIT[e.name] ? { base: EXPLICIT[e.name][0], mods: { ...EXPLICIT[e.name][1] } } : parse(e.name);
   let base = OVERRIDE[e.name] ?? p.base;
   base = MERGE[base.toLowerCase()] ?? base;
@@ -612,7 +654,7 @@ const GRID = [
   { move: 'Dip', equip: 'Bodyweight', add: [{ load: 'Weighted' }, { load: 'Band Assisted' }],
     adj: { 'Band Assisted': -1, Weighted: 1 }, level: 'intermediate' },
   { move: 'Inverted Row', equip: 'Bodyweight', add: [{ hand: 'Reverse Grip' }] },
-  { move: 'Russian Twist', equip: 'Medicine Ball', from: 'Bodyweight', add: [{}] },
+  { move: 'Russian Twist', equip: 'Ball', from: 'Bodyweight', add: [{}] },
   { move: 'Russian Twist', equip: 'Dumbbell', from: 'Bodyweight', add: [{}] },
   // Bargain Bruiser gear for 3 moves it had no card of: a band face pull and
   // band hip abduction (like the cable ones), a kettlebell sumo deadlift
@@ -621,11 +663,43 @@ const GRID = [
   { move: 'Hip Abduction', equip: 'Bands', from: 'Cable', add: [{}] },
   { move: 'Sumo Deadlift', equip: 'Kettlebell', from: 'Barbell', level: 'beginner', set: { category: 'strength' },
     add: [{}] },
+  // D90 step 2: the lifts of "What to add" (docs/exercise-list-plan.md), in order.
+  // 1. The seated row machine.
+  // (Medium Grip on the machines: no width is Medium Grip where the move has
+  // a width row, D57; so the cable lift stays the card's first.)
+  { move: 'Seated Cable Row', equip: 'Machine', from: 'Cable', level: 'beginner', add: [{ width: 'Medium Grip' }] },
+  // 2. Support Hold on rings (the new bases are in EXTRA).
+  { move: 'Support Hold', equip: 'Rings', from: 'Bodyweight', level: 'intermediate', add: [{}] },
+  // 3. The assisted pull-up machine (the band-assisted pull-up is in the list)
+  // and the pulldown machine.
+  { move: 'Pull-Up', equip: 'Machine', from: 'Bodyweight', level: 'beginner', add: [{ width: 'Medium Grip' }] },
+  { move: 'Lat Pulldown', equip: 'Machine', from: 'Cable', level: 'beginner', add: [{ width: 'Medium Grip' }] },
+  // 4. Rings/TRX: ring row, ring push-up, ring ab rollout (the ring dip is the
+  // database's Ring_Dips).
+  { move: 'Inverted Row', equip: 'Rings', from: 'Bodyweight', level: 'beginner', add: [{}] },
+  { move: 'Push-Up', equip: 'Rings', from: 'Bodyweight', level: 'intermediate', add: [{}] },
+  { move: 'Ab Rollout', equip: 'Rings', from: 'Bodyweight', level: 'intermediate', add: [{}] },
+  // 5. The pseudo planche push-up and the bodyweight one-leg Romanian deadlift.
+  { move: 'Push-Up', equip: 'Bodyweight', level: 'intermediate', add: [{ type: 'Pseudo Planche', width: 'Medium Grip' }] },
+  { move: 'Romanian Deadlift', equip: 'Bodyweight', from: 'Dumbbell', level: 'beginner', add: [{ side: 'One Leg' }] },
+  // 6. The band Pallof press.
+  { move: 'Pallof Press', equip: 'Bands', from: 'Cable', level: 'beginner', add: [{}] },
+  // 7. The decline sit-up (the Crunch card has the machine crunch).
+  { move: 'Sit-Up', equip: 'Bodyweight', level: 'intermediate', add: [{ angle: 'Decline' }] },
+  // 8. The bodyweight leg curl (feet on a towel or a slider) and the dumbbell rear delt row.
+  { move: 'Leg Curl', equip: 'Bodyweight', from: 'Ball', level: 'intermediate', add: [{ setup: 'Towel' }] },
+  { move: 'Rear Delt Row', equip: 'Dumbbell', from: 'Barbell', level: 'beginner', add: [{}] },
+  // 9. The jumping lunge with dumbbells (the split jump is the bodyweight one).
+  { move: 'Jumping Lunge', equip: 'Dumbbell', from: 'Bodyweight', level: 'intermediate', add: [{}] },
+  // 10. Front Lever on rings and the lateral lunge (low rank: a Lunge chip).
+  { move: 'Front Lever', equip: 'Rings', from: 'Bodyweight', level: 'expert', add: [{}] },
+  { move: 'Lunge', equip: 'Bodyweight', level: 'beginner', add: [{ type: 'Lateral' }] },
+  { move: 'Lunge', equip: 'Dumbbell', level: 'beginner', add: [{ type: 'Lateral' }] },
 ];
 // The database equipment of an equipment modifier (for a new equipment on a move).
 const EQUIP_DB = {
   Bodyweight: 'body only', Barbell: 'barbell', Dumbbell: 'dumbbell', Kettlebell: 'kettlebells', Cable: 'cable', Machine: 'machine',
-  'Smith Machine': 'machine', Bands: 'bands', 'EZ Bar': 'e-z curl bar', 'Medicine Ball': 'medicine ball', 'Exercise Ball': 'exercise ball',
+  'Smith Machine': 'machine', Bands: 'bands', 'EZ Bar': 'e-z curl bar', Ball: 'ball', Rings: 'rings',
 };
 const matches = (mods, rule) => Object.entries(rule).every(([a, v]) => (Array.isArray(v) ? v : [v]).includes(mods[a] ?? null));
 // Two modifier sets are the same variation (no width = Medium Grip, D57).
@@ -707,13 +781,15 @@ if (args.includes('--report')) {
 for (const id of Object.keys(MOVE)) if (!all.some((e) => e.id === id)) throw new Error(`MOVE: no exercise ${id}`);
 for (const id of Object.keys(MOVE)) if (ALIAS[id]) throw new Error(`MOVE: ${id} is an alias`);
 // No id of the app list is lost (D90): each one is a row here or an alias.
-checkFrozen(rows.filter((r) => !ALIAS[r.e.id]).map((r) => r.e.id), ALIAS, 'exercise_variants');
+for (const id of Object.keys(GRID_ALIAS)) if (rows.some((r) => r.e.id === id)) throw new Error(`GRID_ALIAS: ${id} is still made`);
+checkFrozen(rows.filter((r) => !ALIAS[r.e.id]).map((r) => r.e.id), { ...ALIAS, ...GRID_ALIAS }, 'exercise_variants');
 const wi = args.indexOf('--write');
 if (wi >= 0) {
   // Every exercise gets its move (D69 clean-up): a card with one exercise
   // is a move too, so search finds a clean move name for every card. An
   // aliased one gets only its alias.
   const out = rows.map((r) => (ALIAS[r.e.id] ? { ...r.e, alias: ALIAS[r.e.id] } : { ...r.e, base: r.base, mods: r.mods }));
+  for (const [id, alias] of Object.entries(GRID_ALIAS)) out.push({ id, alias, grid: true });
   fs.writeFileSync(args[wi + 1], '[\n' + out.map((r) => JSON.stringify(r)).join(',\n') + '\n]\n');
   console.log('written', out.length, 'in groups:', inGroup.size);
 }

@@ -340,5 +340,41 @@
   "move.zottman curl": [
     "biceps",
     "forearms"
+  ],
+  "move.jumping lunge": [
+    "split jump",
+    "scissor jump",
+    "lunge jump"
+  ],
+  "move.long jump": [
+    "broad jump",
+    "standing long jump",
+    "bound",
+    "lateral bound"
+  ],
+  "move.running drill": [
+    "skipping",
+    "high knees",
+    "butt kicks",
+    "carioca"
+  ],
+  "move.shrimp squat": [
+    "shrimp",
+    "single-leg squat"
+  ],
+  "move.support hold": [
+    "dip hold",
+    "ring support",
+    "parallel bar hold"
+  ],
+  "move.back bridge": [
+    "bridge",
+    "wheel",
+    "full bridge"
+  ],
+  "move.front lever": [
+    "lever",
+    "skill",
+    "calisthenics"
   ]
 }

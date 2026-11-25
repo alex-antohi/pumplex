@@ -109,7 +109,8 @@ void main() {
         for (final g in index.search({w.key})) g.key,
     };
     final odd = [for (final g in exerciseCatalog.groups) if (!what.contains(g.key)) g.name]..sort();
-    expect(odd.length, lessThanOrEqualTo(10), reason: '$odd');
+    // (D90 step 2 added Support Hold: a dip hold, pattern triceps, no word.)
+    expect(odd.length, lessThanOrEqualTo(11), reason: '$odd');
   });
 
   test('the word index: the user-test gaps (towel, rowing machine, null gear, isolation moves)', () {
@@ -129,7 +130,7 @@ void main() {
     expect(cards({'move.kickback', 'body.arms'}), {'move:triceps kickback'});
     expect(cards({'move.pullover'}), {'move:pullover'});
     expect(cards({'move.hipthrust'}), {'move:hip thrust'});
-    expect(cards({'move.bridge'}), {'move:glute bridge'});
+    expect(cards({'move.bridge'}), {'move:glute bridge', 'move:back bridge'});
     expect(cards({'move.wristcurl'}), {'move:wrist curl'});
     expect(cards({'move.curl', 'body.legs'}), {'move:leg curl', 'move:nordic curl'});
     expect(cards({'move.raise', 'body.legs'}), contains('move:calf raise'));
@@ -296,11 +297,15 @@ void main() {
     for (final id in ['jump', 'carry', 'cardio']) {
       expect(find.byKey(ValueKey('chalk-pattern.$id')), findsOneWidget, reason: id);
     }
-    final tools = chalkWords.where((w) => w.row == 'tool').toList();
+    // The rack has 11 slots (D90 step 2): Rings/TRX is in, the towel is a word only.
+    final tools = chalkRackTools;
+    expect(tools.map((w) => w.id).toSet(),
+        {'bodyweight', 'dumbbell', 'barbell', 'ezbar', 'kettlebell', 'cable', 'machine', 'smith', 'bands', 'ball', 'rings'});
     for (final w in tools) {
       expect(find.byKey(ValueKey('chalk-${w.key}')), findsOneWidget, reason: w.key);
       expect(File(chalkToolIcon(w.id)).existsSync(), isTrue, reason: chalkToolIcon(w.id)); // an icon per tool
     }
+    expect(find.byKey(const ValueKey('chalk-tool.towel')), findsNothing);
     // A body tag stays on the picture; a tool folds it into the LOADOUT bar.
     await t.tap(find.byKey(const ValueKey('chalk-body.chest')));
     await _frames(t, 4);

@@ -619,5 +619,40 @@
   "move.zottman curl": [
     "biceps",
     "antebraț"
+  ],
+  "move.jumping lunge": [
+    "fandări sărite",
+    "split jump",
+    "sărituri foarfecă"
+  ],
+  "move.long jump": [
+    "săritură în lungime",
+    "broad jump",
+    "sărituri laterale"
+  ],
+  "move.running drill": [
+    "skipping",
+    "genunchi sus",
+    "călcâie la fese",
+    "carioca"
+  ],
+  "move.shrimp squat": [
+    "shrimp",
+    "genuflexiuni pe un picior"
+  ],
+  "move.support hold": [
+    "sprijin",
+    "sprijin la paralele",
+    "sprijin la inele"
+  ],
+  "move.back bridge": [
+    "pod",
+    "podul",
+    "roata"
+  ],
+  "move.front lever": [
+    "front lever",
+    "lever",
+    "calistenie"
   ]
 }

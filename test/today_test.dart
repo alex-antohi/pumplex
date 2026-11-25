@@ -142,7 +142,9 @@ void main() {
     store.addSet(x);
     expect(store.setsToday(x), 1);
     // On the CHALK preview, the preview becomes the new variation.
-    final p = exerciseCatalog.byKey['move:squat']!;
+    // (A move with no exercise in Today: the Squat is `other` since D90 made it rank 2.)
+    final p = exerciseCatalog.byKey['move:deadlift']!;
+    expect(p.variants.any((e) => store.todayIds.contains(e.id)), isFalse);
     store.selectExercise(p.variants[0].id);
     store.changeVariant(p.variants[0].id, p.variants[1].id);
     expect(store.previewId, p.variants[1].id);

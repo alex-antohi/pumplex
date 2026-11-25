@@ -73,27 +73,29 @@ const COMMON = [
     'Pike Push-Up', 'Burpee', 'Ab Rollout', 'Pistol Squat', 'Chest-Supported Row'],
   // 6: known and used, less often.
   ['Sumo Deadlift', 'Box Squat', 'Floor Press', 'Reverse Curl', 'Triceps Extension',
-    'Rack Pull', 'Pallof_Press', 'Glute Kickback', 'Pull-Through', 'Jump Squat', 'Star_Jump', 'Jump Rope',
-    'Cardio Machine', 'Power Clean', 'Kettlebell_Thruster', 'Side Bend', 'Landmine_Linear_Jammer', 'Muscle_Up', 'Front_Box_Jump',
+    'Rack Pull', 'Pallof_Press', 'Glute Kickback', 'Pull-Through', 'Jump Squat', 'Jump Rope',
+    'Cardio Machine', 'Power Clean', 'Kettlebell_Thruster', 'Side Bend', 'Landmine_Linear_Jammer', 'Muscle_Up',
     'Oblique Crunch', 'Leg Pull-In',
     'High Row', 'External Rotation', 'Internal Rotation', 'Monster_Walk', 'Handstand Push-Up', 'Scapular Pull-Up',
     'Nordic Curl', 'Reverse_Hyperextension', 'Jackknife_Sit-Up', 'Ball Slam', 'Renegade Row',
     'Towel Triceps Extension', 'Tuck_Crunch', 'Cross-Body_Crunch', 'Dead Hang', 'Superman', 'Wall_Sit', 'Hollow_Body_Hold',
-    'Bird_Dog', 'Prone_Y-T-W_Raise', 'Cossack_Squat', 'Rear Delt Row'],
+    'Bird_Dog', 'Prone_Y-T-W_Raise', 'Cossack_Squat', 'Rear Delt Row',
+    // D90 step 2: the BWF skills Shrimp Squat and Support Hold.
+    'Shrimp Squat', 'Support Hold'],
   // 7: seen now and then.
   ['Alternate_Heel_Touchers', 'Ball Pull-In', 'Medicine_Ball_Chest_Pass',
     'JM_Press', 'Tate_Press',
     'Spider_Curl', 'Drag_Curl', 'Zottman_Curl', 'High_Cable_Curls',
     'High Pulley Row', 'Deficit_Deadlift',
     'Push Press', 'Kettlebell_Halo', 'Kettlebell_Turkish_Get-Up_Squat_style',
-    'Side_Laterals_to_Front_Raise', 'Push-Up to Side Plank', 'Split_Jump', 'Standing_Long_Jump', 'Knee_Tuck_Jump',
-    'Lateral_Bound', 'Wall_Walk', 'Wall_Handstand_Hold',
+    'Side_Laterals_to_Front_Raise', 'Push-Up to Side Plank', 'Jumping Lunge', 'Long Jump', 'Wall_Walk', 'Wall_Handstand_Hold',
     'Pogo_Hops', 'L-Sit', 'Dumbbell Swing', 'Flutter_Kicks', 'Reverse_Snow_Angel', 'Chin-Up_Hold'],
   // 8: rare; here so that the small classes (Scrapper) have enough cards.
   ['Kneeling_Arm_Drill', 'Clock_Push-Up', 'Isometric Chest Squeeze', 'Finger_Curls',
-    'Carioca_Quick_Step', 'Fast_Skipping', 'Double_Leg_Butt_Kick',
-    'Rocket_Jump', 'Zercher_Squats', 'Cuban_Press', 'Dumbbell_Scaption',
-    'Doorframe_Curl', 'Calf Raise on a Dumbbell'],
+    'Running Drill', 'Zercher_Squats', 'Cuban_Press', 'Dumbbell_Scaption',
+    'Doorframe_Curl', 'Calf Raise on a Dumbbell',
+    // D90 step 2: the owner's skills; no program in the sample uses them.
+    'Back Bridge', 'Front Lever'],
 ];
 
 // The movement pattern of each candidate card. The slot patterns are in
@@ -104,19 +106,19 @@ const PATTERNS = {
   vpush: ['Shoulder Press', 'Arnold Press', 'Handstand Push-Up', 'Push Press', 'Pike Push-Up', 'Wall_Walk', 'Wall_Handstand_Hold',
     'Kettlebell_Thruster', 'Landmine_Linear_Jammer'],
   hpull: ['Bent-Over Row', 'One-Arm Row', 'Seated Cable Row', 'Inverted Row', 'T-Bar Row', 'Chest-Supported Row', 'High Row',
-    'Renegade Row'],
+    'Renegade Row', 'Front Lever'],
   vpull: ['Pull-Up', 'Lat Pulldown', 'Straight-Arm Pulldown', 'Scapular Pull-Up', 'High Pulley Row', 'Muscle_Up'],
   squat: ['Squat', 'Leg Press', 'Leg Extension', 'Goblet Squat', 'Hack Squat', 'Front Squat', 'Box Squat',
     'Zercher_Squats', 'Wall_Sit'],
   hinge: ['Deadlift', 'Romanian Deadlift', 'Hip Thrust', 'Glute Bridge', 'Back Extension',
     'Good Morning', 'Kettlebell Swing', 'Sumo Deadlift', 'Rack Pull', 'Glute Kickback', 'Pull-Through', 'Reverse_Hyperextension',
-    'Deficit_Deadlift', 'Superman', 'Dumbbell Swing'],
-  single: ['Lunge', 'Step-Up', 'Split Squat', 'Pistol Squat'],
+    'Deficit_Deadlift', 'Superman', 'Dumbbell Swing', 'Back Bridge'],
+  single: ['Lunge', 'Step-Up', 'Split Squat', 'Pistol Squat', 'Shrimp Squat'],
   calves: ['Calf Raise', 'Pogo_Hops', 'Calf Raise on a Dumbbell'],
   biceps: ['Bicep Curl', 'Hammer Curl', 'Preacher Curl', 'Concentration Curl', 'Spider_Curl', 'Drag_Curl',
     'Zottman_Curl', 'High_Cable_Curls', 'Chin-Up_Hold', 'Doorframe_Curl'],
   triceps: ['Dip', 'Triceps Pushdown', 'Overhead Triceps Extension', 'Skullcrusher', 'Triceps Kickback', 'Triceps Extension',
-    'Towel Triceps Extension', 'JM_Press', 'Tate_Press'],
+    'Towel Triceps Extension', 'JM_Press', 'Tate_Press', 'Support Hold'],
   rear: ['Face Pull', 'Reverse Fly', 'Band Pull-Apart', 'Prone_Y-T-W_Raise', 'Rear Delt Row', 'Cuban_Press', 'Reverse_Snow_Angel'],
   flex: ['Crunch', 'Sit-Up', 'Hanging Leg Raise', 'Bicycle Crunch', 'Reverse Crunch', 'Lying Leg Raise', 'Oblique Crunch',
     'Leg Pull-In', 'Jackknife_Sit-Up', 'Tuck_Crunch',
@@ -134,9 +136,8 @@ const PATTERNS = {
   hamcurl: ['Leg Curl', 'Nordic Curl'],
   rotation: ['Russian_Twist', 'Standing_Cable_Wood_Chop', 'Side Bend'],
   power: ['Power Clean', 'Ball Slam', 'Kettlebell_Turkish_Get-Up_Squat_style'],
-  plyo: ['Mountain Climber', 'Burpee', 'Jump Squat', 'Star_Jump', 'Split_Jump', 'Standing_Long_Jump', 'Knee_Tuck_Jump',
-    'Lateral_Bound', 'Carioca_Quick_Step', 'Fast_Skipping', 'Double_Leg_Butt_Kick', 'Rocket_Jump',
-    'Front_Box_Jump'],
+  // The jumps are 4 cards (D90 step 2): Jump Squat, Jumping Lunge, Long Jump, Running Drill.
+  plyo: ['Mountain Climber', 'Burpee', 'Jump Squat', 'Jumping Lunge', 'Long Jump', 'Running Drill'],
   cardio: ['Cardio Machine', 'Jump Rope'],
 };
 
@@ -188,8 +189,9 @@ const PIN = {
     // Raise the Nordic Curl, Scissors Jump the Split Jump.
     Flutter_Kicks: M.pain, Hollow_Body_Hold: M.pain, Reverse_Crunch: M.pain,
     Natural_Glute_Ham_Raise: M.pain, 'Jackknife_Sit-Up': M.pain,
-    'L-Sit': M.brutal, Rocket_Jump: M.brutal,
-    Double_Leg_Butt_Kick: M.nightmare, Carioca_Quick_Step: M.nightmare, Fast_Skipping: M.nightmare,
+    // D90 step 2: the jumps are 4 cards; the drills are one card (Running Drill).
+    'L-Sit': M.brutal,
+    Double_Leg_Butt_Kick: M.nightmare,
   },
   bruiser: {
     Inverted_Row: M.sofa, Butt_Lift_Bridge: M.sofa, Dead_Bug: M.sofa,
@@ -225,6 +227,8 @@ const PIN = {
     'Spider Curl': M.sweat, 'JM Press': M.pain,
     'Drag Curl': M.brutal, 'Deficit Deadlift': M.brutal, 'Tate Press': M.brutal,
     'Finger Curl': M.nightmare,
+    // D90 step 2: the rank changes left it out; it stays a Paladin card.
+    Zercher_Squats: M.nightmare,
   },
   cablemancer: {
     Leg_Press: M.sofa, Leg_Extensions: M.sofa, Butterfly: M.sofa, Face_Pull: M.sofa, Reverse_Machine_Flyes: M.sofa,
@@ -275,8 +279,8 @@ const LEVELS = ['beginner', 'intermediate', 'expert'];
 
 // The class filter (D50); the same as classEquipment and classCategories in lib/game/exercises.dart.
 const CLASSES = {
-  scrapper: [['body only'], ['strength', 'plyometrics', 'cardio']],
-  bruiser: [['body only', 'dumbbell', 'kettlebells', 'bands', 'medicine ball', 'exercise ball'], ['strength', 'plyometrics', 'cardio']],
+  scrapper: [['body only', 'rings'], ['strength', 'plyometrics', 'cardio']],
+  bruiser: [['body only', 'dumbbell', 'kettlebells', 'bands', 'ball'], ['strength', 'plyometrics', 'cardio']],
   paladin: [['body only', 'barbell', 'e-z curl bar', 'dumbbell', 'kettlebells'], ['strength', 'powerlifting']],
   cablemancer: [['body only', 'machine', 'cable'], ['strength', 'cardio']],
 };
@@ -328,6 +332,21 @@ COMMON.forEach((tier, t) => tier.forEach((id, i) => {
   order.push({ name, t, i, n: byCard.get(name).length });
 }));
 order.sort((a, b) => a.t - b.t || b.n - a.n || a.i - b.i);
+// Ranks set by hand (D90 step 2, after the research on 19 programs): the card
+// goes to that place, the others keep their order around it. Push-Up and
+// Hip Thrust stay where they were.
+const RANK = {
+  Squat: 2, 'Push-Up': 4, 'Bent-Over Row': 6, 'Romanian Deadlift': 7, 'One-Arm Row': 12, Fly: 15, 'Split Squat': 25,
+  'Hip Thrust': 29,
+};
+{
+  const fixed = Object.entries(RANK).map(([n, r]) => {
+    const i = order.findIndex((o) => o.name === n);
+    if (i < 0) throw new Error(`RANK: no card ${n}`);
+    return [order.splice(i, 1)[0], r];
+  });
+  for (const [o, r] of fixed.sort((a, b) => a[1] - b[1])) order.splice(r - 1, 0, o);
+}
 const rankOf = new Map(order.map((o, i) => [o.name, i + 1]));
 
 const patternOf = new Map();
@@ -342,7 +361,10 @@ for (const [p, names] of Object.entries(PATTERNS)) {
 for (const o of order) if (!patternOf.has(o.name)) throw new Error(`PATTERNS: no pattern for ${o.name}`);
 
 // The simplest exercise first (as in the app): fewest modifiers, then the shortest name.
-const simplest = (a, b) => Object.keys(a.mods ?? {}).length - Object.keys(b.mods ?? {}).length || a.name.length - b.name.length;
+// Rings/TRX counts as one modifier more (D90 step 2): a ring lift is the
+// bodyweight lift made harder, never the card's first.
+const plainness = (e) => Object.keys(e.mods ?? {}).length + (e.mods?.equip === 'Rings' ? 1 : 0);
+const simplest = (a, b) => plainness(a) - plainness(b) || a.name.length - b.name.length;
 
 // Per class: the first mode of each card. A card's muscle is the most
 // frequent first muscle of its exercises in the class (a tie: the simplest

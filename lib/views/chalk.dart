@@ -374,7 +374,7 @@ class _GearRack extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
-    final tools = chalkWords.where((w) => w.row == 'tool').toList();
+    final tools = chalkRackTools;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [

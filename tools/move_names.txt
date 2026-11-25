@@ -1,5 +1,6 @@
 Ab Rollout
 Arnold Press
+Back Bridge
 Back Extension
 Ball Pull-In
 Ball Slam
@@ -9,14 +10,11 @@ Bent-Over Row
 Bicep Curl
 Bicycle Crunch
 Bird Dog
-Box Jump
 Box Squat
 Burpee
-Butt Kick
 Calf Raise
 Calf Raise on a Dumbbell
 Cardio Machine
-Carioca Quick Step
 Chest Press
 Chest-Supported Row
 Chin-Up Hold
@@ -38,11 +36,11 @@ Dumbbell Swing
 External Rotation
 Face Pull
 Farmer's Walk
-Fast Skipping
 Finger Curl
 Floor Press
 Flutter Kicks
 Fly
+Front Lever
 Front Raise
 Front Squat
 Glute Bridge
@@ -69,19 +67,19 @@ Jackknife Sit-Up
 JM Press
 Jump Rope
 Jump Squat
+Jumping Lunge
 Kettlebell Swing
-Knee Tuck Jump
 Kneeling Arm Drill
 L-Sit
 Landmine Press
 Lat Pulldown
-Lateral Bound
 Lateral Raise
 Lateral to Front Raise
 Leg Curl
 Leg Extension
 Leg Press
 Leg Pull-In
+Long Jump
 Lunge
 Lying Leg Raise
 Medicine Ball Chest Pass
@@ -114,28 +112,27 @@ Reverse Curl
 Reverse Fly
 Reverse Hyperextension
 Reverse Snow Angel
-Rocket Jump
 Romanian Deadlift
+Running Drill
 Russian Twist
 Scaption
 Scapular Pull-Up
 Seated Cable Row
 Shoulder Press
+Shrimp Squat
 Shrug
 Side Bend
 Side Plank
 Sit-Up
 Skullcrusher
 Spider Curl
-Split Jump
 Split Squat
 Squat
-Standing Long Jump
-Star Jump
 Step-Up
 Straight-Arm Pulldown
 Sumo Deadlift
 Superman
+Support Hold
 T-Bar Row
 Tate Press
 Thruster

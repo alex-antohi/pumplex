@@ -73,7 +73,10 @@ final chalkMoveWords = <String, RegExp>{
   'shrug': RegExp(r'shrug', caseSensitive: false),
 };
 
-/// The tools: the equipment modifier, else the database equipment.
+/// The tools: the equipment modifier, else the database equipment. Since
+/// D90 step 2 the two balls are one tool (equipment `ball`, modifier Ball)
+/// and Rings/TRX is a tool (equipment `rings`, modifier Rings). The old
+/// ball values stay here, so nothing older loses its tool.
 const chalkToolOfEquipment = {
   'body only': 'bodyweight',
   'dumbbell': 'dumbbell',
@@ -83,8 +86,10 @@ const chalkToolOfEquipment = {
   'kettlebells': 'kettlebell',
   'bands': 'bands',
   'e-z curl bar': 'ezbar',
+  'ball': 'ball',
   'exercise ball': 'ball',
   'medicine ball': 'ball',
+  'rings': 'rings',
 };
 const chalkToolOfMod = {
   'Bodyweight': 'bodyweight',
@@ -96,11 +101,15 @@ const chalkToolOfMod = {
   'Kettlebell': 'kettlebell',
   'Bands': 'bands',
   'EZ Bar': 'ezbar',
+  'Ball': 'ball',
   'Exercise Ball': 'ball',
   'Medicine Ball': 'ball',
+  'Rings': 'rings',
 };
 
 /// A towel is a second tool on top of Bodyweight (Towel Row, Towel Hang).
+/// Since D90 step 2 it is a word only, not a gear-rack slot
+/// ([chalkRackTools]): CHALK and FORGE still know it.
 final chalkTowel = RegExp(r'\btowel', caseSensitive: false);
 
 /// Every word tile, row by row, in the order the sheet shows them.
@@ -145,6 +154,7 @@ const chalkWords = <ChalkWord>[
   ChalkWord('tool', 'ezbar', 'EZ bar'),
   ChalkWord('tool', 'bands', 'Bands'),
   ChalkWord('tool', 'ball', 'Ball'),
+  ChalkWord('tool', 'rings', 'Rings / TRX'),
   ChalkWord('tool', 'towel', 'Towel'),
   ChalkWord('tool', 'bodyweight', 'Bodyweight'),
   ChalkWord('body', 'chest', 'Chest'),
@@ -156,6 +166,21 @@ const chalkWords = <ChalkWord>[
 ];
 
 ChalkWord? chalkWordByKey(String key) => chalkWords.where((w) => w.key == key).firstOrNull;
+
+/// The gear rack (D87, D90 step 2): one slot per tool, 11 slots. The towel
+/// is a TOOL word but not a slot.
+final chalkRackTools = [for (final w in chalkWords) if (w.row == 'tool' && w.id != 'towel') w];
+
+/// The gear each class lights (D50, the lit rule of D89; D90 step 2), as
+/// TOOL word ids, the class's tools first. Bodyweight is lit for every class.
+/// Trap Bar and Landmine lifts are barbell lifts, so they are Plate Paladin
+/// gear. Data only: the order of the rack and the results (D89) is not built.
+const classGear = <String, List<String>>{
+  'scrapper': ['bodyweight', 'rings'],
+  'bruiser': ['dumbbell', 'kettlebell', 'bands', 'ball', 'bodyweight'],
+  'paladin': ['barbell', 'ezbar', 'dumbbell', 'kettlebell', 'bodyweight'],
+  'cablemancer': ['machine', 'cable', 'smith', 'bodyweight'],
+};
 
 /// The words of exercise [e].
 Set<String> _wordsOf(CatalogExercise e) {

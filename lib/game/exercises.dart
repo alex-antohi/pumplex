@@ -160,7 +160,8 @@ class ExerciseGroup {
   final String key;
   final String name;
 
-  /// Simplest first: fewest modifiers, then the shortest name.
+  /// Simplest first: fewest modifiers (Rings/TRX counts as one more), then
+  /// the shortest name.
   final List<CatalogExercise> variants;
 
   /// Commonness (D67): 1 = the most common card.
@@ -219,7 +220,10 @@ class ExerciseCatalog {
       (byBase[e.base.toLowerCase()] ??= []).add(e);
     }
     for (final list in byBase.values) {
-      list.sort((a, b) => a.mods.length != b.mods.length ? a.mods.length - b.mods.length : a.name.length - b.name.length);
+      // Rings/TRX counts as one modifier more (D90 step 2): a ring lift is
+      // the bodyweight lift made harder, never the card's first.
+      int plain(CatalogExercise e) => e.mods.length + (e.mods['equip'] == 'Rings' ? 1 : 0);
+      list.sort((a, b) => plain(a) != plain(b) ? plain(a) - plain(b) : a.name.length - b.name.length);
       final g = list.length == 1 && !list.single.isMove
           ?ExerciseGroup(list.single.id, list.single.name, list)
           : ExerciseGroup('move:${list.first.base.toLowerCase()}', list.first.base, list);
@@ -296,6 +300,18 @@ class ExerciseCatalog {
     'move:clean': 'Power_Clean',
     'move:clean and press': 'Barbell_Push_Press',
     'move:kettlebell sumo high pull': 'sumo deadlift|kettlebell',
+    // D90 step 2: the jump cards fold into Jump Squat, Jumping Lunge, Long
+    // Jump and Running Drill; each old card goes to its lift there.
+    'move:star jump': 'Star_Jump',
+    'move:knee tuck jump': 'Knee_Tuck_Jump',
+    'move:rocket jump': 'Rocket_Jump',
+    'move:box jump': 'Front_Box_Jump',
+    'move:split jump': 'Split_Jump',
+    'move:standing long jump': 'Standing_Long_Jump',
+    'move:lateral bound': 'Lateral_Bound',
+    'move:fast skipping': 'Fast_Skipping',
+    'move:carioca quick step': 'Carioca_Quick_Step',
+    'move:butt kick': 'Double_Leg_Butt_Kick',
   };
 
   static const asset = 'assets/exercises/exercises.json';
@@ -412,10 +428,12 @@ CatalogExercise? pickVariant(ExerciseGroup g, CatalogExercise current, String ax
 // ---------------------------------------------------------------- class
 
 /// The equipment each class trains with (D50). Every class also gets
-/// 'body only'. 'other' (mixed gear) and 'foam roll' are not shown.
+/// 'body only'. 'other' (mixed gear) and 'foam roll' are not shown. Since
+/// D90 step 2 the two balls are one tool (`ball`) and rings are the
+/// Scrapper's (`rings`); the same gear as TOOL words: chalk.dart's classGear.
 const classEquipment = <String, Set<String>>{
-  'scrapper': {'body only'},
-  'bruiser': {'body only', 'dumbbell', 'kettlebells', 'bands', 'medicine ball', 'exercise ball'},
+  'scrapper': {'body only', 'rings'},
+  'bruiser': {'body only', 'dumbbell', 'kettlebells', 'bands', 'ball'},
   'paladin': {'body only', 'barbell', 'e-z curl bar', 'dumbbell', 'kettlebells'},
   'cablemancer': {'body only', 'machine', 'cable'},
 };

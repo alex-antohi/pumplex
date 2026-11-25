@@ -8,7 +8,9 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:gym_app/game/chalk.dart';
 import 'package:gym_app/game/exercises.dart';
+import 'package:gym_app/game/forge.dart';
 import 'package:gym_app/game/model.dart';
 import 'package:gym_app/store.dart';
 
@@ -48,6 +50,82 @@ void main() {
     for (final MapEntry(:key, :value) in exerciseCatalog.aliasOf.entries) {
       expect(exerciseCatalog.byId[key], isNull, reason: key);
       expect(exerciseCatalog.byId[value], isNotNull, reason: key);
+    }
+  });
+
+  test('D90 step 2: band and chain rows, the folded jump cards and the one Ball keep their old ids', () {
+    // Bands and Chains only on Bench Press, Squat and Deadlift.
+    for (final (old, plain) in [
+      ('Box_Squat_with_Bands', 'Box_Squat'),
+      ('Box_Squat_with_Chains', 'Box_Squat'),
+      ('Floor_Press_with_Chains', 'Floor_Press'),
+      ('Rack_Pull_with_Bands', 'Rack_Pulls'),
+      ('Sumo_Deadlift_with_Bands', 'Sumo_Deadlift'),
+      ('Sumo_Deadlift_with_Chains', 'Sumo_Deadlift'),
+    ]) {
+      expect(exerciseCatalog.resolveId(old), plain, reason: old);
+    }
+    final banded = {for (final e in exerciseCatalog.all) if (e.mods['bands'] != null || e.mods['chains'] != null) e.base};
+    expect(banded, {'Bench Press', 'Squat', 'Deadlift'});
+    // The renamed ball variation.
+    expect(exerciseCatalog.resolveId('russian twist|medicine ball'), 'russian twist|ball');
+    // The jump cards: every old lift is a chip of a new card; old card keys follow.
+    for (final (id, card) in [
+      ('Freehand_Jump_Squat', 'jump squat'), ('Weighted_Jump_Squat', 'jump squat'), ('Knee_Tuck_Jump', 'jump squat'),
+      ('Star_Jump', 'jump squat'), ('Rocket_Jump', 'jump squat'), ('Front_Box_Jump', 'jump squat'),
+      ('Split_Jump', 'jumping lunge'), ('Scissors_Jump', 'jumping lunge'),
+      ('Standing_Long_Jump', 'long jump'), ('Lateral_Bound', 'long jump'),
+      ('Fast_Skipping', 'running drill'), ('Carioca_Quick_Step', 'running drill'),
+      ('Double_Leg_Butt_Kick', 'running drill'), ('Single_Leg_Butt_Kick', 'running drill'),
+    ]) {
+      expect(exerciseCatalog.groupKeyOf(id), 'move:$card', reason: id);
+    }
+    for (final (old, card) in [('move:star jump', 'jump squat'), ('move:box jump', 'jump squat'), ('move:split jump', 'jumping lunge'),
+      ('move:lateral bound', 'long jump'), ('move:butt kick', 'running drill')]) {
+      expect(exerciseCatalog.groupKeyOf(old), 'move:$card', reason: old);
+    }
+    expect(exerciseCatalog.byKey['move:jump squat']!.variants.length, 6);
+  });
+
+  test('D90 step 2: a forged move with the old ball or towel word still loads', () {
+    final ball = ForgedMove.fromJson({'id': 'custom_1', 'words': ['tool.ball', 'move.crunch'], 'muscle': 'abdominals'});
+    expect(ball.words, {'tool.ball', 'move.crunch'});
+    expect(ball.toExercise().equipment, 'ball');
+    expect(ball.toExercise().mods, {'equip': 'Ball'});
+    final towel = ForgedMove.fromJson({'id': 'custom_2', 'words': ['tool.towel', 'move.row'], 'muscle': 'middle back'});
+    expect(towel.words, {'tool.towel', 'move.row'});
+    expect(towel.name, 'Towel Row');
+    final cat = catalogWithForged(exerciseCatalog, [ball, towel]);
+    final index = ChalkIndex(cat);
+    expect(index.words['custom_1'], containsAll(['tool.ball', 'move.crunch']));
+    expect(index.words['custom_2'], containsAll(['tool.towel', 'tool.bodyweight', 'move.row']));
+    // An older forged move with only an English name gets its words back.
+    expect(ForgedMove.fromJson({'id': 'custom_3', 'name': 'Ball Crunch', 'muscle': 'abdominals'}).words, {'tool.ball', 'move.crunch'});
+  });
+
+  test('D90 step 2: Rings/TRX is a tool; the class gear (D50, the lit rule of D89)', () {
+    expect(chalkWordByKey('tool.rings'), isNotNull);
+    expect(chalkRackTools.length, 11);
+    final rings = [for (final e in exerciseCatalog.all) if (e.mods['equip'] == 'Rings') e.id]..sort();
+    expect(rings, ['Ring_Dips', 'ab rollout|rings', 'front lever|rings', 'inverted row|rings', 'push-up|rings', 'support hold|rings']);
+    expect(classGear['scrapper'], ['bodyweight', 'rings']);
+    expect(classGear['bruiser'], ['dumbbell', 'kettlebell', 'bands', 'ball', 'bodyweight']);
+    expect(classGear['paladin'], ['barbell', 'ezbar', 'dumbbell', 'kettlebell', 'bodyweight']);
+    expect(classGear['cablemancer'], ['machine', 'cable', 'smith', 'bodyweight']);
+    // The tools of the class's equipment (D50) are its gear; every class has Bodyweight.
+    final index = ChalkIndex.of(exerciseCatalog);
+    for (final MapEntry(key: c, value: gear) in classGear.entries) {
+      expect(gear, contains('bodyweight'), reason: c);
+      for (final e in exerciseCatalog.all.where((e) => classEquipment[c]!.contains(e.equipment))) {
+        final tool = index.words[e.id]!.firstWhere((k) => k.startsWith('tool.') && k != 'tool.towel').substring(5);
+        // A Smith machine is a machine in the database: only the Cablemancer has it.
+        if (tool == 'smith' && c != 'cablemancer') continue;
+        expect(gear, contains(tool), reason: '$c ${e.id}');
+      }
+    }
+    // Trap Bar and Landmine lifts are Plate Paladin gear.
+    for (final id in ['Trap_Bar_Deadlift', 'Landmine_Linear_Jammer']) {
+      expect(classEquipment['paladin'], contains(exerciseCatalog.byId[id]!.equipment), reason: id);
     }
   });
 
