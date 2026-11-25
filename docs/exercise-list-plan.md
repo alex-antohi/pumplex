@@ -40,7 +40,7 @@ A debate with measurements on the real list (25 Nov 2026) found:
 ## Owner's choices (25 Nov 2026)
 
 1. Variations come from rules for each card.
-2. New tools: **Rings/TRX, Landmine, Trap Bar, Plate.** Merge the two balls into **Ball**. Do not add sled, sandbag or battle rope (D56 stays).
+2. New tools: first choice was Rings/TRX, Landmine, Trap Bar and Plate. **Changed after the research (the owner left this call to the agent): only Rings/TRX becomes a new tool.** Trap Bar stays a Deadlift chip, Landmine stays its one card, and Plate is not a tool. Merge the two balls into **Ball**. Do not add sled, sandbag or battle rope (D56 stays).
 3. Bands and Chains rows stay only on Bench Press, Squat and Deadlift.
 4. The 14 one-variation jump cards fold into about 4 cards.
 5. Cap per card: 30.
@@ -48,31 +48,50 @@ A debate with measurements on the real list (25 Nov 2026) found:
 
 ## Tools after the change
 
-Bodyweight, Dumbbell, Barbell, EZ Bar, Kettlebell, Cable, Machine, Smith Machine, Bands, Ball, Rings/TRX, Landmine, Trap Bar, Plate.
+Bodyweight, Dumbbell, Barbell, EZ Bar, Kettlebell, Cable, Machine, Smith Machine, Bands, Ball, Rings/TRX. The CHALK rack goes from 11 to 11 slots: the two balls merge, the towel stays a word, and Rings/TRX is the one new icon.
 
-Class gear (D50, and the lit rule of D89) — proposal, check when building:
+Class gear (D50, and the lit rule of D89):
 
 - Scrapper (Haiduc): Bodyweight, Rings/TRX.
-- Bargain Bruiser: Dumbbell, Kettlebell, Bands, Ball, Plate (+ Bodyweight).
-- Plate Paladin: Barbell, EZ Bar, Dumbbell, Kettlebell, Trap Bar, Landmine, Plate (+ Bodyweight).
+- Bargain Bruiser: Dumbbell, Kettlebell, Bands, Ball (+ Bodyweight).
+- Plate Paladin: Barbell, EZ Bar, Dumbbell, Kettlebell (+ Bodyweight). Trap Bar and Landmine lifts count as Paladin gear.
 - Cablemancer: Machine, Cable, Smith Machine (+ Bodyweight).
 
-## The 10 holes to fill
+## What to add (after the research)
 
-1. Machine and band vertical pull (machine pulldown, assisted pull-up, band pulldown).
-2. A seated row machine.
-3. Band row, band press, band curl.
-4. Ring row and ring push-up.
-5. Lat Pulldown: neutral grip and rope.
-6. Seated Cable Row: V-bar.
-7. Weighted core (sit-up, crunch, plank variations).
-8. Dumbbell and band leg curl.
-9. Smith or machine hip thrust.
-10. Missing bases: Lateral Lunge, Shrimp Squat, Support Hold, Front Lever.
+The research read 19 published programs (see "Research results"). It confirmed some holes of the debate and found no support for others. Add these, in this order:
+
+1. **Seated row machine** (Seated Cable Row + tool Machine). Confirmed.
+2. **Shrimp Squat** and **Support Hold** (new bases). Confirmed (BWF Recommended Routine).
+3. **Assisted pull-up and a pulldown machine** (machine and band). Programs name them as alternatives.
+4. **Rings/TRX lifts:** ring dip, ring row, ring push-up, ring ab rollout.
+5. **Pseudo Planche Push-Up** (a Push-Up variation) and **bodyweight one-leg Romanian Deadlift**.
+6. **Pallof Press with bands.**
+7. **Decline Sit-Up** and a machine crunch, if the card lacks them (weighted core).
+8. **Bodyweight leg curl** (slider or towel) and **dumbbell Rear Delt Row**.
+9. **Jumping Lunge** (inside the folded jump cards) and **Back Bridge** (new base, low rank).
+10. **Front Lever** and **Lateral Lunge** (the owner chose the skills; no program in the sample uses them, so give them a low rank).
+
+Dropped as required work (no program supports them; the grid rules may still give some for free): band row/press/curl, Lat Pulldown neutral and rope, Seated Cable Row V-bar, dumbbell and band leg curl, Smith or machine hip thrust. Not added: Plate Pinch, Kettlebell March, one-arm pull-up, donkey machine calf raise, "monkey row", ring Pallof press.
+
+## Rank changes (after the research)
+
+Programs that use the base, out of 19, and our rank today:
+
+| Base | Programs | Rank now | Rank to set |
+|---|---|---|---|
+| Squat | 16 | 5 | top 2 |
+| Bent-Over Row | 9 | 15 | about 6 |
+| Romanian Deadlift | 9 | 16 | about 7 |
+| One-Arm Row | 7 | 21 | about 12 |
+| Fly | 7 | 25 | about 15 |
+| Split Squat | 6 | 50 | about 25 |
+
+Keep Push-Up (rank 4) and Hip Thrust (rank 29) where they are: the sample is heavy on barbell programs and bro splits, so it counts home and glute work too low. The 86 bases that no program uses keep their place in the list; they only never move up.
 
 ## Expected size (estimates; no generator was run)
 
-- 527 → about 720 exercises.
+- 527 → fewer than the debate's 720, because the research cut the required additions. The build gives the real number.
 - 164 → about 160 cards (merge about 10, add about 8).
 - Hand-translated names: 198 → about 90.
 - Real-program coverage: 86% → about 96%.
@@ -80,17 +99,27 @@ Class gear (D50, and the lit rule of D89) — proposal, check when building:
 ## Build steps
 
 1. **Clean.** Merge the duplicate lifts (keep aliases). Fix Two Arms and the Wrist Curl grips. Split `type` into real axes. Remove Deadlift on Cable and Machine if it is not a real lift.
-2. **Add bases and tools by hand.** The new tools, the holes above, the calisthenics skills. Check real programs first (see "Research" below).
+2. **Add bases and tools by hand.** Rings/TRX, the items in "What to add", and the rank changes.
 3. **Write the grid.** The top 40 cards first, then the rest. Run the review file and read every new name.
 4. **Move names.** Hand names become composed where a rule gives the same name. Keep the keys of old ids for saved sets.
 
 After each step: run the data tools, `flutter analyze`, `flutter test`. Saved sets, favorites, Today and forged moves must keep working.
 
-Also needed in the app: 4 new rack icons for CHALK (D87) via `tools/tool_icons.mjs`, the new tools in the CHALK words, and Romanian names for the new tools.
+Also needed in the app: 1 new rack icon for CHALK (Rings/TRX, D87) via `tools/tool_icons.mjs`, the new tool in the CHALK words, and its Romanian name (INELE / TRX).
 
-## Research before step 2
+## Research results (25 Nov 2026)
 
-Check published programs and open exercise lists (sites and GitHub repos) for the lifts they use, so the base list comes from real programs and not from memory.
+One agent read 19 published programs (8 barbell, 5 dumbbell or home, 3 bodyweight, 3 machine or general gym) and compared their 164 distinct lifts with our list. It also compared names with open lists (wger, free-exercise-db, wrkout/exercises.json). Nothing was copied.
+
+- **Coverage: 143 of 164 lifts are in our list exactly (87%).** 12 have the card but not that tool or variation. 9 have no card.
+- **Every lift that 2 or more programs use is already in the list.** Each of the 21 gaps comes from one program only.
+- Per group (exact / card only / missing): barbell 64/2/0, dumbbell 36/3/0, bodyweight 44/7/6, machine 61/0/3. Bodyweight is the weakest group.
+- Tools in the programs: Bodyweight 103, Dumbbell 95, Barbell 67, Machine 39, Cable 29, EZ Bar 6, Bands 2, Rings 2, and 1 each for Smith, Plate, the balls and Kettlebell. Landmine and Trap Bar: 0.
+- Programs need no new tool besides rings. They use a pull-up bar, dip bars, an ab wheel and cable attachments, which our axes already hold.
+
+Limits: reddit.com was blocked, so the r/bodyweightfitness routine came from two copies, and its Minimalist and Primer routines were not read. nSuns and 5/3/1 BBB were not read. Several sites returned 403. The sample is heavy on barbell programs.
+
+To check: D56 removed olympic lifts, but the list holds Clean, Clean and Press and Kettlebell Sumo High Pull. The owner kept Power Clean on purpose (23 Nov 2026); decide the other three in step 1.
 
 ## Risks
 
