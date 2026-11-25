@@ -174,7 +174,7 @@ void main() {
         exerciseCatalog.byKey['move:$move']!.variants.any((v) => bad(v.mods));
     expect(any('push-up', (m) => m['type'] == 'Knee' && m['angle'] != null), isFalse); // no knee incline or decline
     expect(any('pull-up', (m) => m['width'] == 'Wide Grip' && m['hand'] != null), isFalse); // no wide chin-up
-    expect(any('pull-up', (m) => m['load'] != null && m['width'] != 'Medium Grip'), isFalse);
+    expect(any('pull-up', (m) => m['load'] != null && m['width'] == 'Close Grip'), isFalse); // loads: medium or wide (D90 step 3)
     expect(any('bench press', (m) => m['type'] == 'Squeeze' && (m['hand'] != null || m['angle'] == 'Decline')), isFalse);
     // Dumbbells and kettlebells have no grip width (D57).
     expect(exerciseCatalog.all.where((e) => {'Dumbbell', 'Kettlebell'}.contains(e.mods['equip']) && e.mods['width'] != null),

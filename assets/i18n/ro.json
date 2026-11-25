@@ -1156,5 +1156,10 @@
   "name.form.support hold": "fs",
   "name.form.back bridge": "ns",
   "name.form.front lever": "ns",
-  "name.romanian deadlift.Bodyweight": "fără greutăți"
+  "name.romanian deadlift.Bodyweight": "fără greutăți",
+  "mod.Archer": "Arcaș",
+  "name.Archer": "arcaș",
+  "mod.Pendlay": "Pendlay",
+  "name.Pendlay": "Pendlay",
+  "name.move.bent-over row.Pendlay": "Ramat Pendlay"
 }

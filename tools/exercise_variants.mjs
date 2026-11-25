@@ -604,29 +604,12 @@ for (const r of rows.filter((x) => !ALIAS[x.e.id])) {
 // copied fields (for example the category). Its id is
 // variationId (tools/exercise_names.mjs): stable, never renamed.
 const GRID = [
-  // Knee push-ups with every grip width; decline push-ups too. A knee
-  // push-up is not done on an incline or a decline.
-  { move: 'Push-Up', equip: 'Bodyweight', level: 'beginner',
-    axes: { type: [null, 'Knee'], angle: [null, 'Incline', 'Decline'], width: ['Close Grip', 'Medium Grip', 'Wide Grip'] },
-    not: [{ type: 'Knee', angle: ['Incline', 'Decline'] }], adj: { Knee: -1, Decline: 1, 'Close Grip': 1 } },
-  // The incline squeeze press. No decline squeeze or neutral-grip squeeze.
-  { move: 'Bench Press', equip: 'Dumbbell',
-    axes: { angle: [null, 'Incline', 'Decline'], type: [null, 'Squeeze'], hand: [null, 'Neutral Grip'] },
-    not: [{ type: 'Squeeze', hand: 'Neutral Grip' }, { angle: 'Decline', type: 'Squeeze' }, { angle: 'Decline', hand: 'Neutral Grip' }] },
-  // Pull-up grips: overhand, chin-up (reverse) and neutral; band-assisted
-  // and weighted with each. No wide chin-up or wide neutral grip.
-  { move: 'Pull-Up', equip: 'Bodyweight', level: 'intermediate',
-    axes: { hand: [null, 'Reverse Grip', 'Neutral Grip'], width: ['Close Grip', 'Medium Grip', 'Wide Grip'], load: [null, 'Band Assisted', 'Weighted'] },
-    not: [{ width: 'Wide Grip', hand: ['Reverse Grip', 'Neutral Grip'] }, { width: 'Close Grip', hand: 'Neutral Grip' },
-      { load: ['Band Assisted', 'Weighted'], width: ['Close Grip', 'Wide Grip'] }],
-    adj: { 'Band Assisted': -1, Weighted: 1 } },
-  // Every stance on the Smith machine.
-  { move: 'Squat', equip: 'Smith Machine', axes: { stance: [null, 'Narrow Stance', 'Wide Stance'] } },
+  // Push-Up, Bench Press, Pull-Up, Squat and Bent-Over Row have a full
+  // grid in CARDS (D90 step 3).
   // Dumbbell curls: seated and alternating together; EZ bar grip widths.
   { move: 'Bicep Curl', equip: 'Dumbbell', axes: { position: [null, 'Seated'], side: [null, 'Alternating', 'One Arm'] },
     not: [{ position: 'Seated', side: 'One Arm' }] },
   { move: 'Bicep Curl', equip: 'EZ Bar', axes: { width: ['Close Grip', 'Medium Grip', 'Wide Grip'] } },
-  { move: 'Bent-Over Row', equip: 'Dumbbell', axes: { hand: [null, 'Neutral Grip', 'Reverse Grip'] } },
   // Seated cable row with a wide bar or an underhand bar.
   { move: 'Seated Cable Row', equip: 'Cable', axes: { width: ['Medium Grip', 'Wide Grip'], hand: [null, 'Reverse Grip'] },
     not: [{ width: 'Wide Grip', hand: 'Reverse Grip' }] },
@@ -670,17 +653,13 @@ const GRID = [
   { move: 'Seated Cable Row', equip: 'Machine', from: 'Cable', level: 'beginner', add: [{ width: 'Medium Grip' }] },
   // 2. Support Hold on rings (the new bases are in EXTRA).
   { move: 'Support Hold', equip: 'Rings', from: 'Bodyweight', level: 'intermediate', add: [{}] },
-  // 3. The assisted pull-up machine (the band-assisted pull-up is in the list)
-  // and the pulldown machine.
-  { move: 'Pull-Up', equip: 'Machine', from: 'Bodyweight', level: 'beginner', add: [{ width: 'Medium Grip' }] },
+  // 3. The pulldown machine (the assisted pull-up machine is in CARDS).
   { move: 'Lat Pulldown', equip: 'Machine', from: 'Cable', level: 'beginner', add: [{ width: 'Medium Grip' }] },
-  // 4. Rings/TRX: ring row, ring push-up, ring ab rollout (the ring dip is the
-  // database's Ring_Dips).
+  // 4. Rings/TRX: ring row, ring ab rollout (the ring dip is the database's
+  // Ring_Dips; the ring push-up is in CARDS).
   { move: 'Inverted Row', equip: 'Rings', from: 'Bodyweight', level: 'beginner', add: [{}] },
-  { move: 'Push-Up', equip: 'Rings', from: 'Bodyweight', level: 'intermediate', add: [{}] },
   { move: 'Ab Rollout', equip: 'Rings', from: 'Bodyweight', level: 'intermediate', add: [{}] },
-  // 5. The pseudo planche push-up and the bodyweight one-leg Romanian deadlift.
-  { move: 'Push-Up', equip: 'Bodyweight', level: 'intermediate', add: [{ type: 'Pseudo Planche', width: 'Medium Grip' }] },
+  // 5. The bodyweight one-leg Romanian deadlift (the pseudo planche push-up is in CARDS).
   { move: 'Romanian Deadlift', equip: 'Bodyweight', from: 'Dumbbell', level: 'beginner', add: [{ side: 'One Leg' }] },
   // 6. The band Pallof press.
   { move: 'Pallof Press', equip: 'Bands', from: 'Cable', level: 'beginner', add: [{}] },
@@ -696,6 +675,197 @@ const GRID = [
   { move: 'Lunge', equip: 'Bodyweight', level: 'beginner', add: [{ type: 'Lateral' }] },
   { move: 'Lunge', equip: 'Dumbbell', level: 'beginner', add: [{ type: 'Lateral' }] },
 ];
+
+// Full grids (D90 step 3, docs/exercise-list-plan.md "The model"): a card
+// lists its tools; each tool lists its axes and values and the `not` rules
+// (and `add` for single extra combinations, `from` for a tool with no row
+// yet). The build makes every combination the rules allow. Every other row
+// of the card must be in `keep` with a reason (an old id that no rule makes
+// stays: ids are frozen). A row that matches a combination keeps its old id.
+// `score` is the base score (D91) of the card's plain lift; `change` is the
+// level change of a value (an axis-qualified key like `bands.Bands` first,
+// then the value; a tool's own `change` first). A new row's database
+// level comes from its score (1-2 beginner, 3-4 intermediate, 5-6 expert).
+const CARDS = {
+  'Bench Press': {
+    score: 3, // the barbell bench press: a staple, but a loaded bar over the chest
+    change: { 'Smith Machine': -1, Squeeze: -1, 'One Arm': 1, 'bands.Bands': 1, Chains: 1 },
+    tools: {
+      Barbell: {
+        axes: { angle: [null, 'Incline', 'Decline'], width: ['Close Grip', 'Medium Grip', 'Wide Grip'], bands: [null, 'Bands'],
+          chains: [null, 'Chains'] },
+        // Bands and Chains only flat with a medium grip, never both.
+        not: [{ bands: 'Bands', chains: 'Chains' }, { bands: 'Bands', angle: ['Incline', 'Decline'] },
+          { bands: 'Bands', width: ['Close Grip', 'Wide Grip'] }, { chains: 'Chains', angle: ['Incline', 'Decline'] },
+          { chains: 'Chains', width: ['Close Grip', 'Wide Grip'] }],
+      },
+      // A decline Smith press stays medium grip.
+      'Smith Machine': {
+        axes: { angle: [null, 'Incline', 'Decline'], width: ['Close Grip', 'Medium Grip', 'Wide Grip'] },
+        not: [{ angle: 'Decline', width: ['Close Grip', 'Wide Grip'] }],
+      },
+      // Dumbbells: squeeze, neutral grip, one arm. No squeeze with a neutral
+      // grip or one arm; no decline squeeze, decline neutral or decline one arm.
+      Dumbbell: {
+        axes: { type: [null, 'Squeeze'], angle: [null, 'Incline', 'Decline'], hand: [null, 'Neutral Grip'], side: [null, 'One Arm'] },
+        not: [{ type: 'Squeeze', hand: 'Neutral Grip' }, { type: 'Squeeze', side: 'One Arm' }, { angle: 'Decline', type: 'Squeeze' },
+          { angle: 'Decline', hand: 'Neutral Grip' }, { angle: 'Decline', side: 'One Arm' }, { hand: 'Neutral Grip', side: 'One Arm' }],
+      },
+    },
+    keep: {
+      Reverse_Band_Bench_Press: 'reverse bands: a rare powerlifting row (OBSCURE, not in the app list)',
+      'Close-Grip_EZ-Bar_Press': 'the one EZ bar row; EZ Bar is not a bench press tool',
+    },
+  },
+  'Push-Up': {
+    score: 2, // the floor push-up: most beginners do a few
+    change: { Knee: -1, Incline: -1, Decline: 1, 'Close Grip': 1, 'Reverse Grip': 1, Plyo: 2, Archer: 2, 'Pseudo Planche': 2,
+      'One Arm': 4, Rings: 1 },
+    tools: {
+      Bodyweight: {
+        axes: { type: [null, 'Knee', 'Plyo', 'Archer', 'Pseudo Planche'], angle: [null, 'Incline', 'Decline'],
+          width: ['Close Grip', 'Medium Grip', 'Wide Grip'], side: [null, 'One Arm'] },
+        // A knee push-up is flat. Plyo, archer and pseudo planche have their
+        // own hand place (medium); plyo is not done on a decline, archer and
+        // pseudo planche only flat. One arm: medium, flat or incline, no type.
+        not: [{ type: 'Knee', angle: ['Incline', 'Decline'] }, { type: ['Plyo', 'Archer', 'Pseudo Planche'], width: ['Close Grip', 'Wide Grip'] },
+          { type: 'Plyo', angle: 'Decline' }, { type: ['Archer', 'Pseudo Planche'], angle: ['Incline', 'Decline'] },
+          { side: 'One Arm', type: ['Knee', 'Plyo', 'Archer', 'Pseudo Planche'] }, { side: 'One Arm', width: ['Close Grip', 'Wide Grip'] },
+          { side: 'One Arm', angle: 'Decline' }],
+      },
+      // Rings: flat, or feet up (decline). Rings have no grip width.
+      Rings: { from: 'Bodyweight', axes: { angle: [null, 'Decline'] } },
+    },
+    keep: { 'Incline_Push-Up_Reverse_Grip': 'an odd old row (OBSCURE, not in the app list)' },
+  },
+  'Pull-Up': {
+    score: 4, // a strict pull-up: many lifters cannot do one
+    change: { 'Band Assisted': -2, Weighted: 1, Machine: -3, Rings: 0 },
+    tools: {
+      // Grips: overhand, chin-up (reverse) and neutral. No wide chin-up or
+      // wide neutral grip, no close neutral grip. Band-assisted and weighted
+      // with a medium grip, or wide overhand. No archer pull-up: a Type row
+      // would be a 6th chip row (the chip area has 5, D79).
+      Bodyweight: {
+        axes: { load: [null, 'Band Assisted', 'Weighted'], width: ['Close Grip', 'Medium Grip', 'Wide Grip'],
+          hand: [null, 'Reverse Grip', 'Neutral Grip'] },
+        not: [{ width: 'Wide Grip', hand: ['Reverse Grip', 'Neutral Grip'] }, { width: 'Close Grip', hand: 'Neutral Grip' },
+          { load: ['Band Assisted', 'Weighted'], width: 'Close Grip' }],
+      },
+      // The assisted pull-up machine: its three handles.
+      Machine: { from: 'Bodyweight', axes: { width: ['Medium Grip'], hand: [null, 'Reverse Grip', 'Neutral Grip'] } },
+      Rings: { from: 'Bodyweight', axes: {} },
+    },
+    keep: { 'V-Bar_Pullup': 'the one V-bar row (a handle over the bar)' },
+  },
+  Squat: {
+    score: 3, // the barbell back squat
+    change: { Bodyweight: -2, Dumbbell: -1, 'Smith Machine': -1, 'equip.Bands': -2, Machine: -1, 'bands.Bands': 1, Chains: 1,
+      'One Leg': 2 },
+    tools: {
+      // Bands and Chains only with the normal stance, never both.
+      Barbell: {
+        axes: { stance: [null, 'Narrow Stance', 'Wide Stance'], bands: [null, 'Bands'], chains: [null, 'Chains'] },
+        not: [{ bands: 'Bands', chains: 'Chains' }, { bands: 'Bands', stance: ['Narrow Stance', 'Wide Stance'] },
+          { chains: 'Chains', stance: ['Narrow Stance', 'Wide Stance'] }],
+      },
+      'Smith Machine': { axes: { stance: [null, 'Narrow Stance', 'Wide Stance'] } },
+      Dumbbell: { axes: { stance: [null, 'Wide Stance'] } }, // a narrow dumbbell squat is not a gym lift
+      Bodyweight: { axes: { stance: [null, 'Wide Stance'] } }, // a narrow one is named like the barbell one, and rare
+      Bands: { axes: {} },
+    },
+    keep: {
+      Kneeling_Squat: 'a partial old row (OBSCURE)', Lying_Machine_Squat: 'the one machine row (OBSCURE)',
+      One_Leg_Barbell_Squat: 'an old row (OBSCURE); one-leg squats are Pistol Squat and Split Squat',
+      Reverse_Band_Power_Squat: 'reverse bands: a rare powerlifting row (OBSCURE)',
+    },
+  },
+  'Bent-Over Row': {
+    score: 3, // the barbell row: a held hinge and a heavy pull
+    change: { Dumbbell: -1, Kettlebell: -1, 'Smith Machine': -1, Pendlay: 1 },
+    tools: {
+      // The Pendlay row is overhand (from the floor, each rep).
+      Barbell: { axes: { type: [null, 'Pendlay'], hand: [null, 'Reverse Grip'] }, not: [{ type: 'Pendlay', hand: 'Reverse Grip' }] },
+      Dumbbell: {
+        axes: { hand: [null, 'Neutral Grip', 'Reverse Grip'], side: [null, 'Alternating'] },
+        not: [{ side: 'Alternating', hand: 'Reverse Grip' }],
+      },
+      Kettlebell: { axes: { side: [null, 'Alternating'] } },
+      'Smith Machine': { axes: { hand: [null, 'Reverse Grip'] } },
+    },
+  },
+};
+
+// The base score (D91) of every other card: 1 Sofa .. 6 Nightmare, for the
+// card's plain lift. Honest, not to fill the curve (docs/exercise-list-plan.md).
+// A number, or [score, changes] where a card's tools or values differ much.
+// The other values use DEFAULT_CHANGE. Part B of step 3 writes the full
+// grids of these cards and checks their changes.
+const SCORE = {
+  'Shoulder Press': [3, { Machine: -1, 'Smith Machine': -1, Cable: -1, 'equip.Bands': -1 }],
+  'Bicep Curl': [1, { Bodyweight: 1 }], 'Romanian Deadlift': [3, { Dumbbell: -1, Kettlebell: -1, Bodyweight: -2 }],
+  Deadlift: [4, { Dumbbell: -2, Kettlebell: -2, Cable: -2, Machine: -2 }], 'Lat Pulldown': 1, Crunch: 1, 'One-Arm Row': 2,
+  Plank: 1, 'Calf Raise': 1, Fly: [2, { Machine: -1 }], Lunge: [2, { Barbell: 1 }], 'Lateral Raise': 1,
+  Dip: [4, { Machine: -3, Bench: -2 }], 'Triceps Pushdown': 1, 'Leg Press': 1, 'Seated Cable Row': 1,
+  'Leg Curl': [1, { Bodyweight: 2, Ball: 1 }], 'Leg Extension': 1, Skullcrusher: 2, 'Split Squat': 2,
+  'Overhead Triceps Extension': [2, { Cable: -1 }], 'Hammer Curl': 1, 'Preacher Curl': 1, 'Hip Thrust': [2, { Bodyweight: -1 }],
+  Shrug: 1, 'Hanging Leg Raise': 4, 'Sit-Up': [1, { Decline: 1 }], 'Goblet Squat': 2, 'Face Pull': 1, 'Reverse Fly': 1, 'Upright Row': 2,
+  'Chest Press': 1, 'Inverted Row': [2, { 'One Arm': 3, Towel: -1 }], 'Front Raise': 1, 'Glute Bridge': 1, 'Triceps Kickback': 1,
+  Crossover: 2, 'Step-Up': 2, 'Russian Twist': 2, 'Hack Squat': [2, { Barbell: 1 }], 'Back Extension': 2, 'Kettlebell Swing': 3,
+  "Farmer's Walk": 2, 'Bicycle Crunch': 2, 'Mountain Climber': 2, 'Wrist Curl': 1, 'T-Bar Row': 3, 'Ab Rollout': 3,
+  'Reverse Crunch': 2, 'Concentration Curl': 1, 'Front Squat': [4, { Kettlebell: -1 }], 'Hip Abduction': 1, 'Hip Adduction': 1,
+  Pullover: 2, 'Good Morning': 3, 'Arnold Press': 2, 'Straight-Arm Pulldown': 1, 'Pike Push-Up': 3, 'Pistol Squat': 5,
+  'Dead Bug': 1, 'Side Plank': 1, 'Lying Leg Raise': 2, 'Wood Chop': 2, 'Band Pull-Apart': 1, Burpee: 3,
+  'Chest-Supported Row': 1, 'Jump Squat': [3, { Barbell: 1 }], 'Floor Press': 2, 'Cardio Machine': 1, 'Reverse Curl': 2,
+  'Rear Delt Row': 2, 'Glute Kickback': 1, 'Side Bend': 1, 'External Rotation': 1, 'Sumo Deadlift': [4, { Kettlebell: -2 }],
+  'Pallof Press': 1, 'Oblique Crunch': 1, 'Leg Pull-In': 2, 'Internal Rotation': 1, 'Nordic Curl': [5, { Machine: -1 }],
+  'Dead Hang': [1, { Towel: 1 }], 'Support Hold': [2, { Rings: 2 }], 'Box Squat': 3, 'Triceps Extension': 1, 'Rack Pull': 3, 'Pull-Through': 2,
+  'Jump Rope': 2, 'Power Clean': 5, Thruster: 4, 'Landmine Press': 2, 'Muscle-Up': 6, 'High Row': 1, 'Monster Walk': 1,
+  'Handstand Push-Up': 6, 'Scapular Pull-Up': 2, 'Reverse Hyperextension': 2, 'Jackknife Sit-Up': 3, 'Ball Slam': 2,
+  'Renegade Row': 4, 'Towel Triceps Extension': 2, 'Tuck Crunch': 2, 'Cross-Body Crunch': 1, Superman: 1, 'Wall Sit': 2,
+  'Hollow Body Hold': 3, 'Bird Dog': 1, 'Prone Y-T-W Raise': 1, 'Cossack Squat': 3, 'Shrimp Squat': 4, 'Push Press': 4,
+  'High Pulley Row': 1, 'Jumping Lunge': [3, { Dumbbell: 1 }], 'Long Jump': 3, 'Heel Touch': 1, 'Ball Pull-In': 3,
+  'Medicine Ball Chest Pass': 1, 'JM Press': 4, 'Tate Press': 3, 'Spider Curl': 2, 'Drag Curl': 2, 'Zottman Curl': 2,
+  'High Cable Curl': 2, 'Deficit Deadlift': 5, Halo: 2, 'Turkish Get-Up': 5, 'Lateral to Front Raise': 2,
+  'Push-Up to Side Plank': 3, 'Wall Walk': 4, 'Wall Handstand Hold': 4, 'Pogo Hops': 2, 'L-Sit': 5, 'Dumbbell Swing': 2,
+  'Flutter Kicks': 2, 'Reverse Snow Angel': 1, 'Chin-Up Hold': 3, 'Running Drill': 2, 'Front Lever': [6, { Rings: 0 }],
+  'Kneeling Arm Drill': 1, 'Clock Push-Up': 4, 'Isometric Chest Squeeze': 1, 'Finger Curl': 1, 'Zercher Squat': 5,
+  'Cuban Press': 3, Scaption: 1, 'Doorframe Curl': 1, 'Calf Raise on a Dumbbell': 2, 'Back Bridge': 4,
+};
+// The level change of a value on every card that does not set its own
+// (D91). A ring lift is harder than the same lift on the floor or a bar.
+const DEFAULT_CHANGE = {
+  Rings: 1, 'One Arm': 1, 'One Leg': 1, Knee: -1, 'Band Assisted': -1, Weighted: 1, Plyo: 1, 'bands.Bands': 1, Chains: 1,
+  Bulgarian: 1, 'Pseudo Planche': 2, Elevated: 1, Tuck: 1, Pike: 1, Inverted: 1, 'Trap Bar': -1,
+  "Captain's Chair": -1, Floor: -1, Kneeling: 0,
+};
+const CARD_OF = new Map(Object.entries(CARDS).map(([k, c]) => [k.toLowerCase(), c]));
+const SCORE_OF = new Map(Object.entries(SCORE).map(([k, s]) => [k.toLowerCase(), Array.isArray(s) ? s : [s, {}]]));
+for (const k of CARD_OF.keys()) if (SCORE_OF.has(k)) throw new Error(`SCORE: ${k} has a full grid in CARDS; its score is there`);
+/** The difficulty score 1-6 (D91) of variation [mods] of [base]; undefined for a card with no score. */
+function scoreOf(base, mods) {
+  const b = base.toLowerCase(), card = CARD_OF.get(b);
+  const [score, change] = card ? [card.score, card.change ?? {}] : SCORE_OF.get(b) ?? [];
+  if (score === undefined) return undefined;
+  const own = card?.tools[mods.equip]?.change ?? {};
+  let s = score;
+  for (const a of AXIS_ORDER) {
+    const v = mods[a];
+    if (v == null) continue;
+    const q = `${a}.${v}`;
+    s += own[q] ?? own[v] ?? change[q] ?? change[v] ?? DEFAULT_CHANGE[q] ?? DEFAULT_CHANGE[v] ?? 0;
+  }
+  return Math.max(1, Math.min(6, s));
+}
+const levelOfScore = (s) => (s <= 2 ? 'beginner' : s <= 4 ? 'intermediate' : 'expert');
+// The cap (D90): at most this many variations per card.
+const CAP = 30;
+for (const [move, card] of Object.entries(CARDS)) {
+  if (!Number.isInteger(card.score) || card.score < 1 || card.score > 6) throw new Error(`CARDS ${move}: score 1-6`);
+  for (const [equip, t] of Object.entries(card.tools)) {
+    GRID.push({ move, equip, axes: t.axes, not: t.not, add: t.add, from: t.from, card: move });
+  }
+}
 // The database equipment of an equipment modifier (for a new equipment on a move).
 const EQUIP_DB = {
   Bodyweight: 'body only', Barbell: 'barbell', Dumbbell: 'dumbbell', Kettlebell: 'kettlebells', Cable: 'cable', Machine: 'machine',
@@ -711,12 +881,28 @@ const sameMods = (a, b) => {
 const AX_ALL = AXIS_ORDER;
 const combos = (axes) => Object.entries(axes).reduce((acc, [a, vs]) =>
   acc.flatMap((m) => vs.map((v) => (v == null ? { ...m } : { ...m, [a]: v }))), [{}]);
+const wantedOf = (spec) =>
+  [...(spec.axes ? combos(spec.axes).filter((m) => !(spec.not ?? []).some((r) => matches(m, r))) : []), ...(spec.add ?? [])]
+    .map((m) => ({ equip: spec.equip, ...m }));
+const modsText = (m) => AXIS_ORDER.map((a) => m[a]).filter(Boolean).join(', ');
+// A full grid makes the card (CARDS): every row the rules do not make must
+// be in `keep` with a reason, and a kept row must be one the rules do not make.
+for (const [move, card] of Object.entries(CARDS)) {
+  const g = groups.get(move.toLowerCase());
+  if (!g) throw new Error(`CARDS: no move ${move}`);
+  const wanted = GRID.filter((s) => s.card === move).flatMap(wantedOf);
+  for (const r of g) {
+    const made = wanted.some((m) => sameMods(r.mods, m));
+    if (!made && !card.keep?.[r.e.id]) throw new Error(`CARDS ${move}: ${r.e.id} [${modsText(r.mods)}] is outside the grid (add a rule or keep it)`);
+    if (made && card.keep?.[r.e.id]) throw new Error(`CARDS ${move}: keep ${r.e.id}: the grid makes it`);
+  }
+  for (const id of Object.keys(card.keep ?? {})) if (!g.some((r) => r.e.id === id)) throw new Error(`CARDS ${move}: keep ${id}: no such row`);
+}
 const generated = [];
 for (const spec of GRID) {
   const g = groups.get(spec.move.toLowerCase());
   if (!g) throw new Error(`GRID: no move ${spec.move}`);
-  const wanted = [...(spec.axes ? combos(spec.axes).filter((m) => !(spec.not ?? []).some((r) => matches(m, r))) : []), ...(spec.add ?? [])]
-    .map((m) => ({ equip: spec.equip, ...m }));
+  const wanted = wantedOf(spec);
   for (const mods of wanted) {
     if (g.some((r) => sameMods(r.mods, mods))) continue;
     const from = g.filter((r) => r.mods.equip === (spec.from ?? spec.equip));
@@ -729,9 +915,11 @@ for (const spec of GRID) {
     const lv = L.indexOf(spec.level ?? src.e.level) + Math.max(0, ...adj) + Math.min(0, ...adj);
     const id = variationId(spec.move, mods);
     if (all.some((e) => e.id === id) || generated.some((r) => r.e.id === id)) throw new Error(`GRID: id ${id} twice`);
-    const { id: _i, name: _n, custom: _c, ...fields } = src.e;
+    const { id: _i, name: _n, custom: _c, score: _s, ...fields } = src.e;
+    // A full grid's new row: the database level of its score (D91).
+    const level = spec.card ? levelOfScore(scoreOf(spec.move, mods)) : L[Math.max(0, Math.min(2, lv))];
     const e = { id, name: id, ...fields, ...spec.set, equipment: spec.from ? EQUIP_DB[spec.equip] : src.e.equipment,
-      level: L[Math.max(0, Math.min(2, lv))], custom: true, grid: true };
+      level, custom: true, grid: true };
     const r = { e, base: spec.move, mods: { ...mods } };
     if (!WIDTH_EQUIP.has(r.mods.equip)) delete r.mods.width;
     g.push(r);
@@ -767,6 +955,14 @@ for (const g of [...groups.values()]) {
       groups.set(r.e.name.toLowerCase(), [r]);
     } else seen.set(keyOf(r), r);
   }
+}
+for (const g of groups.values()) if (g.length > CAP) throw new Error(`${g[0].base}: ${g.length} variations, more than the cap of ${CAP} (D90)`);
+// The difficulty score (D91) of every exercise of a card with a score.
+for (const k of SCORE_OF.keys()) if (!groups.has(k)) throw new Error(`SCORE: no move ${k}`);
+for (const r of rows) {
+  delete r.e.score;
+  const s = ALIAS[r.e.id] ? undefined : scoreOf(r.base, r.mods);
+  if (s !== undefined) r.e.score = s;
 }
 const multi = [...groups.values()].filter((g) => g.length > 1);
 const inGroup = new Set(multi.flat());

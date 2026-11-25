@@ -107,7 +107,7 @@ void main() {
     expect(chalkWordByKey('tool.rings'), isNotNull);
     expect(chalkRackTools.length, 11);
     final rings = [for (final e in exerciseCatalog.all) if (e.mods['equip'] == 'Rings') e.id]..sort();
-    expect(rings, ['Ring_Dips', 'ab rollout|rings', 'front lever|rings', 'inverted row|rings', 'push-up|rings', 'support hold|rings']);
+    expect(rings, ['Ring_Dips', 'ab rollout|rings', 'front lever|rings', 'inverted row|rings', 'pull-up|rings', 'push-up|rings', 'push-up|rings|decline', 'support hold|rings']);
     expect(classGear['scrapper'], ['bodyweight', 'rings']);
     expect(classGear['bruiser'], ['dumbbell', 'kettlebell', 'bands', 'ball', 'bodyweight']);
     expect(classGear['paladin'], ['barbell', 'ezbar', 'dumbbell', 'kettlebell', 'bodyweight']);

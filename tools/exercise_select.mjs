@@ -531,8 +531,127 @@ if (args.includes('--slots')) {
 }
 if (args.includes('--report') || args.includes('--slots')) console.log('\nproblems:', problems.join('; ') || 'none');
 else if (problems.length) throw new Error(problems.join('\n'));
+// The difficulty score (D91): every exercise of the app list has one
+// (tools/exercise_variants.mjs CARDS and SCORE).
+const noScore = [...new Set(out.filter((e) => !Number.isInteger(e.score) || e.score < 1 || e.score > 6).map((e) => e.base))];
+if (noScore.length) throw new Error(`no difficulty score (D91; SCORE in exercise_variants.mjs): ${noScore.join(', ')}`);
+
+// Every composed name has all its parts in English and Romanian (D80): the
+// move, a part for each value, and the move's form where a part agrees.
+const RO = JSON.parse(fs.readFileSync(new URL('../assets/i18n/ro.json', import.meta.url), 'utf8'));
+function missingParts(base, mods, equipShown, look) {
+  const b = base.toLowerCase(), miss = [];
+  if (look(`move.${b}`) == null) miss.push(`move.${b}`);
+  const slots = (look('name.order') ?? '').split(' ').filter(Boolean);
+  const moveSlot = slots.find((s) => mods[s] != null && look(`name.move.${b}.${mods[s]}`) != null);
+  for (const [a, v] of Object.entries(mods)) {
+    if (!slots.includes(a)) miss.push(`name.order: ${a}`);
+    if (a === moveSlot || (a === 'equip' && !equipShown)) continue;
+    const p = look(`name.${b}.${v}`) ?? look(`name.${a}.${v}`) ?? look(`name.${v}`);
+    if (p == null) miss.push(`name.${v}`);
+    else if (p.includes('|') && look(`name.form.${b}`) == null) miss.push(`name.form.${b}`);
+  }
+  return miss;
+}
+const roName = new Map();
+{
+  const missing = [];
+  for (const vs of byCard.values()) {
+    const shown = equipShownOf(vs);
+    for (const e of vs) {
+      if (!outById.has(e.id)) continue;
+      for (const [lang, L] of [['en', EN], ['ro', RO]]) {
+        if (L[`exercise.${e.id}`] != null) continue;
+        for (const k of missingParts(e.base, e.mods, shown, (key) => L[key])) missing.push(`${lang} ${e.id}: ${k}`);
+      }
+      roName.set(e.id, RO[`exercise.${e.id}`] ?? composeName(e.base, e.mods, shown, (k) => RO[k]));
+    }
+  }
+  if (missing.length) throw new Error(`names without a translated part (D80):\n${missing.join('\n')}`);
+  // Names are unique on each card, in each language.
+  for (const vs of byCard.values()) {
+    for (const [lang, nameOf] of [['en', (e) => e.name], ['ro', (e) => roName.get(e.id)]]) {
+      const seen = new Map();
+      for (const e of vs.filter((x) => outById.has(x.id))) {
+        const n = nameOf(e).toLowerCase();
+        if (seen.has(n)) throw new Error(`${lang} name "${n}" twice on ${e.base}: ${seen.get(n)}, ${e.id}`);
+        seen.set(n, e.id);
+      }
+    }
+  }
+}
+
+// The review file (D90 step 3): every variation that is not a frozen id
+// (tools/frozen_ids.txt), per card, with its English and Romanian name and
+// its score. Read every new name.
+const frozen = new Set(fs.readFileSync(new URL('frozen_ids.txt', import.meta.url), 'utf8').split('\n').map((l) => l.trim()).filter(Boolean));
+const fresh = out.filter((e) => !frozen.has(e.id));
+const review = ['# New variations (review)', '',
+  'Every exercise of the app list that is not a frozen id (tools/frozen_ids.txt). Made by',
+  '`node tools/exercise_select.mjs`. Read every name in both languages.', '',
+  `${fresh.length} new variations in ${new Set(fresh.map((e) => e.base)).size} cards.`, ''];
+for (const o of kept) {
+  const vs = fresh.filter((e) => e.base === o.name);
+  if (!vs.length) continue;
+  review.push(`## ${o.name} (${vs.length} new, ${byCard.get(o.name).filter((e) => outById.has(e.id)).length} in the card)`, '',
+    '| id | en | ro | score |', '|---|---|---|---|');
+  for (const e of vs.sort((a, b) => a.score - b.score || a.name.localeCompare(b.name))) {
+    review.push(`| \`${e.id}\` | ${e.name} | ${roName.get(e.id)} | ${e.score} |`);
+  }
+  review.push('');
+}
+
+// The score curve (D91) per class (by gear) and per class and body part,
+// against the bell-curve target. A class is far off when the shares differ
+// from the target by more than FAR points in all (half the sum of the
+// differences). The curve is a target, not a quota.
+const CURVE = [7, 16, 27, 27, 16, 7];
+const FAR = 20;
+const shares = (es) => {
+  const n = [0, 0, 0, 0, 0, 0];
+  for (const e of es) n[e.score - 1]++;
+  return n.map((x) => (es.length ? Math.round((100 * x) / es.length) : 0));
+};
+const offBy = (s) => Math.round(s.reduce((a, x, i) => a + Math.abs(x - CURVE[i]), 0) / 2);
+const curve = ['# Difficulty score curve (D91)', '',
+  `Share of exercises per score 1-6, in %. Target: ${CURVE.join(' / ')}. A class is far off when it differs by more than ${FAR} points.`,
+  'The curve is a target, not a quota: score each lift honestly.', '',
+  '| class | n | 1 | 2 | 3 | 4 | 5 | 6 | off by |', '|---|---|---|---|---|---|---|---|---|',
+  `| target | | ${CURVE.join(' | ')} | |`];
+const warnings = [];
+for (const c of Object.keys(CLASSES)) {
+  const es = out.filter((e) => inClass(c, e));
+  const s = shares(es), off = offBy(s);
+  curve.push(`| ${c} | ${es.length} | ${s.join(' | ')} | ${off}${off > FAR ? ' FAR' : ''} |`);
+  if (off > FAR) warnings.push(`${c} is far from the target (off by ${off} points): ${s.join(' / ')}`);
+}
+curve.push('', '## Per class and body part', '', '| class | part | n | 1 | 2 | 3 | 4 | 5 | 6 | off by |', '|---|---|---|---|---|---|---|---|---|---|');
+for (const c of Object.keys(CLASSES)) {
+  for (const p of Object.keys(PARTS)) {
+    const es = out.filter((e) => inClass(c, e) && partOf(e.primaryMuscles[0]) === p);
+    const s = shares(es), off = offBy(s);
+    curve.push(`| ${c} | ${p} | ${es.length} | ${s.join(' | ')} | ${off}${off > FAR ? ' FAR' : ''} |`);
+  }
+}
+curve.push('', '## Warnings', '', ...(warnings.length ? warnings.map((w) => `- ${w}`) : ['none']), '');
+if (args.includes('--report')) {
+  console.log('\nscore curve (D91), % per score 1-6; target', CURVE.join(' / '));
+  for (const c of Object.keys(CLASSES)) {
+    const es = out.filter((e) => inClass(c, e));
+    console.log(`${c.padEnd(12)}${shares(es).map((x) => String(x).padStart(4)).join('')}   off by ${offBy(shares(es))}`);
+    for (const p of Object.keys(PARTS)) {
+      const ps = es.filter((e) => partOf(e.primaryMuscles[0]) === p);
+      console.log(`  ${p.padEnd(10)}${shares(ps).map((x) => String(x).padStart(4)).join('')}   off by ${offBy(shares(ps))} (n ${ps.length})`);
+    }
+  }
+  console.log(`new variations (not frozen): ${fresh.length}`);
+}
+for (const w of warnings) console.warn(`WARNING score curve: ${w}`);
+
 const outPath = args.slice(1).find((a) => !a.startsWith('--'));
 if (outPath) {
+  fs.writeFileSync(new URL('grid_review.md', import.meta.url), review.join('\n'));
+  fs.writeFileSync(new URL('score_report.md', import.meta.url), curve.join('\n'));
   fs.writeFileSync(outPath, '[\n' + out.map((r) => JSON.stringify(r)).join(',\n') + '\n]\n');
   // The move names, one per card, for the translator (D68: `move.<base>`).
   const moves = [...new Set(out.map((r) => r.base))].sort((a, b) => a.localeCompare(b));

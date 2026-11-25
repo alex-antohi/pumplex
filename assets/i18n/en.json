@@ -966,5 +966,10 @@
   "name.move.lat pulldown.Machine": "Machine Lat Pulldown",
   "name.pull-up.Machine": "Assisted Machine",
   "name.move.inverted row.Rings": "Ring Row",
-  "name.romanian deadlift.Bodyweight": ""
+  "name.romanian deadlift.Bodyweight": "",
+  "mod.Archer": "Archer",
+  "name.Archer": "Archer",
+  "mod.Pendlay": "Pendlay",
+  "name.Pendlay": "Pendlay",
+  "name.move.bent-over row.Pendlay": "Pendlay Row"
 }

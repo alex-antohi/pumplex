@@ -358,8 +358,10 @@ void main() {
     // (D57) and bodyweight exercises (D69), and the variation grids (D80).
     // D90 step 1 merged 14 exercises and 9 cards (aliases keep their ids).
     // D90 step 2 added the bases, tools and lifts of the plan and folded the
-    // jump cards (11 cards into 4) and the band and chain rows.
-    expect(all.length, 528);
+    // jump cards (11 cards into 4) and the band and chain rows. D90 step 3
+    // (part A) wrote the full grids of 5 cards (Bench Press, Squat, Push-Up,
+    // Pull-Up, Bent-Over Row).
+    expect(all.length, 545);
     expect(exerciseCatalog.groups.length, 152);
     // The clean-up (D69): every card is a move, with a clean move name.
     expect(exerciseCatalog.groups.where((g) => !g.key.startsWith('move:')), isEmpty);
