@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CHALK 04 · the class lights your gear (D89)</title>
+<style>
+@font-face { font-family: 'Anton'; src: url('../../../assets/fonts/Anton-Regular.ttf'); }
+@font-face { font-family: 'Space Mono'; font-weight: 700; src: url('../../../assets/fonts/SpaceMono-Bold.ttf'); }
+@font-face { font-family: 'Space Mono'; font-weight: 400; src: url('../../../assets/fonts/SpaceMono-Regular.ttf'); }
+/* Pal.dark from lib/pumplex.dart (the look of the phone screenshot) */
+:root { --bg:#12061F; --ink:#F6EEFF; --pink:#FF5FB0; --lime:#C6FF3D; --orange:#FFA033; --violet:#A77BFF; --sky:#3FD2FF;
+  --panel:#1F0D36; --panel2:#2A1148; --night:#1A0B3B; --chalk:#F4F1FF; --muted:#C9B8E8; }
+* { box-sizing:border-box; margin:0; padding:0; }
+body { background:#2b2440; color:#F6EEFF; font-family:'Space Mono',monospace; padding:8px 14px 10px; }
+h1 { font-family:'Anton'; font-weight:400; font-size:20px; letter-spacing:1px; }
+h1 small { font-family:'Space Mono'; font-size:11px; letter-spacing:0; opacity:.75; margin-left:8px; }
+.row { display:flex; gap:18px; align-items:flex-start; margin-top:4px; }
+.col { display:flex; flex-direction:column; gap:4px; }
+.cap { font-size:10.5px; width:406px; line-height:1.3; height:42px; }
+.cap b { font-family:'Anton'; font-weight:400; letter-spacing:1px; font-size:13px; color:var(--lime); }
+.phone { width:406px; height:836px; position:relative; overflow:hidden; border-radius:34px; border:8px solid #0c0816; background:var(--bg); color:var(--ink); }
+.app { position:absolute; inset:0 0 auto 0; height:110px; padding:22px 16px 0; }
+.logo { font-family:'Anton'; font-size:34px; line-height:1; letter-spacing:1px; background:linear-gradient(90deg,var(--sky),var(--violet),var(--pink)); -webkit-background-clip:text; color:transparent; width:max-content; }
+.xp { display:flex; align-items:center; gap:8px; margin-top:4px; font-size:11px; font-weight:700; }
+.xp b { font-family:'Anton'; font-weight:400; font-size:18px; color:var(--pink); }
+.xp i { flex:1; height:12px; border:2px solid var(--ink); }
+.barrier { position:absolute; inset:0; background:rgba(0,0,0,.54); }
+.sheet { position:absolute; left:0; right:0; bottom:0; height:718px; background:var(--bg); border-top:4px solid var(--ink); display:flex; flex-direction:column; }
+.head { display:flex; align-items:baseline; gap:12px; padding:8px 16px 6px; }
+.title { font-family:'Anton'; font-size:26px; letter-spacing:1.5px; }
+.hint { font-size:10px; font-weight:700; color:var(--muted); letter-spacing:.5px; }
+.lab { font-family:'Anton'; font-size:14px; letter-spacing:1.8px; padding:0 20px 0 16px; display:flex; justify-content:space-between; align-items:baseline; }
+.lab small { font-family:'Space Mono'; font-size:9.5px; letter-spacing:.3px; font-weight:700; color:var(--muted); }
+.lab small em { font-style:normal; color:var(--lime); }
+.pin { width:8px; height:8px; background:var(--pink); flex:none; }
+/* lifter panel */
+.bodyp { flex:none; margin:0 20px 0 16px; height:238px; background:var(--panel); border:3px solid var(--ink); box-shadow:4px 4px 0 var(--ink);
+  display:grid; grid-template-columns:1fr 100px 1fr; align-items:start; padding-top:14px; position:relative; }
+.lifter { position:relative; width:104px; height:128px; margin:30px 0 0 -2px; }
+.lifter .l { position:absolute; inset:0; image-rendering:pixelated; background-repeat:no-repeat; background-size:520px 1280px; background-position:-208px -256px; }
+.tags { display:flex; flex-direction:column; gap:12px; padding:0 8px; align-items:flex-start; }
+.tags.r { align-items:flex-end; }
+.bt, .gt { font-family:'Anton'; font-size:16px; letter-spacing:.4px; line-height:1; height:42px; padding:0 10px; display:inline-flex; align-items:center; gap:7px;
+  background:var(--panel); border:3px solid var(--ink); white-space:nowrap; }
+.ground { position:absolute; left:0; right:0; bottom:0; height:54px; display:flex; gap:6px; justify-content:flex-end; align-items:center; padding:0 8px;
+  border-top:3px solid var(--ink); background:var(--panel2); }
+.ground small { font-size:9.5px; font-weight:700; color:var(--muted); margin-right:auto; }
+.gt { font-size:13px; height:40px; padding:0 9px; }
+/* gear rack: D89 lit / dim */
+.rack { flex:none; margin:6px 20px 0 16px; padding:8px; background:var(--night); border:3px solid var(--ink); box-shadow:4px 4px 0 var(--ink);
+  display:grid; grid-template-columns:repeat(6,1fr); gap:8px 6px; }
+.slot { display:flex; flex-direction:column; align-items:center; gap:4px; min-width:0; }
+.slot .box { width:100%; aspect-ratio:1; background:#fff; border:2px solid var(--night); display:grid; place-items:center; position:relative; }
+.slot .box img { width:72%; image-rendering:pixelated; }
+.slot .nm { font-size:8.5px; color:var(--chalk); line-height:1.1; white-space:nowrap; letter-spacing:.2px; }
+.slot.lit .box { box-shadow:0 0 0 3px var(--lime); }
+.slot.lit .nm { color:var(--lime); font-weight:700; letter-spacing:-.2px; }
+.slot.dim .box { background:#8f86a6; border-color:#8f86a6; box-shadow:0 0 0 1px rgba(244,241,255,.55); }
+.slot.dim .box img { opacity:.55; }
+.slot.dim .nm { color:var(--muted); opacity:.75; }
+.slot .tick { position:absolute; right:-7px; top:-7px; width:16px; height:16px; background:var(--pink); border:2px solid var(--night); color:#12061F;
+  font-size:12px; font-weight:700; line-height:12px; text-align:center; }
+.lp { font-size:8.5px; font-weight:700; color:var(--muted); opacity:.8; padding:9px 16px 0; letter-spacing:.2px; }
+/* move words */
+.chips { display:flex; flex-wrap:wrap; gap:7px 8px; padding:6px 16px 0; }
+.chip { height:36px; display:inline-flex; align-items:center; padding:0 10px; background:var(--panel); border:3px solid var(--ink); font-family:'Anton'; font-size:15px; letter-spacing:.5px; white-space:nowrap; }
+.chip.more { border-style:dashed; }
+/* loadout + narrow */
+.loadout { margin:0 16px; display:flex; gap:8px; }
+.eq { display:flex; align-items:center; gap:7px; background:var(--lime); color:#12061F; border:3px solid var(--ink); padding:3px 9px 3px 3px; height:52px; font-family:'Anton'; font-size:16px; letter-spacing:.5px; }
+.eq .x { font-family:'Space Mono'; font-weight:700; font-size:14px; }
+.eq.ghost { background:transparent; border:3px dashed rgba(246,238,255,.4); color:rgba(246,238,255,.6); padding:0 16px; font-size:20px; }
+.mini { width:40px; height:40px; position:relative; overflow:hidden; background:#fff; border:2px solid var(--night); }
+.mini .l, .lc .art .l { position:absolute; width:52px; height:64px; image-rendering:pixelated; background-repeat:no-repeat; background-size:260px 640px; background-position:-104px -128px; }
+.mini .l { left:-7px; top:-6px; }
+.z { position:absolute; background:rgba(255,95,176,.65); outline:2px solid var(--night); }
+/* loot cards */
+.loot { padding:10px 20px 0 16px; display:flex; flex-direction:column; gap:10px; overflow:hidden; flex:1; }
+.lc { background:var(--panel); border:3px solid var(--ink); box-shadow:4px 4px 0 var(--ink); display:grid; grid-template-columns:62px 1fr; flex:none; }
+.lc .art { border-right:3px solid var(--ink); position:relative; background:var(--panel2); overflow:hidden; min-height:104px; }
+.lc .art .l { left:2px; top:2px; }
+.lc .art .z { left:22px; top:20px; width:18px; height:8px; }
+.lc .art .tool { position:absolute; left:10px; top:62px; width:36px; height:36px; background:#fff; border:2px solid var(--night); display:grid; place-items:center; }
+.tool img { width:26px; image-rendering:pixelated; }
+.lc .info { padding:6px 6px 8px 8px; min-width:0; }
+.lc .nm { font-family:'Anton'; font-size:20px; line-height:1; letter-spacing:.4px; display:flex; justify-content:space-between; align-items:center; }
+.lc .go { font-family:'Anton'; font-size:13px; height:30px; display:inline-flex; align-items:center; border:2px solid var(--ink); padding:0 8px; background:var(--sky); color:#12061F; letter-spacing:.5px; }
+.lc .meta { font-size:9.5px; font-weight:700; color:var(--muted); margin:3px 0 7px; }
+.pips { display:flex; flex-wrap:wrap; gap:7px 6px; }
+.pip { height:48px; display:inline-flex; align-items:center; border:2px solid var(--ink); font-family:'Anton'; font-size:13px; letter-spacing:.2px; background:var(--panel); white-space:nowrap; position:relative; }
+.pip img { width:20px; image-rendering:pixelated; background:#fff; padding:2px; margin-left:5px; box-sizing:content-box; }
+.pip span { padding:0 6px 0 5px; }
+.pip b { align-self:stretch; display:grid; place-items:center; width:44px; border-left:2px solid var(--ink); background:var(--orange); color:#12061F; font-family:'Space Mono'; font-size:20px; }
+.pip .mk { position:absolute; left:-6px; top:-7px; }
+.bottom { margin-top:auto; padding:10px 22px 18px 16px; }
+.bb { border:3px solid var(--ink); box-shadow:5px 5px 0 var(--ink); height:52px; display:flex; align-items:center; gap:12px; padding:0 22px; background:var(--sky); color:#12061F; font-family:'Anton'; font-size:21px; letter-spacing:1px; }
+</style>
+</head>
+<body>
+<h1>CHALK 04 · CLASA ÎȚI APRINDE ECHIPAMENTUL (D89) <small>mockup, not built · the class is a hint, never a filter · dark theme as on the phone</small></h1>
+<div class="row">
+<!-- 1 · Paladin -->
+<div class="col"><p class="cap"><b>1 · PALADIN DE DISCURI.</b> The rack has the class name. 5 class tools are lit and first; the other 6 are dim, one tap still works. The first 5 moves follow the class.</p><div class="phone"><div class="app"><div class="logo">PUMPLEX</div><div class="xp"><b>NIV 1</b><i></i><span>0/25 XP</span></div></div><div class="barrier"></div><div class="sheet"><div class="head"><span class="title">CRETĂ</span><span class="hint">UNDE? CU CE?</span></div>
+<div class="bodyp"><div class="tags"><span class="bt"><span class="pin"></span>UMERI</span><span class="bt"><span class="pin"></span>BRAȚE</span><span class="bt"><span class="pin"></span>PICIOARE</span></div>
+<div class="lifter"><div class="l" style="background-image:url(../../../assets/body/body_atlas.png)"></div><div class="l" style="background-image:url(../../../assets/outfits/paladin.png)"></div></div>
+<div class="tags r"><span class="bt"><span class="pin"></span>PIEPT</span><span class="bt"><span class="pin"></span>ABDOMEN</span><span class="bt"><span class="pin"></span>SPATE <svg width="14" height="14" viewBox="0 0 7 7" shape-rendering="crispEdges"><path fill="#F6EEFF" d="M0 0h7v1h-7zM3 2h1v1h1v1h1v1h-2v2h-1v-2h-2v-1h1v-1h1z"/></svg></span></div>
+<div class="ground"><small>TOT CORPUL:</small><span class="gt"><span class="pin"></span>SĂRITURĂ</span><span class="gt"><span class="pin"></span>CĂRAT</span><span class="gt"><span class="pin"></span>CARDIO</span></div></div>
+<div class="lab" style="margin-top:16px">ECHIPAMENT PALADIN <small><em>■ APRINS</em> = CLASA TA</small></div><div class="rack">
+<div class="slot lit"><div class="box"><img src="../../../assets/icons/tools/barbell.png" alt=""></div><div class="nm">HALTERĂ</div></div>
+<div class="slot lit"><div class="box"><img src="../../../assets/icons/tools/ezbar.png" alt=""></div><div class="nm">BARĂ EZ</div></div>
+<div class="slot lit"><div class="box"><img src="../../../assets/icons/tools/dumbbell.png" alt=""></div><div class="nm">GANTERE</div></div>
+<div class="slot lit"><div class="box"><img src="../../../assets/icons/tools/kettlebell.png" alt=""></div><div class="nm">KETTLEBELL</div></div>
+<div class="slot lit"><div class="box"><img src="../../../assets/icons/tools/bodyweight.png" alt=""></div><div class="nm">CORP LIBER</div></div>
+<div class="slot dim"><div class="box"><img src="../../../assets/icons/tools/cable.png" alt=""></div><div class="nm">CABLU</div></div>
+<div class="slot dim"><div class="box"><img src="../../../assets/icons/tools/machine.png" alt=""></div><div class="nm">APARAT</div></div>
+<div class="slot dim"><div class="box"><img src="../../../assets/icons/tools/smith.png" alt=""></div><div class="nm">AP. SMITH</div></div>
+<div class="slot dim"><div class="box"><img src="../../../assets/icons/tools/bands.png" alt=""></div><div class="nm">BENZI</div></div>
+<div class="slot dim"><div class="box"><img src="../../../assets/icons/tools/ball.png" alt=""></div><div class="nm">MINGE</div></div>
+<div class="slot dim"><div class="box"><img src="../../../assets/icons/tools/towel.png" alt=""></div><div class="nm">PROSOP</div></div>
+</div><div class="lp">ȚINE APĂSAT = ADAUGĂ LA ECHIPAMENTUL MEU</div>
+<div class="lab" style="margin-top:12px">SAU SPUNE MIȘCAREA</div>
+<div class="chips"><span class="chip">ÎMPINS LA PIEPT</span><span class="chip">GENUFLEXIUNI</span><span class="chip">ÎNDREPTĂRI</span><span class="chip">RAMAT</span><span class="chip">PRESĂ UMERI</span><span class="chip more">+18</span></div>
+<div class="bottom"><div class="bb">‹ ÎNAPOI LA AZI</div></div></div></div></div>
+<!-- 2 · Haiduc -->
+<div class="col"><p class="cap"><b>2 · HAIDUC.</b> Same screen, other class: only CORP LIBER is lit. GANTERE was added by a long-press: lit, with a pink "+" tick. Other first moves.</p><div class="phone"><div class="app"><div class="logo">PUMPLEX</div><div class="xp"><b>NIV 1</b><i></i><span>0/25 XP</span></div></div><div class="barrier"></div><div class="sheet"><div class="head"><span class="title">CRETĂ</span><span class="hint">UNDE? CU CE?</span></div>
+<div class="bodyp"><div class="tags"><span class="bt"><span class="pin"></span>UMERI</span><span class="bt"><span class="pin"></span>BRAȚE</span><span class="bt"><span class="pin"></span>PICIOARE</span></div>
+<div class="lifter"><div class="l" style="background-image:url(../../../assets/body/body_atlas.png)"></div><div class="l" style="background-image:url(../../../assets/outfits/scrapper.png)"></div></div>
+<div class="tags r"><span class="bt"><span class="pin"></span>PIEPT</span><span class="bt"><span class="pin"></span>ABDOMEN</span><span class="bt"><span class="pin"></span>SPATE <svg width="14" height="14" viewBox="0 0 7 7" shape-rendering="crispEdges"><path fill="#F6EEFF" d="M0 0h7v1h-7zM3 2h1v1h1v1h1v1h-2v2h-1v-2h-2v-1h1v-1h1z"/></svg></span></div>
+<div class="ground"><small>TOT CORPUL:</small><span class="gt"><span class="pin"></span>SĂRITURĂ</span><span class="gt"><span class="pin"></span>CĂRAT</span><span class="gt"><span class="pin"></span>CARDIO</span></div></div>
+<div class="lab" style="margin-top:16px">ECHIPAMENT HAIDUC <small><em>■ APRINS</em> = CLASA TA</small></div><div class="rack">
+<div class="slot lit"><div class="box"><img src="../../../assets/icons/tools/bodyweight.png" alt=""></div><div class="nm">CORP LIBER</div></div>
+<div class="slot lit"><div class="box"><img src="../../../assets/icons/tools/dumbbell.png" alt=""><span class="tick">+</span></div><div class="nm">GANTERE</div></div>
+<div class="slot dim"><div class="box"><img src="../../../assets/icons/tools/barbell.png" alt=""></div><div class="nm">HALTERĂ</div></div>
+<div class="slot dim"><div class="box"><img src="../../../assets/icons/tools/ezbar.png" alt=""></div><div class="nm">BARĂ EZ</div></div>
+<div class="slot dim"><div class="box"><img src="../../../assets/icons/tools/kettlebell.png" alt=""></div><div class="nm">KETTLEBELL</div></div>
+<div class="slot dim"><div class="box"><img src="../../../assets/icons/tools/cable.png" alt=""></div><div class="nm">CABLU</div></div>
+<div class="slot dim"><div class="box"><img src="../../../assets/icons/tools/machine.png" alt=""></div><div class="nm">APARAT</div></div>
+<div class="slot dim"><div class="box"><img src="../../../assets/icons/tools/smith.png" alt=""></div><div class="nm">AP. SMITH</div></div>
+<div class="slot dim"><div class="box"><img src="../../../assets/icons/tools/bands.png" alt=""></div><div class="nm">BENZI</div></div>
+<div class="slot dim"><div class="box"><img src="../../../assets/icons/tools/ball.png" alt=""></div><div class="nm">MINGE</div></div>
+<div class="slot dim"><div class="box"><img src="../../../assets/icons/tools/towel.png" alt=""></div><div class="nm">PROSOP</div></div>
+</div><div class="lp">ȚINE APĂSAT = ADAUGĂ / SCOATE DIN ECHIPAMENTUL MEU</div>
+<div class="lab" style="margin-top:12px">SAU SPUNE MIȘCAREA</div>
+<div class="chips"><span class="chip">TRACȚIUNI</span><span class="chip">FLOTĂRI</span><span class="chip">GENUFLEXIUNI</span><span class="chip">DIPS</span><span class="chip">FANDĂRI</span><span class="chip more">+18</span></div>
+<div class="bottom"><div class="bb">‹ ÎNAPOI LA AZI</div></div></div></div></div>
+<!-- 3 · results: PIEPT as Paladin -->
+<div class="col"><p class="cap"><b>3 · PIEPT, PALADIN.</b> Cards with your gear come first. In a card, the pips of your gear come first with a small shield mark; the others follow. No divider, no label.</p><div class="phone"><div class="app"><div class="logo">PUMPLEX</div><div class="xp"><b>NIV 1</b><i></i><span>0/25 XP</span></div></div><div class="barrier"></div><div class="sheet"><div class="head"><span class="title">CRETĂ</span><span class="hint">9 MIȘCĂRI · + ADAUGĂ LA AZI</span></div>
+<div class="loadout"><span class="eq"><span class="mini"><span class="l" style="background-image:url(../../../assets/body/body_atlas.png)"></span><span class="l" style="background-image:url(../../../assets/outfits/paladin.png)"></span><span class="z" style="left:11px;top:12px;width:18px;height:8px"></span></span>PIEPT<span class="x">✕</span></span><span class="eq ghost">+</span></div>
+<div class="chips" style="padding-top:10px;align-items:center;flex-wrap:nowrap;overflow:hidden"><span class="lab" style="padding:0;font-size:13px">RESTRÂNGE</span><span class="chip">ÎMPINS</span><span class="chip">FLUTURĂRI</span><span class="chip">FLOTĂRI</span><span class="chip">DIPS</span></div><div class="loot">
+<div class="lc"><div class="art"><span class="l" style="background-image:url(../../../assets/body/body_atlas.png)"></span><span class="l" style="background-image:url(../../../assets/outfits/paladin.png)"></span><span class="z"></span><span class="tool"><img src="../../../assets/icons/tools/barbell.png" alt=""></span></div><div class="info"><div class="nm">ÎMPINS LA PIEPT <span class="go">FĂ-O ▸</span></div><div class="meta">PIEPT · 6 VARIAȚII</div><div class="pips">
+<span class="pip"><svg class="mk" width="14" height="16" viewBox="0 0 7 8" shape-rendering="crispEdges"><path fill="#12061F" d="M0 0h7v5h-1v1h-1v1h-1v1h-1v-1h-1v-1h-1v-1h-1z"/><path fill="#C6FF3D" d="M1 1h5v4h-1v1h-1v1h-1v-1h-1v-1h-1z"/><path fill="#12061F" d="M3 2h1v1h1v1h-1v2h-1v-2h-1v-1h1z"/></svg><img src="../../../assets/icons/tools/barbell.png" alt=""><span>DREPT</span><b>+</b></span>
+<span class="pip"><svg class="mk" width="14" height="16" viewBox="0 0 7 8" shape-rendering="crispEdges"><path fill="#12061F" d="M0 0h7v5h-1v1h-1v1h-1v1h-1v-1h-1v-1h-1v-1h-1z"/><path fill="#C6FF3D" d="M1 1h5v4h-1v1h-1v1h-1v-1h-1v-1h-1z"/><path fill="#12061F" d="M3 2h1v1h1v1h-1v2h-1v-2h-1v-1h1z"/></svg><img src="../../../assets/icons/tools/barbell.png" alt=""><span>ÎNCLINAT</span><b>+</b></span>
+<span class="pip"><svg class="mk" width="14" height="16" viewBox="0 0 7 8" shape-rendering="crispEdges"><path fill="#12061F" d="M0 0h7v5h-1v1h-1v1h-1v1h-1v-1h-1v-1h-1v-1h-1z"/><path fill="#C6FF3D" d="M1 1h5v4h-1v1h-1v1h-1v-1h-1v-1h-1z"/><path fill="#12061F" d="M3 2h1v1h1v1h-1v2h-1v-2h-1v-1h1z"/></svg><img src="../../../assets/icons/tools/dumbbell.png" alt=""><span>DREPT</span><b>+</b></span>
+<span class="pip"><svg class="mk" width="14" height="16" viewBox="0 0 7 8" shape-rendering="crispEdges"><path fill="#12061F" d="M0 0h7v5h-1v1h-1v1h-1v1h-1v-1h-1v-1h-1v-1h-1z"/><path fill="#C6FF3D" d="M1 1h5v4h-1v1h-1v1h-1v-1h-1v-1h-1z"/><path fill="#12061F" d="M3 2h1v1h1v1h-1v2h-1v-2h-1v-1h1z"/></svg><img src="../../../assets/icons/tools/dumbbell.png" alt=""><span>ÎNCLINAT</span><b>+</b></span>
+<span class="pip"><img src="../../../assets/icons/tools/smith.png" alt=""><span>DREPT</span><b>+</b></span>
+<span class="pip"><img src="../../../assets/icons/tools/machine.png" alt=""><span>ȘEZÂND</span><b>+</b></span>
+</div></div></div>
+<div class="lc"><div class="art"><span class="l" style="background-image:url(../../../assets/body/body_atlas.png)"></span><span class="l" style="background-image:url(../../../assets/outfits/paladin.png)"></span><span class="z"></span><span class="tool"><img src="../../../assets/icons/tools/dumbbell.png" alt=""></span></div><div class="info"><div class="nm">FLUTURĂRI <span class="go">FĂ-O ▸</span></div><div class="meta">PIEPT · 4 VARIAȚII</div><div class="pips">
+<span class="pip"><svg class="mk" width="14" height="16" viewBox="0 0 7 8" shape-rendering="crispEdges"><path fill="#12061F" d="M0 0h7v5h-1v1h-1v1h-1v1h-1v-1h-1v-1h-1v-1h-1z"/><path fill="#C6FF3D" d="M1 1h5v4h-1v1h-1v1h-1v-1h-1v-1h-1z"/><path fill="#12061F" d="M3 2h1v1h1v1h-1v2h-1v-2h-1v-1h1z"/></svg><img src="../../../assets/icons/tools/dumbbell.png" alt=""><span>DREPT</span><b>+</b></span>
+<span class="pip"><svg class="mk" width="14" height="16" viewBox="0 0 7 8" shape-rendering="crispEdges"><path fill="#12061F" d="M0 0h7v5h-1v1h-1v1h-1v1h-1v-1h-1v-1h-1v-1h-1z"/><path fill="#C6FF3D" d="M1 1h5v4h-1v1h-1v1h-1v-1h-1v-1h-1z"/><path fill="#12061F" d="M3 2h1v1h1v1h-1v2h-1v-2h-1v-1h1z"/></svg><img src="../../../assets/icons/tools/dumbbell.png" alt=""><span>ÎNCLINAT</span><b>+</b></span>
+<span class="pip"><img src="../../../assets/icons/tools/cable.png" alt=""><span>ÎN PICIOARE</span><b>+</b></span>
+<span class="pip"><img src="../../../assets/icons/tools/machine.png" alt=""><span>PEC DECK</span><b>+</b></span>
+</div></div></div>
+<div class="lc"><div class="art"><span class="l" style="background-image:url(../../../assets/body/body_atlas.png)"></span><span class="l" style="background-image:url(../../../assets/outfits/paladin.png)"></span><span class="z"></span><span class="tool"><img src="../../../assets/icons/tools/bodyweight.png" alt=""></span></div><div class="info"><div class="nm">FLOTĂRI <span class="go">FĂ-O ▸</span></div><div class="meta">PIEPT · 3 VARIAȚII</div><div class="pips">
+<span class="pip"><svg class="mk" width="14" height="16" viewBox="0 0 7 8" shape-rendering="crispEdges"><path fill="#12061F" d="M0 0h7v5h-1v1h-1v1h-1v1h-1v-1h-1v-1h-1v-1h-1z"/><path fill="#C6FF3D" d="M1 1h5v4h-1v1h-1v1h-1v-1h-1v-1h-1z"/><path fill="#12061F" d="M3 2h1v1h1v1h-1v2h-1v-2h-1v-1h1z"/></svg><img src="../../../assets/icons/tools/bodyweight.png" alt=""><span>STANDARD</span><b>+</b></span>
+<span class="pip"><svg class="mk" width="14" height="16" viewBox="0 0 7 8" shape-rendering="crispEdges"><path fill="#12061F" d="M0 0h7v5h-1v1h-1v1h-1v1h-1v-1h-1v-1h-1v-1h-1z"/><path fill="#C6FF3D" d="M1 1h5v4h-1v1h-1v1h-1v-1h-1v-1h-1z"/><path fill="#12061F" d="M3 2h1v1h1v1h-1v2h-1v-2h-1v-1h1z"/></svg><img src="../../../assets/icons/tools/bodyweight.png" alt=""><span>DECLINAT</span><b>+</b></span>
+<span class="pip"><img src="../../../assets/icons/tools/bands.png" alt=""><span>CU BENZI</span><b>+</b></span>
+</div></div></div>
+<div class="lc"><div class="art"><span class="l" style="background-image:url(../../../assets/body/body_atlas.png)"></span><span class="l" style="background-image:url(../../../assets/outfits/paladin.png)"></span><span class="z"></span><span class="tool"><img src="../../../assets/icons/tools/cable.png" alt=""></span></div><div class="info"><div class="nm">CROSSOVER <span class="go">FĂ-O ▸</span></div><div class="meta">PIEPT · 2 VARIAȚII</div><div class="pips">
+<span class="pip"><img src="../../../assets/icons/tools/cable.png" alt=""><span>DE SUS</span><b>+</b></span>
+<span class="pip"><img src="../../../assets/icons/tools/cable.png" alt=""><span>DE JOS</span><b>+</b></span>
+</div></div></div>
+</div>
+<div class="bottom"><div class="bb">‹ ÎNAPOI LA AZI</div></div></div></div></div>
+</div></body></html>
