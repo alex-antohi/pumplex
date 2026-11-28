@@ -38,7 +38,7 @@ Every exercise of the app list that is not a frozen id (tools/frozen_ids.txt). M
 
 | id | en | ro | score |
 |---|---|---|---|
-| `romanian deadlift|bodyweight|one leg` | Single-Leg Romanian Deadlift | Îndreptări românești fără greutăți 1 picior | 2 |
+| `romanian deadlift|bodyweight|one leg` | Single-Leg Romanian Deadlift | Îndreptări românești 1 picior | 2 |
 | `romanian deadlift|smith machine` | Smith Machine Romanian Deadlift | Îndreptări românești la Smith | 2 |
 
 ## Pull-Up (7 new, 19 in the card)
@@ -128,14 +128,14 @@ Every exercise of the app list that is not a frozen id (tools/frozen_ids.txt). M
 |---|---|---|---|
 | `sit-up|bodyweight|decline` | Decline Sit-Up | Ridicări trunchi declinate | 3 |
 | `sit-up|bodyweight|weighted` | Weighted Sit-Up | Ridicări trunchi cu greutate | 3 |
-| `sit-up|bodyweight|weighted|decline` | Decline Weighted Sit-Up | Ridicări trunchi cu greutate declinate | 4 |
+| `sit-up|bodyweight|weighted|decline` | Weighted Decline Sit-Up | Ridicări trunchi declinate cu greutate | 4 |
 
 ## Inverted Row (2 new, 7 in the card)
 
 | id | en | ro | score |
 |---|---|---|---|
 | `inverted row|rings` | Ring Row | Ramat la inele | 3 |
-| `inverted row|rings|decline` | Decline Ring Row | Ramat la inele declinat | 4 |
+| `inverted row|rings|decline` | Feet-Elevated Ring Row | Ramat la inele cu picioarele sus | 4 |
 
 ## Front Raise (1 new, 6 in the card)
 
@@ -195,8 +195,8 @@ Every exercise of the app list that is not a frozen id (tools/frozen_ids.txt). M
 
 | id | en | ro | score |
 |---|---|---|---|
-| `support hold|bodyweight` | Support Hold | Menținere în sprijin | 2 |
-| `support hold|rings` | Ring Support Hold | Menținere în sprijin la inele | 4 |
+| `support hold|bodyweight` | Support Hold | Sprijin la paralele | 2 |
+| `support hold|rings` | Ring Support Hold | Sprijin la inele | 4 |
 
 ## Thruster (2 new, 3 in the card)
 
@@ -239,8 +239,8 @@ Every exercise of the app list that is not a frozen id (tools/frozen_ids.txt). M
 
 | id | en | ro | score |
 |---|---|---|---|
-| `front lever|rings|tuck` | Ring Tuck Front Lever | Front lever ghemuit la inele | 4 |
-| `front lever|bodyweight|tuck` | Tuck Front Lever | Front lever ghemuit | 4 |
+| `front lever|rings|tuck` | Ring Tuck Front Lever | Front lever tuck la inele | 4 |
+| `front lever|bodyweight|tuck` | Tuck Front Lever | Front lever tuck | 4 |
 | `front lever|bodyweight` | Front Lever | Front lever | 6 |
 | `front lever|rings` | Ring Front Lever | Front lever la inele | 6 |
 
@@ -248,4 +248,4 @@ Every exercise of the app list that is not a frozen id (tools/frozen_ids.txt). M
 
 | id | en | ro | score |
 |---|---|---|---|
-| `back bridge|bodyweight` | Back Bridge | Pod de gimnastică | 4 |
+| `back bridge|bodyweight` | Back Bridge | Pod pe mâini | 4 |

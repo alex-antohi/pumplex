@@ -56,9 +56,14 @@ void main() {
         expect(now.length <= 32 || now.length <= before.length, isTrue, reason: '$id $lang: $now');
       }
     }
-    // Old names that no rule makes stay special names.
+    // Old names: composed where a rule makes them (D90 step 4), else special names.
     expect(label('Chin-Up', 'en'), 'Chin-Up');
     expect(label('Running_Treadmill', 'ro'), 'Alergare pe bandă');
+    expect(label('Seated_Palms-Down_Barbell_Wrist_Curl', 'ro'), 'Extensii încheieturi cu halteră');
+    expect(label('Butterfly', 'en'), 'Butterfly'); // a gym name stays
+    for (final id in ['Running_Treadmill', 'Seated_Palms-Down_Barbell_Wrist_Curl', 'Feet-Elevated_Inverted_Row']) {
+      expect(langFiles.values.any((f) => f.contains('"exercise.$id"')), isFalse, reason: id);
+    }
     // Ids dropped from the list (D67, the variation audit) keep their names.
     expect(label('Bodyweight_Flyes', 'en'), 'Bodyweight Fly');
   });
