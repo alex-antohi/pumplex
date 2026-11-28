@@ -746,20 +746,20 @@ class _AreaViewState extends State<AreaView> with SwipeCarousel<AreaView> {
                                   left: l.scene.left - l.arena.left,
                                   bottom: 0,
                                   width: l.scene.width,
-                                  height: l.scene.height + 60 * l.scale,
+                                  height: l.scene.height + 160 * l.scale,
                                   child: Column(
                                     children: [
-                                      // Optional sky strip above the scene (175 x 60 base).
+                                      // Optional sky strip above the scene (175 x 160 base).
                                       Image.asset(
                                         'assets/areas/${a.id}/sky.png',
                                         width: l.scene.width,
-                                        height: 60 * l.scale,
+                                        height: 160 * l.scale,
                                         fit: BoxFit.fill,
                                         filterQuality: FilterQuality.none,
                                         isAntiAlias: false,
                                         gaplessPlayback: true,
                                         excludeFromSemantics: true,
-                                        errorBuilder: (_, _, _) => SizedBox(height: 60 * l.scale),
+                                        errorBuilder: (_, _, _) => SizedBox(height: 160 * l.scale),
                                       ),
                                       AreaScene(art: areaArt[a.id]!, scale: l.scale),
                                     ],
