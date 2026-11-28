@@ -19,6 +19,7 @@ import { png, decode } from '../moodboard/png.mjs';
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const OUT = process.env.ART_OUT || ROOT;
 const FACE_STYLE = process.env.FACE_STYLE || 'visor';
+const MOUTH_STYLE = process.env.MOUTH_STYLE || 'line'; // visor only: none | line | grin | grille | jaw
 const SRC = path.join(ROOT, 'docs/moodboard/creator/body_atlas.png');
 const W1 = 52, H1 = 64, COLS = 5, ROWS = 10, W = 104, H = 128, AW = W * COLS, AH = H * ROWS;
 
@@ -83,6 +84,46 @@ const faceKit = (c) => {
   const span = (y, x0, x1, rgb) => { for (let x = x0; x <= x1; x++) P(x, y, rgb); };
   return { P, row, span, ey, fmid, cs: c.groups.map((gr) => gr[0] + 2) };
 };
+/* visor mouths (no lips). Jaw rows ey+9..ey+12 are skin; fixed-colour pixels there also clear the beard overlay. */
+const MDK = hx('#2a0e1f');
+const MOUTHS = {
+  none(k) { chin(k); },
+  line(k) { // wide flat calm line, darker end points
+    const { P, span, ey, fmid } = k;
+    span(ey + 9, fmid - 5, fmid + 4, SM); P(fmid - 5, ey + 9, MDK); P(fmid + 4, ey + 9, MDK);
+    for (let x = fmid - 3; x <= fmid + 2; x++) k.shade(x, ey + 10, 1, S);
+    chin(k);
+  },
+  grin(k) { // wide smirk rising on the viewer-right side, one cheek crease
+    const { P, span, ey, fmid } = k;
+    span(ey + 9, fmid - 5, fmid + 1, SM); span(ey + 8, fmid + 2, fmid + 4, SM); P(fmid - 5, ey + 9, MDK); P(fmid + 4, ey + 8, MDK);
+    k.setSh(fmid + 6, ey + 7, 3); k.setSh(fmid + 6, ey + 8, 3);
+    for (let x = fmid - 3; x <= fmid + 1; x++) k.shade(x, ey + 10, 1, S);
+    chin(k);
+  },
+  grille(k) { // respirator plate: edge light, 3 vent slits, dark bottom
+    const { P, row, ey, fmid } = k;
+    for (let y = ey + 8; y <= ey + 12; y++) row(y, (x) => {
+      if (x < fmid - 5 || x > fmid + 4) return;
+      const end = x === fmid - 5 || x === fmid + 4;
+      let c = MT[3];
+      if (y === ey + 8) c = MT[1]; else if (y === ey + 9 || y === ey + 11) c = INK; else if (y === ey + 12) c = MT[4];
+      if (end && y !== ey + 8) c = y === ey + 10 ? MT[4] : INK;
+      P(x, y, c);
+    });
+    P(fmid - 4, ey + 8, MT[0]); P(fmid - 3, ey + 8, MT[0]);
+  },
+  jaw(k) { // metal chin band with one neon dot
+    const { P, row, ey, fmid } = k;
+    for (let y = ey + 11; y <= ey + 12; y++) row(y, (x, i, j) => { if (i >= 1 && j >= 1) P(x, y, y === ey + 11 ? MT[2] : MT[4]); });
+    P(fmid, ey + 11, CY[1]); P(fmid + 1, ey + 11, CY[1]); 
+  },
+};
+function chin(k) { // clean jaw: chin highlight, under-jaw shadow
+  const { ey, fmid } = k;
+  for (let x = fmid - 2; x <= fmid + 2; x++) k.shade(x, ey + 11, -1, S);
+  k.row(ey + 12, (x, i, j) => { if (i >= 2 && j >= 2) k.shade(x, ey + 12, 1, S); });
+}
 const SCIFI = {
   visor(c) { // wraparound neon band across the eyes, skin below
     const { P, row, span, ey, fmid } = faceKit(c);
@@ -95,7 +136,8 @@ const SCIFI = {
     span(ey + 1, fmid - 9, fmid - 4, WH); span(ey + 1, fmid + 5, fmid + 6, WH); // glass shine
     span(ey + 2, fmid - 3, fmid + 3, CY[1]); // brighter middle
     c.setSh(fmid, ey + 5, 4); c.setSh(fmid, ey + 6, 4); c.setSh(fmid - 1, ey + 5, 1);
-    span(ey + 9, fmid - 2, fmid + 1, SM); span(ey + 10, fmid - 1, fmid, SM);
+    const mouth = MOUTHS[MOUTH_STYLE]; if (!mouth) throw new Error('MOUTH_STYLE must be one of: ' + Object.keys(MOUTHS).join(', '));
+    mouth({ P, row, span, ey, fmid, shade: c.shade, setSh: c.setSh });
   },
   cyborg(c) { // viewer-left calm human eye, viewer-right metal plate with a glowing LED eye
     const { P, row, span, ey, fmid, cs } = faceKit(c);
@@ -454,7 +496,7 @@ for (const c of cells) {
     const xs = []; for (let x = 0; x < W; x++) if (c.g(x, y) === S) xs.push(x);
     xs.forEach((x, n) => {
       if (y <= c.ey + 7 && n >= 4 && n < xs.length - 4) return;
-      if ((y === c.ey + 9 || y === c.ey + 10) && Math.abs(x - c.fmid + 0.5) < 2.5) return; // keep the mouth
+      if (FACE_STYLE === 'human' && (y === c.ey + 9 || y === c.ey + 10) && Math.abs(x - c.fmid + 0.5) < 2.5) return; // keep the mouth
       const o = (c.oy + y) * AW + c.ox + x; let s = 2; // clean bands: base, a lit strand, a shadow edge below
       if ((x + (y >> 2)) % 8 < 2) s = 1;
       if (y >= c.ey + 12 || c.g(x, y + 1) !== S) s = 3;
