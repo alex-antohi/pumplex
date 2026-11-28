@@ -56,8 +56,8 @@ class CatalogExercise {
   final String equipment;
 
   /// The difficulty score (D91): 1 Sofa .. 6 Nightmare, one per mode. It
-  /// replaces the 3 database levels in the app. Null: not scored (a forged
-  /// move): no HARD badge and no XP tier.
+  /// replaces the 3 database levels in the app. A forged move has 2 (D92).
+  /// Null: not scored: no HARD badge and no XP tier.
   final int? score;
 
   /// push, pull, static, or null.
@@ -191,7 +191,7 @@ const corePatterns = [
 
 /// The HARD badge (D89, D91): the score of exercise [e] is above difficulty
 /// mode [difficulty] (index 0 Sofa .. 5 Nightmare, so score > index + 1).
-/// Nothing is hidden or locked. An unscored (forged) move is never HARD.
+/// Nothing is hidden or locked. An unscored move is never HARD.
 bool isHardFor(CatalogExercise e, int difficulty) => (e.score ?? 0) > difficulty.clamp(0, 5) + 1;
 
 /// The exercise list, loaded once at start (main.dart).

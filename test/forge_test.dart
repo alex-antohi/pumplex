@@ -14,6 +14,7 @@ import 'package:gym_app/game/chalk.dart';
 import 'package:gym_app/game/exercises.dart';
 import 'package:gym_app/game/forge.dart';
 import 'package:gym_app/game/model.dart';
+import 'package:gym_app/game/rules.dart';
 import 'package:gym_app/main.dart';
 import 'package:gym_app/pumplex.dart';
 import 'package:gym_app/store.dart';
@@ -159,6 +160,14 @@ void main() {
     final carry = ForgedMove(id: 'custom_8', words: const {'pattern.carry'}, typed: 'yoke', muscle: 'forearms');
     expect(ChalkIndex(catalogWithForged(exerciseCatalog, [carry])).words['custom_8'], contains('pattern.carry'));
     catalogWithForged(exerciseCatalog, const []);
+  });
+
+  test('a forged move has the default score 2 (D92)', () {
+    final move = ForgedMove(id: 'custom_9', words: const {'move.row'}, muscle: 'middle back').toExercise();
+    expect(move.score, 2);
+    expect(isHardFor(move, 0), isTrue); // Sofa
+    expect(isHardFor(move, 1), isFalse); // Warm-up
+    expect(xpRate(difficulty: 5, score: move.score), xpRate(difficulty: 1));
   });
 
   testWidgets('FORGE from CHALK with only a pattern word: PICK A MOVE, the MOVE slot is pink, FORGE IT is off', (

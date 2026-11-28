@@ -274,9 +274,15 @@ class ForgedMove {
         if (chalkIdOf(words, 'tool') == 'towel') 'setup': 'Towel',
       },
       pattern: pattern,
+      // A forged move has the default score 2 (D92): its XP tier is at most
+      // Warm-up's, and it shows HARD only on Sofa.
+      score: forgedScore,
     );
   }
 }
+
+/// The difficulty score of every forged move (D92).
+const forgedScore = 2;
 
 /// The forged moves of the exercise list by id (set by [catalogWithForged]),
 /// so a name can be composed in the current language (i18n.dart).
