@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -149,6 +151,62 @@ class _GameShellState extends State<GameShell> {
     }
     await _store.migrateOld();
     if (mounted) _go(_startScene);
+  }
+
+  /// SAVE BACKUP: the backup file (every key of docs/data-schema.md §4).
+  Future<void> _saveBackup() async {
+    try {
+      final saved = await saveTextFile(
+        name: 'pumplex_backup_${dateKey(DateTime.now())}.json',
+        mime: 'application/json',
+        content: _store.backupJson(),
+      );
+      if (mounted) _snack(t(saved ? 'backup.saved' : 'backup.notSaved'));
+    } on PlatformException catch (e) {
+      if (mounted) _snack(t('backup.saveFailed', {'error': e.message}));
+    }
+  }
+
+  /// LOAD BACKUP: a confirm, then [LogStore.importBackup] replaces the data
+  /// (only sessions and XP for a file with no profile).
+  Future<void> _loadBackup() async {
+    String? raw;
+    try {
+      raw = await openTextFile();
+    } on PlatformException catch (e) {
+      if (mounted) _snack(t('backup.loadFailed', {'error': e.message}));
+      return;
+    }
+    if (!mounted) return;
+    if (raw == null) {
+      _snack(t('backup.noFile'));
+      return;
+    }
+    Object? data;
+    try {
+      data = jsonDecode(raw.startsWith(bom) ? raw.substring(1) : raw);
+    } on FormatException {
+      data = null;
+    }
+    if (data is! Map || data['app'] != 'pumplex' || ![2, 3, 4, 5, 6, 7].contains(data['version'])) {
+      _snack(t('backup.notBackup'));
+      return;
+    }
+    final ok = await confirmReplaceBackup(context, keepsProfile: LogStore.backupKeepsProfile(data));
+    if (ok != true || !mounted) return;
+    try {
+      await _store.importBackup(jsonEncode(data));
+    } catch (e) {
+      if (mounted) _snack(t('backup.loadFailed', {'error': e is FormatException ? e.message : '$e'}));
+      return;
+    }
+    if (!mounted) return;
+    _snack(t('backup.loaded'));
+    setState(() {
+      _resetDraft();
+      _sessionIndex = 0;
+    });
+    if (_store.profile == null) _go(_startScene);
   }
 
   /// The creator's head looks are open (the camera is on the head).
@@ -577,6 +635,16 @@ class _GameShellState extends State<GameShell> {
                                         onTap: () => setState(() => _focus = _Focus.sessions),
                                       )
                                     : LifterTile(store: _store, onTap: () => setState(() => _focus = _Focus.lifter)),
+                              ),
+                            ),
+                          // The free tile space right of the last session:
+                          // SAVE BACKUP and LOAD BACKUP.
+                          if (t > 0 && _focus == _Focus.lifter)
+                            Positioned.fromRect(
+                              rect: _tileRect(box.biggest, 2),
+                              child: Opacity(
+                                opacity: t,
+                                child: BackupButtons(onSave: _saveBackup, onLoad: _loadBackup),
                               ),
                             ),
                           // The minimised workout window: tap it to go back.

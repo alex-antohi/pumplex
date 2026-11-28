@@ -221,14 +221,20 @@ D34 removes the streak and D35 removes the achievements. No one loses XP. On sta
 
 ### 5.5 Backup files
 
-There is no save / restore button in the app now (D59); only the one-time upgrade writes a backup file. The code below stays.
+SAVE BACKUP and LOAD BACKUP sit in the free tile space right of the last-session tile on the lifter profile
+(placeholder look; design may restyle). LOAD asks first: the file replaces the data on the phone.
 
 The backup file (version 7) holds the keys `profile_v1`, `body_history_v1`, `sessions_v3`, `xp_events_v1`, `favorites_v1` and `my_gear_v1` (D89; version 6 has no `my_gear_v1`).
-The one-time flag and backup keys are not in it.
+The one-time flag and backup keys are not in it. Forged moves (`forgedKey`) are not in it yet (D78, D83: open).
+
+A file of version 3-7 with **no** `profile_v1` replaces only `sessions_v3` and `xp_events_v1`; the profile, body,
+favorites and my gear on the phone stay. Its sessions with an empty class, mode or area take the current profile's.
+`tools/import_original.mjs` writes such a file from an original-app backup (one time, for the owner;
+`tools/original_import_map.md`).
 
 | Version | What the app does on import |
 |---|---|
-| 6 | Restores the keys. |
+| 7, 6 | Restores the keys. |
 | 5 | Restores the keys. There are no favorites. Old exercise lists are dropped (§5.6). |
 | 4 | Restores the keys and ignores `gear_v1` (D38). The old streak XP is already in `xp_events_v1`, so the app does not work it out again. |
 | 3 | Restores the keys and ignores `achievements_v1` (its XP events stay) and `gear_v1`. The file has no saved streak XP, so the app works it out again (§5.4). |

@@ -1101,6 +1101,11 @@ class LogStore extends ChangeNotifier {
   /// 7: my gear (D89).
   static const backupVersion = 7;
 
+  /// A parsed backup file of version 3 to 7 with no profile: loading it
+  /// keeps the profile, body, favorites and my gear ([importBackup]).
+  static bool backupKeepsProfile(Map data) =>
+      data['version'] is int && (data['version'] as int) >= 3 && data[_profileKey] is! Map;
+
   /// Backup file contents: every key of docs/data-schema.md §4.
   String backupJson() => const JsonEncoder.withIndent(' ').convert({
         'app': 'pumplex',
@@ -1120,10 +1125,25 @@ class LogStore extends ChangeNotifier {
   /// has no saved streak XP (worked out again on import). Version 2 (the old app) goes through the same migration: its workout
   /// days become legacy sessions with legacy XP; there is no profile, so
   /// the setup runs again.
+  ///
+  /// A file of version 3 to 7 with no profile (for example one made by
+  /// tools/import_original.mjs) replaces only the sessions and XP: the
+  /// profile, body, favorites and my gear on the phone stay. Its sessions
+  /// with no class, mode or area take the current profile's.
   Future<void> importBackup(String raw) async {
     final data = jsonDecode(raw);
     if (data is! Map || data['app'] != 'pumplex' || ![2, 3, 4, 5, 6, 7].contains(data['version'])) {
       throw const FormatException('Not a PUMPLEX backup');
+    }
+    final keep = backupKeepsProfile(data);
+    if (keep && _profile != null && data[_sessionsKey] is Map) {
+      final now = _profile!.toJson();
+      for (final s in (data[_sessionsKey] as Map).values) {
+        if (s is! Map) continue;
+        for (final k in ['classId', 'difficultyId', 'areaId']) {
+          if ((s[k] as String? ?? '').isEmpty) s[k] = now[k];
+        }
+      }
     }
     // Parse everything before touching current data.
     final Map<String, String> out;
@@ -1154,7 +1174,7 @@ class LogStore extends ChangeNotifier {
         if (data[myGearKey] is Map) myGearKey: jsonEncode(MyGear.fromJson(data[myGearKey]).toJson()),
       };
     }
-    for (final k in [_profileKey, _bodyKey, _sessionsKey, _xpKey, _favoritesKey, myGearKey]) {
+    for (final k in keep ? [_sessionsKey, _xpKey] : [_profileKey, _bodyKey, _sessionsKey, _xpKey, _favoritesKey, myGearKey]) {
       out.containsKey(k) ? await _prefs.setString(k, out[k]!) : await _prefs.remove(k);
     }
     await _prefs.setBool(streakFrozenKey, (data['version'] as int) >= 4);

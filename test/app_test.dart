@@ -1532,4 +1532,131 @@ void main() {
     expect(find.text('scene 0'), findsNothing);
     expect(find.text('scene 1'), findsOneWidget);
   });
+
+  // ------------------------------------------------- backup buttons, import
+
+  // Made by `node tools/import_original.mjs test/fixtures/original_backup.json
+  // test/fixtures/original_import.json` (no --into: no profile).
+  final scriptFile = File('test/fixtures/original_import.json').readAsStringSync();
+
+  test('a backup with no profile (the import script) replaces only sessions and XP', () async {
+    final (store, _) = await _store(setUp: true);
+    store.toggleFavorite(_squat);
+    store.toggleGear('cable');
+    store.addSet(_squat); // today's day is replaced too
+    final body = store.bodyHistory.length;
+    final gear = store.myGear.toJson();
+    expect(LogStore.backupKeepsProfile(jsonDecode(scriptFile) as Map), isTrue);
+    await store.importBackup(scriptFile);
+    expect(store.profile!.toJson(), _profile.toJson());
+    expect(store.favorites, {_squat});
+    expect(store.myGear.toJson(), gear);
+    expect(store.bodyHistory.length, body);
+    expect(store.todaySession, isNull);
+    // The owner's file: 9 training days, 175 sets, every id in the list.
+    expect(store.history.length, 9);
+    expect(store.history.fold(0, (a, s) => a + s.totalSets), 175);
+    for (final s in store.history) {
+      expect(s.legacy, isFalse);
+      // The sessions take the current class, mode and area.
+      expect((s.classId, s.difficultyId, s.areaId), ('paladin', 'sweat', 'gainsgard'));
+      for (final e in s.exercises) {
+        expect(exerciseCatalog.byId[e.exerciseId], isNotNull, reason: e.exerciseId);
+        expect(e.score, exerciseCatalog.byId[e.exerciseId]!.score);
+        expect(e.log.length, e.sets);
+      }
+    }
+    // 11 Nov: Bench 5 × 72 kg × 5, saved as typed.
+    final bench = store.history.last.exercises.first;
+    expect((store.history.last.date, bench.exerciseId, bench.sets), ('2026-11-11', _bench, 5));
+    expect(bench.log.first, const SetLog(kg: 72, reps: 5, kgTyped: true, repsTyped: true));
+    // XP by the normal rules: each day's sets plus the first-set bonus.
+    final xp = store.history.fold(0, (a, s) => a + store.xpOfSession(s));
+    expect(store.totalXp, xp);
+    expect(xp, greaterThan(9 * xpFirstSetOfDay));
+  });
+
+  test('a backup with a profile still replaces everything', () async {
+    final (store, _) = await _store(setUp: true);
+    store.toggleFavorite(_squat);
+    final file = jsonDecode(store.backupJson()) as Map<String, dynamic>;
+    file['favorites_v1'] = <String>[];
+    file['profile_v1'] = {...file['profile_v1'] as Map, 'difficultyId': 'pain'};
+    expect(LogStore.backupKeepsProfile(file), isFalse);
+    await store.importBackup(jsonEncode(file));
+    expect(store.favorites, isEmpty);
+    expect(store.profile!.difficultyId, 'pain');
+  });
+
+  testWidgets('SAVE BACKUP and LOAD BACKUP sit right of the last-session tile', (t) async {
+    final (store, _) = await _openApp(t);
+    final saved = _fakeSaveDialog(true);
+    String? open = scriptFile;
+    t.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('pumplex/files'), (call) async {
+      if (call.method == 'saveText') {
+        saved.add((call.arguments as Map)['content'] as String);
+        return true;
+      }
+      return open;
+    });
+    addTearDown(() => t.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('pumplex/files'), null));
+    await t.tap(find.byKey(const ValueKey('workout-character')));
+    await _frames(t);
+    final tile = t.getRect(find.byKey(const ValueKey('tile-session')));
+    final save = t.getRect(find.byKey(const ValueKey('backup-save')));
+    final load = t.getRect(find.byKey(const ValueKey('backup-load')));
+    expect(save.left, greaterThan(tile.right));
+    expect(load.top, greaterThan(save.bottom));
+    expect(save.right, lessThanOrEqualTo(t.view.physicalSize.width / t.view.devicePixelRatio));
+    expect(load.bottom, lessThanOrEqualTo(tile.bottom + 1));
+    expect(t.takeException(), isNull); // no overflow
+    // SAVE: the backup file.
+    await t.tap(find.byKey(const ValueKey('backup-save')));
+    await _frames(t, 12);
+    expect(saved, [store.backupJson()]);
+    expect(find.text('BACKUP SAVED.'), findsOneWidget);
+    // LOAD, then back out: nothing changes.
+    await t.tap(find.byKey(const ValueKey('backup-load')));
+    await _frames(t, 12);
+    expect(find.textContaining('YOUR LIFTER, FAVORITES AND GEAR STAY'), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('backup-replace-cancel')));
+    await _frames(t, 12);
+    expect(store.history, isEmpty);
+    // LOAD and confirm.
+    await t.tap(find.byKey(const ValueKey('backup-load')));
+    await _frames(t, 12);
+    await t.tap(find.byKey(const ValueKey('backup-replace-confirm')));
+    await _frames(t, 12);
+    expect(store.history.length, 9);
+    expect(store.profile, isNotNull);
+    expect(find.text('BACKUP LOADED.'), findsOneWidget);
+    // A file that is not a backup.
+    open = '{"some": "json"}';
+    await t.tap(find.byKey(const ValueKey('backup-load')));
+    await _frames(t, 12);
+    expect(find.byKey(const ValueKey('backup-replace-dialog')), findsNothing);
+    expect(find.text('NOT A PUMPLEX BACKUP. NOTHING CHANGED.'), findsOneWidget);
+    // No file picked.
+    open = null;
+    await t.tap(find.byKey(const ValueKey('backup-load')));
+    await _frames(t, 12);
+    expect(find.text('NO FILE PICKED. NOTHING CHANGED.'), findsOneWidget);
+  });
+
+  testWidgets('a backup with a profile asks to replace all the data', (t) async {
+    final (store, _) = await _openApp(t);
+    store.addSet(_squat);
+    final file = store.backupJson();
+    t.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('pumplex/files'), (call) async => file);
+    addTearDown(() => t.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('pumplex/files'), null));
+    await t.tap(find.byKey(const ValueKey('workout-character')));
+    await _frames(t);
+    await t.tap(find.byKey(const ValueKey('backup-load')));
+    await _frames(t, 4);
+    expect(find.textContaining('IT REPLACES ALL THE DATA ON THIS PHONE'), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('backup-replace-confirm')));
+    await _frames(t, 4);
+    expect(store.setsToday(_squat), 1);
+    expect(find.text('BACKUP LOADED.'), findsOneWidget);
+  });
 }

@@ -1,0 +1,1514 @@
+{
+ "app": "pumplex",
+ "version": 7,
+ "sessions_v3": {
+  "2026-11-11": {
+   "classId": "",
+   "difficultyId": "",
+   "areaId": "",
+   "legacy": false,
+   "exercises": [
+    {
+     "exerciseId": "Barbell_Bench_Press_-_Medium_Grip",
+     "sets": 5,
+     "log": [
+      {
+       "kg": 72,
+       "kgTyped": true,
+       "reps": 5,
+       "repsTyped": true
+      },
+      {
+       "kg": 72,
+       "kgTyped": true,
+       "reps": 5,
+       "repsTyped": true
+      },
+      {
+       "kg": 72,
+       "kgTyped": true,
+       "reps": 5,
+       "repsTyped": true
+      },
+      {
+       "kg": 72,
+       "kgTyped": true,
+       "reps": 5,
+       "repsTyped": true
+      },
+      {
+       "kg": 72,
+       "kgTyped": true,
+       "reps": 5,
+       "repsTyped": true
+      }
+     ],
+     "score": 3
+    },
+    {
+     "exerciseId": "Close-Grip_Barbell_Bench_Press",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 62,
+       "kgTyped": true,
+       "reps": 6,
+       "repsTyped": true
+      },
+      {
+       "kg": 62,
+       "kgTyped": true,
+       "reps": 6,
+       "repsTyped": true
+      },
+      {
+       "kg": 62,
+       "kgTyped": true,
+       "reps": 6,
+       "repsTyped": true
+      }
+     ],
+     "score": 3
+    },
+    {
+     "exerciseId": "Bent_Over_Barbell_Row",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 52,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      },
+      {
+       "kg": 52,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      },
+      {
+       "kg": 52,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      }
+     ],
+     "score": 3
+    },
+    {
+     "exerciseId": "Pullups",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 85,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      },
+      {
+       "kg": 85,
+       "kgTyped": true,
+       "reps": 6,
+       "repsTyped": true
+      },
+      {
+       "kg": 85,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      }
+     ],
+     "score": 4
+    },
+    {
+     "exerciseId": "Side_Lateral_Raise",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 10,
+       "kgTyped": true,
+       "reps": 10,
+       "repsTyped": true
+      },
+      {
+       "kg": 10,
+       "kgTyped": true,
+       "reps": 10,
+       "repsTyped": true
+      },
+      {
+       "kg": 10,
+       "kgTyped": true,
+       "reps": 10,
+       "repsTyped": true
+      }
+     ],
+     "score": 2
+    },
+    {
+     "exerciseId": "Dumbbell_Bicep_Curl",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 10,
+       "kgTyped": true,
+       "reps": 10,
+       "repsTyped": true
+      },
+      {
+       "kg": 10,
+       "kgTyped": true,
+       "reps": 10,
+       "repsTyped": true
+      },
+      {
+       "kg": 10,
+       "kgTyped": true,
+       "reps": 10,
+       "repsTyped": true
+      }
+     ],
+     "score": 2
+    },
+    {
+     "exerciseId": "Reverse_Flyes",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 5,
+       "kgTyped": true,
+       "reps": 12,
+       "repsTyped": true
+      },
+      {
+       "kg": 5,
+       "kgTyped": true,
+       "reps": 12,
+       "repsTyped": true
+      },
+      {
+       "kg": 5,
+       "kgTyped": true,
+       "reps": 12,
+       "repsTyped": true
+      }
+     ],
+     "score": 2
+    }
+   ]
+  },
+  "2026-11-12": {
+   "classId": "",
+   "difficultyId": "",
+   "areaId": "",
+   "legacy": false,
+   "exercises": [
+    {
+     "exerciseId": "Barbell_Squat",
+     "sets": 2,
+     "log": [
+      {
+       "kg": 92,
+       "kgTyped": true,
+       "reps": 5,
+       "repsTyped": true
+      },
+      {
+       "kg": 72,
+       "kgTyped": true,
+       "reps": 10,
+       "repsTyped": true
+      }
+     ],
+     "score": 3
+    },
+    {
+     "exerciseId": "Good_Morning",
+     "sets": 4,
+     "log": [
+      {
+       "kg": 62,
+       "kgTyped": true,
+       "reps": 6,
+       "repsTyped": true
+      },
+      {
+       "kg": 62,
+       "kgTyped": true,
+       "reps": 6,
+       "repsTyped": true
+      },
+      {
+       "kg": 62,
+       "kgTyped": true,
+       "reps": 6,
+       "repsTyped": true
+      },
+      {
+       "kg": 62,
+       "kgTyped": true,
+       "reps": 6,
+       "repsTyped": true
+      }
+     ],
+     "score": 3
+    },
+    {
+     "exerciseId": "Barbell_Lunge",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 42,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      },
+      {
+       "kg": 42,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      },
+      {
+       "kg": 42,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      }
+     ],
+     "score": 3
+    },
+    {
+     "exerciseId": "Lying_Leg_Curls",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 7.5,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      },
+      {
+       "kg": 7.5,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      },
+      {
+       "kg": 7.5,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      }
+     ],
+     "score": 2
+    },
+    {
+     "exerciseId": "Cable_Crunch",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 30,
+       "kgTyped": true,
+       "reps": 12,
+       "repsTyped": true
+      },
+      {
+       "kg": 30,
+       "kgTyped": true,
+       "reps": 12,
+       "repsTyped": true
+      },
+      {
+       "kg": 30,
+       "kgTyped": true,
+       "reps": 12,
+       "repsTyped": true
+      }
+     ],
+     "score": 2
+    }
+   ]
+  },
+  "2026-11-14": {
+   "classId": "",
+   "difficultyId": "",
+   "areaId": "",
+   "legacy": false,
+   "exercises": [
+    {
+     "exerciseId": "Barbell_Bench_Press_-_Medium_Grip",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 92,
+       "kgTyped": true,
+       "reps": 4,
+       "repsTyped": true
+      },
+      {
+       "kg": 72,
+       "kgTyped": true,
+       "reps": 12,
+       "repsTyped": true
+      },
+      {
+       "kg": 52,
+       "kgTyped": true,
+       "reps": 20,
+       "repsTyped": true
+      }
+     ],
+     "score": 3
+    },
+    {
+     "exerciseId": "Lying_Dumbbell_Tricep_Extension",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 15,
+       "kgTyped": true,
+       "reps": 6,
+       "repsTyped": true
+      },
+      {
+       "kg": 15,
+       "kgTyped": true,
+       "reps": 6,
+       "repsTyped": true
+      },
+      {
+       "kg": 15,
+       "kgTyped": true,
+       "reps": 6,
+       "repsTyped": true
+      }
+     ],
+     "score": 2
+    },
+    {
+     "exerciseId": "One-Arm_Dumbbell_Row",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 25,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      },
+      {
+       "kg": 25,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      },
+      {
+       "kg": 25,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      }
+     ],
+     "score": 2
+    },
+    {
+     "exerciseId": "lat pulldown|cable|medium grip",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 60,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      },
+      {
+       "kg": 60,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      },
+      {
+       "kg": 60,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      }
+     ],
+     "score": 2
+    },
+    {
+     "exerciseId": "Front_Dumbbell_Raise",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 7.5,
+       "kgTyped": true,
+       "reps": 10,
+       "repsTyped": true
+      },
+      {
+       "kg": 7.5,
+       "kgTyped": true,
+       "reps": 10,
+       "repsTyped": true
+      },
+      {
+       "kg": 7.5,
+       "kgTyped": true,
+       "reps": 10,
+       "repsTyped": true
+      }
+     ],
+     "score": 2
+    },
+    {
+     "exerciseId": "EZ-Bar_Curl",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 21,
+       "kgTyped": true,
+       "reps": 10,
+       "repsTyped": true
+      },
+      {
+       "kg": 21,
+       "kgTyped": true,
+       "reps": 10,
+       "repsTyped": true
+      },
+      {
+       "kg": 21,
+       "kgTyped": true,
+       "reps": 10,
+       "repsTyped": true
+      }
+     ],
+     "score": 2
+    },
+    {
+     "exerciseId": "Face_Pull",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 20,
+       "kgTyped": true,
+       "reps": 12,
+       "repsTyped": true
+      },
+      {
+       "kg": 20,
+       "kgTyped": true,
+       "reps": 12,
+       "repsTyped": true
+      },
+      {
+       "kg": 20,
+       "kgTyped": true,
+       "reps": 12,
+       "repsTyped": true
+      }
+     ],
+     "score": 2
+    }
+   ]
+  },
+  "2026-11-16": {
+   "classId": "",
+   "difficultyId": "",
+   "areaId": "",
+   "legacy": false,
+   "exercises": [
+    {
+     "exerciseId": "Box_Squat",
+     "sets": 5,
+     "log": [
+      {
+       "kg": 92,
+       "kgTyped": true,
+       "reps": 5,
+       "repsTyped": true
+      },
+      {
+       "kg": 92,
+       "kgTyped": true,
+       "reps": 5,
+       "repsTyped": true
+      },
+      {
+       "kg": 92,
+       "kgTyped": true,
+       "reps": 5,
+       "repsTyped": true
+      },
+      {
+       "kg": 92,
+       "kgTyped": true,
+       "reps": 5,
+       "repsTyped": true
+      },
+      {
+       "kg": 92,
+       "kgTyped": true,
+       "reps": 5,
+       "repsTyped": true
+      }
+     ],
+     "score": 3
+    },
+    {
+     "exerciseId": "Stiff-Legged_Barbell_Deadlift",
+     "sets": 4,
+     "log": [
+      {
+       "kg": 82,
+       "kgTyped": true,
+       "reps": 6,
+       "repsTyped": true
+      },
+      {
+       "kg": 82,
+       "kgTyped": true,
+       "reps": 6,
+       "repsTyped": true
+      },
+      {
+       "kg": 82,
+       "kgTyped": true,
+       "reps": 6,
+       "repsTyped": true
+      },
+      {
+       "kg": 82,
+       "kgTyped": true,
+       "reps": 6,
+       "repsTyped": true
+      }
+     ],
+     "score": 3
+    },
+    {
+     "exerciseId": "Dumbbell_Bulgarian_Split_Squat",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 10,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      },
+      {
+       "kg": 10,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      },
+      {
+       "kg": 10,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      }
+     ],
+     "score": 3
+    },
+    {
+     "exerciseId": "Flat_Bench_Lying_Leg_Raise",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 15,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      },
+      {
+       "kg": 15,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      },
+      {
+       "kg": 15,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      }
+     ],
+     "score": 2
+    },
+    {
+     "exerciseId": "Cable_Crunch",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 30,
+       "kgTyped": true,
+       "reps": 12,
+       "repsTyped": true
+      },
+      {
+       "kg": 30,
+       "kgTyped": true,
+       "reps": 12,
+       "repsTyped": true
+      },
+      {
+       "kg": 30,
+       "kgTyped": true,
+       "reps": 12,
+       "repsTyped": true
+      }
+     ],
+     "score": 2
+    }
+   ]
+  },
+  "2026-11-18": {
+   "classId": "",
+   "difficultyId": "",
+   "areaId": "",
+   "legacy": false,
+   "exercises": [
+    {
+     "exerciseId": "Barbell_Bench_Press_-_Medium_Grip",
+     "sets": 5,
+     "log": [
+      {
+       "kg": 82,
+       "kgTyped": true,
+       "reps": 5,
+       "repsTyped": true
+      },
+      {
+       "kg": 82,
+       "kgTyped": true,
+       "reps": 5,
+       "repsTyped": true
+      },
+      {
+       "kg": 82,
+       "kgTyped": true,
+       "reps": 5,
+       "repsTyped": true
+      },
+      {
+       "kg": 82,
+       "kgTyped": true,
+       "reps": 5,
+       "repsTyped": true
+      },
+      {
+       "kg": 82,
+       "kgTyped": true,
+       "reps": 5,
+       "repsTyped": true
+      }
+     ],
+     "score": 3
+    },
+    {
+     "exerciseId": "Close-Grip_Barbell_Bench_Press",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 72,
+       "kgTyped": true,
+       "reps": 6,
+       "repsTyped": true
+      },
+      {
+       "kg": 72,
+       "kgTyped": true,
+       "reps": 6,
+       "repsTyped": true
+      },
+      {
+       "kg": 72,
+       "kgTyped": true,
+       "reps": 6,
+       "repsTyped": true
+      }
+     ],
+     "score": 3
+    },
+    {
+     "exerciseId": "Bent_Over_Barbell_Row",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 62,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      },
+      {
+       "kg": 62,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      },
+      {
+       "kg": 62,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      }
+     ],
+     "score": 3
+    },
+    {
+     "exerciseId": "Pullups",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 85,
+       "kgTyped": true,
+       "reps": 10,
+       "repsTyped": true
+      },
+      {
+       "kg": 85,
+       "kgTyped": true,
+       "reps": 10,
+       "repsTyped": true
+      },
+      {
+       "kg": 85,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      }
+     ],
+     "score": 4
+    },
+    {
+     "exerciseId": "Side_Lateral_Raise",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 10,
+       "kgTyped": true,
+       "reps": 10,
+       "repsTyped": true
+      },
+      {
+       "kg": 10,
+       "kgTyped": true,
+       "reps": 10,
+       "repsTyped": true
+      },
+      {
+       "kg": 10,
+       "kgTyped": true,
+       "reps": 10,
+       "repsTyped": true
+      }
+     ],
+     "score": 2
+    },
+    {
+     "exerciseId": "Dumbbell_Bicep_Curl",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 10,
+       "kgTyped": true,
+       "reps": 10,
+       "repsTyped": true
+      },
+      {
+       "kg": 10,
+       "kgTyped": true,
+       "reps": 10,
+       "repsTyped": true
+      },
+      {
+       "kg": 10,
+       "kgTyped": true,
+       "reps": 10,
+       "repsTyped": true
+      }
+     ],
+     "score": 2
+    },
+    {
+     "exerciseId": "Reverse_Flyes",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 5,
+       "kgTyped": true,
+       "reps": 12,
+       "repsTyped": true
+      },
+      {
+       "kg": 5,
+       "kgTyped": true,
+       "reps": 12,
+       "repsTyped": true
+      },
+      {
+       "kg": 5,
+       "kgTyped": true,
+       "reps": 12,
+       "repsTyped": true
+      }
+     ],
+     "score": 2
+    }
+   ]
+  },
+  "2026-11-19": {
+   "classId": "",
+   "difficultyId": "",
+   "areaId": "",
+   "legacy": false,
+   "exercises": [
+    {
+     "exerciseId": "Barbell_Squat",
+     "sets": 2,
+     "log": [
+      {
+       "kg": 102,
+       "kgTyped": true,
+       "reps": 4,
+       "repsTyped": true
+      },
+      {
+       "kg": 72,
+       "kgTyped": true,
+       "reps": 12,
+       "repsTyped": true
+      }
+     ],
+     "score": 3
+    },
+    {
+     "exerciseId": "Good_Morning",
+     "sets": 4,
+     "log": [
+      {
+       "kg": 72,
+       "kgTyped": true,
+       "reps": 6,
+       "repsTyped": true
+      },
+      {
+       "kg": 72,
+       "kgTyped": true,
+       "reps": 6,
+       "repsTyped": true
+      },
+      {
+       "kg": 72,
+       "kgTyped": true,
+       "reps": 6,
+       "repsTyped": true
+      },
+      {
+       "kg": 72,
+       "kgTyped": true,
+       "reps": 6,
+       "repsTyped": true
+      }
+     ],
+     "score": 3
+    },
+    {
+     "exerciseId": "Barbell_Lunge",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 52,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      },
+      {
+       "kg": 52,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      },
+      {
+       "kg": 52,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      }
+     ],
+     "score": 3
+    },
+    {
+     "exerciseId": "Lying_Leg_Curls",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 10,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      },
+      {
+       "kg": 10,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      },
+      {
+       "kg": 10,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      }
+     ],
+     "score": 2
+    },
+    {
+     "exerciseId": "Cable_Crunch",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 30,
+       "kgTyped": true,
+       "reps": 12,
+       "repsTyped": true
+      },
+      {
+       "kg": 30,
+       "kgTyped": true,
+       "reps": 12,
+       "repsTyped": true
+      },
+      {
+       "kg": 30,
+       "kgTyped": true,
+       "reps": 12,
+       "repsTyped": true
+      }
+     ],
+     "score": 2
+    }
+   ]
+  },
+  "2026-11-23": {
+   "classId": "",
+   "difficultyId": "",
+   "areaId": "",
+   "legacy": false,
+   "exercises": [
+    {
+     "exerciseId": "Barbell_Bench_Press_-_Medium_Grip",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 102,
+       "kgTyped": true,
+       "reps": 2,
+       "repsTyped": true
+      },
+      {
+       "kg": 72,
+       "kgTyped": true,
+       "reps": 13,
+       "repsTyped": true
+      },
+      {
+       "kg": 52,
+       "kgTyped": true,
+       "reps": 15,
+       "repsTyped": true
+      }
+     ],
+     "score": 3
+    },
+    {
+     "exerciseId": "Lying_Dumbbell_Tricep_Extension",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 15,
+       "kgTyped": true,
+       "reps": 6,
+       "repsTyped": true
+      },
+      {
+       "kg": 15,
+       "kgTyped": true,
+       "reps": 12,
+       "repsTyped": true
+      },
+      {
+       "kg": 15,
+       "kgTyped": true,
+       "reps": 12,
+       "repsTyped": true
+      }
+     ],
+     "score": 2
+    },
+    {
+     "exerciseId": "One-Arm_Dumbbell_Row",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 25,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      },
+      {
+       "kg": 25,
+       "kgTyped": true,
+       "reps": 12,
+       "repsTyped": true
+      },
+      {
+       "kg": 25,
+       "kgTyped": true,
+       "reps": 12,
+       "repsTyped": true
+      }
+     ],
+     "score": 2
+    },
+    {
+     "exerciseId": "lat pulldown|cable|medium grip",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 60,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      },
+      {
+       "kg": 60,
+       "kgTyped": true,
+       "reps": 12,
+       "repsTyped": true
+      },
+      {
+       "kg": 60,
+       "kgTyped": true,
+       "reps": 12,
+       "repsTyped": true
+      }
+     ],
+     "score": 2
+    },
+    {
+     "exerciseId": "Front_Dumbbell_Raise",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 10,
+       "kgTyped": true,
+       "reps": 10,
+       "repsTyped": true
+      },
+      {
+       "kg": 10,
+       "kgTyped": true,
+       "reps": 10,
+       "repsTyped": true
+      },
+      {
+       "kg": 10,
+       "kgTyped": true,
+       "reps": 10,
+       "repsTyped": true
+      }
+     ],
+     "score": 2
+    },
+    {
+     "exerciseId": "EZ-Bar_Curl",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 21,
+       "kgTyped": true,
+       "reps": 10,
+       "repsTyped": true
+      },
+      {
+       "kg": 21,
+       "kgTyped": true,
+       "reps": 10,
+       "repsTyped": true
+      },
+      {
+       "kg": 21,
+       "kgTyped": true,
+       "reps": 10,
+       "repsTyped": true
+      }
+     ],
+     "score": 2
+    },
+    {
+     "exerciseId": "Face_Pull",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 20,
+       "kgTyped": true,
+       "reps": 12,
+       "repsTyped": true
+      },
+      {
+       "kg": 20,
+       "kgTyped": true,
+       "reps": 12,
+       "repsTyped": true
+      },
+      {
+       "kg": 20,
+       "kgTyped": true,
+       "reps": 12,
+       "repsTyped": true
+      }
+     ],
+     "score": 2
+    }
+   ]
+  },
+  "2026-11-25": {
+   "classId": "",
+   "difficultyId": "",
+   "areaId": "",
+   "legacy": false,
+   "exercises": [
+    {
+     "exerciseId": "Box_Squat",
+     "sets": 5,
+     "log": [
+      {
+       "kg": 92,
+       "kgTyped": true,
+       "reps": 5,
+       "repsTyped": true
+      },
+      {
+       "kg": 92,
+       "kgTyped": true,
+       "reps": 5,
+       "repsTyped": true
+      },
+      {
+       "kg": 92,
+       "kgTyped": true,
+       "reps": 5,
+       "repsTyped": true
+      },
+      {
+       "kg": 92,
+       "kgTyped": true,
+       "reps": 5,
+       "repsTyped": true
+      },
+      {
+       "kg": 92,
+       "kgTyped": true,
+       "reps": 5,
+       "repsTyped": true
+      }
+     ],
+     "score": 3
+    },
+    {
+     "exerciseId": "Stiff-Legged_Barbell_Deadlift",
+     "sets": 4,
+     "log": [
+      {
+       "kg": 92,
+       "kgTyped": true,
+       "reps": 6,
+       "repsTyped": true
+      },
+      {
+       "kg": 92,
+       "kgTyped": true,
+       "reps": 6,
+       "repsTyped": true
+      },
+      {
+       "kg": 92,
+       "kgTyped": true,
+       "reps": 6,
+       "repsTyped": true
+      },
+      {
+       "kg": 92,
+       "kgTyped": true,
+       "reps": 6,
+       "repsTyped": true
+      }
+     ],
+     "score": 3
+    },
+    {
+     "exerciseId": "Dumbbell_Bulgarian_Split_Squat",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 10,
+       "kgTyped": true,
+       "reps": 10,
+       "repsTyped": true
+      },
+      {
+       "kg": 10,
+       "kgTyped": true,
+       "reps": 10,
+       "repsTyped": true
+      },
+      {
+       "kg": 10,
+       "kgTyped": true,
+       "reps": 10,
+       "repsTyped": true
+      }
+     ],
+     "score": 3
+    },
+    {
+     "exerciseId": "Flat_Bench_Lying_Leg_Raise",
+     "sets": 1,
+     "log": [
+      {
+       "kg": 15,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      }
+     ],
+     "score": 2
+    },
+    {
+     "exerciseId": "Cable_Crunch",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 30,
+       "kgTyped": true,
+       "reps": 12,
+       "repsTyped": true
+      },
+      {
+       "kg": 30,
+       "kgTyped": true,
+       "reps": 12,
+       "repsTyped": true
+      },
+      {
+       "kg": 30,
+       "kgTyped": true,
+       "reps": 12,
+       "repsTyped": true
+      }
+     ],
+     "score": 2
+    }
+   ]
+  },
+  "2026-11-27": {
+   "classId": "",
+   "difficultyId": "",
+   "areaId": "",
+   "legacy": false,
+   "exercises": [
+    {
+     "exerciseId": "Standing_Military_Press",
+     "sets": 5,
+     "log": [
+      {
+       "kg": 32,
+       "kgTyped": true,
+       "reps": 5,
+       "repsTyped": true
+      },
+      {
+       "kg": 32,
+       "kgTyped": true,
+       "reps": 5,
+       "repsTyped": true
+      },
+      {
+       "kg": 32,
+       "kgTyped": true,
+       "reps": 5,
+       "repsTyped": true
+      },
+      {
+       "kg": 32,
+       "kgTyped": true,
+       "reps": 5,
+       "repsTyped": true
+      },
+      {
+       "kg": 32,
+       "kgTyped": true,
+       "reps": 5,
+       "repsTyped": true
+      }
+     ],
+     "score": 3
+    },
+    {
+     "exerciseId": "Close-Grip_Barbell_Bench_Press",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 72,
+       "kgTyped": true,
+       "reps": 6,
+       "repsTyped": true
+      },
+      {
+       "kg": 72,
+       "kgTyped": true,
+       "reps": 6,
+       "repsTyped": true
+      },
+      {
+       "kg": 72,
+       "kgTyped": true,
+       "reps": 6,
+       "repsTyped": true
+      }
+     ],
+     "score": 3
+    },
+    {
+     "exerciseId": "Bent_Over_Barbell_Row",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 72,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      },
+      {
+       "kg": 72,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      },
+      {
+       "kg": 72,
+       "kgTyped": true,
+       "reps": 8,
+       "repsTyped": true
+      }
+     ],
+     "score": 3
+    },
+    {
+     "exerciseId": "Pullups",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 85,
+       "kgTyped": true,
+       "reps": 10,
+       "repsTyped": true
+      },
+      {
+       "kg": 85,
+       "kgTyped": true,
+       "reps": 6,
+       "repsTyped": true
+      },
+      {
+       "kg": 85,
+       "kgTyped": true,
+       "reps": 6,
+       "repsTyped": true
+      }
+     ],
+     "score": 4
+    },
+    {
+     "exerciseId": "Side_Lateral_Raise",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 10,
+       "kgTyped": true,
+       "reps": 10,
+       "repsTyped": true
+      },
+      {
+       "kg": 10,
+       "kgTyped": true,
+       "reps": 10,
+       "repsTyped": true
+      },
+      {
+       "kg": 10,
+       "kgTyped": true,
+       "reps": 10,
+       "repsTyped": true
+      }
+     ],
+     "score": 2
+    },
+    {
+     "exerciseId": "Dumbbell_Bicep_Curl",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 10,
+       "kgTyped": true,
+       "reps": 10,
+       "repsTyped": true
+      },
+      {
+       "kg": 10,
+       "kgTyped": true,
+       "reps": 10,
+       "repsTyped": true
+      },
+      {
+       "kg": 10,
+       "kgTyped": true,
+       "reps": 10,
+       "repsTyped": true
+      }
+     ],
+     "score": 2
+    },
+    {
+     "exerciseId": "Reverse_Flyes",
+     "sets": 3,
+     "log": [
+      {
+       "kg": 5,
+       "kgTyped": true,
+       "reps": 12,
+       "repsTyped": true
+      },
+      {
+       "kg": 5,
+       "kgTyped": true,
+       "reps": 12,
+       "repsTyped": true
+      },
+      {
+       "kg": 5,
+       "kgTyped": true,
+       "reps": 12,
+       "repsTyped": true
+      }
+     ],
+     "score": 2
+    }
+   ]
+  }
+ },
+ "xp_events_v1": []
+}

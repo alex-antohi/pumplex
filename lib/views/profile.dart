@@ -169,3 +169,90 @@ class SessionTile extends StatelessWidget {
     );
   }
 }
+
+/// SAVE BACKUP and LOAD BACKUP, stacked in the free tile space beside the
+/// last-session tile. Placeholder look: design may restyle it.
+class BackupButtons extends StatelessWidget {
+  const BackupButtons({super.key, required this.onSave, required this.onLoad});
+
+  final VoidCallback onSave, onLoad;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = Pal.of(context);
+    Widget button(String key, String text, Color color, VoidCallback onTap) => Expanded(
+          child: BrutalButton(
+            key: ValueKey(key),
+            small: true,
+            color: color,
+            onTap: onTap,
+            child: Center(
+              child: FittedBox(fit: BoxFit.scaleDown, child: Text(text, textAlign: TextAlign.center)),
+            ),
+          ),
+        );
+    return Padding(
+      // Room for the hard shadow inside the tile square.
+      padding: const EdgeInsets.only(right: 4, bottom: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        spacing: 10,
+        children: [
+          button('backup-save', t('backup.save'), p.lime, onSave),
+          button('backup-load', t('backup.load'), p.sky, onLoad),
+        ],
+      ),
+    );
+  }
+}
+
+/// Asks before a backup file replaces the data on the phone: everything,
+/// or only the sessions and XP when the file has no profile ([keepsProfile]).
+/// True: load.
+Future<bool?> confirmReplaceBackup(BuildContext context, {required bool keepsProfile}) => showDialog<bool>(
+      context: context,
+      builder: (context) {
+        final p = Pal.of(context);
+        return Dialog(
+          key: const ValueKey('backup-replace-dialog'),
+          backgroundColor: p.bg,
+          shape: Border.all(color: p.ink, width: 3),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Shout(t('backup.replaceTitle'), size: 18, color: p.ink),
+                const SizedBox(height: 4),
+                Text(t(keepsProfile ? 'backup.replaceSessions' : 'backup.replaceAll'), style: mono(12, p.ink)),
+                const SizedBox(height: 14),
+                Row(
+                  spacing: 10,
+                  children: [
+                    Expanded(
+                      child: BrutalButton(
+                        key: const ValueKey('backup-replace-cancel'),
+                        small: true,
+                        color: p.sky,
+                        onTap: () => Navigator.pop(context, false),
+                        child: FittedBox(fit: BoxFit.scaleDown, child: Text(t('backup.cancel'))),
+                      ),
+                    ),
+                    Expanded(
+                      child: BrutalButton(
+                        key: const ValueKey('backup-replace-confirm'),
+                        small: true,
+                        color: p.pink,
+                        onTap: () => Navigator.pop(context, true),
+                        child: FittedBox(fit: BoxFit.scaleDown, child: Text(t('backup.replace'))),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
