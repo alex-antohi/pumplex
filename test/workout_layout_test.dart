@@ -17,7 +17,7 @@ import 'package:gym_app/views/workout_layout.dart';
 
 /// The cards of the class and mode, in the Suggested order: the cards the
 /// carousel keeps (D82). The old filter list (store.cards) is gone.
-List<ExerciseGroup> _cards(LogStore s) => s.defaultFilter.apply(exerciseCatalog, s.favorites);
+List<ExerciseGroup> _cards(LogStore s) => s.chalkCards(const {}); // every card, my gear first (D89)
 
 /// A test clock the store reads. 21 Nov 2026 is a Saturday.
 final _now = DateTime(2026, 11, 21, 10);

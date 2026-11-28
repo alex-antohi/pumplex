@@ -125,6 +125,7 @@ const chalkWords = <ChalkWord>[
   ChalkWord('pattern', 'carry', 'Carry'),
   ChalkWord('pattern', 'cardio', 'Cardio'),
   ChalkWord('move', 'press', 'Press'),
+  ChalkWord('move', 'bench', 'Bench'),
   ChalkWord('move', 'fly', 'Fly'),
   ChalkWord('move', 'pullover', 'Pullover'),
   ChalkWord('move', 'curl', 'Curl'),
@@ -175,13 +176,76 @@ final chalkRackTools = [for (final w in chalkWords) if (w.row == 'tool' && w.id 
 /// The gear each class lights (D50, the lit rule of D89; D90 step 2), as
 /// TOOL word ids, the class's tools first. Bodyweight is lit for every class.
 /// Trap Bar and Landmine lifts are barbell lifts, so they are Plate Paladin
-/// gear. Data only: the order of the rack and the results (D89) is not built.
+/// gear. The lifter's own adds and removes change it ([MyGear]).
 const classGear = <String, List<String>>{
   'scrapper': ['bodyweight', 'rings'],
   'bruiser': ['dumbbell', 'kettlebell', 'bands', 'ball', 'bodyweight'],
   'paladin': ['barbell', 'ezbar', 'dumbbell', 'kettlebell', 'bodyweight'],
   'cablemancer': ['machine', 'cable', 'smith', 'bodyweight'],
 };
+
+/// The first 5 move words of OR SAY THE MOVE per class (D89), then "+n".
+const classMoves = <String, List<String>>{
+  'scrapper': ['pushup', 'pullup', 'dip', 'squat', 'lunge'],
+  'bruiser': ['press', 'curl', 'row', 'lunge', 'raise'],
+  'paladin': ['bench', 'squat', 'deadlift', 'row', 'press'],
+  'cablemancer': ['pulldown', 'row', 'pushdown', 'fly', 'crunch'],
+};
+
+/// "My gear" (D89): the lifter's own changes to the class gear, as TOOL
+/// word ids. Saved in the store and in the backup; an old save has none.
+class MyGear {
+  const MyGear({this.added = const {}, this.removed = const {}});
+
+  static const none = MyGear();
+
+  /// Tools the lifter lit on top of the class gear, and class tools they put out.
+  final Set<String> added, removed;
+
+  /// The lit rule (D89): the class gear (D50, Bodyweight always), plus the
+  /// lifter's adds, minus their removes. The class's tools first, then the
+  /// adds in rack order.
+  List<String> lit(String classId) => [
+        for (final t in {...?classGear[classId], 'bodyweight'}) if (!removed.contains(t)) t,
+        for (final w in chalkRackTools)
+          if (added.contains(w.id) && !(classGear[classId]?.contains(w.id) ?? false) && w.id != 'bodyweight') w.id,
+      ];
+
+  /// A long-press on [tool] in the rack: a lit tool goes out, a dim one is lit.
+  MyGear toggle(String classId, String tool) {
+    final own = {...?classGear[classId], 'bodyweight'}.contains(tool);
+    final on = lit(classId).contains(tool);
+    return MyGear(
+      added: own || on ? ({...added}..remove(tool)) : {...added, tool},
+      removed: own && on ? {...removed, tool} : ({...removed}..remove(tool)),
+    );
+  }
+
+  Map<String, Object?> toJson() => {'added': added.toList(), 'removed': removed.toList()};
+
+  /// Tolerant: anything broken is no change.
+  factory MyGear.fromJson(Object? j) {
+    Set<String> ids(Object? v) => {if (v is List) for (final t in v) if (t is String) t};
+    return j is Map ? MyGear(added: ids(j['added']), removed: ids(j['removed'])) : none;
+  }
+}
+
+/// The rack in the order of [lit] tools first (D89), then the dim ones in
+/// rack order.
+List<ChalkWord> rackOrder(List<String> lit) => [
+      for (final id in lit) ...chalkRackTools.where((w) => w.id == id),
+      for (final w in chalkRackTools) if (!lit.contains(w.id)) w,
+    ];
+
+/// The TOOL word id of exercise [e] (not the towel, a second tool), or null.
+String? chalkToolOf(CatalogExercise e) {
+  // No equipment in the database (null, or empty) is Bodyweight.
+  final equipment = e.equipment.isEmpty ? 'body only' : e.equipment;
+  return e.mods['equip'] != null ? chalkToolOfMod[e.mods['equip']] : chalkToolOfEquipment[equipment];
+}
+
+/// Variation [e] fits the [lit] gear (D89): the class mark, no XP effect.
+bool fitsGear(CatalogExercise e, List<String> lit) => lit.contains(chalkToolOf(e));
 
 /// The words of exercise [e].
 Set<String> _wordsOf(CatalogExercise e) {
@@ -192,9 +256,9 @@ Set<String> _wordsOf(CatalogExercise e) {
   for (final MapEntry(:key, :value) in chalkMoveWords.entries) {
     if (value.hasMatch(e.name)) w.add('move.$key');
   }
-  // No equipment in the database (null, or empty) is Bodyweight.
-  final equipment = e.equipment.isEmpty ? 'body only' : e.equipment;
-  final tool = e.mods['equip'] != null ? chalkToolOfMod[e.mods['equip']] : chalkToolOfEquipment[equipment];
+  // BENCH is the Bench Press move (D89), by its move, not its name.
+  if (e.base.toLowerCase() == 'bench press') w.add('move.bench');
+  final tool = chalkToolOf(e);
   if (tool != null) w.add('tool.$tool');
   if (e.mods['setup'] == 'Towel' || chalkTowel.hasMatch(e.name)) w.add('tool.towel');
   for (final b in bodyParts) {
@@ -223,15 +287,32 @@ class ChalkIndex {
   bool _has(CatalogExercise e, Iterable<String> line) => (words[e.id] ?? const {}).containsAll(line);
 
   /// The cards with an exercise that has every word of [line], each with only
-  /// those exercises, the most common first (D67), then by name.
-  List<ExerciseGroup> search(Iterable<String> line) {
-    final out = <ExerciseGroup>[];
+  /// those exercises. With [lit] gear (D89): the cards that use it first,
+  /// by gear (the first lit tool they use, in [lit] order; no divider), then
+  /// the rest; inside a card, the variations of the lit gear first. Then the
+  /// most common first (D67), then by name.
+  List<ExerciseGroup> search(Iterable<String> line, {List<String> lit = const []}) {
+    int gear(CatalogExercise e) {
+      final i = lit.indexOf(chalkToolOf(e) ?? '');
+      return i < 0 ? lit.length : i;
+    }
+
+    final out = <(ExerciseGroup, int)>[];
     for (final g in catalog.groups) {
       final keep = [for (final e in g.variants) if (_has(e, line)) e];
-      if (keep.isNotEmpty) out.add(g.only(keep));
+      if (keep.isEmpty) continue;
+      final mine = [for (final e in keep) if (gear(e) < lit.length) e];
+      out.add((
+        g.only([...mine, for (final e in keep) if (gear(e) == lit.length) e]),
+        mine.isEmpty ? lit.length : mine.map(gear).reduce((a, b) => a < b ? a : b),
+      ));
     }
-    out.sort((a, b) => a.rank != b.rank ? a.rank - b.rank : a.name.compareTo(b.name));
-    return out;
+    out.sort((a, b) {
+      if (a.$2 != b.$2) return a.$2 - b.$2;
+      final (x, y) = (a.$1, b.$1);
+      return x.rank != y.rank ? x.rank - y.rank : x.name.compareTo(y.name);
+    });
+    return [for (final (g, _) in out) g];
   }
 
   /// The CHALK results list: one row per exercise that has every word of
@@ -239,8 +320,8 @@ class ChalkIndex {
   /// (PUSH + FLY: Cable Fly, Dumbbell Fly, ...): the list never hides a
   /// match behind the card's first exercise. Each row keeps its card, with
   /// the matching exercises only, as the carousel shows it.
-  List<ChalkResult> results(Iterable<String> line) => [
-        for (final g in search(line))
+  List<ChalkResult> results(Iterable<String> line, {List<String> lit = const []}) => [
+        for (final g in search(line, lit: lit))
           for (final e in g.variants) ChalkResult(g, e),
       ];
 

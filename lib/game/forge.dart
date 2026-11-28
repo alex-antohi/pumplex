@@ -3,8 +3,8 @@
 // forged move is a custom exercise: its name comes from the words (for
 // example KETTLEBELL CURL), with an optional nickname. It has no angle and
 // no grip: those are variations, set later on the exercise card (D81). It
-// joins the exercise list like any card (sets and XP work the same), for
-// every class with its gear, and CHALK finds it.
+// joins the exercise list like any card (sets and XP work the same), lit
+// for every lifter with its gear (D89), and CHALK finds it.
 //
 // When CHALK has no MOVE word for it, the lifter types the move (D83): the
 // typed word is the move part of the name, kept as typed (user text, not
@@ -15,7 +15,6 @@
 // (D78). Not in the backup file yet (still open).
 
 import 'chalk.dart';
-import 'content.dart';
 import 'exercises.dart';
 
 /// The tool word -> the database equipment and the equipment modifier.
@@ -58,6 +57,7 @@ const _toolPart = <String, String>{
 /// Every MOVE word of CHALK has a row (test: chalk_test.dart).
 const _moveFields = <String, (String, String, String)>{
   'press': ('chest', 'chest', 'hpush'),
+  'bench': ('chest', 'chest', 'hpush'),
   'fly': ('chest', 'chest', 'fly'),
   'pullover': ('back', 'lats', 'vpull'),
   'curl': ('arms', 'biceps', 'biceps'),
@@ -188,13 +188,6 @@ String? cleanTyped(String? typed) {
 /// The database equipment the TOOL word of [line] gives (no tool: body only).
 String forgeEquipment(Iterable<String> line) => (_toolFields[chalkIdOf(line, 'tool')] ?? ('body only', null)).$1;
 
-/// The classes with the gear for a move forged from [line] (the FORGE
-/// card's "shows for" line).
-List<GameClass> forgeClasses(Iterable<String> line) {
-  final equipment = forgeEquipment(line);
-  return [for (final c in gameClasses) if (classEquipment[c.id]!.contains(equipment)) c];
-}
-
 /// A forged move, as kept on the phone.
 class ForgedMove {
   const ForgedMove({required this.id, required this.words, required this.muscle, this.nickname, this.typed});
@@ -260,8 +253,8 @@ class ForgedMove {
         if (typed != null) 'typed': typed,
       };
 
-  /// The exercise for the list: every class with its gear sees it from
-  /// the first mode, last in the Suggested order.
+  /// The exercise for the list: no rank (last among equals), and its tool
+  /// lights it like any other lift (D89).
   CatalogExercise toExercise() {
     final tool = _toolFields[chalkIdOf(words, 'tool')] ?? ('body only', null);
     final pattern = (typed == null ? _moveFields[chalkIdOf(words, 'move')]?.$3 : null) ??
@@ -282,7 +275,6 @@ class ForgedMove {
         if (chalkIdOf(words, 'tool') == 'towel') 'setup': 'Towel',
       },
       pattern: pattern,
-      unlock: const {'scrapper': 0, 'bruiser': 0, 'paladin': 0, 'cablemancer': 0},
     );
   }
 }

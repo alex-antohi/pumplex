@@ -131,6 +131,7 @@ The app migrates each one once (§5.2, §5.3).
 | `sessions_v3` | Map date → SESSION with its SESSION_EXERCISE list. A SESSION_EXERCISE of a weighted move has `log`: one `{kg?, reps?, kgTyped?, repsTyped?}` per set, in order (D84); written only when a set has a value. Sets from before D84 have none. Log only: not in XP. |
 | `xp_events_v1` | List of the saved XP_EVENTs: `legacy`, and the old `streak`, `achievement` and `workout` XP. |
 | `favorites_v1` | List of favorite exercises (D53, D72): exercise ids, the exact variant starred. An old favorite card (`move:<move name>`, D55) is changed to the exercise last picked on that card, else its simplest exercise. |
+| `my_gear_v1` | "My gear" (D89): `{added: [tool ids], removed: [tool ids]}`, the lifter's changes to the class gear (TOOL word ids, `lib/game/chalk.dart`). A save without it means the class gear only. |
 | `custom_exercises_v1` | List of forged moves (D72, `lib/game/forge.dart`): `{id: "custom_<n>", words: ["<row>.<id>", ...], muscle, nickname?}`. They join the exercise list at start. UI data: not in the backup file yet. |
 | `workout_filter_v1`, `workout_variants_v1`, `workout_card_v1` | UI state of the workout (D75, D76): the last filter, the exercises picked per card, the card picked. Not in the backup. |
 | `old_exercises_v0_backup` | Written once by §5.6: the old `sessions_v3` text. |
@@ -222,7 +223,7 @@ D34 removes the streak and D35 removes the achievements. No one loses XP. On sta
 
 There is no save / restore button in the app now (D59); only the one-time upgrade writes a backup file. The code below stays.
 
-The backup file (version 6) holds the keys `profile_v1`, `body_history_v1`, `sessions_v3`, `xp_events_v1` and `favorites_v1`.
+The backup file (version 7) holds the keys `profile_v1`, `body_history_v1`, `sessions_v3`, `xp_events_v1`, `favorites_v1` and `my_gear_v1` (D89; version 6 has no `my_gear_v1`).
 The one-time flag and backup keys are not in it.
 
 | Version | What the app does on import |

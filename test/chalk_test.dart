@@ -23,7 +23,7 @@ import 'package:gym_app/views/play.dart' show SessionPage;
 
 /// The cards of the class and mode, in the Suggested order: the cards the
 /// carousel keeps (D82). The old filter list (store.cards) is gone.
-List<ExerciseGroup> _cards(LogStore s) => s.defaultFilter.apply(exerciseCatalog, s.favorites);
+List<ExerciseGroup> _cards(LogStore s) => s.chalkCards(const {}); // every card, my gear first (D89)
 
 const _profile = Profile(
   character: Character(sex: 'female', height: 80, muscle: 100, fat: 0),
@@ -196,6 +196,7 @@ void main() {
           if (value.contains(pattern)) 'pattern.$key',
         for (final MapEntry(:key, :value) in chalkMoveWords.entries)
           if (value.hasMatch(name)) 'move.$key',
+        if ((j['base'] as String?)?.toLowerCase() == 'bench press') 'move.bench',
         if (tool != null) 'tool.$tool',
         if (mods['setup'] == 'Towel' || chalkTowel.hasMatch(name)) 'tool.towel',
         for (final b in bodyParts)

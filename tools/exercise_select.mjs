@@ -1,48 +1,31 @@
-// Cuts the exercise list down and picks, per class and difficulty mode, the
-// cards that make a real workout (D67, D69). Reads the full list
+// Cuts the exercise list down to the common cards and ranks them (D67,
+// D69, D90). Reads the full list
 // (tools/exercise_db.json: the 692 database exercises of D56 and the added
-// ones of D57 and D69, with `base` and `mods` from exercise_variants.mjs;
+// ones of D57 and D69, with `base`, `mods` and `score` from exercise_variants.mjs;
 // a merged or removed exercise has only `alias`, D90)
 // and writes the app list:
 //   node tools/exercise_variants.mjs tools/exercise_db.json --write tools/exercise_db.json
-//   node tools/exercise_select.mjs tools/exercise_db.json assets/exercises/exercises.json [--report] [--slots] [--cards]
+//   node tools/exercise_select.mjs tools/exercise_db.json assets/exercises/exercises.json [--report] [--slots]
 //
 // What it writes per exercise, on top of the database fields:
 //   rank     commonness of its card (1 = the most common card). All
 //            exercises of one move have the rank of the move.
 //   pattern  the movement pattern of its card (PATTERNS), for example
 //            `hpush` (horizontal push).
-//   unlock   class id -> the first difficulty mode (0 Sofa .. 5 Nightmare)
-//            that shows the card for that class. Only classes that show
-//            the card are listed.
 //   level    the database level, or the app's level from LEVEL.
 //   aliases  old ids that now mean this exercise (merged or removed, D90).
 //            The app reads saved sets, favorites and Today through them.
 //            Every id of tools/frozen_ids.txt must be an exercise or an alias.
+// There is no `unlock` (D89): no lift is hidden by class or mode. The app
+// puts the lifter's gear first (lib/game/chalk.dart), then the rank; HARD
+// and the XP tier come from the score (D91).
 //
-// Rules (D69), per class and mode, in this order:
-// 1. Levels: LEVEL changes the level of some exercises (too hard or too
-//    easy for their database level). The database file keeps its levels.
-//    A mode only takes cards that have an exercise of its level (D51: Sofa
-//    and Warm-up beginner; Sweat and Pain also intermediate; Brutal and
-//    Nightmare also expert). A card shown in one mode stays in every harder
-//    mode.
-// 2. PIN: cards the owner placed in a mode for a class come in that mode
-//    (not earlier).
-// 3. Slots: each movement pattern of SLOTS gets TARGET[mode] cards, the
-//    most common first. So every mode has a push, a pull, a squat, a hinge
-//    and so on wherever the class has the gear.
-// 4. Commonness: each body part (D52) fills up to BUDGET[part][mode]
-//    cards. From Sweat on, a body part first takes one card of the mode's
-//    new level (harder moves, not only more cards). Then the most common
-//    card of a MAIN muscle that has no card yet, else the most common card.
-//    COMMON lists the candidate cards in tiers, by judgment of how often
-//    the exercise is seen in gyms and training programs (tier 1 = in
-//    almost every program). Inside a tier, a move with more variations
-//    comes first (one name gives more); then the order of the list.
-// 5. Each mode shows more cards than the one before.
-// The list keeps every candidate card of COMMON, also one that no class
-// shows in a mode (D70 shows all cards of the class, D72 searches all). A
+// COMMON lists the candidate cards in tiers, by judgment of how often the
+// exercise is seen in gyms and training programs (tier 1 = in almost every
+// program); the order in COMMON (and RANK) is the rank. `--slots` shows the
+// pattern slots (D69) per class and mode from the score: the cards a class
+// has with a score up to the mode.
+// The list keeps every candidate card of COMMON. A
 // kept move keeps its variations, but not the ones in OBSCURE and not the
 // ones no class can see (equipment `other` or `foam roll`, D50). Exercises with
 // `custom: true` (D57, D69) must be kept. Ids do not change (saved sets
@@ -177,77 +160,6 @@ const LEVEL = {
 };
 
 const MODES = ['sofa', 'warmup', 'sweat', 'pain', 'brutal', 'nightmare'];
-const M = Object.fromEntries(MODES.map((m, i) => [m, i]));
-
-// Cards the owner placed (D69): class -> exercise id or card name -> mode.
-// The card comes in that mode, not earlier.
-const PIN = {
-  scrapper: {
-    'Scapular_Pull-Up': M.sofa, Butt_Lift_Bridge: M.sofa, 'Sit-Up': M.sofa,
-    Dead_Bug: M.warmup, Side_Bridge: M.warmup, 'Step-up_with_Knee_Raise': M.warmup, Bird_Dog: M.warmup,
-    Glute_Kickback: M.sweat, Mountain_Climbers: M.sweat, 'Cross-Body_Crunch': M.sweat, Rope_Jumping: M.sweat,
-    // The variation audit merged 6 Scrapper cards into chips (rows, chin-up,
-    // plyo push-up, glute-ham raise): these keep the steps even.
-    Tuck_Crunch: M.sweat, Lateral_Bound: M.sweat, Alternate_Heel_Touchers: M.sweat,
-    // D90 step 1: Bent-Knee Hip Raise is now Reverse Crunch, Floor Glute-Ham
-    // Raise the Nordic Curl, Scissors Jump the Split Jump.
-    Flutter_Kicks: M.pain, Hollow_Body_Hold: M.pain, Reverse_Crunch: M.pain,
-    Natural_Glute_Ham_Raise: M.pain, 'Jackknife_Sit-Up': M.pain,
-    // D90 step 2: the jumps are 4 cards; the drills are one card (Running Drill).
-    'L-Sit': M.brutal,
-    Double_Leg_Butt_Kick: M.nightmare,
-  },
-  bruiser: {
-    Inverted_Row: M.sofa, Butt_Lift_Bridge: M.sofa, Dead_Bug: M.sofa,
-    Reverse_Flyes: M.warmup, Goblet_Squat: M.warmup, Split_Squat_with_Dumbbells: M.warmup,
-    Side_Bridge: M.warmup, Hammer_Curls: M.warmup, Dumbbell_Shrug: M.warmup, 'Sit-Up': M.warmup, Bird_Dog: M.warmup,
-    'Exercise_Ball_Pull-In': M.sweat, Band_Pull_Apart: M.sweat, Kettlebell_Swing: M.sweat,
-    Dumbbell_Farmers_Walk: M.sweat,
-    Rope_Jumping: M.pain,
-    Tricep_Dumbbell_Kickback: M.pain, Vertical_Swing: M.pain, Ball_Leg_Curl: M.pain, Dumbbell_Step_Ups: M.pain,
-    Mountain_Climbers: M.pain, Kettlebell_Thruster: M.pain,
-    Kettlebell_Pistol_Squat: M.brutal, Alternating_Renegade_Row: M.brutal,
-    // Band and kettlebell variations (D80) that give the class a new card:
-    // the band ones with Band Pull-Apart and the abductor slot, the
-    // kettlebell sumo deadlift with the Paladin's sumo deadlift.
-    'face pull|bands': M.sweat, 'hip abduction|bands': M.sweat, 'sumo deadlift|kettlebell': M.pain,
-    // The rare moves the keep rule brought back, placed by gear (D50) in late modes.
-    // The band hip extension is now a Glute Kickback chip (D90 step 1).
-    Hip_Extension_with_Bands: M.sweat, Halo: M.pain,
-    Scaption: M.brutal, 'Lateral to Front Raise': M.brutal,
-    'Zottman Curl': M.nightmare, 'Cuban Press': M.nightmare,
-  },
-  paladin: {
-    Reverse_Flyes: M.sofa,
-    Split_Squat_with_Dumbbells: M.warmup, Inverted_Row: M.warmup, Barbell_Rear_Delt_Row: M.warmup, Dead_Bug: M.warmup,
-    Hammer_Curls: M.warmup, Barbell_Shrug: M.warmup, 'Sit-Up': M.warmup,
-    Side_Bridge: M.sweat, Kettlebell_Swing: M.sweat, Barbell_Hack_Squat: M.sweat, Bird_Dog: M.sweat,
-    Dumbbell_Farmers_Walk: M.sweat,
-    Sumo_Deadlift: M.pain, Rack_Pulls: M.pain, Front_Squat_Clean_Grip: M.pain, 'Push Press': M.pain,
-    Barbell_Ab_Rollout: M.pain, Barbell_Step_Ups: M.pain, Kettlebell_Thruster: M.pain,
-    Power_Clean: M.brutal, Box_Squat: M.brutal, Landmine_Linear_Jammer: M.brutal,
-    Kettlebell_Pistol_Squat: M.nightmare, 'Kettlebell_Turkish_Get-Up_Squat_style': M.nightmare,
-    // The rare moves the keep rule brought back, placed by gear (D50) in late modes.
-    'Spider Curl': M.sweat, 'JM Press': M.pain,
-    'Drag Curl': M.brutal, 'Deficit Deadlift': M.brutal, 'Tate Press': M.brutal,
-    'Finger Curl': M.nightmare,
-    // D90 step 2: the rank changes left it out; it stays a Paladin card.
-    Zercher_Squats: M.nightmare,
-  },
-  cablemancer: {
-    Leg_Press: M.sofa, Leg_Extensions: M.sofa, Butterfly: M.sofa, Face_Pull: M.sofa, Reverse_Machine_Flyes: M.sofa,
-    Seated_Cable_Rows: M.sofa, Cable_Deadlifts: M.sofa,
-    Cable_Crossover: M.warmup, Leverage_High_Row: M.warmup, 'Sit-Up': M.warmup,
-    Bird_Dog: M.warmup,
-    Thigh_Abductor: M.sweat, Thigh_Adductor: M.sweat, 'Cable_Hammer_Curls_-_Rope_Attachment': M.sweat,
-    Pull_Through: M.pain, Pallof_Press: M.pain,
-    Standing_Cable_Wood_Chop: M.brutal,
-    // The rare moves the keep rule brought back, placed by gear (D50) in late modes.
-    'Triceps Extension': M.pain, 'High Pulley Row': M.brutal, 'High Cable Curl': M.brutal,
-    'Reverse Hyperextension': M.nightmare,
-  },
-};
-
 // Display names (D80): a special name from assets/i18n/en.json (`exercise.<id>`,
 // the clean names of the D69 clean-up that no rule makes), else the name
 // composed from the move and its modifiers (tools/exercise_names.mjs). The
@@ -268,20 +180,9 @@ const OBSCURE = new Set([
   'Dumbbell_Shoulder_Press', // the same as the seated and standing dumbbell press
 ]);
 
-// Cards per class and body part, one number per mode (MODES): what the
-// commonness step fills up to. Pins and slots may give a body part more.
-const BUDGET = {
-  chest: [2, 3, 4, 5, 6, 8],
-  back: [3, 4, 6, 7, 9, 11],
-  shoulders: [2, 3, 4, 5, 6, 8],
-  arms: [3, 4, 5, 6, 8, 10],
-  legs: [4, 6, 8, 10, 12, 16],
-  core: [3, 3, 4, 5, 7, 9],
-};
-const topLevel = (mode) => Math.floor(mode / 2); // D51
 const LEVELS = ['beginner', 'intermediate', 'expert'];
 
-// The class filter (D50); the same as classEquipment and classCategories in lib/game/exercises.dart.
+// The class gear (D50), for the reports: the same equipment as classEquipment in lib/game/exercises.dart.
 const CLASSES = {
   scrapper: [['body only', 'rings'], ['strength', 'plyometrics', 'cardio']],
   bruiser: [['body only', 'dumbbell', 'kettlebells', 'bands', 'ball'], ['strength', 'plyometrics', 'cardio']],
@@ -297,10 +198,6 @@ const PARTS = {
   core: ['abdominals'],
 };
 const partOf = (m) => Object.keys(PARTS).find((p) => PARTS[p].includes(m));
-// The main muscles: each gets a card before a second card of another muscle.
-const MAIN = new Set(['chest', 'lats', 'middle back', 'lower back', 'shoulders', 'biceps', 'triceps', 'quadriceps',
-  'hamstrings', 'glutes', 'calves', 'abdominals']);
-
 const args = process.argv.slice(2);
 // Merged and removed exercises (D90): only their alias goes into the list.
 const aliasOf = {};
@@ -371,97 +268,14 @@ for (const o of order) if (!patternOf.has(o.name)) throw new Error(`PATTERNS: no
 const plainness = (e) => Object.keys(e.mods ?? {}).length + (e.mods?.equip === 'Rings' ? 1 : 0);
 const simplest = (a, b) => plainness(a) - plainness(b) || a.name.length - b.name.length;
 
-// Per class: the first mode of each card. A card's muscle is the most
-// frequent first muscle of its exercises in the class (a tie: the simplest
-// exercise's); its level is the easiest level there.
-const unlock = new Map(order.map((o) => [o.name, {}]));
-const table = {};
-const slotTable = {};
-const candidates = {};
-for (const c of Object.keys(CLASSES)) {
-  const cards = [];
-  for (const o of order) {
-    const vs = byCard.get(o.name).filter((e) => inClass(c, e)).sort(simplest);
-    if (!vs.length) continue;
-    const count = new Map();
-    for (const e of vs) count.set(e.primaryMuscles[0], (count.get(e.primaryMuscles[0]) ?? 0) + 1);
-    const muscle = [...count].reduce((a, b) => (b[1] > a[1] ? b : a))[0];
-    cards.push({
-      name: o.name, muscle, part: partOf(muscle), pattern: patternOf.get(o.name), rank: rankOf.get(o.name), tier: o.t,
-      level: Math.min(...vs.map((e) => LEVELS.indexOf(e.level))),
-    });
-  }
-  candidates[c] = cards;
-  const card = (name) => cards.find((k) => k.name === name);
-  for (const [key, mode] of Object.entries(PIN[c])) {
-    const e = byId.get(key);
-    const k = card(e ? cardOf(e) : key);
-    if (!k) throw new Error(`PIN ${c} ${key}: not a candidate card of the class`);
-    if (e && (!inClass(c, e) || OBSCURE.has(e.id))) throw new Error(`PIN ${c} ${key}: the class cannot see it`);
-    const level = e ? LEVELS.indexOf(e.level) : k.level;
-    if (level > topLevel(mode)) throw new Error(`PIN ${c} ${key}: too hard for ${MODES[mode]}`);
-    if (k.pin !== undefined && k.pin !== mode) throw new Error(`PIN ${c} ${key}: card ${k.name} pinned twice`);
-    k.pin = mode;
-  }
-  const byRank = (a, b) => a.rank - b.rank;
-  table[c] = [];
-  slotTable[c] = [];
-  for (let mode = 0; mode < MODES.length; mode++) {
-    const free = (k) => k.mode === undefined && k.level <= topLevel(mode) && (k.pin === undefined || k.pin <= mode);
-    const take = (k) => { k.mode = mode; };
-    // 2. Pins.
-    for (const k of cards) if (k.pin === mode) take(k);
-    // 3. Slots.
-    for (const [s, , core] of SLOTS) {
-      const want = TARGET[core ? 'core' : 'extra'][mode];
-      const have = () => cards.filter((k) => k.pattern === s && k.mode !== undefined).length;
-      const pool = cards.filter((k) => k.pattern === s && free(k)).sort(byRank);
-      while (have() < want && pool.length) take(pool.shift());
-    }
-    // 4. Commonness, per body part. Pinned cards do not use the budget.
-    for (const part of Object.keys(PARTS)) {
-      const shown = () => cards.filter((k) => k.part === part && k.mode !== undefined);
-      const pool = cards.filter((k) => k.part === part && free(k));
-      const hard = () => mode >= 2 && !shown().some((k) => k.mode === mode && k.level === topLevel(mode));
-      const used = () => shown().filter((k) => k.pin === undefined).length;
-      while (used() < BUDGET[part][mode] && pool.length) {
-        const s = shown();
-        // A harder card only when it is fairly common (tiers 1-5).
-        const first = (k) => (hard() && k.level === topLevel(mode) && k.tier < 5 ? 0 : 1)
-          + (MAIN.has(k.muscle) && k.tier < 5 && !s.some((x) => x.muscle === k.muscle) ? 0 : 2);
-        pool.sort((a, b) => first(a) - first(b) || byRank(a, b));
-        take(pool.shift());
-      }
-    }
-    // 5. More cards than the mode before.
-    const prev = mode ? cards.filter((k) => k.mode !== undefined && k.mode < mode).length : 0;
-    if (mode && cards.filter((k) => k.mode !== undefined).length <= prev) {
-      const k = cards.filter(free).sort(byRank)[0];
-      if (k) take(k);
-    }
-    table[c].push(Object.fromEntries(Object.keys(PARTS).map((p) => [p, cards.filter((k) => k.part === p && k.mode !== undefined).length])));
-    slotTable[c].push(Object.fromEntries(SLOTS.map(([s]) => [s, cards.filter((k) => k.pattern === s && k.mode !== undefined).length])));
-  }
-  for (const k of cards) if (k.mode !== undefined) unlock.get(k.name)[c] = k.mode;
-  if (args.includes('--free')) {
-    console.log(`${c} not shown: ${cards.filter((k) => k.mode === undefined).map((k) => `${k.name} (${k.part} ${k.pattern} L${k.level})`).join(', ')}`);
-  }
-  if (args.includes('--cards')) {
-    for (const p of Object.keys(PARTS)) {
-      const shown = cards.filter((k) => k.part === p && k.mode !== undefined).sort((a, b) => a.mode - b.mode);
-      console.log(`${c} ${p}: ${shown.map((k) => `${k.mode} ${k.name}`).join(', ')}`);
-    }
-  }
-}
-
-// Every candidate card stays, also one that no class shows in a mode:
-// D70 shows all cards of the class and D72 searches all exercises. Kept
-// cards get ranks 1..n again, with no gaps.
+// Every candidate card stays (D70 shows all cards, D72 searches all). There
+// is no `unlock` any more (D89): no lift is hidden by class or mode. The app
+// orders by the lifter's gear and the rank, and the HARD badge and the XP
+// tier come from the score (D91).
 const kept = order;
-const unused = order.filter((o) => !Object.keys(unlock.get(o.name)).length).map((o) => o.name);
 const out = [];
 kept.forEach((o, i) => {
-  for (const e of byCard.get(o.name)) out.push({ ...e, rank: i + 1, pattern: patternOf.get(o.name), unlock: unlock.get(o.name) });
+  for (const e of byCard.get(o.name)) out.push({ ...e, rank: i + 1, pattern: patternOf.get(o.name) });
 });
 out.sort((a, b) => a.id.localeCompare(b.id));
 // The app makes one card per base (case ignored) and CHALK reads the
@@ -483,38 +297,28 @@ checkFrozen(out.map((e) => e.id), aliasOf, 'exercise_select');
 const outById = new Map(out.map((e) => [e.id, e]));
 for (const [from, to] of Object.entries(aliasOf).sort()) (outById.get(to).aliases ??= []).push(from);
 
-// A slot's state in one class and mode: OK (the target or more), THIN
-// (fewer; THIN*: and no other card exists), MISSING (none), n/a (the class has no card of the pattern in
-// the mode's levels).
-const slotState = (c, mode, s, core) => {
-  const n = slotTable[c][mode][s];
-  const want = TARGET[core ? 'core' : 'extra'][mode];
-  const exists = candidates[c].filter((k) => k.pattern === s && k.level <= topLevel(mode)).length;
-  if (!want) return n ? 'OK' : '-';
-  if (n >= want) return 'OK';
-  if (!exists) return 'n/a';
-  return n ? (n >= exists ? 'THIN*' : 'THIN') : 'MISSING';
+// The pattern slots (D69) per class (by gear, D50) and mode, from the score
+// (D91, replaces `unlock`): a card is in reach of a mode when the class has
+// an exercise of it with a score up to the mode (1 Sofa .. 6 Nightmare).
+// A report only: nothing is hidden. OK (the target or more), THIN (fewer),
+// MISSING (none), - (no target).
+const reach = (c, mode) => {
+  const keys = new Set(out.filter((e) => e.score <= mode + 1 && inClass(c, e)).map((e) => e.base));
+  return kept.filter((o) => keys.has(o.name));
 };
-
-const total = (row) => Object.values(row).reduce((a, b) => a + b, 0);
-const problems = [];
-for (const c of Object.keys(CLASSES)) {
-  table[c].forEach((row, mode) => {
-    for (const p of Object.keys(PARTS)) if (!row[p]) problems.push(`${c} ${MODES[mode]}: no ${p}`);
-    if (mode && total(row) <= total(table[c][mode - 1])) problems.push(`${c} ${MODES[mode]}: not more cards than ${MODES[mode - 1]}`);
-    for (const [s, , core] of SLOTS) {
-      if (core && slotState(c, mode, s, core) === 'MISSING') problems.push(`${c} ${MODES[mode]}: no ${s}`);
-    }
-  });
-}
+const slotCount = (c, mode, s) => reach(c, mode).filter((o) => patternOf.get(o.name) === s).length;
+const slotState = (c, mode, s, core) => {
+  const n = slotCount(c, mode, s), want = TARGET[core ? 'core' : 'extra'][mode];
+  if (!want) return n ? 'OK' : '-';
+  return n >= want ? 'OK' : n ? 'THIN' : 'MISSING';
+};
 
 if (args.includes('--report')) {
   console.log(`kept ${out.length} of ${all.length} exercises in ${kept.length} cards (${kept.filter((o) => o.n > 1).length} moves)`);
   console.log('top 15:', kept.slice(0, 15).map((o, i) => `${i + 1}. ${o.name} (${byCard.get(o.name).length})`).join(', '));
-  console.log('cards no class shows in a mode (kept, D70):', unused.join(', ') || 'none');
+  console.log('\ncards in reach per class and mode (an exercise of the class gear with score <= mode):');
   for (const c of Object.keys(CLASSES)) {
-    console.log(`\n${c.padEnd(12)}${Object.keys(PARTS).map((p) => p.padStart(10)).join('')}     total`);
-    table[c].forEach((row, mode) => console.log(`${MODES[mode].padEnd(12)}${Object.keys(PARTS).map((p) => String(row[p]).padStart(10)).join('')}${String(total(row)).padStart(10)}`));
+    console.log(`${c.padEnd(12)}${MODES.map((_, m) => String(reach(c, m).length).padStart(10)).join('')}`);
   }
 }
 if (args.includes('--slots')) {
@@ -524,18 +328,15 @@ if (args.includes('--slots')) {
     for (const [s, name, core] of SLOTS) {
       const cells = MODES.map((_, mode) => {
         const st = slotState(c, mode, s, core);
-        if (!['OK', '-'].includes(st)) weak.push(`${c} ${MODES[mode]} ${s}: ${st} (${slotTable[c][mode][s]})`);
-        return `${slotTable[c][mode][s]} ${st}`.padStart(12);
+        if (!['OK', '-'].includes(st)) weak.push(`${c} ${MODES[mode]} ${s}: ${st} (${slotCount(c, mode, s)})`);
+        return `${slotCount(c, mode, s)} ${st}`.padStart(12);
       });
-      console.log(`${name.padEnd(22).slice(0, 22)}${cells.join('')}`.replace(/^(.{12})/, (x) => x));
+      console.log(`${name.padEnd(22).slice(0, 22)}${cells.join('')}`);
     }
   }
   console.log('\nnot OK:', weak.join('; ') || 'none');
-  console.log('(target per mode: core', TARGET.core.join(' '), '; extra', TARGET.extra.join(' '),
-    '; THIN* = thin, but the class has no other card there; n/a = the class has no such card in the levels)');
+  console.log('(target per mode: core', TARGET.core.join(' '), '; extra', TARGET.extra.join(' '), ')');
 }
-if (args.includes('--report') || args.includes('--slots')) console.log('\nproblems:', problems.join('; ') || 'none');
-else if (problems.length) throw new Error(problems.join('\n'));
 // The difficulty score (D91): every exercise of the app list has one
 // (tools/exercise_variants.mjs CARDS and SCORE).
 const noScore = [...new Set(out.filter((e) => !Number.isInteger(e.score) || e.score < 1 || e.score > 6).map((e) => e.base))];

@@ -4,8 +4,9 @@
 // Opened: a character screen. The lifter stands in the middle with six body
 // tags beside it (SHOULDERS, ARMS, LEGS / CHEST, CORE, BACK), the WHOLE BODY
 // words under it (JUMP, CARRY, CARDIO), then the GEAR RACK (one pixel icon
-// slot per tool, assets/icons/tools/) and OR SAY THE MOVE (the most common
-// moves, "+n" shows the rest). A picked piece is lime; one that gives no
+// slot per tool, assets/icons/tools/; the lit tools first, D89) and OR SAY
+// THE MOVE (the 5 moves of the class, D89; "+n" shows the rest). A picked
+// piece is lime; one that gives no
 // exercise is greyed.
 //
 // A tool or a move folds the picture into the LOADOUT bar: the picked words,
@@ -19,7 +20,9 @@
 // 0 matches: the loadout pieces are outlined pink, an empty loot slot says
 // NO SUCH MOVE. with FORGE IT, and OR DROP ONE says what each drop brings back.
 // BACK TO TODAY sits at the bottom, in thumb reach (it wipes the words).
-// CHALK searches ALL exercises and ignores the class and the filters.
+// CHALK searches ALL exercises: the class is a hint, never a filter (D89).
+// The lit gear (class gear and my gear) comes first in the rack and the
+// results; a long-press on a rack tool adds it to my gear or removes it.
 
 import 'package:flutter/material.dart';
 
@@ -53,9 +56,6 @@ const _bodyLeft = ['shoulders', 'arms', 'legs'], _bodyRight = ['chest', 'core', 
 /// The WHOLE BODY words on the ground under the lifter (D87); the other
 /// patterns are covered by the body tags, the tools and the moves.
 const _wholeBody = ['jump', 'carry', 'cardio'];
-
-/// The moves OR SAY THE MOVE shows before "+n" (the most common ones).
-const _topMoves = ['press', 'row', 'squat', 'curl', 'deadlift'];
 
 /// The gear-rack icon of a tool word id (tools/tool_icons.mjs).
 String chalkToolIcon(String id) => 'assets/icons/tools/$id.png';
@@ -115,7 +115,7 @@ class _ChalkSheetState extends State<ChalkSheet> {
       builder: (context, _) {
         final index = ChalkIndex.of(exerciseCatalog);
         final line = store.chalk;
-        final cards = index.search(line);
+        final cards = store.chalkCards(line); // my gear first (D89)
         final total = index.count(line);
         final open = _open || line.isEmpty;
         // The FORGE card, from the picked words (CHALK closes first).
@@ -170,9 +170,10 @@ class _ChalkSheetState extends State<ChalkSheet> {
                             ? [
                                 _LifterPanel(store: store, line: line, off: off, onPick: _pick),
                                 const SizedBox(height: 14),
-                                _GearRack(line: line, off: off, onPick: _pick),
+                                _GearRack(store: store, line: line, off: off, onPick: _pick),
                                 const SizedBox(height: 14),
                                 _SayMove(
+                                  top: store.topMoves,
                                   line: line,
                                   off: off,
                                   all: _allMoves,
@@ -363,10 +364,12 @@ class _LifterPanel extends StatelessWidget {
 }
 
 /// The gear rack: one pixel-icon slot per tool, six to a row, on a dark
-/// pegboard (D87).
+/// pegboard (D87). The lit tools (D89: class gear and my gear) come first;
+/// a long-press on a tool adds it to my gear or removes it.
 class _GearRack extends StatelessWidget {
-  const _GearRack({required this.line, required this.off, required this.onPick});
+  const _GearRack({required this.store, required this.line, required this.off, required this.onPick});
 
+  final LogStore store;
   final Set<String> line;
   final bool Function(ChalkWord) off;
   final ValueChanged<ChalkWord> onPick;
@@ -374,7 +377,8 @@ class _GearRack extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = Pal.of(context);
-    final tools = chalkRackTools;
+    final lit = store.litTools;
+    final tools = rackOrder(lit);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -406,7 +410,15 @@ class _GearRack extends StatelessWidget {
                 runSpacing: 8,
                 children: [
                   for (final tool in tools)
-                    _ToolSlot(word: tool, width: w, selected: line.contains(tool.key), off: off(tool), onTap: () => onPick(tool)),
+                    _ToolSlot(
+                      word: tool,
+                      width: w,
+                      selected: line.contains(tool.key),
+                      off: off(tool),
+                      lit: lit.contains(tool.id),
+                      onTap: () => onPick(tool),
+                      onLongPress: () => store.toggleGear(tool.id),
+                    ),
                 ],
               );
             },
@@ -418,12 +430,22 @@ class _GearRack extends StatelessWidget {
 }
 
 class _ToolSlot extends StatelessWidget {
-  const _ToolSlot({required this.word, required this.width, required this.selected, required this.off, required this.onTap});
+  const _ToolSlot({
+    required this.word,
+    required this.width,
+    required this.selected,
+    required this.off,
+    required this.lit,
+    required this.onTap,
+    required this.onLongPress,
+  });
 
   final ChalkWord word;
   final double width;
-  final bool selected, off;
-  final VoidCallback onTap;
+
+  /// [lit]: my gear (D89). A dim tool still works with one tap.
+  final bool selected, off, lit;
+  final VoidCallback onTap, onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -433,13 +455,17 @@ class _ToolSlot extends StatelessWidget {
       selected: selected,
       enabled: !off,
       label: chalkLabel(word),
+      // Placeholder state until the design team's lit / dim look (D89).
+      value: lit ? 'lit' : 'dim',
       child: GestureDetector(
         key: ValueKey('chalk-${word.key}'),
         behavior: HitTestBehavior.opaque,
         // Dimmed, still tappable: a clash leads to 0 matches (FORGE, drop one).
         onTap: onTap,
+        onLongPress: onLongPress,
         child: Opacity(
-          opacity: off ? 0.3 : 1,
+          // Placeholder: a dim tool is a little faded; a clash more.
+          opacity: off ? 0.3 : lit ? 1 : 0.6,
           child: SizedBox(
             width: width,
             child: Column(
@@ -474,10 +500,11 @@ class _ToolSlot extends StatelessWidget {
   }
 }
 
-/// OR SAY THE MOVE: the most common moves, "+n" shows the rest.
+/// OR SAY THE MOVE: the class's 5 moves ([top], D89), "+n" shows the rest.
 class _SayMove extends StatelessWidget {
-  const _SayMove({required this.line, required this.off, required this.all, required this.onMore, required this.onPick});
+  const _SayMove({required this.top, required this.line, required this.off, required this.all, required this.onMore, required this.onPick});
 
+  final List<String> top;
   final Set<String> line;
   final bool Function(ChalkWord) off;
   final bool all;
@@ -491,8 +518,9 @@ class _SayMove extends StatelessWidget {
     final shown = all
         ? moves
         : [
+            for (final id in top) ...moves.where((w) => w.id == id),
             for (final w in moves)
-              if (_topMoves.contains(w.id) || line.contains(w.key)) w,
+              if (!top.contains(w.id) && line.contains(w.key)) w,
           ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -952,7 +980,11 @@ class _Pip extends StatelessWidget {
     final inToday = store.inToday(v.id);
     final sets = store.setsToday(v.id);
     final fill = inToday || on ? p.lime : p.panel;
-    return Container(
+    // The class mark (D89) is the design team's; until then only a hint
+    // for screen readers. No XP effect.
+    return Semantics(
+      value: store.fitsMyGear(v) ? 'my gear' : null,
+      child: Container(
       key: on ? ValueKey('chalk-result-on-${v.id}') : null,
       height: kChalkAddSize + 4, // the 2 px borders around the 44 px "+"
       decoration: BoxDecoration(
@@ -1007,6 +1039,7 @@ class _Pip extends StatelessWidget {
               ),
             ),
         ],
+      ),
       ),
     );
   }

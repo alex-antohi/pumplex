@@ -115,6 +115,7 @@ void main() {
       'pattern.carry': ('arms', 'forearms'),
       'pattern.cardio': ('legs', 'quadriceps'),
       'move.press': ('chest', 'chest'),
+      'move.bench': ('chest', 'chest'),
       'move.fly': ('chest', 'chest'),
       'move.pullover': ('back', 'lats'),
       'move.curl': ('arms', 'biceps'),

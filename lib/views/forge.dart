@@ -600,7 +600,7 @@ const _hammerHead = Color(0xFFC9B8E8), _wood = Color(0xFFA6643C), _outline = Col
 /// The ANVIL reveal (D83; the ANVIL take of the remodel mockup) after every
 /// new forge. The words drop onto an anvil, a hammer strikes twice with
 /// sparks, then rays and the NEW ITEM! loot card: the name (the nickname
-/// big), body and muscle, tool, pattern, the classes, in a rarity frame
+/// big), body and muscle, tool and pattern, in a rarity frame
 /// (RARE for a typed word, COMMON for a chalk mix). FORGE ANOTHER
 /// ([onAnother]) and TO TODAY ([onToday]) are the only ways out: no
 /// auto-close, so the lifter sees the loot. A tap while it plays skips to
@@ -936,7 +936,7 @@ class _Rays extends CustomPainter {
 /// The new move as a loot card: NEW ITEM!, then a card in its rarity frame
 /// (lime RARE for a typed word, sky COMMON for a chalk mix) with the name
 /// (the nickname big, the words' name under it), FORGED BY YOU, and its
-/// body and muscle, tool, pattern, classes and XP.
+/// body and muscle, tool, pattern and XP (no "shows for" line, D89).
 class _LootCard extends StatelessWidget {
   const _LootCard({required this.move});
 
@@ -952,7 +952,6 @@ class _LootCard extends StatelessWidget {
       return id == null ? '—' : chalkLabel(chalkWordByKey('$row.$id')!);
     }
 
-    final classes = forgeClasses(move.words);
     Widget stat(String k, String v, {Color? color}) => Container(
           padding: const EdgeInsets.fromLTRB(0, 7, 0, 6),
           decoration: BoxDecoration(
@@ -1020,8 +1019,6 @@ class _LootCard extends StatelessWidget {
                   stat(chalkRowLabel('body'), '${bodyPartLabel(_partOf(move.muscle))} · ${muscleLabel(move.muscle)}'),
                   stat(chalkRowLabel('tool'), word('tool')),
                   if (chalkIdOf(move.words, 'pattern') != null) stat(chalkRowLabel('pattern'), word('pattern')),
-                  if (classes.isNotEmpty)
-                    stat(t('forge.appearsAt'), [for (final c in classes) c.name].join(' · '), color: p.lime),
                   stat(t('forge.xpPerSet'), t('forge.xpLikeAny')),
                 ],
               ),

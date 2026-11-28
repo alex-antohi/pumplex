@@ -23,7 +23,7 @@ import 'package:gym_app/store.dart';
 
 /// The cards of the class and mode, in the Suggested order: the cards the
 /// carousel keeps (D82). The old filter list (store.cards) is gone.
-List<ExerciseGroup> _cards(LogStore s) => s.defaultFilter.apply(exerciseCatalog, s.favorites);
+List<ExerciseGroup> _cards(LogStore s) => s.chalkCards(const {}); // every card, my gear first (D89)
 
 const _profile = Profile(
   character: Character(sex: 'female', height: 80, muscle: 100, fat: 0),
@@ -169,8 +169,8 @@ void main() {
     // A CHALK search changes nothing.
     store.setChalk({'move.press', 'tool.barbell'});
     expect(store.carousel.map((e) => e.id), [a, b]);
-    // A card keeps the exercises of your class and mode.
-    final mine = store.defaultFilter.apply(exerciseCatalog, store.favorites).firstWhere((g) => g.key == cards[5]);
+    // A card keeps all the exercises of its move: none is greyed by class (D89).
+    final mine = exerciseCatalog.byKey[cards[5]]!;
     expect(store.carousel.first.card.variants.map((e) => e.id), mine.variants.map((e) => e.id));
   });
 

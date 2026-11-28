@@ -30,6 +30,10 @@ class LogStore extends ChangeNotifier {
   static const _xpKey = 'xp_events_v1';
   static const _favoritesKey = 'favorites_v1';
 
+  /// "My gear" (D89): the lifter's adds to and removes from the class gear
+  /// ([MyGear]). In the backup; an old save has none.
+  static const myGearKey = 'my_gear_v1';
+
   /// Copy of the sessions as they were before the old exercise lists were
   /// dropped (D54), kept on the phone.
   static const oldExercisesBackupKey = 'old_exercises_v0_backup';
@@ -61,6 +65,7 @@ class LogStore extends ChangeNotifier {
   final Map<String, Session> _sessions = {};
   final List<XpEvent> _events = [];
   final Set<String> _favorites = {};
+  MyGear _gear = MyGear.none;
 
   dynamic _json(String key, Object fallback) {
     final raw = _prefs.getString(key);
@@ -240,6 +245,11 @@ class LogStore extends ChangeNotifier {
     _favorites
       ..clear()
       ..addAll([for (final id in _json(_favoritesKey, const []) as List) if (id is String) exerciseCatalog.resolveId(id)]);
+    try {
+      _gear = MyGear.fromJson(_json(myGearKey, const {}));
+    } on FormatException {
+      _gear = MyGear.none; // a broken value: the class gear only
+    }
     _picked.clear();
     final forgedJson = _uiList(forgedKey);
     _forged
@@ -465,8 +475,31 @@ class LogStore extends ChangeNotifier {
     _prefs.setString(pickedVariantsKey, jsonEncode(_picked));
   }
 
-  /// Your class and your mode: the cards the carousel keeps and the HARD badge.
-  ExerciseFilter get defaultFilter => ExerciseFilter(classId: gameClass.id, difficulty: difficulty);
+  // ------------------------------------------------------- my gear (D89)
+
+  /// The lifter's own changes to the class gear.
+  MyGear get myGear => _gear;
+
+  /// The lit tools (D89): the class gear, Bodyweight, the lifter's adds,
+  /// minus their removes. The class's tools first. A hint, never a filter.
+  List<String> get litTools => _gear.lit(gameClass.id);
+
+  /// A long-press on [tool] in the gear rack: a lit tool goes out, a dim one is lit.
+  void toggleGear(String tool) {
+    _gear = _gear.toggle(gameClass.id, tool);
+    _prefs.setString(myGearKey, jsonEncode(_gear.toJson()));
+    notifyListeners();
+  }
+
+  /// Variation [e] fits my gear: the class mark (D89). No XP effect.
+  bool fitsMyGear(CatalogExercise e) => fitsGear(e, litTools);
+
+  /// The CHALK cards for [line] (D89): every card (no lift is hidden),
+  /// the cards of my gear first (by gear), my-gear variations first in a card.
+  List<ExerciseGroup> chalkCards(Iterable<String> line) => ChalkIndex.of(exerciseCatalog).search(line, lit: litTools);
+
+  /// The first 5 move words of OR SAY THE MOVE (D89): the class's.
+  List<String> get topMoves => classMoves[gameClass.id] ?? const [];
 
   /// The workout card picked last (its exercise id: one card per Today
   /// exercise, D82; an old group key just shows the first card), kept on the phone so it is
@@ -587,9 +620,9 @@ class LogStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// The HARD badge (D70) for exercise [e] of card [g]: only for a card of
-  /// your class (a CHALK result for other gear opens with no badge, D72).
-  bool isHard(ExerciseGroup g, CatalogExercise e) => g.variants.first.unlock.containsKey(gameClass.id) && defaultFilter.isHard(g, e);
+  /// The HARD badge (D89) for exercise [e]: above your mode. For every
+  /// lift, of any gear; nothing is hidden or locked.
+  bool isHard(CatalogExercise e) => isHardFor(e, difficulty);
 
   // ---------------------------------------------------------------- today
 
@@ -817,23 +850,18 @@ class LogStore extends ChangeNotifier {
 
   /// The workout carousel (D82): one card per Today exercise, then the
   /// CHALK preview when there is one. No catalog after them: CHALK is the
-  /// way to the other cards. A card keeps the exercises of your class and
-  /// mode ([defaultFilter]; no body part or favorites filter) when they
-  /// hold its exercise, else all.
+  /// way to the other cards. A card keeps all the exercises of its move: no
+  /// chip is greyed by class (D89).
   List<TodayEntry> get carousel {
     _favoritesToVariants();
-    final mine = {for (final g in defaultFilter.apply(exerciseCatalog, _favorites)) g.key: g};
     final preview = previewId;
     final out = <TodayEntry>[];
     for (final id in [...todayIds, ?preview]) {
       final e = exerciseCatalog.byId[id];
       if (e == null) continue;
       final key = exerciseCatalog.groupKeyOf(id);
-      final g = [mine[key], exerciseCatalog.byKey[key]].firstWhere(
-            (g) => g != null && g.variants.any((v) => v.id == id),
-            orElse: () => null,
-          ) ??
-          ExerciseGroup(key, e.name, [e]);
+      final full = exerciseCatalog.byKey[key];
+      final g = full != null && full.variants.any((v) => v.id == id) ? full : ExerciseGroup(key, e.name, [e]);
       out.add(TodayEntry(e, g));
     }
     return out;
@@ -1068,7 +1096,8 @@ class LogStore extends ChangeNotifier {
   /// 4: no achievements, and the old streak XP is in the XP events (D34).
   /// 5: no gear (D38).
   /// 6: favorites; exercise ids from the exercise list (D50, D53).
-  static const backupVersion = 6;
+  /// 7: my gear (D89).
+  static const backupVersion = 7;
 
   /// Backup file contents: every key of docs/data-schema.md §4.
   String backupJson() => const JsonEncoder.withIndent(' ').convert({
@@ -1079,9 +1108,11 @@ class LogStore extends ChangeNotifier {
         _sessionsKey: _sessionsJson(_sessions.values),
         _xpKey: [for (final e in _events) e.toJson()],
         _favoritesKey: _favorites.toList(),
+        myGearKey: _gear.toJson(),
       });
 
-  /// Replaces everything with a backup file. Version 6 is [backupJson].
+  /// Replaces everything with a backup file. Version 7 is [backupJson];
+  /// version 6 is the same with no my gear (the class gear only).
   /// Versions 3 to 5 have no favorites, and their old exercise lists are
   /// frozen on import (D54). Versions 3 and 4 may hold achievements or gear (ignored); version 3
   /// has no saved streak XP (worked out again on import). Version 2 (the old app) goes through the same migration: its workout
@@ -1089,7 +1120,7 @@ class LogStore extends ChangeNotifier {
   /// the setup runs again.
   Future<void> importBackup(String raw) async {
     final data = jsonDecode(raw);
-    if (data is! Map || data['app'] != 'pumplex' || ![2, 3, 4, 5, 6].contains(data['version'])) {
+    if (data is! Map || data['app'] != 'pumplex' || ![2, 3, 4, 5, 6, 7].contains(data['version'])) {
       throw const FormatException('Not a PUMPLEX backup');
     }
     // Parse everything before touching current data.
@@ -1118,9 +1149,10 @@ class LogStore extends ChangeNotifier {
         _sessionsKey: jsonEncode(data[_sessionsKey] ?? const {}),
         _xpKey: jsonEncode(data[_xpKey] ?? const []),
         if (data[_favoritesKey] is List) _favoritesKey: jsonEncode(data[_favoritesKey]),
+        if (data[myGearKey] is Map) myGearKey: jsonEncode(MyGear.fromJson(data[myGearKey]).toJson()),
       };
     }
-    for (final k in [_profileKey, _bodyKey, _sessionsKey, _xpKey, _favoritesKey]) {
+    for (final k in [_profileKey, _bodyKey, _sessionsKey, _xpKey, _favoritesKey, myGearKey]) {
       out.containsKey(k) ? await _prefs.setString(k, out[k]!) : await _prefs.remove(k);
     }
     await _prefs.setBool(streakFrozenKey, (data['version'] as int) >= 4);

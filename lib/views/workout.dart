@@ -262,7 +262,7 @@ class _WorkoutViewState extends State<WorkoutView> with SwipeCarousel<WorkoutVie
           full: exerciseCatalog.byKey[e.card.key] ?? e.card,
           v: e.exercise,
           favorite: store.isFavorite(e.id),
-          hard: store.isHard(e.card, e.exercise),
+          hard: store.isHard(e.exercise),
           onStar: () => _star(e),
           onPick: (id) => _pick(e, id),
           onRemove: preview ? null : () => _remove(e),
@@ -805,14 +805,14 @@ class _ExerciseText extends StatelessWidget {
   /// The card (all its exercises, D82).
   final ExerciseGroup g;
 
-  /// The same move with all its exercises (for the greyed-out chips).
+  /// The same move with all its exercises (D89: no chip is greyed by class).
   final ExerciseGroup full;
 
   /// The exercise picked.
   final CatalogExercise v;
   final bool favorite;
 
-  /// Above your mode (D70): a HARD badge by the title.
+  /// Above your mode (D89): a HARD badge by the title.
   final bool hard;
   final VoidCallback onStar;
   final ValueChanged<String> onPick;

@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:gym_app/dates.dart';
 import 'package:gym_app/game/content.dart';
+import 'package:gym_app/game/chalk.dart';
 import 'package:gym_app/game/exercises.dart';
 import 'package:gym_app/game/model.dart';
 import 'package:gym_app/game/rules.dart';
@@ -21,7 +22,7 @@ import 'package:gym_app/views/sprite.dart';
 
 /// The cards of the class and mode, in the Suggested order: the cards the
 /// carousel keeps (D82). The old filter list (store.cards) is gone.
-List<ExerciseGroup> _cards(LogStore s) => s.defaultFilter.apply(exerciseCatalog, s.favorites);
+List<ExerciseGroup> _cards(LogStore s) => s.chalkCards(const {}); // every card, my gear first (D89)
 
 // Seven days logged by the OLD app: 4 workouts, 3 rest days, and one
 // date with two workouts.
@@ -472,47 +473,23 @@ void main() {
     expect(exerciseCatalog.byId['Pushups']!.equipment, 'body only');
     expect(exerciseName('Leg_Extensions'), 'Leg Extension');
     expect(exerciseName('Wrist_Roller'), 'Wrist Roller'); // not in the list (D67), still readable
-    // Commonness and modes (D67): every class and mode covers every body
-    // part; each mode shows more cards than the one before, and keeps them.
-    for (final c in gameClasses) {
-      var before = <String>{};
-      for (var d = 0; d < difficulties.length; d++) {
-        final f = ExerciseFilter(classId: c.id, difficulty: d);
-        final keys = {for (final g in exerciseCatalog.groups) if (g.shownIn(c.id, d)) g.key};
-        expect(keys.length, greaterThan(before.length), reason: '${c.id} $d');
-        expect(keys.containsAll(before), isTrue, reason: '${c.id} $d');
-        for (final b in bodyParts) {
-          expect(f.apply(exerciseCatalog, const {}).any((g) => g.variants.any((e) => b.muscles.contains(e.muscle))), isTrue, reason: '${c.id} $d ${b.id}');
-        }
-        before = keys;
-      }
-    }
-    // Movement patterns (D69): every card has one. Every class has the gear
-    // for every core pattern, so each one is there from Sofa on (and so in
-    // every mode, as a mode keeps the easier cards): a real workout.
+    // The class lights its gear (D89): every class has lit lifts for every
+    // body part and every core pattern (D69); no lift is hidden.
     expect(exerciseCatalog.groups.where((g) => g.pattern == null), isEmpty);
     for (final c in gameClasses) {
-      final sofa = {for (final g in ExerciseFilter(classId: c.id, difficulty: 0).apply(exerciseCatalog, const {})) g.pattern};
+      final lit = MyGear.none.lit(c.id);
+      final mine = [for (final g in exerciseCatalog.groups) if (g.variants.any((e) => fitsGear(e, lit))) g];
+      for (final b in bodyParts) {
+        expect(mine.any((g) => g.variants.any((e) => b.muscles.contains(e.muscle))), isTrue, reason: '${c.id} ${b.id}');
+      }
       for (final p in corePatterns) {
-        expect(sofa, contains(p), reason: '${c.id} $p');
-      }
-      // From Sweat on, two cards or more per core pattern where the class has them.
-      final sweat = ExerciseFilter(classId: c.id, difficulty: 2).apply(exerciseCatalog, const {});
-      final thin = [for (final p in corePatterns) if (sweat.where((g) => g.pattern == p).length < 2) p];
-      expect(thin.length, lessThanOrEqualTo(3), reason: '${c.id} $thin');
-    }
-    // The owner's spread (D69): Cablemancer machines from Sofa.
-    for (final k in ['move:leg press', 'move:leg extension', 'move:fly', 'move:face pull', 'move:seated cable row']) {
-      expect(exerciseCatalog.byKey[k]!.shownIn('cablemancer', 0), isTrue, reason: k);
-    }
-    // The class rules of the tool are the app's: a class in `unlock` sees an exercise of the card.
-    for (final g in exerciseCatalog.groups) {
-      for (final c in g.variants.first.unlock.keys) {
-        expect(g.variants.any((e) => classEquipment[c]!.contains(e.equipment) && classCategories[c]!.contains(e.category)),
-            isTrue, reason: '${g.key} $c');
+        expect(mine.any((g) => g.pattern == p), isTrue, reason: '${c.id} $p');
       }
     }
-    final ranked = ExerciseFilter(classId: 'paladin', difficulty: 5).apply(exerciseCatalog, const {});
+    // No `unlock` left (D89): the rank orders the cards with no gear.
+    expect(File(ExerciseCatalog.asset).readAsStringSync().contains('"unlock"'), isFalse);
+    final ranked = ChalkIndex.of(exerciseCatalog).search(const {});
+    expect(ranked.length, exerciseCatalog.groups.length); // every card
     expect(ranked.first.key, 'move:bench press'); // the most common card first
     expect([for (final g in ranked) g.rank], [for (final g in ranked) g.rank]..sort());
     // Every muscle of the list is in exactly one body part (D52).
@@ -521,7 +498,6 @@ void main() {
     }
     for (final c in gameClasses) {
       expect(classEquipment[c.id], contains('body only'), reason: c.id);
-      expect(classCategories[c.id], isNotEmpty, reason: c.id);
     }
   });
 
@@ -628,47 +604,67 @@ void main() {
 
   // -------------------------------------------------------------- workouts
 
-  test('the class cards (D50-D53, D70, D82): class, mode order, HARD, favorites first', () async {
-    final (store, _) = await _store(setUp: true);
-    final f = store.defaultFilter;
-    expect(f, const ExerciseFilter(classId: 'paladin', difficulty: _d)); // your class and mode
-    List<CatalogExercise> flat(List<ExerciseGroup> cards) => [for (final g in cards) ...g.variants];
+  test('the class lights your gear (D89): lit rule, my gear, order, no filter', () async {
+    final (store, prefs) = await _store(setUp: true);
+    expect((store.gameClass.id, store.difficulty), ('paladin', _d));
+    // The lit rule: the class gear (D50) and Bodyweight; no lift is hidden.
+    expect(store.litTools, ['barbell', 'ezbar', 'dumbbell', 'kettlebell', 'bodyweight']);
+    expect(MyGear.none.lit('scrapper'), ['bodyweight', 'rings']);
     final cards = _cards(store);
-    final list = flat(cards);
-    expect(list, isNotEmpty);
-    // One card per move; a card keeps only its exercises that pass (D55).
-    expect(cards.map((g) => g.key).toSet().length, cards.length);
-    final bench = cards.firstWhere((g) => g.key == 'move:bench press');
-    expect(bench.variants.every((e) => e.equipment != 'machine'), isTrue); // no Smith machine for a Paladin
-    // The carousel card keeps the class's exercises of the move (D82).
-    store.addToToday(bench.variants.first.id);
-    expect(store.carousel.single.card.variants.map((e) => e.id), bench.variants.map((e) => e.id));
-    expect(store.variantFor(bench).id, bench.variants.first.id);
-    store.pickVariant('Decline_Barbell_Bench_Press');
-    expect(store.variantFor(bench).id, 'Decline_Barbell_Bench_Press');
-    // Class: its equipment and categories only.
-    expect(list.every((e) => classEquipment['paladin']!.contains(e.equipment)), isTrue);
-    expect(list.every((e) => classCategories['paladin']!.contains(e.category)), isTrue);
-    expect(list.any((e) => e.equipment == 'other' || e.equipment == 'foam roll'), isFalse);
-    // Difficulty is not a filter (D70): every card of the class, your mode's
-    // first (the most common first, D67); the rest get the HARD badge.
-    expect([for (final d in [0, 1, 2, 3, 4, 5]) topLevelFor(d)], [0, 0, 1, 1, 2, 2]);
+    expect(cards.length, exerciseCatalog.groups.length);
+    expect(cards.map((g) => g.key).toSet().length, cards.length); // one card per move
+    // Cards of my gear first, by gear (barbell cards, then EZ bar, ...), then the rest by rank.
+    int gear(ExerciseGroup g) {
+      final i = [for (final e in g.variants) store.litTools.indexOf(chalkToolOf(e) ?? '')].where((i) => i >= 0);
+      return i.isEmpty ? 99 : i.reduce((a, b) => a < b ? a : b);
+    }
+    expect([for (final g in cards) gear(g)], [for (final g in cards) gear(g)]..sort());
     expect(cards.first.key, 'move:bench press');
-    expect(cards.length, exerciseCatalog.groups.where((g) => g.shownIn('paladin', 5)).length);
-    final mine = cards.indexWhere((g) => !g.shownIn('paladin', _d));
-    expect(mine, greaterThan(0));
-    expect(cards.skip(mine).every((g) => !g.shownIn('paladin', _d)), isTrue); // your mode's cards first
-    expect(cards.skip(mine).every((g) => store.isHard(g, g.variants.first)), isTrue);
-    expect(cards.take(mine).any((g) => g.variants.any((e) => e.level == 2)), isTrue); // expert exercises show
-    expect(store.isHard(bench, bench.variants.first), bench.variants.first.level > 1);
-    // Favorites: the card with one comes first, and opens on it.
-    final favCard = _cards(store).last;
-    final fav = favCard.variants.last.id; // the star saves the exercise (D72)
-    store.toggleFavorite(fav);
-    expect(_cards(store).first.key, favCard.key);
-    expect(store.variantFor(_cards(store).first).id, fav);
-    store.toggleFavorite(fav);
-    expect(store.favorites, isEmpty);
+    final rest = cards.where((g) => gear(g) == 99).toList();
+    expect(rest, isNotEmpty); // machines and cables still show
+    expect([for (final g in rest) g.rank], [for (final g in rest) g.rank]..sort());
+    // In a card, my-gear variations first; the class mark is per variation.
+    final bench = cards.first;
+    final fits = [for (final e in bench.variants) store.fitsMyGear(e)];
+    expect(fits.first, isTrue);
+    expect(fits.contains(false), isTrue); // the Smith and machine presses show too
+    expect(fits.skipWhile((f) => f).contains(true), isFalse);
+    // Today cards keep every chip of the move: none is greyed by class.
+    store.addToToday(bench.variants.first.id);
+    expect(store.carousel.single.card.variants.length, exerciseCatalog.byKey['move:bench press']!.variants.length);
+    // A long-press adds a tool (it comes after the class tools) or puts one out.
+    store.toggleGear('cable');
+    store.toggleGear('barbell');
+    expect(store.litTools, ['ezbar', 'dumbbell', 'kettlebell', 'bodyweight', 'cable']);
+    expect(rackOrder(store.litTools).take(5).map((w) => w.id), store.litTools);
+    expect(rackOrder(store.litTools).length, chalkRackTools.length);
+    expect(store.fitsMyGear(exerciseCatalog.byId['Barbell_Bench_Press_-_Medium_Grip']!), isFalse);
+    expect(gear(_cards(store).first), 0); // now an EZ bar card first
+    // Saved, and in the backup; toggling back undoes it.
+    expect(jsonDecode(prefs.getString(LogStore.myGearKey)!), {'added': ['cable'], 'removed': ['barbell']});
+    final backup = store.backupJson();
+    store.toggleGear('cable');
+    store.toggleGear('barbell');
+    expect([...store.myGear.added, ...store.myGear.removed], isEmpty);
+    await store.importBackup(backup);
+    expect(store.litTools, contains('cable'));
+    expect(store.litTools, isNot(contains('barbell')));
+    // An old save (backup version 6, no my gear): the class gear only.
+    final old = jsonDecode(backup) as Map<String, dynamic>
+      ..['version'] = 6
+      ..remove(LogStore.myGearKey);
+    await store.importBackup(jsonEncode(old));
+    expect(store.myGear.added, isEmpty);
+    expect(store.litTools, MyGear.none.lit('paladin'));
+    // The first 5 move words follow the class; BENCH is a move word.
+    expect(store.topMoves, ['bench', 'squat', 'deadlift', 'row', 'press']);
+    expect(ChalkIndex.of(exerciseCatalog).search({'move.bench'}).map((g) => g.key), ['move:bench press']);
+    for (final c in gameClasses) {
+      expect(classMoves[c.id]!.length, 5, reason: c.id);
+      for (final m in classMoves[c.id]!) {
+        expect(chalkWordByKey('move.$m'), isNotNull, reason: m);
+      }
+    }
     // A favorite saved as a card (D55, before D72) becomes its simplest
     // exercise when the carousel is built.
     store.toggleFavorite('move:push-up');
@@ -685,7 +681,7 @@ void main() {
     // The class keeps today's workout once it has sets; the area shows at once (D64).
     expect((store.todaySession!.classId, store.todaySession!.areaId), ('paladin', 'riptide'));
     expect(store.totalXp, xp);
-    expect(store.defaultFilter, const ExerciseFilter(classId: 'cablemancer', difficulty: 5)); // the class cards follow
+    expect(store.litTools.first, 'machine'); // the class gear follows (D89)
     _now = _now.add(const Duration(days: 1));
     store.addSet(store.variantFor(_cards(store).first).id);
     expect(store.todaySession!.areaId, 'riptide');
@@ -801,8 +797,8 @@ void main() {
     store.toggleFavorite(_bench);
     final backup = store.backupJson();
     final data = jsonDecode(backup) as Map;
-    expect(data['version'], 6);
-    expect(data.keys, containsAll(['profile_v1', 'body_history_v1', 'sessions_v3', 'xp_events_v1', 'favorites_v1']));
+    expect(data['version'], 7);
+    expect(data.keys, containsAll(['profile_v1', 'body_history_v1', 'sessions_v3', 'xp_events_v1', 'favorites_v1', 'my_gear_v1']));
 
     final (other, otherPrefs) = await _store(old: true); // un-migrated old data on this phone
     await other.importBackup(backup);

@@ -54,7 +54,7 @@ void main() {
         'not json',
       ]) {
         final (store, _) = await _store({'workout_filter_v1': saved});
-        expect(store.defaultFilter, const ExerciseFilter(classId: 'paladin', difficulty: 2));
+        expect((store.gameClass.id, store.difficulty), ('paladin', 2));
         store.addToToday('Decline_Barbell_Bench_Press');
         expect(store.carousel.map((e) => e.id), ['Decline_Barbell_Bench_Press']);
       }

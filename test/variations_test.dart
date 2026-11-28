@@ -6,6 +6,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:gym_app/game/chalk.dart';
 import 'package:gym_app/game/exercises.dart';
 import 'package:gym_app/i18n.dart';
 
@@ -151,16 +152,15 @@ void main() {
     expect(level('push-up|bodyweight|decline|close grip'), 1);
     expect(level('pull-up|bodyweight|band assisted|medium grip|reverse grip'), 0);
     expect(level('pull-up|bodyweight|weighted|medium grip|reverse grip'), 2);
-    // Bargain Bruiser gear for 3 moves: new cards for the class, placed by the owner.
-    for (final (id, en, ro, mode) in [
-      ('face pull|bands', 'Band Face Pull', 'Face Pull cu bandă', 2),
-      ('hip abduction|bands', 'Band Hip Abduction', 'Abducții cu bandă', 2),
-      ('sumo deadlift|kettlebell', 'Kettlebell Sumo Deadlift', 'Îndreptări sumo cu kettlebell', 3),
+    // Bargain Bruiser gear for 3 moves: lit for the class (D89).
+    for (final (id, en, ro) in [
+      ('face pull|bands', 'Band Face Pull', 'Face Pull cu bandă'),
+      ('hip abduction|bands', 'Band Hip Abduction', 'Abducții cu bandă'),
+      ('sumo deadlift|kettlebell', 'Kettlebell Sumo Deadlift', 'Îndreptări sumo cu kettlebell'),
     ]) {
       expect(level(id), 0, reason: id);
       expect((label(id, 'en'), label(id, 'ro')), (en, ro), reason: id);
-      final g = exerciseCatalog.groupOf(id)!;
-      expect((g.shownIn('bruiser', mode - 1), g.shownIn('bruiser', mode)), (false, true), reason: id);
+      expect(fitsGear(exerciseCatalog.byId[id]!, MyGear.none.lit('bruiser')), isTrue, reason: id);
     }
     // The completed grids of the owner's example.
     final push = exerciseCatalog.byKey['move:push-up']!;

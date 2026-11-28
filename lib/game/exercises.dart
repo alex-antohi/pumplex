@@ -16,20 +16,15 @@
 // saved sets, favorites, Today and the picks through [ExerciseCatalog.resolveId],
 // so no old id is lost (tools/frozen_ids.txt; the data tools check it).
 //
-// Commonness (D67): each card has a `rank` (1 = the most common) and, per
-// class, the first difficulty mode that shows it (`unlock`). The tool sets
-// both, so every class and mode covers the whole body and each mode has
-// more cards than the one before. Since D69 the tool fills movement
-// patterns first (`pattern`: a push, a pull, a squat, a hinge and so on).
+// Commonness (D67): each card has a `rank` (1 = the most common) and a
+// movement pattern (`pattern`, D69: a push, a pull, a squat, a hinge and so
+// on). There is no `unlock` and no class filter (D89): no lift is hidden by
+// class or mode. The class lights its gear (lib/game/chalk.dart).
 //
 // Moves (D55): exercises that are one move with different equipment,
 // angle, grip, stance and so on share a `base` name and list their
 // `mods` (tools/exercise_variants.mjs writes both). The workout shows one
 // card per move, with modifier chips that pick the exercise.
-//
-// The class filter (ExerciseFilter): a move passes when the class sees it
-// in some mode and at least one of its exercises fits the class's gear.
-// There is no body part filter any more (D82: CHALK finds the rest).
 
 import 'dart:convert';
 
@@ -50,7 +45,6 @@ class CatalogExercise {
     this.mods = const {},
     this.rank = 1 << 20,
     this.pattern,
-    this.unlock = const {},
     this.nick,
     this.aliases = const [],
   })  : isMove = base != null,
@@ -92,10 +86,6 @@ class CatalogExercise {
   /// a move.
   final String? pattern;
 
-  /// Class id -> the first difficulty mode (0-5) that shows the card (D67).
-  /// A class that is not here does not show it.
-  final Map<String, int> unlock;
-
   /// A forged move's nickname (D72, lib/game/forge.dart): the big name.
   final String? nick;
 
@@ -115,7 +105,6 @@ class CatalogExercise {
         mods: Map<String, String>.from(j['mods'] as Map? ?? const {}),
         rank: j['rank'] as int? ?? 1 << 20,
         pattern: j['pattern'] as String?,
-        unlock: Map<String, int>.from(j['unlock'] as Map? ?? const {}),
         aliases: ((j['aliases'] as List?) ?? const []).cast<String>(),
       );
 }
@@ -170,9 +159,6 @@ class ExerciseGroup {
   /// The movement pattern (D69).
   String? get pattern => variants.first.pattern;
 
-  /// Whether [classId] in difficulty mode [difficulty] shows this card (D67).
-  bool shownIn(String classId, int difficulty) => (variants.first.unlock[classId] ?? 99) <= difficulty;
-
   /// The axes where the variants differ, with the values in order of use.
   List<(ModifierAxis, List<String?>)> get axes => _axes(variants, modifierAxes);
 
@@ -206,9 +192,12 @@ const levels = ['beginner', 'intermediate', 'expert'];
 
 /// The hardest level a difficulty mode sees (D51): Sofa and Warm-up see
 /// beginner, Sweat and Pain also intermediate, Brutal and Nightmare all.
-/// Which cards a mode shows is in the list (`unlock`, D67); inside a card,
-/// the mode shows only the exercises of its levels.
+/// Nothing is hidden (D70, D89): it only sets the HARD badge.
 int topLevelFor(int difficulty) => (difficulty.clamp(0, 5)) ~/ 2;
+
+/// The HARD badge (D89): exercise [e] is above difficulty mode
+/// [difficulty] by its level. Nothing is hidden or locked.
+bool isHardFor(CatalogExercise e, int difficulty) => e.level > topLevelFor(difficulty);
 
 /// The exercise list, loaded once at start (main.dart).
 class ExerciseCatalog {
@@ -427,8 +416,8 @@ CatalogExercise? pickVariant(ExerciseGroup g, CatalogExercise current, String ax
 
 // ---------------------------------------------------------------- class
 
-/// The equipment each class trains with (D50). Every class also gets
-/// 'body only'. 'other' (mixed gear) and 'foam roll' are not shown. Since
+/// The equipment each class trains with (D50): the gear it lights (D89),
+/// never a filter. Every class also gets 'body only'. Since
 /// D90 step 2 the two balls are one tool (`ball`) and rings are the
 /// Scrapper's (`rings`); the same gear as TOOL words: chalk.dart's classGear.
 const classEquipment = <String, Set<String>>{
@@ -436,15 +425,6 @@ const classEquipment = <String, Set<String>>{
   'bruiser': {'body only', 'dumbbell', 'kettlebells', 'bands', 'ball'},
   'paladin': {'body only', 'barbell', 'e-z curl bar', 'dumbbell', 'kettlebells'},
   'cablemancer': {'body only', 'machine', 'cable'},
-};
-
-/// The categories each class shows (D50). Stretching, olympic
-/// weightlifting and strongman are not in the list (D56).
-const classCategories = <String, Set<String>>{
-  'scrapper': {'strength', 'plyometrics', 'cardio'},
-  'bruiser': {'strength', 'plyometrics', 'cardio'},
-  'paladin': {'strength', 'powerlifting'},
-  'cablemancer': {'strength', 'cardio'},
 };
 
 // ------------------------------------------------------------ body part
@@ -471,57 +451,3 @@ BodyPart? bodyPartById(String? id) => bodyParts.where((b) => b.id == id).firstOr
 
 /// The body part of a muscle.
 BodyPart? bodyPartOf(String muscle) => bodyParts.where((b) => b.muscles.contains(muscle)).firstOrNull;
-
-// --------------------------------------------------------------- filter
-
-/// Your class and mode (D70, D82): the cards of the class, and the HARD
-/// badge. The body part filter is gone (D82: CHALK is the way to the
-/// catalog).
-class ExerciseFilter {
-  const ExerciseFilter({required this.classId, required this.difficulty});
-
-  final String classId;
-  final int difficulty;
-
-  bool _class(CatalogExercise e) =>
-      (classEquipment[classId]?.contains(e.equipment) ?? false) &&
-      (classCategories[classId]?.contains(e.category) ?? false);
-
-  /// The cards that pass, each with only its exercises that pass. Difficulty
-  /// is not a filter (D70): every card of the class shows, with all its
-  /// exercises, in the Suggested order: favorites, then the cards of your
-  /// mode (the most common first, D67), then the rest (by the mode that
-  /// brings them in, then the most common), then by name.
-  List<ExerciseGroup> apply(ExerciseCatalog catalog, Set<String> favs) {
-    final out = <ExerciseGroup>[];
-    for (final g in catalog.groups) {
-      if (!_shown(g)) continue;
-      final keep = [for (final e in g.variants) if (_class(e)) e];
-      if (keep.isNotEmpty) out.add(g.only(keep));
-    }
-    int mode(ExerciseGroup g) => g.shownIn(classId, difficulty) ? 0 : g.variants.first.unlock[classId] ?? 99;
-    out.sort((a, b) {
-      final f = (a.variants.any((e) => favs.contains(e.id)) ? 0 : 1) - (b.variants.any((e) => favs.contains(e.id)) ? 0 : 1);
-      if (f != 0) return f;
-      final m = mode(a) - mode(b);
-      if (m != 0) return m;
-      if (a.rank != b.rank) return a.rank - b.rank;
-      return a.name.compareTo(b.name);
-    });
-    return out;
-  }
-
-  /// The HARD badge (D70): exercise [e] of card [g] is above your mode, as
-  /// the card comes in only at a harder mode or the exercise's level is
-  /// above what your mode sees (D51). Nothing is hidden or locked.
-  bool isHard(ExerciseGroup g, CatalogExercise e) => !g.shownIn(classId, difficulty) || e.level > topLevelFor(difficulty);
-
-  /// Every card of the class, of every mode (D70).
-  bool _shown(ExerciseGroup g) => g.shownIn(classId, 5);
-
-  @override
-  bool operator ==(Object other) => other is ExerciseFilter && other.classId == classId && other.difficulty == difficulty;
-
-  @override
-  int get hashCode => Object.hash(classId, difficulty);
-}
