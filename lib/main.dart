@@ -424,7 +424,7 @@ class _GameShellState extends State<GameShell> {
 
   /// The scene and the one character, shared by every scene; [shrink]
   /// moves both into the minimised window (D61).
-  Widget _world(Matrix4 shrink, Rect stage, Character char, String classId) => Stack(
+  Widget _world(Matrix4 shrink, Rect stage, Character char, String classId, double? pixelScale) => Stack(
         children: [
           Positioned.fill(
             child: Transform(
@@ -460,6 +460,7 @@ class _GameShellState extends State<GameShell> {
                           // In an area scene the scene has its own ground.
                           pedestal: _scene != Scene.workout && _scene != Scene.area,
                           zoomHead: _scene == Scene.create && _head,
+                          pixelScale: pixelScale,
                         ),
                       ),
                     ),
@@ -559,7 +560,7 @@ class _GameShellState extends State<GameShell> {
                           Positioned.fill(
                             child: ClipRect(
                               clipper: _WindowClip(window),
-                              child: _world(shrink, stage, char, classId),
+                              child: _world(shrink, stage, char, classId, _scene == Scene.area ? areaLayout(box.biggest, inset).scale : null),
                             ),
                           ),
                           // Beside the arena (D62): the part that gave up its

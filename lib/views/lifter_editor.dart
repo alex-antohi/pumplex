@@ -130,6 +130,7 @@ class LifterEditor extends StatelessWidget {
               classId: classId,
               pedestal: scene != Scene.area,
               zoomHead: scene == Scene.create && headOpen,
+              pixelScale: scene == Scene.area ? areaLayout(size, inset, buttons: false).scale : null,
             ),
           ),
         ),
