@@ -32,7 +32,7 @@ int markLap(int i, int count, int spots) => count <= i ? 0 : (count - 1 - i) ~/ 
 /// Where the shell draws the lifter for a scene at [scene] (scale [scale]):
 /// a body cell at 1 art px = [scale] px, feet on the shadow. The box is a
 /// bit taller than the cell so the height slider (×1.14) still fits.
-Rect sceneLifterRect(AreaArt art, Rect scene, int scale) {
+Rect sceneLifterRect(AreaArt art, Rect scene, num scale) {
   final w = 52.0 * scale, h = 64.0 * scale;
   final feet = scene.top + (art.lifterPos.dy + 64) * scale;
   return Rect.fromLTWH(scene.left + art.lifterPos.dx * scale, feet - h * 1.15, w, h * 1.15);
@@ -52,7 +52,7 @@ class AreaScene extends StatefulWidget {
   });
 
   final AreaArt art;
-  final int scale;
+  final num scale;
 
   /// Sets of the active exercise: how many marks stay in the world.
   final int count;
