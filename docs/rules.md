@@ -18,7 +18,7 @@ the user.** So there is no HP loss, no lost XP and no dropped currency.
 
 | Source | XP | Idea from |
 |---|---|---|
-| Working set | 10 × difficulty multiplier | Habitica XP per task |
+| Working set | 10 × XP rate (the difficulty multiplier, capped by the exercise score: D91) | Habitica XP per task |
 | ~~Set above the target~~ | Removed (D52): there are no targets. | |
 | Set 11 and later of one exercise on one day | 0 | No farming (Habitica diminishing returns) |
 | First set of the day | + 50 | Daily bonus |
@@ -31,9 +31,11 @@ the user.** So there is no HP loss, no lost XP and no dropped currency.
 
 **Difficulty multiplier:** 1.0 at the lowest difficulty, rising in even steps to 2.0 at the highest.
 
+**Six XP tiers (D91):** the maximum rate per exercise score. Score 1: 1.0, score 2: 1.2, score 3: 1.4, score 4: 1.6, score 5: 1.8, score 6: 2.0. The score is saved with the day's sets, so a later change of the list never changes XP already earned.
+
 **Order of calculation for one set:**
 
-1. Base = 10 × difficulty multiplier.
+1. Base = 10 × XP rate. The rate is the lower of the mode's multiplier and the multiplier of mode n, where n is the exercise's difficulty score 1-6 (D71, D77, D91). A set saved before D91 has no score and keeps the mode's multiplier.
 2. If the set number (for this exercise, on this day) is above 10: 0. There are no targets (D52).
 3. Critical roll (3%): × 2.
 4. Round to a whole number.

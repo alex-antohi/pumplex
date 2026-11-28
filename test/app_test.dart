@@ -351,6 +351,45 @@ void main() {
     expect(levelFor(25 + 7), (level: 2, into: 7, need: 50));
   });
 
+  test('D91: the score sets HARD and the XP tier (six tiers); XP already earned stays', () async {
+    // The rate: min(mode rate, rate of mode n for score n), for all six scores in all six modes.
+    for (var score = 1; score <= 6; score++) {
+      for (var d = 0; d < 6; d++) {
+        final want = difficultyRules[d < score - 1 ? d : score - 1].xpMultiplier;
+        expect(xpRate(difficulty: d, score: score), want, reason: 'score $score mode $d');
+      }
+    }
+    // Nightmare (2.0) pays a score-n set at most mode n's rate.
+    expect([for (var s = 1; s <= 6; s++) xpForSet(setNumber: 1, difficulty: 5, score: s)], [10, 12, 14, 16, 18, 20]);
+    expect(xpForSet(setNumber: 1, difficulty: 0, score: 6), 10); // Sofa stays Sofa
+    expect(xpForSet(setNumber: 1, difficulty: 5), 20); // no score (old set, forged move): the mode's rate
+    // HARD: score > mode index + 1 (1 Sofa .. 6 Nightmare).
+    final pull = exerciseCatalog.byId['Pullups']!; // score 4
+    expect([for (var d = 0; d < 6; d++) isHardFor(pull, d)], [true, true, true, false, false, false]);
+    const forged = CatalogExercise(id: 'custom_1', name: 'x', category: 'strength', equipment: 'body only', force: null, mechanic: null, muscle: 'chest');
+    expect(isHardFor(forged, 0), isFalse);
+    // In the store: a new set saves the score, and the tier applies. An old
+    // saved set (no score) keeps the mode's rate, so XP already earned stays.
+    SharedPreferences.setMockInitialValues({
+      'profile_v1': jsonEncode(_profile.copyWith(difficultyId: 'nightmare').toJson()),
+      'sessions_v3': jsonEncode({
+        '2026-11-20': {'classId': 'paladin', 'difficultyId': 'nightmare', 'areaId': 'gym', 'exercises': [
+          {'exerciseId': 'Face_Pull', 'sets': 1},
+        ]},
+      }),
+    });
+    final store = LogStore(await SharedPreferences.getInstance(), clock: () => _now);
+    expect(store.isHard(pull), isFalse);
+    final old = store.sessions['2026-11-20']!;
+    expect(old.exercises.single.score, isNull);
+    expect(store.xpEvents.where((e) => e.source == 'sets' && e.ref == '2026-11-20').single.amount,
+        isCritical('2026-11-20', exerciseCatalog.groupKeyOf('Face_Pull'), 1) ? 40 : 20);
+    store.addSet('Face_Pull'); // score 2: at most Warm-up's 1.2
+    expect(store.todaySession!.exercises.single.score, 2);
+    expect(store.todaySession!.exercises.single.toJson()['score'], 2);
+    expect(store.xpToday('Face_Pull'), isCritical(store.todaySession!.date, exerciseCatalog.groupKeyOf('Face_Pull'), 1) ? 24 : 12);
+  });
+
   test('fixed data: difficulty numbers, classes, the exercise list', () {
     expect(difficultyRules.length, difficulties.length);
     expect(gameClasses.map((c) => c.equipment).toSet().length, gameClasses.length);
@@ -406,9 +445,9 @@ void main() {
       expect(exerciseCatalog.byId[id]?.equipment, 'body only', reason: id);
     }
     expect(exerciseCatalog.groupKeyOf('Towel_Bicep_Curl'), 'move:bicep curl'); // a bodyweight chip of the move
-    // Level overrides (D69): pull-ups are not for beginners, face pulls are.
-    expect(exerciseCatalog.byId['Pullups']!.level, 1);
-    expect(exerciseCatalog.byId['Face_Pull']!.level, 0);
+    // Scores (D91), not the database levels: pull-ups are harder than face pulls.
+    expect((exerciseCatalog.byId['Pullups']!.score, exerciseCatalog.byId['Face_Pull']!.score), (4, 2));
+    expect(exerciseCatalog.all.every((e) => e.score != null && e.score! >= 1 && e.score! <= 6), isTrue);
     for (final id in [
       'Incline_Close-Grip_Barbell_Bench_Press',
       'Incline_Wide-Grip_Barbell_Bench_Press',
@@ -582,7 +621,7 @@ void main() {
     expect([s.exercises[0].sets, s.exercises[1].sets], [2, 1]);
     // Saved under sessions_v3 as date -> session, and loads again.
     final raw = jsonDecode(prefs.getString('sessions_v3')!) as Map;
-    expect(raw['2026-11-21']['exercises'][0], {'exerciseId': _squat, 'sets': 2});
+    expect(raw['2026-11-21']['exercises'][0], {'exerciseId': _squat, 'sets': 2, 'score': 3}); // the score sets the XP tier (D91)
     expect(LogStore(prefs, clock: () => _now).todaySession!.totalSets, 3);
   });
 

@@ -265,7 +265,6 @@ class ForgedMove {
       nick: nickname,
       category: 'strength',
       equipment: tool.$1,
-      level: 0,
       force: null,
       mechanic: null,
       muscle: muscle,

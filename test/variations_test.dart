@@ -147,18 +147,18 @@ void main() {
       expect(e.id, _variationId(e), reason: e.id);
       expect(langFiles.values.any((f) => f.contains('"exercise.${e.id}"')), isFalse, reason: e.id);
     }
-    int level(String id) => exerciseCatalog.byId[id]!.level;
-    expect(level('push-up|bodyweight|knee|close grip'), 0); // Knee lowers, Close Grip raises
-    expect(level('push-up|bodyweight|decline|close grip'), 1);
-    expect(level('pull-up|bodyweight|band assisted|medium grip|reverse grip'), 0);
-    expect(level('pull-up|bodyweight|weighted|medium grip|reverse grip'), 2);
+    int score(String id) => exerciseCatalog.byId[id]!.score!; // D91: 1-6
+    expect(score('push-up|bodyweight|knee|close grip'), 2); // Knee lowers, Close Grip raises
+    expect(score('push-up|bodyweight|decline|close grip'), 4);
+    expect(score('pull-up|bodyweight|band assisted|medium grip|reverse grip'), 2);
+    expect(score('pull-up|bodyweight|weighted|medium grip|reverse grip'), 5);
     // Bargain Bruiser gear for 3 moves: lit for the class (D89).
     for (final (id, en, ro) in [
       ('face pull|bands', 'Band Face Pull', 'Face Pull cu bandă'),
       ('hip abduction|bands', 'Band Hip Abduction', 'Abducții cu bandă'),
       ('sumo deadlift|kettlebell', 'Kettlebell Sumo Deadlift', 'Îndreptări sumo cu kettlebell'),
     ]) {
-      expect(level(id), 0, reason: id);
+      expect(score(id), 2, reason: id);
       expect((label(id, 'en'), label(id, 'ro')), (en, ro), reason: id);
       expect(fitsGear(exerciseCatalog.byId[id]!, MyGear.none.lit('bruiser')), isTrue, reason: id);
     }

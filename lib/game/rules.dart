@@ -60,18 +60,27 @@ bool isCritical(String date, String exerciseId, int setNumber) {
   return h % 10000 < (critChance * 10000).round();
 }
 
+/// The XP rate of a set (D71, D77, D91): the lower of the mode's multiplier
+/// and the multiplier of mode n for an exercise of score n (six tiers: score
+/// 1 pays at most Sofa's 1.0, score 6 up to Nightmare's 2.0). No [score]
+/// (a set saved before D91, a forged move): the mode's multiplier.
+double xpRate({required int difficulty, int? score}) {
+  final mode = rulesFor(difficulty).xpMultiplier;
+  return score == null ? mode : min(mode, rulesFor(score - 1).xpMultiplier);
+}
+
 /// XP of set number [setNumber] (from 1) of one exercise in a day, before
-/// rounding: base × difficulty, ×2 on a critical, 0 past the cap.
-double setXp({required int setNumber, required int difficulty, bool critical = false}) {
+/// rounding: base × [xpRate], ×2 on a critical, 0 past the cap.
+double setXp({required int setNumber, required int difficulty, int? score, bool critical = false}) {
   if (setNumber > xpSetsPerExercise) return 0;
-  var xp = xpPerSet * rulesFor(difficulty).xpMultiplier;
+  var xp = xpPerSet * xpRate(difficulty: difficulty, score: score);
   if (critical) xp *= critMultiplier;
   return xp;
 }
 
 /// [setXp], rounded.
-int xpForSet({required int setNumber, required int difficulty, bool critical = false}) =>
-    setXp(setNumber: setNumber, difficulty: difficulty, critical: critical).round();
+int xpForSet({required int setNumber, required int difficulty, int? score, bool critical = false}) =>
+    setXp(setNumber: setNumber, difficulty: difficulty, score: score, critical: critical).round();
 
 /// Set XP by the rules before D52 (targets, ×1.5 over the target up to 2×
 /// the target). Only for the one-time freeze of old sessions (store.dart).

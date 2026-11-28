@@ -37,7 +37,7 @@ class CatalogExercise {
     required this.name,
     required this.category,
     required this.equipment,
-    required this.level,
+    this.score,
     required this.force,
     required this.mechanic,
     required this.muscle,
@@ -55,8 +55,10 @@ class CatalogExercise {
   /// The database value; null in the database is 'body only'.
   final String equipment;
 
-  /// 0 beginner, 1 intermediate, 2 expert.
-  final int level;
+  /// The difficulty score (D91): 1 Sofa .. 6 Nightmare, one per mode. It
+  /// replaces the 3 database levels in the app. Null: not scored (a forged
+  /// move): no HARD badge and no XP tier.
+  final int? score;
 
   /// push, pull, static, or null.
   final String? force;
@@ -97,7 +99,7 @@ class CatalogExercise {
         name: j['name'] as String,
         category: j['category'] as String? ?? '',
         equipment: j['equipment'] as String? ?? 'body only',
-        level: levels.indexOf(j['level'] as String? ?? '').clamp(0, 2),
+        score: (j['score'] as num?)?.toInt().clamp(1, 6),
         force: j['force'] as String?,
         mechanic: j['mechanic'] as String?,
         muscle: ((j['primaryMuscles'] as List?) ?? const []).cast<String>().firstOrNull ?? '',
@@ -187,17 +189,10 @@ const corePatterns = [
   'hpush', 'vpush', 'hpull', 'vpull', 'squat', 'hinge', 'single', 'calves', 'biceps', 'triceps', 'rear', 'flex', 'antiext',
 ];
 
-/// The database levels, easiest first.
-const levels = ['beginner', 'intermediate', 'expert'];
-
-/// The hardest level a difficulty mode sees (D51): Sofa and Warm-up see
-/// beginner, Sweat and Pain also intermediate, Brutal and Nightmare all.
-/// Nothing is hidden (D70, D89): it only sets the HARD badge.
-int topLevelFor(int difficulty) => (difficulty.clamp(0, 5)) ~/ 2;
-
-/// The HARD badge (D89): exercise [e] is above difficulty mode
-/// [difficulty] by its level. Nothing is hidden or locked.
-bool isHardFor(CatalogExercise e, int difficulty) => e.level > topLevelFor(difficulty);
+/// The HARD badge (D89, D91): the score of exercise [e] is above difficulty
+/// mode [difficulty] (index 0 Sofa .. 5 Nightmare, so score > index + 1).
+/// Nothing is hidden or locked. An unscored (forged) move is never HARD.
+bool isHardFor(CatalogExercise e, int difficulty) => (e.score ?? 0) > difficulty.clamp(0, 5) + 1;
 
 /// The exercise list, loaded once at start (main.dart).
 class ExerciseCatalog {

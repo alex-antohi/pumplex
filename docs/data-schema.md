@@ -128,7 +128,7 @@ The app migrates each one once (§5.2, §5.3).
 |---|---|
 | `profile_v1` | PROFILE + CHARACTER (current values). |
 | `body_history_v1` | List of BODY_CHANGE. |
-| `sessions_v3` | Map date → SESSION with its SESSION_EXERCISE list. A SESSION_EXERCISE of a weighted move has `log`: one `{kg?, reps?, kgTyped?, repsTyped?}` per set, in order (D84); written only when a set has a value. Sets from before D84 have none. Log only: not in XP. |
+| `sessions_v3` | Map date → SESSION with its SESSION_EXERCISE list. A SESSION_EXERCISE of a weighted move has `log`: one `{kg?, reps?, kgTyped?, repsTyped?}` per set, in order (D84); written only when a set has a value. Sets from before D84 have none. Log only: not in XP. Since D91 also `score`: the exercise's difficulty score at its first set that day, the XP tier of those sets (none before D91: the mode's rate). |
 | `xp_events_v1` | List of the saved XP_EVENTs: `legacy`, and the old `streak`, `achievement` and `workout` XP. |
 | `favorites_v1` | List of favorite exercises (D53, D72): exercise ids, the exact variant starred. An old favorite card (`move:<move name>`, D55) is changed to the exercise last picked on that card, else its simplest exercise. |
 | `my_gear_v1` | "My gear" (D89): `{added: [tool ids], removed: [tool ids]}`, the lifter's changes to the class gear (TOOL word ids, `lib/game/chalk.dart`). A save without it means the class gear only. |

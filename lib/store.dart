@@ -920,7 +920,8 @@ class LogStore extends ChangeNotifier {
     _edit((l) {
       final i = l.indexWhere((e) => e.exerciseId == id);
       return i < 0
-          ? (l..add(SessionExercise(exerciseId: id, sets: 1, log: log ?? const [])))
+          // The score now sets the XP tier of the day's sets (D91).
+          ? (l..add(SessionExercise(exerciseId: id, sets: 1, log: log ?? const [], score: exerciseCatalog.byId[id]?.score)))
           : (l..[i] = l[i].copyWith(sets: l[i].sets + 1, log: log));
     });
   }
@@ -1014,7 +1015,8 @@ class LogStore extends ChangeNotifier {
 
   // ------------------------------------------------------------------- XP
 
-  /// Set XP of a session (docs/rules.md §1, set by set), only for card
+  /// Set XP of a session (docs/rules.md §1, set by set; the tier of each
+  /// entry's saved score, D91), only for card
   /// [key] or only for exercise [id] when given. Sets count per card: all
   /// the exercises of one move share the 10-set cap and the set numbers
   /// (D55), also when they are separate Today cards (D82).
@@ -1026,7 +1028,7 @@ class LogStore extends ChangeNotifier {
       final g = exerciseCatalog.groupKeyOf(e.exerciseId);
       for (var i = 0; i < e.sets; i++) {
         final k = n[g] = (n[g] ?? 0) + 1;
-        if ((key == null || key == g) && (id == null || id == e.exerciseId)) xp += xpForSet(setNumber: k, difficulty: d, critical: isCritical(s.date, g, k));
+        if ((key == null || key == g) && (id == null || id == e.exerciseId)) xp += xpForSet(setNumber: k, difficulty: d, score: e.score, critical: isCritical(s.date, g, k));
       }
     }
     return xp;

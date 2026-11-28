@@ -210,7 +210,7 @@ class SetLog {
 }
 
 class SessionExercise {
-  const SessionExercise({required this.exerciseId, this.sets = 0, this.log = const []});
+  const SessionExercise({required this.exerciseId, this.sets = 0, this.log = const [], this.score});
 
   final String exerciseId;
 
@@ -221,19 +221,26 @@ class SessionExercise {
   /// weighted exercise; shorter (or empty) for old sets and other moves.
   final List<SetLog> log;
 
+  /// The exercise's difficulty score (D91) when its first set was done: it
+  /// sets the XP tier of these sets, so a later list change never changes
+  /// XP already earned. Null for entries from before D91 (and forged
+  /// moves): the mode's rate, as before.
+  final int? score;
+
   SessionExercise copyWith({int? sets, List<SetLog>? log}) =>
-      SessionExercise(exerciseId: exerciseId, sets: sets ?? this.sets, log: log ?? this.log);
+      SessionExercise(exerciseId: exerciseId, sets: sets ?? this.sets, log: log ?? this.log, score: score);
 
   Map<String, dynamic> toJson() => {
         'exerciseId': exerciseId,
         'sets': sets,
         // Only when a set has a value: an all-empty log is not saved.
         if (log.any((l) => !l.isEmpty)) 'log': [for (final l in log) l.toJson()],
+        if (score != null) 'score': score,
       };
 
   /// Old entries also had position, originalExerciseId, targetSets, added
   /// and removed (before D50); those fields are ignored. Entries from before
-  /// D84 have no log.
+  /// D84 have no log, from before D91 no score.
   factory SessionExercise.fromJson(Map<String, dynamic> j) {
     final sets = (j['sets'] as num?)?.toInt().clamp(0, 9999) ?? 0;
     return SessionExercise(
@@ -243,6 +250,7 @@ class SessionExercise {
         for (final l in (j['log'] as List? ?? const []).take(sets))
           if (l is Map) SetLog.fromJson(Map<String, dynamic>.from(l)),
       ],
+      score: (j['score'] as num?)?.toInt().clamp(1, 6),
     );
   }
 }
@@ -300,12 +308,12 @@ class Session {
       if (id != e.exerciseId) changed = true;
       final had = out[id];
       if (had == null) {
-        out[id] = SessionExercise(exerciseId: id, sets: e.sets, log: e.log);
+        out[id] = SessionExercise(exerciseId: id, sets: e.sets, log: e.log, score: e.score);
       } else {
         changed = true;
         // An old entry may have fewer logs than sets: pad, so each log stays on its set.
         final log = [...had.log, for (var i = had.log.length; i < had.sets; i++) const SetLog(), ...e.log];
-        out[id] = SessionExercise(exerciseId: id, sets: had.sets + e.sets, log: log.any((l) => !l.isEmpty) ? log : const []);
+        out[id] = SessionExercise(exerciseId: id, sets: had.sets + e.sets, log: log.any((l) => !l.isEmpty) ? log : const [], score: had.score);
       }
     }
     return changed ? copyWith(exercises: out.values.toList()) : this;
