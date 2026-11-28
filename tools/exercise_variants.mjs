@@ -40,6 +40,11 @@ const ALIAS = {
   Rack_Pull_with_Bands: 'Rack_Pulls',
   Sumo_Deadlift_with_Bands: 'Sumo_Deadlift',
   Sumo_Deadlift_with_Chains: 'Sumo_Deadlift',
+  // The owner's delete ticks of 22 Nov 2026 (D90 step 3 part B): rows still
+  // in the app list go to the closest kept lift. A card's plain lift and the
+  // rows a later decision keeps stay (docs/exercise-list-plan.md).
+  'V-Bar_Pullup': 'Pullups', // a pull-up with a V handle over the bar
+  Hyperextensions_With_No_Hyperextension_Bench: 'Hyperextensions_Back_Extensions', // a floor back extension
 };
 
 // Old ids of grid variations (D80) that a new modifier value renamed (D90
@@ -193,7 +198,6 @@ const MOVE = {
   // Vertical pulls: pulldown and pull-up grips are chips.
   'V-Bar_Pulldown': ['Lat Pulldown', { attach: 'V-Bar' }],
   Underhand_Cable_Pulldowns: ['Lat Pulldown', { hand: 'Reverse Grip' }],
-  'V-Bar_Pullup': ['Pull-Up', { attach: 'V-Bar' }],
   'Wide-Grip_Rear_Pull-Up': ['Pull-Up', { width: 'Wide Grip' }],
   Pullups: ['Pull-Up', {}],
   'Chin-Up': ['Pull-Up', { hand: 'Reverse Grip' }],
@@ -266,7 +270,6 @@ const MOVE = {
   'One-Legged_Cable_Kickback': ['Glute Kickback', {}],
   Pull_Through: ['Pull-Through', {}],
   Rack_Pulls: ['Rack Pull', {}],
-  Hyperextensions_With_No_Hyperextension_Bench: ['Back Extension', { setup: 'Floor' }],
   Hyperextensions_Back_Extensions: ['Back Extension', {}],
   Weighted_Ball_Hyperextension: ['Back Extension', {}],
   Kneeling_Arm_Drill: ['Kneeling Arm Drill', {}],
@@ -565,6 +568,9 @@ const FLIP_HAND = { 'Wrist Curl': { 'Reverse Grip': null, 'Overhand Grip': 'Reve
 const rows = all.map(({ base: _oldBase, mods: _oldMods, alias: _oldAlias, ...raw }) => {
   const e = { ...raw, ...FIX[raw.name], ...FIX[raw.id] };
   if (BALLS.has(e.equipment)) e.equipment = 'ball';
+  // No equipment in the database is Bodyweight (D90 step 3 part B: Decline
+  // Push-Up, Inverted Row and a few more had null).
+  if (e.equipment == null) e.equipment = 'body only';
   const p = EXPLICIT[e.name] ? { base: EXPLICIT[e.name][0], mods: { ...EXPLICIT[e.name][1] } } : parse(e.name);
   let base = OVERRIDE[e.name] ?? p.base;
   base = MERGE[base.toLowerCase()] ?? base;
@@ -604,76 +610,8 @@ for (const r of rows.filter((x) => !ALIAS[x.e.id])) {
 // copied fields (for example the category). Its id is
 // variationId (tools/exercise_names.mjs): stable, never renamed.
 const GRID = [
-  // Push-Up, Bench Press, Pull-Up, Squat and Bent-Over Row have a full
-  // grid in CARDS (D90 step 3).
-  // Dumbbell curls: seated and alternating together; EZ bar grip widths.
-  { move: 'Bicep Curl', equip: 'Dumbbell', axes: { position: [null, 'Seated'], side: [null, 'Alternating', 'One Arm'] },
-    not: [{ position: 'Seated', side: 'One Arm' }] },
-  { move: 'Bicep Curl', equip: 'EZ Bar', axes: { width: ['Close Grip', 'Medium Grip', 'Wide Grip'] } },
-  // Seated cable row with a wide bar or an underhand bar.
-  { move: 'Seated Cable Row', equip: 'Cable', axes: { width: ['Medium Grip', 'Wide Grip'], hand: [null, 'Reverse Grip'] },
-    not: [{ width: 'Wide Grip', hand: 'Reverse Grip' }] },
-  // Dumbbell shoulder press: seated or standing, alternating or neutral grip.
-  { move: 'Shoulder Press', equip: 'Dumbbell',
-    axes: { position: ['Seated', 'Standing'], side: [null, 'Alternating'], hand: [null, 'Neutral Grip'] },
-    not: [{ side: 'Alternating', hand: 'Neutral Grip' }] },
-  { move: 'Shoulder Press', equip: 'Kettlebell', add: [{ side: 'One Arm' }] },
-  { move: 'Calf Raise', equip: 'Dumbbell', axes: { position: ['Standing', 'Seated'], side: [null, 'One Leg'] } },
-  { move: 'Lat Pulldown', equip: 'Cable', axes: { width: ['Close Grip', 'Medium Grip', 'Wide Grip'], hand: [null, 'Reverse Grip'] },
-    not: [{ width: 'Wide Grip', hand: 'Reverse Grip' }] },
-  { move: 'Triceps Pushdown', equip: 'Cable', add: [{ side: 'One Arm', hand: 'Reverse Grip' }] },
-  { move: 'Hammer Curl', equip: 'Dumbbell', add: [{ position: 'Seated' }] },
-  { move: 'Lateral Raise', equip: 'Dumbbell', add: [{ side: 'One Arm' }] },
-  { move: 'Front Raise', equip: 'Dumbbell', add: [{ side: 'Alternating' }] },
-  { move: 'Skullcrusher', equip: 'EZ Bar', add: [{ angle: 'Incline' }] },
-  { move: 'Skullcrusher', equip: 'Dumbbell', add: [{ angle: 'Incline' }] },
-  { move: 'Reverse Fly', equip: 'Dumbbell', add: [{ angle: 'Incline' }] },
-  { move: 'Split Squat', equip: 'Barbell', from: 'Dumbbell', level: 'intermediate', add: [{}, { type: 'Bulgarian' }] },
-  { move: 'Glute Bridge', equip: 'Dumbbell', from: 'Barbell', level: 'beginner', add: [{}] },
-  { move: 'Romanian Deadlift', equip: 'Kettlebell', from: 'Dumbbell', add: [{}] },
-  { move: 'Deadlift', equip: 'Kettlebell', from: 'Dumbbell', add: [{}] },
-  { move: 'Shrug', equip: 'Smith Machine', from: 'Barbell', add: [{}] },
-  { move: 'Reverse Curl', equip: 'EZ Bar', from: 'Barbell', add: [{}] },
-  { move: 'Dip', equip: 'Bodyweight', add: [{ load: 'Weighted' }, { load: 'Band Assisted' }],
-    adj: { 'Band Assisted': -1, Weighted: 1 }, level: 'intermediate' },
-  { move: 'Inverted Row', equip: 'Bodyweight', add: [{ hand: 'Reverse Grip' }] },
-  { move: 'Russian Twist', equip: 'Ball', from: 'Bodyweight', add: [{}] },
-  { move: 'Russian Twist', equip: 'Dumbbell', from: 'Bodyweight', add: [{}] },
-  // Bargain Bruiser gear for 3 moves it had no card of: a band face pull and
-  // band hip abduction (like the cable ones), a kettlebell sumo deadlift
-  // (`set`: a strength move, not powerlifting, with a light bell).
-  { move: 'Face Pull', equip: 'Bands', from: 'Cable', level: 'beginner', add: [{}] },
-  { move: 'Hip Abduction', equip: 'Bands', from: 'Cable', add: [{}] },
-  { move: 'Sumo Deadlift', equip: 'Kettlebell', from: 'Barbell', level: 'beginner', set: { category: 'strength' },
-    add: [{}] },
-  // D90 step 2: the lifts of "What to add" (docs/exercise-list-plan.md), in order.
-  // 1. The seated row machine.
-  // (Medium Grip on the machines: no width is Medium Grip where the move has
-  // a width row, D57; so the cable lift stays the card's first.)
-  { move: 'Seated Cable Row', equip: 'Machine', from: 'Cable', level: 'beginner', add: [{ width: 'Medium Grip' }] },
-  // 2. Support Hold on rings (the new bases are in EXTRA).
-  { move: 'Support Hold', equip: 'Rings', from: 'Bodyweight', level: 'intermediate', add: [{}] },
-  // 3. The pulldown machine (the assisted pull-up machine is in CARDS).
-  { move: 'Lat Pulldown', equip: 'Machine', from: 'Cable', level: 'beginner', add: [{ width: 'Medium Grip' }] },
-  // 4. Rings/TRX: ring row, ring ab rollout (the ring dip is the database's
-  // Ring_Dips; the ring push-up is in CARDS).
-  { move: 'Inverted Row', equip: 'Rings', from: 'Bodyweight', level: 'beginner', add: [{}] },
-  { move: 'Ab Rollout', equip: 'Rings', from: 'Bodyweight', level: 'intermediate', add: [{}] },
-  // 5. The bodyweight one-leg Romanian deadlift (the pseudo planche push-up is in CARDS).
-  { move: 'Romanian Deadlift', equip: 'Bodyweight', from: 'Dumbbell', level: 'beginner', add: [{ side: 'One Leg' }] },
-  // 6. The band Pallof press.
-  { move: 'Pallof Press', equip: 'Bands', from: 'Cable', level: 'beginner', add: [{}] },
-  // 7. The decline sit-up (the Crunch card has the machine crunch).
-  { move: 'Sit-Up', equip: 'Bodyweight', level: 'intermediate', add: [{ angle: 'Decline' }] },
-  // 8. The bodyweight leg curl (feet on a towel or a slider) and the dumbbell rear delt row.
-  { move: 'Leg Curl', equip: 'Bodyweight', from: 'Ball', level: 'intermediate', add: [{ setup: 'Towel' }] },
-  { move: 'Rear Delt Row', equip: 'Dumbbell', from: 'Barbell', level: 'beginner', add: [{}] },
-  // 9. The jumping lunge with dumbbells (the split jump is the bodyweight one).
-  { move: 'Jumping Lunge', equip: 'Dumbbell', from: 'Bodyweight', level: 'intermediate', add: [{}] },
-  // 10. Front Lever on rings and the lateral lunge (low rank: a Lunge chip).
-  { move: 'Front Lever', equip: 'Rings', from: 'Bodyweight', level: 'expert', add: [{}] },
-  { move: 'Lunge', equip: 'Bodyweight', level: 'beginner', add: [{ type: 'Lateral' }] },
-  { move: 'Lunge', equip: 'Dumbbell', level: 'beginner', add: [{ type: 'Lateral' }] },
+  // Every card of the app list has a full grid in CARDS (D90 step 3). The
+  // build pushes its tools here.
 ];
 
 // Full grids (D90 step 3, docs/exercise-list-plan.md "The model"): a card
@@ -740,7 +678,7 @@ const CARDS = {
   },
   'Pull-Up': {
     score: 4, // a strict pull-up: many lifters cannot do one
-    change: { 'Band Assisted': -2, Weighted: 1, Machine: -3, Rings: 0 },
+    change: { 'Band Assisted': -2, Negative: -1, Weighted: 1, Machine: -3, Rings: 0 },
     tools: {
       // Grips: overhand, chin-up (reverse) and neutral. No wide chin-up or
       // wide neutral grip, no close neutral grip. Band-assisted and weighted
@@ -751,12 +689,14 @@ const CARDS = {
           hand: [null, 'Reverse Grip', 'Neutral Grip'] },
         not: [{ width: 'Wide Grip', hand: ['Reverse Grip', 'Neutral Grip'] }, { width: 'Close Grip', hand: 'Neutral Grip' },
           { load: ['Band Assisted', 'Weighted'], width: 'Close Grip' }],
+        // The negative (jump up, lower slowly): a step before the first
+        // pull-up. It is a Load value, as the chip area has 5 rows (D79).
+        add: [{ load: 'Negative', width: 'Medium Grip' }],
       },
       // The assisted pull-up machine: its three handles.
       Machine: { from: 'Bodyweight', axes: { width: ['Medium Grip'], hand: [null, 'Reverse Grip', 'Neutral Grip'] } },
       Rings: { from: 'Bodyweight', axes: {} },
     },
-    keep: { 'V-Bar_Pullup': 'the one V-bar row (a handle over the bar)' },
   },
   Squat: {
     score: 3, // the barbell back squat
@@ -794,58 +734,552 @@ const CARDS = {
       'Smith Machine': { axes: { hand: [null, 'Reverse Grip'] } },
     },
   },
+  // Part B (D90 step 3): every other card of the app list, in rank order.
+  // The scoring rule (the owner, 27 Nov 2026): 1 only for the easiest lifts
+  // (assisted, knee, incline push-up, bodyweight squat and lifts of that
+  // kind); isolation and machine lifts start at 2; the main free-weight
+  // lifts are 3 or 4; hard skills 5-6. One arm on an isolation lift is not
+  // harder (0). A tool with no row of its own copies one (`from`).
+  'Shoulder Press': {
+    score: 3, // the standing barbell press
+    change: { Machine: -1, 'Smith Machine': -1, Cable: -1, 'equip.Bands': -1, 'One Arm': 1 },
+    tools: {
+      Barbell: { axes: { position: ['Seated', 'Standing'] } },
+      // Seated or standing; alternating, one arm (standing, palms in) or a
+      // neutral grip. No alternating neutral press; no seated one-arm press.
+      Dumbbell: {
+        axes: { position: ['Seated', 'Standing'], side: [null, 'Alternating', 'One Arm'], hand: [null, 'Neutral Grip'] },
+        not: [{ side: 'Alternating', hand: 'Neutral Grip' }, { side: 'One Arm', position: 'Seated' },
+          { side: 'One Arm', position: 'Standing', hand: null }],
+        add: [{ side: 'One Arm' }],
+      },
+      Kettlebell: {
+        axes: { side: [null, 'Alternating', 'One Arm'], position: [null, 'Seated'] },
+        not: [{ position: 'Seated', side: ['Alternating', 'One Arm'] }],
+      },
+      Cable: { axes: { position: [null, 'Seated'], side: [null, 'Alternating'] }, not: [{ position: 'Seated', side: 'Alternating' }] },
+      Machine: { axes: { setup: [null, 'Plate-Loaded'] } },
+      'Smith Machine': {},
+      Bands: {},
+    },
+    keep: {
+      Barbell_Shoulder_Press: 'the same lift as Standing_Military_Press (OBSCURE)',
+      Dumbbell_Shoulder_Press: 'the same lift as the seated and standing dumbbell press (OBSCURE)',
+      Chain_Press: 'chains stay only on Bench Press, Squat and Deadlift (D90); gear other, not in the app list',
+    },
+  },
+  'Romanian Deadlift': {
+    score: 3, // the barbell Romanian deadlift
+    change: { Dumbbell: -1, Kettlebell: -1, 'Smith Machine': -1, Bodyweight: -2, 'One Leg': 1 },
+    tools: {
+      Barbell: { axes: { type: [null, 'Stiff-Legged'] } },
+      'Smith Machine': { axes: { type: [null, 'Stiff-Legged'] } },
+      Dumbbell: { axes: { type: [null, 'Stiff-Legged'], side: [null, 'One Leg'] }, not: [{ type: 'Stiff-Legged', side: 'One Leg' }] },
+      Kettlebell: { from: 'Dumbbell', axes: { side: [null, 'One Leg'] } },
+      Bodyweight: { from: 'Dumbbell', add: [{ side: 'One Leg' }] }, // a two-leg one is only a warm-up
+    },
+  },
+  'Bicep Curl': {
+    score: 2, // an isolation lift
+    change: { 'One Arm': 0, Inverted: 1 },
+    tools: {
+      // No incline curl seated or one arm (the incline bench is the seat).
+      Dumbbell: {
+        axes: { angle: [null, 'Incline'], position: [null, 'Seated'], side: [null, 'Alternating', 'One Arm'] },
+        not: [{ angle: 'Incline', position: 'Seated' }, { angle: 'Incline', side: 'One Arm' }, { position: 'Seated', side: 'One Arm' }],
+      },
+      Barbell: { axes: { width: ['Close Grip', 'Medium Grip', 'Wide Grip'] } },
+      'EZ Bar': { axes: { width: ['Close Grip', 'Medium Grip', 'Wide Grip'] } },
+      Cable: { axes: { position: [null, 'Lying'], side: [null, 'One Arm'] }, not: [{ position: 'Lying', side: 'One Arm' }] },
+      Machine: {},
+      Bodyweight: { add: [{ setup: 'Towel' }, { type: 'Inverted' }] },
+    },
+    keep: { 'Close-Grip_EZ-Bar_Curl_with_Band': 'a band on an EZ bar: rare (OBSCURE)' },
+  },
+  Deadlift: {
+    score: 4, // the barbell deadlift: the heaviest pull from the floor
+    change: { Dumbbell: -2, Kettlebell: -2, Cable: -2, Machine: -2, 'Trap Bar': -1, 'bands.Bands': 1, Chains: 1 },
+    tools: {
+      Barbell: {
+        axes: { setup: [null, 'Trap Bar'], bands: [null, 'Bands'], chains: [null, 'Chains'] },
+        not: [{ bands: 'Bands', chains: 'Chains' }, { setup: 'Trap Bar', bands: 'Bands' }, { setup: 'Trap Bar', chains: 'Chains' }],
+      },
+      Dumbbell: {},
+      Kettlebell: { from: 'Dumbbell' },
+      Cable: {},
+      Machine: {},
+    },
+    keep: { Reverse_Band_Deadlift: 'reverse bands: a rare powerlifting row (OBSCURE)' },
+  },
+  'Lat Pulldown': {
+    score: 2, // a machine lift
+    tools: {
+      Cable: {
+        axes: { width: ['Close Grip', 'Medium Grip', 'Wide Grip'], hand: [null, 'Reverse Grip'] },
+        not: [{ width: 'Wide Grip', hand: 'Reverse Grip' }],
+        add: [{ side: 'One Arm', width: 'Medium Grip' }, { attach: 'V-Bar', width: 'Medium Grip' }],
+      },
+      Machine: { from: 'Cable', axes: { width: ['Medium Grip'] } },
+    },
+  },
+  Crunch: {
+    score: 2, // the floor crunch
+    change: { Decline: 1 },
+    tools: {
+      Bodyweight: { axes: { angle: [null, 'Decline'] } },
+      Cable: { axes: { position: ['Kneeling', 'Seated', 'Standing'] } },
+      Machine: {},
+      Ball: {},
+    },
+  },
+  'One-Arm Row': { score: 2, tools: { Dumbbell: {}, Kettlebell: {} } }, // a supported row
+  Plank: {
+    score: 2,
+    change: { Weighted: 1, Rings: 1 },
+    tools: { Bodyweight: { axes: { load: [null, 'Weighted'] } }, Rings: { from: 'Bodyweight' } },
+  },
+  'Calf Raise': {
+    score: 2,
+    change: { 'One Leg': 1 },
+    tools: {
+      Barbell: { axes: { position: ['Standing', 'Seated'] }, add: [{ type: 'Rocking' }] },
+      Machine: { axes: { position: ['Standing', 'Seated'] }, add: [{ setup: 'Leg Press' }] },
+      Dumbbell: { axes: { position: ['Standing', 'Seated'], side: [null, 'One Leg'] } },
+      'Smith Machine': { axes: { position: ['Standing'] } },
+      Bands: { axes: { position: ['Standing'] } },
+      Bodyweight: { axes: { position: ['Standing'], side: [null, 'One Leg'] } },
+    },
+  },
+  Fly: {
+    score: 2,
+    tools: {
+      Dumbbell: { axes: { angle: [null, 'Incline', 'Decline'], side: [null, 'One Arm'] }, not: [{ side: 'One Arm', angle: ['Incline', 'Decline'] }] },
+      Cable: { axes: { angle: [null, 'Incline', 'Decline'] } },
+      Machine: {},
+    },
+    keep: { Bodyweight_Flyes: 'an odd old row on an EZ bar (OBSCURE)' },
+  },
+  Lunge: {
+    score: 2, // the dumbbell lunge
+    change: { Barbell: 1 },
+    tools: {
+      Barbell: { axes: { type: [null, 'Walking', 'Reverse'] } },
+      Dumbbell: { axes: { type: [null, 'Walking', 'Reverse', 'Lateral'] } },
+      Bodyweight: { axes: { type: [null, 'Walking', 'Reverse', 'Lateral'] } },
+    },
+  },
+  'Lateral Raise': {
+    score: 2,
+    tools: {
+      Dumbbell: {
+        axes: { position: [null, 'Seated'], side: [null, 'Alternating', 'One Arm'] },
+        not: [{ position: 'Seated', side: 'One Arm' }],
+        add: [{ side: 'One Arm', position: 'Lying' }, { angle: 'Incline', side: 'One Arm' }],
+      },
+      Cable: { axes: { position: [null, 'Seated'], side: [null, 'One Arm'] }, not: [{ position: 'Seated', side: 'One Arm' }] },
+      Bands: {},
+      Machine: {},
+    },
+  },
+  Dip: {
+    score: 4, // the parallel bar dip
+    change: { Machine: -3, Bench: -2, 'Band Assisted': -1, Weighted: 1, Rings: 1 },
+    tools: {
+      Bodyweight: {
+        axes: { type: [null, 'Chest'], load: [null, 'Band Assisted', 'Weighted'] },
+        not: [{ type: 'Chest', load: 'Band Assisted' }],
+        add: [{ setup: 'Bench' }, { setup: 'Bench', load: 'Weighted' }],
+      },
+      Machine: {}, // the assisted dip machine
+      Rings: {},
+    },
+  },
+  'Triceps Pushdown': {
+    score: 2,
+    tools: {
+      Cable: { axes: { hand: [null, 'Reverse Grip'], side: [null, 'One Arm'] }, add: [{ attach: 'Rope' }, { attach: 'V-Bar' }] },
+      Bands: { from: 'Cable' }, // a band over a door or a bar
+    },
+  },
+  'Leg Press': {
+    score: 2,
+    tools: {
+      Machine: { axes: { stance: [null, 'Narrow Stance', 'Wide Stance'] }, add: [{ side: 'One Leg' }] },
+      'Smith Machine': {},
+    },
+  },
+  'Seated Cable Row': {
+    score: 2,
+    tools: {
+      Cable: {
+        axes: { width: ['Medium Grip', 'Wide Grip'], hand: [null, 'Reverse Grip'] },
+        not: [{ width: 'Wide Grip', hand: 'Reverse Grip' }],
+        add: [{ side: 'One Arm', width: 'Medium Grip' }],
+      },
+      Machine: { from: 'Cable', axes: { width: ['Medium Grip'] } },
+    },
+  },
+  'Leg Curl': {
+    score: 2,
+    change: { Bodyweight: 1 }, // feet on a towel or a slider: hard
+    tools: {
+      Machine: { axes: { position: ['Lying', 'Seated', 'Standing'] } },
+      Ball: {},
+      Bodyweight: { from: 'Ball', add: [{ setup: 'Towel' }] },
+    },
+    keep: { Seated_Band_Hamstring_Curl: 'gear other in the database (not in the app list)' },
+  },
+  'Leg Extension': { score: 2, tools: { Machine: { axes: { side: [null, 'One Leg'] } } } },
+  Skullcrusher: {
+    score: 2,
+    change: { Bodyweight: 1 }, // the body as the weight, on a bar
+    tools: {
+      'EZ Bar': { axes: { angle: [null, 'Incline', 'Decline'] } },
+      Barbell: { axes: { angle: [null, 'Incline', 'Decline'] } },
+      Dumbbell: {
+        axes: { angle: [null, 'Incline', 'Decline'] },
+        add: [{ side: 'One Arm', hand: 'Overhand Grip' }, { side: 'One Arm', hand: 'Reverse Grip' }],
+      },
+      Cable: { axes: { angle: [null, 'Incline'] } },
+      Bands: {},
+      Bodyweight: {},
+    },
+  },
+  'Split Squat': {
+    score: 2, // the dumbbell split squat
+    change: { Barbell: 1, Bulgarian: 1 },
+    tools: {
+      Dumbbell: { axes: { type: [null, 'Bulgarian'] } },
+      Barbell: { from: 'Dumbbell', axes: { type: [null, 'Bulgarian'] } },
+      'Smith Machine': { axes: { type: [null, 'Bulgarian'] } },
+      Bodyweight: { axes: { type: [null, 'Bulgarian'] } },
+    },
+  },
+  'Overhead Triceps Extension': {
+    score: 2,
+    tools: {
+      Dumbbell: { axes: { position: ['Seated', 'Standing'], side: [null, 'One Arm'] } },
+      Cable: { add: [{ attach: 'Rope' }, { position: 'Kneeling' }] },
+      Kettlebell: {},
+      Barbell: {},
+      'EZ Bar': {},
+    },
+  },
+  'Hammer Curl': {
+    score: 2,
+    tools: {
+      Dumbbell: {
+        axes: { position: [null, 'Seated'], side: [null, 'Alternating'] },
+        add: [{ type: 'Cross-Body' }, { angle: 'Incline' }],
+      },
+      Cable: { add: [{ attach: 'Rope' }] },
+    },
+  },
+  'Preacher Curl': {
+    score: 2,
+    tools: { Barbell: {}, 'EZ Bar': {}, Dumbbell: { axes: { side: [null, 'One Arm'] } }, Cable: {}, Machine: {} },
+  },
+  'Hip Thrust': {
+    score: 3, // the barbell hip thrust: a main free-weight lift
+    change: { Dumbbell: -1, Bodyweight: -1, 'One Leg': 1 },
+    tools: { Barbell: {}, Dumbbell: {}, Bodyweight: { axes: { side: [null, 'One Leg'] } } },
+  },
+  Shrug: {
+    score: 2,
+    tools: { Barbell: {}, Dumbbell: {}, Cable: {}, Machine: {}, 'Smith Machine': { from: 'Barbell' } },
+  },
+  'Hanging Leg Raise': {
+    score: 4, // straight legs from a bar
+    change: { Knee: -1, Pike: 1, "Captain's Chair": -1 },
+    tools: {
+      // The captain's chair (back on a pad, forearms on the arms) is a knee raise here.
+      Bodyweight: { axes: { type: [null, 'Knee', 'Pike'], setup: [null, "Captain's Chair"] }, not: [{ type: [null, 'Pike'], setup: "Captain's Chair" }] },
+    },
+  },
+  'Sit-Up': {
+    score: 2,
+    change: { Decline: 1, Weighted: 1 },
+    tools: { Bodyweight: { axes: { angle: [null, 'Decline'], load: [null, 'Weighted'] } } },
+    keep: { 'Weighted_Sit-Ups_-_With_Bands': 'gear other in the database (not in the app list)' },
+  },
+  'Goblet Squat': { score: 2, tools: { Kettlebell: {}, Dumbbell: {} } },
+  'Face Pull': { score: 2, tools: { Cable: {}, Bands: { from: 'Cable' } } },
+  'Reverse Fly': {
+    score: 2,
+    tools: {
+      Dumbbell: {
+        axes: { position: [null, 'Seated', 'Lying'] },
+        add: [{ position: 'Lying', side: 'One Arm' }, { setup: 'Head Supported' }, { angle: 'Incline' }],
+      },
+      Cable: {},
+      Machine: {},
+      Bands: {},
+    },
+  },
+  'Upright Row': {
+    score: 2,
+    tools: {
+      Barbell: {}, 'EZ Bar': {}, Dumbbell: { axes: { side: [null, 'One Arm'] } }, 'Smith Machine': { axes: { side: [null, 'One Arm'] } },
+      Cable: {}, Bands: {},
+    },
+  },
+  'Chest Press': {
+    score: 2,
+    tools: {
+      Machine: { axes: { angle: [null, 'Incline', 'Decline'] }, add: [{ setup: 'Plate-Loaded' }] },
+      Cable: { axes: { position: ['Seated', 'Standing'] }, add: [{ angle: 'Incline' }] },
+    },
+  },
+  'Inverted Row': {
+    score: 2, // a bar at waist height, heels on the floor
+    change: { Towel: -1, Decline: 1, 'One Arm': 3, Rings: 1 },
+    tools: {
+      Bodyweight: {
+        axes: { hand: [null, 'Reverse Grip'], angle: [null, 'Decline'] },
+        not: [{ hand: 'Reverse Grip', angle: 'Decline' }],
+        add: [{ setup: 'Towel' }, { side: 'One Arm' }],
+      },
+      Rings: { from: 'Bodyweight', axes: { angle: [null, 'Decline'] } }, // feet up on a box
+    },
+  },
+  'Front Raise': {
+    score: 2,
+    tools: {
+      Dumbbell: { axes: { side: [null, 'Alternating'] }, add: [{ angle: 'Incline' }] },
+      Barbell: {},
+      Cable: {},
+      Bands: { from: 'Cable' },
+    },
+  },
+  'Glute Bridge': {
+    score: 2, // the loaded bridge
+    change: { Bodyweight: -1, 'One Leg': 1 }, // the floor bridge is one of the easiest lifts
+    tools: {
+      Barbell: {}, Dumbbell: { from: 'Barbell' }, Ball: {}, Bodyweight: { axes: { side: [null, 'One Leg'] } },
+    },
+  },
+  'Triceps Kickback': {
+    score: 2,
+    tools: { Dumbbell: { axes: { position: [null, 'Seated'], side: [null, 'One Arm'] } }, Cable: { axes: { side: [null, 'One Arm'] } } },
+  },
+  Crossover: {
+    score: 2,
+    tools: { Cable: { axes: { type: [null, 'Low'], side: [null, 'One Arm'] }, not: [{ type: 'Low', side: 'One Arm' }] }, Bands: {} },
+  },
+  'Step-Up': {
+    score: 2,
+    change: { Barbell: 1 },
+    tools: { Barbell: {}, Dumbbell: {}, Bodyweight: { axes: { type: [null, 'Knee Raise'] } } },
+  },
+  'Russian Twist': {
+    score: 2,
+    tools: { Bodyweight: {}, Cable: {}, Ball: { from: 'Bodyweight' }, Dumbbell: { from: 'Bodyweight' } },
+  },
+  'Hack Squat': {
+    score: 2, // the machine
+    change: { Barbell: 1 }, // the bar behind the legs: awkward
+    tools: { Machine: { axes: { stance: [null, 'Narrow Stance'] } }, Barbell: {} },
+  },
+  'Back Extension': { score: 2, tools: { Machine: {}, Ball: {} } },
+  'Kettlebell Swing': { score: 3, change: { 'One Arm': 1 }, tools: { Kettlebell: { axes: { side: [null, 'One Arm'] } } } },
+  "Farmer's Walk": { score: 2, tools: { Dumbbell: {}, Kettlebell: {} } },
+  'Bicycle Crunch': { score: 2, tools: { Bodyweight: {} } },
+  'Mountain Climber': { score: 2, tools: { Bodyweight: {} } },
+  'Wrist Curl': {
+    score: 2,
+    tools: {
+      Dumbbell: { axes: { hand: [null, 'Reverse Grip'], side: [null, 'One Arm'], position: ['Seated'] } },
+      Barbell: { axes: { hand: [null, 'Reverse Grip'], position: ['Seated'] } },
+      Cable: {},
+    },
+    keep: {
+      'Palms-Down_Dumbbell_Wrist_Curl_Over_A_Bench': 'the same as the seated palms-down curl (OBSCURE)',
+      'Palms-Down_Wrist_Curl_Over_A_Bench': 'the same as the seated palms-down curl (OBSCURE)',
+      'Palms-Up_Barbell_Wrist_Curl_Over_A_Bench': 'the same as the seated palms-up curl (OBSCURE)',
+      'Palms-Up_Dumbbell_Wrist_Curl_Over_A_Bench': 'the same as the seated palms-up curl (OBSCURE)',
+    },
+  },
+  'T-Bar Row': {
+    score: 3,
+    change: { Machine: -1 }, // the chest pad holds the body
+    tools: { Barbell: { add: [{}, { side: 'One Arm' }, { attach: 'V-Bar' }] }, Machine: { axes: { position: ['Lying'] } } },
+  },
+  'Ab Rollout': {
+    score: 3,
+    change: { Rings: 1 },
+    tools: {
+      Bodyweight: { add: [{ setup: 'Ab Wheel' }] },
+      Barbell: { axes: { position: [null, 'Kneeling'] } },
+      Rings: { from: 'Bodyweight' },
+    },
+  },
+  'Reverse Crunch': { score: 2, change: { Decline: 1 }, tools: { Bodyweight: { axes: { angle: [null, 'Decline'] } }, Cable: {} } },
+  'Concentration Curl': {
+    score: 2,
+    tools: { Dumbbell: { axes: { position: ['Seated', 'Standing'] } }, Barbell: { add: [{ width: 'Close Grip', position: 'Seated' }] } },
+  },
+  'Front Squat': {
+    score: 4, // the bar on the front of the shoulders
+    change: { Kettlebell: -1 },
+    tools: { Barbell: { axes: { hand: [null, 'Cross-Arm'] } }, Kettlebell: {} },
+  },
+  'Hip Abduction': { score: 2, tools: { Machine: {}, Cable: {}, Bands: { from: 'Cable' } } },
+  'Hip Adduction': { score: 2, tools: { Machine: {}, Cable: {}, Bands: {} } },
+  Pullover: {
+    score: 2,
+    tools: { Dumbbell: { axes: { type: ['Bent-Arm', 'Straight-Arm'] } }, Barbell: { axes: { type: ['Bent-Arm'] } } },
+  },
+  'Good Morning': {
+    score: 3,
+    change: { 'equip.Bands': -1 },
+    tools: { Barbell: { axes: { position: [null, 'Seated'] } }, Bands: {} },
+  },
+  'Arnold Press': { score: 3, tools: { Dumbbell: {}, Kettlebell: {} } }, // a dumbbell shoulder press with a turn
+  'Straight-Arm Pulldown': { score: 2, tools: { Cable: { add: [{}, { attach: 'Rope' }] } } },
+  'Pike Push-Up': { score: 3, change: { Decline: 1 }, tools: { Bodyweight: { axes: { angle: [null, 'Decline'] } } } },
+  'Pistol Squat': {
+    score: 5, // a full one-leg squat: a skill
+    tools: { Bodyweight: {}, Kettlebell: {} },
+    keep: { Smith_Machine_Pistol_Squat: 'a pistol squat on a Smith machine: odd (OBSCURE)' },
+  },
+  'Dead Bug': { score: 1, tools: { Bodyweight: {} } }, // lying on the back: one of the easiest core lifts
+  'Side Plank': { score: 2, tools: { Bodyweight: {} } },
+  'Lying Leg Raise': { score: 2, tools: { Bodyweight: {} } },
+  'Wood Chop': { score: 2, tools: { Cable: {} } },
+  'Band Pull-Apart': { score: 2, tools: { Bands: {} } },
+  Burpee: { score: 3, tools: { Bodyweight: {} } },
+  'Chest-Supported Row': { score: 2, tools: { Dumbbell: {} } },
+  'Jump Squat': {
+    score: 3,
+    change: { Barbell: 1, Tuck: 1, Star: -1 },
+    tools: {
+      Bodyweight: { add: [{}, { setup: 'Box' }, { type: 'Tuck' }, { type: 'Rocket' }, { type: 'Star' }] },
+      Barbell: {},
+    },
+  },
+  'Floor Press': {
+    score: 3, // the barbell floor press
+    change: { Dumbbell: -1, Kettlebell: -1, 'One Arm': 1 },
+    tools: {
+      Barbell: {},
+      Dumbbell: { axes: { side: [null, 'One Arm'] } },
+      Kettlebell: { axes: { side: [null, 'Alternating', 'One Arm'] } },
+    },
+  },
+  'Cardio Machine': { score: 2, tools: { Machine: { axes: { setup: ['Treadmill', 'Bike', 'Rower', 'Elliptical', 'Stairs'] } } } },
+  'Reverse Curl': { score: 2, tools: { Barbell: {}, 'EZ Bar': { from: 'Barbell' }, Dumbbell: {}, Cable: {} } },
+  'Rear Delt Row': {
+    score: 2,
+    tools: { Barbell: {}, Dumbbell: { from: 'Barbell' }, Cable: { add: [{ attach: 'Rope' }] }, Bodyweight: {} },
+  },
+  'Glute Kickback': { score: 2, tools: { Bodyweight: {}, Cable: {}, Bands: {} } },
+  'Side Bend': { score: 2, tools: { Dumbbell: {}, Barbell: {}, Cable: {} } },
+  'External Rotation': { score: 2, tools: { Dumbbell: {}, Cable: {}, Bands: {} } },
+  'Sumo Deadlift': {
+    score: 4,
+    change: { Kettlebell: -2 },
+    tools: { Barbell: {}, Kettlebell: { from: 'Barbell', set: { category: 'strength' } } },
+    keep: { Reverse_Band_Sumo_Deadlift: 'reverse bands: a rare powerlifting row (OBSCURE)' },
+  },
+  'Pallof Press': { score: 2, tools: { Cable: {}, Bands: { from: 'Cable' } } },
+  'Oblique Crunch': { score: 2, change: { Decline: 1 }, tools: { Bodyweight: { axes: { angle: [null, 'Decline'] } } } },
+  'Leg Pull-In': { score: 2, tools: { Bodyweight: { axes: { position: [null, 'Seated'] } } } },
+  'Internal Rotation': { score: 2, tools: { Cable: {}, Bands: {} } },
+  'Nordic Curl': {
+    score: 5, // lower the body from the knees: few lifters can
+    change: { Machine: -1, 'Band Assisted': -1 },
+    tools: { Bodyweight: { axes: { load: [null, 'Band Assisted'] } }, Machine: {} },
+  },
+  'Dead Hang': {
+    score: 2,
+    change: { Towel: 1, 'One Arm': 2 },
+    tools: { Bodyweight: { axes: { setup: [null, 'Towel'], side: [null, 'One Arm'] }, not: [{ setup: 'Towel', side: 'One Arm' }] } },
+  },
+  'Support Hold': { score: 2, change: { Rings: 2 }, tools: { Bodyweight: {}, Rings: { from: 'Bodyweight' } } },
+  'Box Squat': {
+    score: 3,
+    tools: { Barbell: {} },
+    keep: { Reverse_Band_Box_Squat: 'reverse bands: a rare powerlifting row (OBSCURE)' },
+  },
+  'Triceps Extension': { score: 2, tools: { Machine: {} } },
+  'Rack Pull': { score: 3, tools: { Barbell: {} } },
+  'Pull-Through': { score: 2, tools: { Cable: {} } },
+  'Jump Rope': { score: 2, tools: { Bodyweight: {} } },
+  'Power Clean': { score: 5, tools: { Barbell: {} } }, // a fast, technical lift
+  Thruster: { score: 4, tools: { Kettlebell: {}, Barbell: { from: 'Kettlebell' }, Dumbbell: { from: 'Kettlebell' } } },
+  'Landmine Press': { score: 2, tools: { Barbell: {} } }, // an easy angle for the shoulder
+  'Muscle-Up': { score: 6, tools: { Bodyweight: {}, Rings: { from: 'Bodyweight' } } },
+  'High Row': { score: 2, tools: { Machine: {} } },
+  'Monster Walk': { score: 2, tools: { Bands: {} } },
+  'Handstand Push-Up': { score: 5, tools: { Bodyweight: {} } }, // against a wall; a free one would be 6
+  'Scapular Pull-Up': { score: 2, tools: { Bodyweight: {} } },
+  'Reverse Hyperextension': { score: 2, tools: { Machine: {} } },
+  'Jackknife Sit-Up': { score: 3, tools: { Bodyweight: {} } },
+  'Ball Slam': { score: 2, tools: { Ball: {} } },
+  'Renegade Row': { score: 4, tools: { Kettlebell: {}, Dumbbell: { from: 'Kettlebell' } } }, // a row from a plank
+  'Towel Triceps Extension': { score: 2, tools: { Bodyweight: {} } },
+  'Tuck Crunch': { score: 2, tools: { Bodyweight: {} } },
+  'Cross-Body Crunch': { score: 2, tools: { Bodyweight: {} } },
+  Superman: { score: 1, tools: { Bodyweight: {} } }, // lying face down: one of the easiest lifts
+  'Wall Sit': { score: 2, tools: { Bodyweight: {} } },
+  'Hollow Body Hold': { score: 3, tools: { Bodyweight: {} } },
+  'Bird Dog': { score: 1, tools: { Bodyweight: {} } }, // on hands and knees: one of the easiest lifts
+  'Prone Y-T-W Raise': { score: 2, tools: { Bodyweight: {} } },
+  'Cossack Squat': { score: 3, tools: { Bodyweight: {} } },
+  'Shrimp Squat': { score: 4, tools: { Bodyweight: {} } },
+  'Push Press': { score: 4, tools: { Barbell: {}, Dumbbell: {}, Kettlebell: { add: [{}, { side: 'One Arm' }] } } },
+  'High Pulley Row': { score: 2, tools: { Cable: { axes: { position: ['Kneeling'], side: [null, 'One Arm'] } } } },
+  'Jumping Lunge': { score: 3, change: { Dumbbell: 1 }, tools: { Bodyweight: {}, Dumbbell: { from: 'Bodyweight' } } },
+  'Long Jump': { score: 3, tools: { Bodyweight: { axes: { type: [null, 'Lateral'] } } } },
+  'Heel Touch': { score: 2, tools: { Bodyweight: {} } },
+  'Ball Pull-In': { score: 3, tools: { Ball: {} } },
+  'Medicine Ball Chest Pass': { score: 2, tools: { Ball: {} } },
+  'JM Press': { score: 4, tools: { Barbell: {} } },
+  'Tate Press': { score: 3, tools: { Dumbbell: {} } },
+  'Spider Curl': { score: 2, tools: { 'EZ Bar': {} } },
+  'Drag Curl': { score: 2, tools: { Barbell: {} } },
+  'Zottman Curl': { score: 2, tools: { Dumbbell: {} } },
+  'High Cable Curl': { score: 2, tools: { Cable: {} } },
+  'Deficit Deadlift': { score: 5, tools: { Barbell: {} } },
+  Halo: { score: 2, tools: { Kettlebell: {} } },
+  'Turkish Get-Up': { score: 5, tools: { Kettlebell: {} } },
+  'Lateral to Front Raise': { score: 2, tools: { Dumbbell: {} } },
+  'Push-Up to Side Plank': { score: 3, tools: { Bodyweight: {} } },
+  'Wall Walk': { score: 4, tools: { Bodyweight: {} } },
+  'Wall Handstand Hold': { score: 4, tools: { Bodyweight: {} } },
+  'Pogo Hops': { score: 2, tools: { Bodyweight: {} } },
+  'L-Sit': { score: 5, tools: { Bodyweight: {}, Rings: { from: 'Bodyweight' } } },
+  'Dumbbell Swing': { score: 2, tools: { Dumbbell: {} } },
+  'Flutter Kicks': { score: 2, tools: { Bodyweight: {} } },
+  'Reverse Snow Angel': { score: 2, tools: { Bodyweight: {} } },
+  'Chin-Up Hold': { score: 3, tools: { Bodyweight: {} } },
+  'Running Drill': {
+    score: 2,
+    change: { 'One Leg': 1 },
+    tools: { Bodyweight: { axes: { type: ['Skipping', 'Carioca', 'Butt Kick'] }, add: [{ type: 'Butt Kick', side: 'One Leg' }] } },
+  },
+  'Front Lever': {
+    score: 6, // the full lever: an elite skill
+    change: { Tuck: -2, Rings: 0 }, // knees to the chest: the first step
+    tools: { Bodyweight: { axes: { type: [null, 'Tuck'] } }, Rings: { from: 'Bodyweight', axes: { type: [null, 'Tuck'] } } },
+  },
+  'Kneeling Arm Drill': { score: 1, tools: { Bodyweight: {} } }, // arm swings on the knees
+  'Clock Push-Up': { score: 4, tools: { Bodyweight: {} } },
+  'Isometric Chest Squeeze': { score: 1, tools: { Bodyweight: {} } }, // press the palms together
+  'Finger Curl': { score: 2, tools: { Barbell: {} } },
+  'Zercher Squat': { score: 4, tools: { Barbell: {} } },
+  'Cuban Press': { score: 2, tools: { Dumbbell: {} } },
+  Scaption: { score: 2, tools: { Dumbbell: {} } },
+  'Doorframe Curl': { score: 2, tools: { Bodyweight: {} } },
+  'Calf Raise on a Dumbbell': { score: 2, tools: { Dumbbell: {} } },
+  'Back Bridge': { score: 4, tools: { Bodyweight: {} } },
 };
 
-// The base score (D91) of every other card: 1 Sofa .. 6 Nightmare, for the
-// card's plain lift. Honest, not to fill the curve (docs/exercise-list-plan.md).
-// A number, or [score, changes] where a card's tools or values differ much.
-// The other values use DEFAULT_CHANGE. Part B of step 3 writes the full
-// grids of these cards and checks their changes.
-const SCORE = {
-  'Shoulder Press': [3, { Machine: -1, 'Smith Machine': -1, Cable: -1, 'equip.Bands': -1 }],
-  'Bicep Curl': [1, { Bodyweight: 1 }], 'Romanian Deadlift': [3, { Dumbbell: -1, Kettlebell: -1, Bodyweight: -2 }],
-  Deadlift: [4, { Dumbbell: -2, Kettlebell: -2, Cable: -2, Machine: -2 }], 'Lat Pulldown': 1, Crunch: 1, 'One-Arm Row': 2,
-  Plank: 1, 'Calf Raise': 1, Fly: [2, { Machine: -1 }], Lunge: [2, { Barbell: 1 }], 'Lateral Raise': 1,
-  Dip: [4, { Machine: -3, Bench: -2 }], 'Triceps Pushdown': 1, 'Leg Press': 1, 'Seated Cable Row': 1,
-  'Leg Curl': [1, { Bodyweight: 2, Ball: 1 }], 'Leg Extension': 1, Skullcrusher: 2, 'Split Squat': 2,
-  'Overhead Triceps Extension': [2, { Cable: -1 }], 'Hammer Curl': 1, 'Preacher Curl': 1, 'Hip Thrust': [2, { Bodyweight: -1 }],
-  Shrug: 1, 'Hanging Leg Raise': 4, 'Sit-Up': [1, { Decline: 1 }], 'Goblet Squat': 2, 'Face Pull': 1, 'Reverse Fly': 1, 'Upright Row': 2,
-  'Chest Press': 1, 'Inverted Row': [2, { 'One Arm': 3, Towel: -1 }], 'Front Raise': 1, 'Glute Bridge': 1, 'Triceps Kickback': 1,
-  Crossover: 2, 'Step-Up': 2, 'Russian Twist': 2, 'Hack Squat': [2, { Barbell: 1 }], 'Back Extension': 2, 'Kettlebell Swing': 3,
-  "Farmer's Walk": 2, 'Bicycle Crunch': 2, 'Mountain Climber': 2, 'Wrist Curl': 1, 'T-Bar Row': 3, 'Ab Rollout': 3,
-  'Reverse Crunch': 2, 'Concentration Curl': 1, 'Front Squat': [4, { Kettlebell: -1 }], 'Hip Abduction': 1, 'Hip Adduction': 1,
-  Pullover: 2, 'Good Morning': 3, 'Arnold Press': 2, 'Straight-Arm Pulldown': 1, 'Pike Push-Up': 3, 'Pistol Squat': 5,
-  'Dead Bug': 1, 'Side Plank': 1, 'Lying Leg Raise': 2, 'Wood Chop': 2, 'Band Pull-Apart': 1, Burpee: 3,
-  'Chest-Supported Row': 1, 'Jump Squat': [3, { Barbell: 1 }], 'Floor Press': 2, 'Cardio Machine': 1, 'Reverse Curl': 2,
-  'Rear Delt Row': 2, 'Glute Kickback': 1, 'Side Bend': 1, 'External Rotation': 1, 'Sumo Deadlift': [4, { Kettlebell: -2 }],
-  'Pallof Press': 1, 'Oblique Crunch': 1, 'Leg Pull-In': 2, 'Internal Rotation': 1, 'Nordic Curl': [5, { Machine: -1 }],
-  'Dead Hang': [1, { Towel: 1 }], 'Support Hold': [2, { Rings: 2 }], 'Box Squat': 3, 'Triceps Extension': 1, 'Rack Pull': 3, 'Pull-Through': 2,
-  'Jump Rope': 2, 'Power Clean': 5, Thruster: 4, 'Landmine Press': 2, 'Muscle-Up': 6, 'High Row': 1, 'Monster Walk': 1,
-  'Handstand Push-Up': 6, 'Scapular Pull-Up': 2, 'Reverse Hyperextension': 2, 'Jackknife Sit-Up': 3, 'Ball Slam': 2,
-  'Renegade Row': 4, 'Towel Triceps Extension': 2, 'Tuck Crunch': 2, 'Cross-Body Crunch': 1, Superman: 1, 'Wall Sit': 2,
-  'Hollow Body Hold': 3, 'Bird Dog': 1, 'Prone Y-T-W Raise': 1, 'Cossack Squat': 3, 'Shrimp Squat': 4, 'Push Press': 4,
-  'High Pulley Row': 1, 'Jumping Lunge': [3, { Dumbbell: 1 }], 'Long Jump': 3, 'Heel Touch': 1, 'Ball Pull-In': 3,
-  'Medicine Ball Chest Pass': 1, 'JM Press': 4, 'Tate Press': 3, 'Spider Curl': 2, 'Drag Curl': 2, 'Zottman Curl': 2,
-  'High Cable Curl': 2, 'Deficit Deadlift': 5, Halo: 2, 'Turkish Get-Up': 5, 'Lateral to Front Raise': 2,
-  'Push-Up to Side Plank': 3, 'Wall Walk': 4, 'Wall Handstand Hold': 4, 'Pogo Hops': 2, 'L-Sit': 5, 'Dumbbell Swing': 2,
-  'Flutter Kicks': 2, 'Reverse Snow Angel': 1, 'Chin-Up Hold': 3, 'Running Drill': 2, 'Front Lever': [6, { Rings: 0 }],
-  'Kneeling Arm Drill': 1, 'Clock Push-Up': 4, 'Isometric Chest Squeeze': 1, 'Finger Curl': 1, 'Zercher Squat': 5,
-  'Cuban Press': 3, Scaption: 1, 'Doorframe Curl': 1, 'Calf Raise on a Dumbbell': 2, 'Back Bridge': 4,
-};
-// The level change of a value on every card that does not set its own
-// (D91). A ring lift is harder than the same lift on the floor or a bar.
-const DEFAULT_CHANGE = {
-  Rings: 1, 'One Arm': 1, 'One Leg': 1, Knee: -1, 'Band Assisted': -1, Weighted: 1, Plyo: 1, 'bands.Bands': 1, Chains: 1,
-  Bulgarian: 1, 'Pseudo Planche': 2, Elevated: 1, Tuck: 1, Pike: 1, Inverted: 1, 'Trap Bar': -1,
-  "Captain's Chair": -1, Floor: -1, Kneeling: 0,
-};
 const CARD_OF = new Map(Object.entries(CARDS).map(([k, c]) => [k.toLowerCase(), c]));
-const SCORE_OF = new Map(Object.entries(SCORE).map(([k, s]) => [k.toLowerCase(), Array.isArray(s) ? s : [s, {}]]));
-for (const k of CARD_OF.keys()) if (SCORE_OF.has(k)) throw new Error(`SCORE: ${k} has a full grid in CARDS; its score is there`);
 /** The difficulty score 1-6 (D91) of variation [mods] of [base]; undefined for a card with no score. */
 function scoreOf(base, mods) {
   const b = base.toLowerCase(), card = CARD_OF.get(b);
-  const [score, change] = card ? [card.score, card.change ?? {}] : SCORE_OF.get(b) ?? [];
+  const [score, change] = card ? [card.score, card.change ?? {}] : [];
   if (score === undefined) return undefined;
   const own = card?.tools[mods.equip]?.change ?? {};
   let s = score;
@@ -853,7 +1287,7 @@ function scoreOf(base, mods) {
     const v = mods[a];
     if (v == null) continue;
     const q = `${a}.${v}`;
-    s += own[q] ?? own[v] ?? change[q] ?? change[v] ?? DEFAULT_CHANGE[q] ?? DEFAULT_CHANGE[v] ?? 0;
+    s += own[q] ?? own[v] ?? change[q] ?? change[v] ?? 0;
   }
   return Math.max(1, Math.min(6, s));
 }
@@ -863,7 +1297,8 @@ const CAP = 30;
 for (const [move, card] of Object.entries(CARDS)) {
   if (!Number.isInteger(card.score) || card.score < 1 || card.score > 6) throw new Error(`CARDS ${move}: score 1-6`);
   for (const [equip, t] of Object.entries(card.tools)) {
-    GRID.push({ move, equip, axes: t.axes, not: t.not, add: t.add, from: t.from, card: move });
+    // A tool with no axes and no `add` is its plain lift.
+    GRID.push({ move, equip, axes: t.axes ?? (t.add ? undefined : {}), not: t.not, add: t.add, from: t.from, set: t.set, card: move });
   }
 }
 // The database equipment of an equipment modifier (for a new equipment on a move).
@@ -958,7 +1393,6 @@ for (const g of [...groups.values()]) {
 }
 for (const g of groups.values()) if (g.length > CAP) throw new Error(`${g[0].base}: ${g.length} variations, more than the cap of ${CAP} (D90)`);
 // The difficulty score (D91) of every exercise of a card with a score.
-for (const k of SCORE_OF.keys()) if (!groups.has(k)) throw new Error(`SCORE: no move ${k}`);
 for (const r of rows) {
   delete r.e.score;
   const s = ALIAS[r.e.id] ? undefined : scoreOf(r.base, r.mods);
@@ -976,6 +1410,17 @@ if (args.includes('--report')) {
 }
 for (const id of Object.keys(MOVE)) if (!all.some((e) => e.id === id)) throw new Error(`MOVE: no exercise ${id}`);
 for (const id of Object.keys(MOVE)) if (ALIAS[id]) throw new Error(`MOVE: ${id} is an alias`);
+// A Smith machine row is database equipment `machine` (the Cablemancer's
+// gear, D50) with the tool Smith Machine: the app and CHALK read the tool
+// from `mods.equip` (lib/game/chalk.dart chalkToolOfMod).
+// Checked on the cards of CARDS (the app list); the other database rows are not shown.
+for (const r of rows) {
+  if (ALIAS[r.e.id] || !CARD_OF.has(r.base.toLowerCase())) continue;
+  if (r.e.equipment == null) throw new Error(`${r.e.id}: no equipment (Bodyweight is "body only")`);
+  if ((r.mods.equip === 'Smith Machine') !== /smith/i.test(r.e.id) || (r.mods.equip === 'Smith Machine' && r.e.equipment !== 'machine')) {
+    throw new Error(`${r.e.id}: a Smith machine row needs the tool Smith Machine and equipment machine`);
+  }
+}
 // No id of the app list is lost (D90): each one is a row here or an alias.
 for (const id of Object.keys(GRID_ALIAS)) if (rows.some((r) => r.e.id === id)) throw new Error(`GRID_ALIAS: ${id} is still made`);
 checkFrozen(rows.filter((r) => !ALIAS[r.e.id]).map((r) => r.e.id), { ...ALIAS, ...GRID_ALIAS }, 'exercise_variants');

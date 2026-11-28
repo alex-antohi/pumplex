@@ -107,7 +107,12 @@ void main() {
     expect(chalkWordByKey('tool.rings'), isNotNull);
     expect(chalkRackTools.length, 11);
     final rings = [for (final e in exerciseCatalog.all) if (e.mods['equip'] == 'Rings') e.id]..sort();
-    expect(rings, ['Ring_Dips', 'ab rollout|rings', 'front lever|rings', 'inverted row|rings', 'pull-up|rings', 'push-up|rings', 'push-up|rings|decline', 'support hold|rings']);
+    // D90 step 3 part B added the ring plank, L-sit, muscle-up, tuck front lever and the feet-up ring row.
+    expect(rings, [
+      'Ring_Dips', 'ab rollout|rings', 'front lever|rings', 'front lever|rings|tuck', 'inverted row|rings',
+      'inverted row|rings|decline', 'l-sit|rings', 'muscle-up|rings', 'plank|rings', 'pull-up|rings', 'push-up|rings',
+      'push-up|rings|decline', 'support hold|rings',
+    ]);
     expect(classGear['scrapper'], ['bodyweight', 'rings']);
     expect(classGear['bruiser'], ['dumbbell', 'kettlebell', 'bands', 'ball', 'bodyweight']);
     expect(classGear['paladin'], ['barbell', 'ezbar', 'dumbbell', 'kettlebell', 'bodyweight']);

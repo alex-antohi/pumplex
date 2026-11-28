@@ -1146,6 +1146,7 @@
   "name.seated cable row.Cable": "",
   "name.move.seated cable row.Machine": "Ramat la aparat",
   "name.lat pulldown.Cable": "",
+  "name.triceps pushdown.Cable": "",
   "name.move.lat pulldown.Machine": "Tracțiuni la aparat",
   "name.pull-up.Machine": "asistate la aparat",
   "name.move.inverted row.Rings": "Ramat la inele",
@@ -1158,7 +1159,10 @@
   "name.form.front lever": "ns",
   "name.romanian deadlift.Bodyweight": "fără greutăți",
   "mod.Archer": "Arcaș",
+  "mod.Negative": "Negativ",
   "name.Archer": "arcaș",
+  "name.Negative": "negativ|negativă|negativi|negative",
+  "name.Tuck": "ghemuit|ghemuită|ghemuiți|ghemuite",
   "mod.Pendlay": "Pendlay",
   "name.Pendlay": "Pendlay",
   "name.move.bent-over row.Pendlay": "Ramat Pendlay"

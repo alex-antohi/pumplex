@@ -50,52 +50,56 @@
 import fs from 'node:fs';
 import { checkFrozen, composeName, equipShownOf } from './exercise_names.mjs';
 
-// Most common first. A name is a move (`base`) or the id of an exercise
-// (then it stands for the exercise's move).
+// Most common first, by hand (D90 step 3 part B): the order in a tier is
+// the rank, not the number of variations, so a new variation never moves a
+// card. A name is a move (`base`) or the id of an exercise (then it stands
+// for the exercise's move).
 const COMMON = [
   // 1: the big lifts, in almost every program.
-  ['Bench Press', 'Squat', 'Deadlift', 'Pull-Up', 'Push-Up', 'Shoulder Press', 'Bicep Curl', 'Lat Pulldown', 'Plank',
-    'Crunch'],
+  [
+    'Bench Press', 'Squat', 'Shoulder Press', 'Push-Up', 'Bicep Curl', 'Pull-Up', 'Deadlift', 'Lat Pulldown', 'Crunch',
+    'Plank'],
   // 2: in most gym programs.
-  ['Dip', 'Bent-Over Row', 'One-Arm Row', 'Lunge', 'Leg Press', 'Triceps Pushdown', 'Lateral Raise', 'Romanian Deadlift',
-    'Seated Cable Row', 'Leg Extension', 'Leg Curl', 'Calf Raise'],
+  [
+    'Bent-Over Row', 'Romanian Deadlift', 'One-Arm Row', 'Calf Raise', 'Lunge', 'Lateral Raise', 'Dip',
+    'Triceps Pushdown', 'Leg Press', 'Seated Cable Row', 'Leg Curl', 'Leg Extension'],
   // 3: very common.
-  ['Hammer Curl', 'Hip Thrust', 'Fly', 'Sit-Up', 'Overhead Triceps Extension', 'Shrug', 'Hanging Leg Raise',
-    'Goblet Squat', 'Face Pull', 'Skullcrusher', 'Preacher Curl'],
+  [
+    'Fly', 'Skullcrusher', 'Overhead Triceps Extension', 'Hammer Curl', 'Preacher Curl', 'Hip Thrust', 'Shrug',
+    'Hanging Leg Raise', 'Sit-Up', 'Goblet Squat', 'Face Pull'],
   // 4: common.
-  ['Front Raise', 'Reverse Fly', 'Upright Row', 'Crossover', 'Chest Press', 'Step-Up',
-    'Glute Bridge', 'Hack Squat', 'Russian_Twist', 'Bicycle Crunch',
-    'Mountain Climber', 'Inverted Row', 'Triceps Kickback', 'Back Extension', 'Kettlebell Swing', "Farmer's Walk"],
+  [
+    'Reverse Fly', 'Upright Row', 'Chest Press', 'Inverted Row', 'Front Raise', 'Glute Bridge', 'Triceps Kickback',
+    'Crossover', 'Step-Up', 'Russian_Twist', 'Hack Squat', 'Back Extension', 'Kettlebell Swing', "Farmer's Walk",
+    'Bicycle Crunch', 'Mountain Climber'],
   // 5: a regular in many programs.
-  ['Good Morning', 'Reverse Crunch', 'Arnold Press', 'Concentration Curl', 'Straight-Arm Pulldown',
-    'Split Squat', 'Front Squat', 'T-Bar Row', 'Hip Abduction', 'Hip Adduction', 'Dead_Bug', 'Side Plank',
-    'Lying Leg Raise', 'Standing_Cable_Wood_Chop', 'Wrist Curl', 'Band Pull-Apart', 'Pullover',
-    'Pike Push-Up', 'Burpee', 'Ab Rollout', 'Pistol Squat', 'Chest-Supported Row'],
-  // 6: known and used, less often.
-  ['Sumo Deadlift', 'Box Squat', 'Floor Press', 'Reverse Curl', 'Triceps Extension',
-    'Rack Pull', 'Pallof_Press', 'Glute Kickback', 'Pull-Through', 'Jump Squat', 'Jump Rope',
-    'Cardio Machine', 'Power Clean', 'Kettlebell_Thruster', 'Side Bend', 'Landmine_Linear_Jammer', 'Muscle_Up',
-    'Oblique Crunch', 'Leg Pull-In',
-    'High Row', 'External Rotation', 'Internal Rotation', 'Monster_Walk', 'Handstand Push-Up', 'Scapular Pull-Up',
-    'Nordic Curl', 'Reverse_Hyperextension', 'Jackknife_Sit-Up', 'Ball Slam', 'Renegade Row',
-    'Towel Triceps Extension', 'Tuck_Crunch', 'Cross-Body_Crunch', 'Dead Hang', 'Superman', 'Wall_Sit', 'Hollow_Body_Hold',
-    'Bird_Dog', 'Prone_Y-T-W_Raise', 'Cossack_Squat', 'Rear Delt Row',
-    // D90 step 2: the BWF skills Shrimp Squat and Support Hold.
-    'Shrimp Squat', 'Support Hold'],
+  [
+    'Split Squat', 'Wrist Curl', 'T-Bar Row', 'Ab Rollout', 'Reverse Crunch', 'Concentration Curl', 'Front Squat',
+    'Hip Abduction', 'Hip Adduction', 'Pullover', 'Good Morning', 'Arnold Press', 'Straight-Arm Pulldown',
+    'Pike Push-Up', 'Pistol Squat', 'Dead_Bug', 'Side Plank', 'Lying Leg Raise', 'Standing_Cable_Wood_Chop',
+    'Band Pull-Apart', 'Burpee', 'Chest-Supported Row'],
+  // 6: known and used, less often. (D90 step 2 added the BWF skills Shrimp Squat and Support Hold.)
+  [
+    'Jump Squat', 'Floor Press', 'Cardio Machine', 'Reverse Curl', 'Rear Delt Row', 'Glute Kickback', 'Side Bend',
+    'External Rotation', 'Sumo Deadlift', 'Pallof_Press', 'Oblique Crunch', 'Leg Pull-In', 'Internal Rotation',
+    'Nordic Curl', 'Dead Hang', 'Support Hold', 'Box Squat', 'Triceps Extension', 'Rack Pull', 'Pull-Through',
+    'Jump Rope', 'Power Clean', 'Kettlebell_Thruster', 'Landmine_Linear_Jammer', 'Muscle_Up', 'High Row',
+    'Monster_Walk', 'Handstand Push-Up', 'Scapular Pull-Up', 'Reverse_Hyperextension', 'Jackknife_Sit-Up', 'Ball Slam',
+    'Renegade Row', 'Towel Triceps Extension', 'Tuck_Crunch', 'Cross-Body_Crunch', 'Superman', 'Wall_Sit',
+    'Hollow_Body_Hold', 'Bird_Dog', 'Prone_Y-T-W_Raise', 'Cossack_Squat', 'Shrimp Squat'],
   // 7: seen now and then.
-  ['Alternate_Heel_Touchers', 'Ball Pull-In', 'Medicine_Ball_Chest_Pass',
-    'JM_Press', 'Tate_Press',
-    'Spider_Curl', 'Drag_Curl', 'Zottman_Curl', 'High_Cable_Curls',
-    'High Pulley Row', 'Deficit_Deadlift',
-    'Push Press', 'Kettlebell_Halo', 'Kettlebell_Turkish_Get-Up_Squat_style',
-    'Side_Laterals_to_Front_Raise', 'Push-Up to Side Plank', 'Jumping Lunge', 'Long Jump', 'Wall_Walk', 'Wall_Handstand_Hold',
-    'Pogo_Hops', 'L-Sit', 'Dumbbell Swing', 'Flutter_Kicks', 'Reverse_Snow_Angel', 'Chin-Up_Hold'],
+  [
+    'Push Press', 'High Pulley Row', 'Jumping Lunge', 'Long Jump', 'Alternate_Heel_Touchers', 'Ball Pull-In',
+    'Medicine_Ball_Chest_Pass', 'JM_Press', 'Tate_Press', 'Spider_Curl', 'Drag_Curl', 'Zottman_Curl',
+    'High_Cable_Curls', 'Deficit_Deadlift', 'Kettlebell_Halo', 'Kettlebell_Turkish_Get-Up_Squat_style',
+    'Side_Laterals_to_Front_Raise', 'Push-Up to Side Plank', 'Wall_Walk', 'Wall_Handstand_Hold', 'Pogo_Hops', 'L-Sit',
+    'Dumbbell Swing', 'Flutter_Kicks', 'Reverse_Snow_Angel', 'Chin-Up_Hold'],
   // 8: rare; here so that the small classes (Scrapper) have enough cards.
-  ['Kneeling_Arm_Drill', 'Clock_Push-Up', 'Isometric Chest Squeeze', 'Finger_Curls',
-    'Running Drill', 'Zercher_Squats', 'Cuban_Press', 'Dumbbell_Scaption',
-    'Doorframe_Curl', 'Calf Raise on a Dumbbell',
-    // D90 step 2: the owner's skills; no program in the sample uses them.
-    'Back Bridge', 'Front Lever'],
+  // (D90 step 2 added the owner's skills Back Bridge and Front Lever; no
+  // program in the sample uses them.)
+  [
+    'Running Drill', 'Front Lever', 'Kneeling_Arm_Drill', 'Clock_Push-Up', 'Isometric Chest Squeeze', 'Finger_Curls',
+    'Zercher_Squats', 'Cuban_Press', 'Dumbbell_Scaption', 'Doorframe_Curl', 'Calf Raise on a Dumbbell', 'Back Bridge'],
 ];
 
 // The movement pattern of each candidate card. The slot patterns are in
@@ -158,12 +162,12 @@ const LEVEL = {
   // Too hard for beginners. Chin-ups and pull-ups are the same level.
   Pullups: 'intermediate', 'Chin-Up': 'intermediate', 'Dips_-_Triceps_Version': 'intermediate',
   'Plyo_Push-up': 'intermediate', Knee_Tuck_Jump: 'intermediate', 'Decline_Push-Up': 'intermediate',
-  'V-Bar_Pullup': 'intermediate', Muscle_Up: 'expert',
+  Muscle_Up: 'expert',
   // A barbell lunge is a barbell lunge, walking or not.
   Barbell_Walking_Lunge: 'intermediate',
   // Machines and cables that beginners use.
   Face_Pull: 'beginner', Flat_Bench_Cable_Flyes: 'beginner', Incline_Cable_Flye: 'beginner',
-  Hyperextensions_With_No_Hyperextension_Bench: 'beginner', Ab_Crunch_Machine: 'beginner', Lying_Cable_Curl: 'beginner',
+  Ab_Crunch_Machine: 'beginner', Lying_Cable_Curl: 'beginner',
   'Standing_One-Arm_Cable_Curl': 'beginner', 'Seated_One-arm_Cable_Pulley_Rows': 'beginner', 'V-Bar_Pulldown': 'beginner',
   Smith_Machine_Leg_Press: 'beginner', Narrow_Stance_Leg_Press: 'beginner', Kneeling_Cable_Triceps_Extension: 'beginner',
   // Basics that beginners learn: the barbell deadlift (light), the jump rope.
@@ -329,15 +333,16 @@ COMMON.forEach((tier, t) => tier.forEach((id, i) => {
   const name = cardName(id);
   if (!byCard.has(name)) throw new Error(`COMMON: no card ${id}`);
   if (order.some((o) => o.name === name)) throw new Error(`COMMON: ${name} twice`);
-  order.push({ name, t, i, n: byCard.get(name).length });
+  order.push({ name, t, i });
 }));
-order.sort((a, b) => a.t - b.t || b.n - a.n || a.i - b.i);
+order.sort((a, b) => a.t - b.t || a.i - b.i);
 // Ranks set by hand (D90 step 2, after the research on 19 programs): the card
 // goes to that place, the others keep their order around it. Push-Up and
-// Hip Thrust stay where they were.
+// Hip Thrust stay where they were. Pull-Up stays 8 (part B: part A's grid
+// had moved it by its number of variations).
 const RANK = {
-  Squat: 2, 'Push-Up': 4, 'Bent-Over Row': 6, 'Romanian Deadlift': 7, 'One-Arm Row': 12, Fly: 15, 'Split Squat': 25,
-  'Hip Thrust': 29,
+  Squat: 2, 'Push-Up': 4, 'Bent-Over Row': 6, 'Romanian Deadlift': 7, 'Pull-Up': 8, 'One-Arm Row': 12, Fly: 15,
+  'Split Squat': 25, 'Hip Thrust': 29,
 };
 {
   const fixed = Object.entries(RANK).map(([n, r]) => {
@@ -618,12 +623,28 @@ const curve = ['# Difficulty score curve (D91)', '',
   'The curve is a target, not a quota: score each lift honestly.', '',
   '| class | n | 1 | 2 | 3 | 4 | 5 | 6 | off by |', '|---|---|---|---|---|---|---|---|---|',
   `| target | | ${CURVE.join(' | ')} | |`];
+// Hard lifts (score 5-6) the list does not have, per class gear: the warning
+// names them, to choose what to add later (D91: add hard lifts, never score
+// easy lifts higher). Not added in D90 step 3 (only the Negative Pull-Up).
+const HARD_MISSING = {
+  scrapper: ['archer pull-up', 'one-arm pull-up', 'tuck planche', 'dragon flag', 'freestanding handstand push-up',
+    'skin the cat', 'archer squat'],
+  // No olympic lifts but the Power Clean (D56).
+  bruiser: ['kettlebell windmill', 'dumbbell Turkish get-up', 'weighted Cossack squat', 'dumbbell overhead squat'],
+  paladin: ['overhead squat', 'Jefferson curl', 'standing barbell rollout', 'barbell Cossack squat'],
+  cablemancer: ['none honest: machine and cable lifts stay easy (D91); the hard end is the bodyweight skills'],
+};
 const warnings = [];
 for (const c of Object.keys(CLASSES)) {
   const es = out.filter((e) => inClass(c, e));
   const s = shares(es), off = offBy(s);
   curve.push(`| ${c} | ${es.length} | ${s.join(' | ')} | ${off}${off > FAR ? ' FAR' : ''} |`);
-  if (off > FAR) warnings.push(`${c} is far from the target (off by ${off} points): ${s.join(' / ')}`);
+  if (off > FAR) {
+    const noHard = Object.keys(PARTS).filter((p) => !es.some((e) => e.score >= 5 && partOf(e.primaryMuscles[0]) === p));
+    warnings.push(`${c} is far from the target (off by ${off} points): ${s.join(' / ')}. `
+      + (noHard.length ? `No hard lift (score 5-6) for: ${noHard.join(', ')}. ` : '')
+      + `Hard lifts to add later: ${HARD_MISSING[c].join('; ')}`);
+  }
 }
 curve.push('', '## Per class and body part', '', '| class | part | n | 1 | 2 | 3 | 4 | 5 | 6 | off by |', '|---|---|---|---|---|---|---|---|---|---|');
 for (const c of Object.keys(CLASSES)) {

@@ -360,8 +360,9 @@ void main() {
     // D90 step 2 added the bases, tools and lifts of the plan and folded the
     // jump cards (11 cards into 4) and the band and chain rows. D90 step 3
     // (part A) wrote the full grids of 5 cards (Bench Press, Squat, Push-Up,
-    // Pull-Up, Bent-Over Row).
-    expect(all.length, 545);
+    // Pull-Up, Bent-Over Row); part B the grids of the other 147 cards and
+    // the owner's old delete ticks (2 rows became aliases).
+    expect(all.length, 569);
     expect(exerciseCatalog.groups.length, 152);
     // The clean-up (D69): every card is a move, with a clean move name.
     expect(exerciseCatalog.groups.where((g) => !g.key.startsWith('move:')), isEmpty);
@@ -461,7 +462,7 @@ void main() {
     expect(chipTarget(bench, flatBar, 'side', 'One Arm'), isNull);
     // All dips are one move, with a Type, a Load and a Setup row (D90).
     final dip = exerciseCatalog.byKey['move:dip']!;
-    expect(dip.variants.length, 8); // D80 adds weighted and band-assisted; dip bars are body only (D50)
+    expect(dip.variants.length, 9); // D80 adds weighted and band-assisted; D90 step 3 the weighted chest dip
     expect(dip.axes.firstWhere((a) => a.$1.id == 'type').$2, [null, 'Chest']);
     expect(dip.axes.firstWhere((a) => a.$1.id == 'setup').$2, [null, 'Bench']);
     expect(dip.axes.firstWhere((a) => a.$1.id == 'equip').$2, ['Bodyweight', 'Machine', 'Rings']);

@@ -109,8 +109,27 @@ void main() {
         for (final g in index.search({w.key})) g.key,
     };
     final odd = [for (final g in exerciseCatalog.groups) if (!what.contains(g.key)) g.name]..sort();
-    // (D90 step 2 added Support Hold: a dip hold, pattern triceps, no word.)
-    expect(odd.length, lessThanOrEqualTo(11), reason: '$odd');
+    expect(odd.length, lessThanOrEqualTo(10), reason: '$odd');
+    // Support Hold (D90 step 2) is the top of a dip: the DIP word finds it.
+    expect(odd, isNot(contains('Support Hold')));
+    expect(index.search({'move.dip'}).map((g) => g.key), contains('move:support hold'));
+  });
+
+  test('a Smith machine row is the SMITH tool, not MACHINE (equipment machine, D90 step 3)', () {
+    final index = ChalkIndex.of(exerciseCatalog);
+    final smith = [for (final e in exerciseCatalog.all) if (e.mods['equip'] == 'Smith Machine') e];
+    expect(smith.length, greaterThan(10));
+    for (final e in smith) {
+      expect(e.equipment, 'machine', reason: e.id); // the Cablemancer's gear (D50)
+      expect(index.words[e.id], contains('tool.smith'), reason: e.id);
+      expect(index.words[e.id], isNot(contains('tool.machine')), reason: e.id);
+    }
+    // Every row with "Smith" in its id has the Smith Machine tool.
+    for (final e in exerciseCatalog.all.where((e) => e.id.toLowerCase().contains('smith'))) {
+      expect(e.mods['equip'], 'Smith Machine', reason: e.id);
+    }
+    // No exercise has a null or empty equipment (Decline Push-Up had null).
+    expect(exerciseCatalog.all.where((e) => e.equipment.isEmpty), isEmpty);
   });
 
   test('the word index: the user-test gaps (towel, rowing machine, null gear, isolation moves)', () {

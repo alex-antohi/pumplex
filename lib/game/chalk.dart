@@ -62,7 +62,8 @@ final chalkMoveWords = <String, RegExp>{
   'bridge': RegExp(r'\bbridge', caseSensitive: false),
   'pullup': RegExp(r'pull-?up|chin-?up', caseSensitive: false),
   'pushup': RegExp(r'push-?up', caseSensitive: false),
-  'dip': RegExp(r'\bdips?\b', caseSensitive: false),
+  // A support hold is the top of a dip (D90 step 3 part B).
+  'dip': RegExp(r'\bdips?\b|support hold', caseSensitive: false),
   // A skullcrusher is a lying triceps extension.
   'extension': RegExp(r'extension|skull ?crusher', caseSensitive: false),
   'pushdown': RegExp(r'push-?down', caseSensitive: false),
