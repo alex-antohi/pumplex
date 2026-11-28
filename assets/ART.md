@@ -19,3 +19,6 @@ Icons: also put the new PNG in `assets/icons/2.0x/` and `assets/icons/3.0x/`
 
 Add a NEW file: add it to `pubspec.yaml` and the code, then run
 `node tools/app/art_check.mjs --write`.
+
+Area `sky.png` (175 x 160 base): optional strip above the scene in the area card;
+its bottom row continues the top row of `background.png`.

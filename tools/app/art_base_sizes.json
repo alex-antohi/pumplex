@@ -167,4 +167,9 @@
 "assets/outfits/bruiser.png":[260,640],
 "assets/outfits/cablemancer.png":[260,640],
 "assets/outfits/paladin.png":[260,640],
-"assets/outfits/scrapper.png":[260,640]}
+"assets/outfits/scrapper.png":[260,640],
+"assets/areas/arcade/sky.png":[175,160],
+"assets/areas/frostbite/sky.png":[175,160],
+"assets/areas/gainsgard/sky.png":[175,160],
+"assets/areas/riptide/sky.png":[175,160],
+"assets/areas/rustbelt/sky.png":[175,160]}

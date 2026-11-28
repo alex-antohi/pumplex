@@ -114,105 +114,205 @@ for (let cy = 0; cy < ROWS; cy++) for (let cx = 0; cx < COLS; cx++) {
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const c = g(x, y); if (c === T || c === B) { const e = (a, b) => g(a, b) !== c && g(a, b) !== 1; if (e(x + 1, y) || e(x, y + 1)) rimC.push([x, y, 1]); else if (e(x - 1, y) || e(x, y - 1)) rimC.push([x, y, -1]); } }
   for (const [x, y, d] of rimC) shade(x, y, d);
 
-  /* torso: muscle lines (m) and softness (f). Only the tone moves, so the outfit shows it too. */
-  const lines = [];
+  /* torso: clean tone bands (lit left, shadow right, edges follow the chest curve), then muscle lines (m) and belly (f).
+     Only the tone moves, so the outfit shows it too. */
+  const setSh = (x, y, s) => { if (g(x, y)) sh[(oy + y) * AW + ox + x] = clampSh(s); };
+  const sstep = (a, b, v) => { const q = Math.max(0, Math.min(1, (v - a) / (b - a))); return q * q * (3 - 2 * q); };
   const hw = (tr0[1] - tr0[0]) / 2;
+  for (let y = ty0; y <= ty1; y++) {
+    const r = tr(y); if (!r) continue;
+    const w = r[1] - r[0] + 1, t = (y - ty0) / span, bulge = Math.sin(t * Math.PI) * 1.6;
+    const litW = Math.round(w * 0.2 + bulge), shW = Math.round(w * (0.3 + f * 0.16 * sstep(0.4, 0.9, t)) - bulge * 0.5);
+    for (let x = r[0]; x <= r[1]; x++) {
+      if (g(x, y) !== T) continue;
+      const i = x - r[0], j = r[1] - x; let s = 2;
+      if (i < litW) s = 1; else if (j < shW) s = 3;
+      if (j === 0) s = 4; else if (i === 0) s = 3;
+      if (y <= ty0 + 1) s -= 1;
+      if (y === ty1) s += 1;
+      setSh(x, y, s);
+    }
+  }
+  const lines = [];
+  const tr1 = (y) => tr(y) || tr(ty1);
   const hline = (y, x0, x1, d) => { for (let x = x0; x <= x1; x++) if (g(x, y) === T) lines.push([x, y, d]); };
   if (m > 0 && f <= 0.75) {
     const py = ty0 + Math.round(span * (female ? 0.3 : 0.26));
-    const k = Math.round(hw * 0.2);
-    hline(py, tr0[0] + 5 + k - k, mid - 2, 1); hline(py + 1, tr0[0] + 7, mid - 5, 1);
+    hline(py, tr0[0] + 5, mid - 2, 1); hline(py + 1, tr0[0] + 7, mid - 5, 1);
     hline(py, mid + 2, tr0[1] - 5, 1); hline(py + 1, mid + 5, tr0[1] - 7, 1);
     if (m >= 0.5) for (let y = py - 5; y <= py + 1; y++) { lines.push([mid, y, 1]); lines.push([mid - 1, y, 1]); }
     if (!female && m >= 0.5 && f <= 0.5) {
       for (let r = 0; r < (m >= 1 ? 3 : 2); r++) { const y = ty0 + Math.round(span * (0.44 + 0.13 * r)); hline(y, mid - 6, mid - 2, 1); hline(y, mid + 2, mid + 6, 1); lines.push([mid, y - 1, 1], [mid - 1, y - 1, 1], [mid, y, 1], [mid - 1, y, 1]); }
     }
-    if (m >= 0.75) for (let k2 = 0; k2 < 4; k2++) { const y = ty0 + Math.round(span * 0.4) + k2 * 3; lines.push([tr(y)[0] + 3 + k2 % 2, y, 1], [tr(y)[1] - 3 - k2 % 2, y, 1]); }
-    /* spec on the upper chest */
-    lines.push([mid - 7, py - 3, -1], [mid + 7, py - 3, -1], [mid - 8, py - 3, -1], [mid + 6, py - 3, -1]);
   }
   if (f >= 0.25) {
-    const by = ty0 + Math.round(span * 0.6);
-    for (let y = by; y <= ty1; y++) { const r = tr(y); if (!r) continue; for (let x = r[0]; x <= r[1]; x++) if (x > r[1] - 3 - Math.round(f * 8)) lines.push([x, y, 1]); }
-    const cy2 = ty0 + Math.round(span * 0.7);
-    for (let x = tr(cy2)[0] + 4; x <= tr(cy2)[1] - 4; x++) lines.push([x, cy2 + (Math.abs(x - mid) < hw * 0.4 ? 1 : 0), 1], [x, cy2 + 1 + (Math.abs(x - mid) < hw * 0.4 ? 1 : 0), 1]);
+    const cy2 = ty0 + Math.round(span * 0.7), depth = 1.5 + f * 3.5, r2 = tr(cy2);
+    for (let x = r2[0] + 4; x <= r2[1] - 4; x++) { const u = (x - mid) / (hw - 4); lines.push([x, cy2 + Math.round(depth * (1 - u * u)), 1]); }
     lines.push([mid, ty0 + Math.round(span * 0.55), 2], [mid - 1, ty0 + Math.round(span * 0.55), 2]);
     if (f >= 0.5) { const hy = ty0 + Math.round(span * 0.5); for (let x = mid - 8; x <= mid - 3; x++) lines.push([x, hy, -1]); }
-    if (f >= 0.75) for (let y = ty0 + 8; y < ty1 - 2; y++) { const r = tr(y); lines.push([r[0] + 2, y, 1], [r[1] - 2, y, 1]); }
   }
-  /* fabric folds: armpit creases and waist bunching */
-  for (let k2 = 0; k2 < 6; k2++) { const y = ty0 + 8 + k2; lines.push([tr(y)[0] + 3 + k2, y, 1], [tr(y)[1] - 3 - k2, y, 1]); }
-  for (let x = tr0[0] + 4; x <= tr0[1] - 4; x += 5) { const y = ty1 - 6 + ((x >> 1) % 2); lines.push([x, y, 1], [x + 1, y, 1], [x + 2, y + 1, 1]); }
   for (const [x, y, d] of lines) shade(x, y, d, T);
+  void tr1;
 
-  /* shorts: centre seam, thigh crease */
-  const bl = [];
-  for (let y = by0 + 2; y <= by1; y++) { const r = rowRange(y, B); if (!r) continue; const c = Math.round((r[0] + r[1]) / 2); bl.push([c, y, 1], [c - 1, y, 1]); }
-  for (let x = 0; x < W; x++) if (g(x, by0) === B) bl.push([x, by0, -1]);
-  for (const [x, y, d] of bl) shade(x, y, d, B);
+  /* shorts: tone bands, waistband and a single centre seam */
+  for (let y = by0; y <= by1; y++) {
+    const r = rowRange(y, B); if (!r) continue;
+    const w = r[1] - r[0] + 1;
+    for (let x = r[0]; x <= r[1]; x++) {
+      if (g(x, y) !== B) continue;
+      const i = x - r[0], j = r[1] - x; let s = 2;
+      if (i < Math.round(w * 0.22)) s = 1; else if (j < Math.round(w * 0.32)) s = 3;
+      if (j === 0) s = 4; else if (i === 0) s = 3;
+      if (y === by0) s -= 1; else if (y === by0 + 1) s += 0;
+      if (y === by1) s += 1;
+      setSh(x, y, s);
+    }
+    if (y >= by0 + 2) shade(Math.round((r[0] + r[1]) / 2), y, 1, B);
+  }
 
-  /* arms and legs: skin runs below the shoulder line */
+  /* arms: rounded shoulder and hand, biceps/forearm bulge by muscle, light on the left, shadow on the right */
   const runs = (y, c = S) => { const out = []; let a = -1; for (let x = 0; x <= W; x++) { if (g(x, y) === c) { if (a < 0) a = x; } else if (a >= 0) { out.push([a, x - 1]); a = -1; } } return out; };
-  const arm = [];
-  for (let y = ty0 + 3; y <= ty0 + Math.round(span * 0.85); y++) {
-    const r = tr(y); if (!r) continue;
-    for (const [a, b] of runs(y)) {
-      if (b < r[0] || a > r[1]) {
-        const c = Math.round((a + b) / 2), t = (y - ty0) / span;
-        if (m >= 0.25 && t > 0.2 && t < 0.38) arm.push([c, y, -1], [c - 1, y, -1]);
-        if (m >= 0.5 && t >= 0.4 && t < 0.46) arm.push([c, y, 1], [c - 1, y, 1], [c + 1, y, 1]);
-        if (m >= 0.75 && t > 0.5 && t < 0.62) arm.push([c, y, -1]);
-        if (f >= 0.5 && t > 0.55) arm.push([a < r[0] ? a + 1 : b - 1, y, 1]);
-        arm.push([a < r[0] ? b : a, y, 1]); // inner edge of the arm, in the torso's shade
+  const bodyRange = (y) => { const t = rowRange(y, T), b = rowRange(y, B); if (t && b) return [Math.min(t[0], b[0]), Math.max(t[1], b[1])]; return t || b; };
+  const BR = []; { let last = null; for (let y = 0; y < H; y++) { const r = bodyRange(y); if (r) last = r; BR[y] = r || (y > by1 ? last : null); } }
+  let armBottom = by1;
+  for (const side of [-1, 1]) {
+    const A = {}, B2 = {}; let ay0 = -1, ay1 = -1;
+    for (let y = ty0 - 1; y <= by1 + 10; y++) {
+      const r = BR[y]; if (!r) continue;
+      let pick = null;
+      for (const [a, b] of runs(y)) if (side < 0 ? b < r[0] : a > r[1]) if (!pick || (side < 0 ? a < pick[0] : b > pick[1])) pick = [a, b];
+      if (pick && (ay1 < 0 || y === ay1 + 1)) { if (ay0 < 0) ay0 = y; ay1 = y; A[y] = pick[0]; B2[y] = pick[1]; }
+    }
+    if (ay0 < 0) continue;
+    const refA = A[ay1], refB = B2[ay1];
+    for (let y = ay1 + 1; y <= ay1 + 4; y++) { const x = side < 0 ? refA : refB; if (g(x, y) === S) { ay1 = y; A[y] = refA; B2[y] = refB; } else break; }
+    const L = ay1 - ay0, yb = ay1 + 1; armBottom = Math.max(armBottom, yb);
+    const outer = (y) => (side < 0 ? A[y] - 1 : B2[y] + 1);
+    /* biceps and forearm bulge (outer edge moves out) */
+    for (let y = ay0; y <= ay1; y++) {
+      const t = (y - ay0) / L; let e = 0;
+      if (t > 0.1 && t < 0.42) e = m * 2 * Math.sin(Math.PI * (t - 0.1) / 0.32);
+      else if (t > 0.5 && t < 0.74) e = m * 1.5 * Math.sin(Math.PI * (t - 0.5) / 0.24);
+      e = Math.round(e); if (e <= 0) continue;
+      const xo = outer(y);
+      for (let k = 0; k < e; k++) set(xo + side * k, y, S, 2);
+      set(xo + side * e, y, 1, 0);
+      if (side < 0) A[y] -= e; else B2[y] += e;
+    }
+    /* rounded corners: carve, then the skin next to a hole becomes outline */
+    const cut = [];
+    const carve = (y, k, xo) => { for (let i = 0; i <= k; i++) { const x = xo - side * i; set(x, y, 0, 0); cut.push([x, y]); } };
+    const xs = outer(ay0 + 3);
+    carve(ay0 - 1, 3, xs); carve(ay0, 1, xs); carve(ay0 + 1, 0, xs);
+    const xb = outer(ay1 - 2);
+    carve(yb, 1, xb); carve(yb - 1, 0, xb);
+    for (const [x, y] of cut) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (g(x + dx, y + dy) === S) set(x + dx, y + dy, 1, 0);
+    for (let y = ay0; y <= ay1; y++) { // recompute the skin extent
+      if (side < 0) { for (let x = A[y] - 6; x <= B2[y]; x++) if (g(x, y) === S) { A[y] = x; break; } } else { for (let x = B2[y] + 6; x >= A[y]; x--) if (g(x, y) === S) { B2[y] = x; break; } }
+    }
+    /* shading */
+    const eb = ay0 + Math.round(L * 0.5), dl = ay0 + Math.round(L * 0.17), bt = ay0 + Math.round(L * 0.42);
+    for (let y = ay0; y <= ay1; y++) {
+      const a = A[y], b = B2[y], w = b - a + 1, t = (y - ay0) / L; if (w < 4) continue;
+      const hs = side < 0 ? 0 : 1, hl = w >= 13 ? 3 : 2;
+      for (let x = a; x <= b; x++) {
+        if (g(x, y) !== S) continue;
+        const i = x - a; let s = 2;
+        if (i < hs) s = 3; else if (i < hs + hl) s = 1; else if (i >= w - 3) s = 3;
+        if (i === w - 1) s = 4;
+        if (y <= ay0 + 2 && i < w * 0.62) s = Math.max(0, s - 1);         // lit shoulder cap
+        if (m >= 0.5 && t > 0.14 && t < 0.36 && i === hs + hl - 1) s = 0;     // biceps peak
+        if (m >= 0.5 && t > 0.56 && t < 0.82 && i === hs + hl) s = 1;         // forearm ridge
+        setSh(x, y, s);
       }
+      const inner = (x) => x >= a + 1 && x <= b - 1;
+      if (m >= 0.25 && y === dl) for (let x = b - 5; x <= b - 1; x++) shade(x, y, 1, S);   // deltoid edge
+      if (m >= 0.5 && y === bt) for (let x = b - 6; x <= b - 2; x++) shade(x, y, 1, S);                                     // biceps underside
+      if (y === eb) for (let x = a + 1; x <= b - 1; x++) if (inner(x)) setSh(x, y, 3);                                       // elbow line
+      if (y === eb + 1) for (let x = a + hs + 1; x <= a + hs + 2; x++) setSh(x, y, 1);                                      // forearm top light
+      if (y >= ay1 - 3 && y <= ay1 - 1) for (const k of [Math.round(w / 3), Math.round(2 * w / 3)]) setSh(a + k, y, 3);       // fingers
     }
   }
-  for (const [x, y, d] of arm) shade(x, y, d, S);
+
+  /* legs: clean knee crease, quad line and calf light */
   const leg = [];
-  const lg0 = by1 + 1;
+  const lg0 = Math.max(by1 + 1, armBottom + 1);
   let lg1 = lg0; for (let y = lg0; y < H; y++) if (rowRange(y, S)) lg1 = y;
   for (let y = lg0; y <= lg1; y++) for (const [a, b] of runs(y)) {
-    const c = Math.round((a + b) / 2), t = (y - lg0) / Math.max(1, lg1 - lg0);
-    if (m >= 0.5 && t < 0.5) leg.push([c, y, 1], [c - 1, y, 1]);
-    if (m >= 0.25 && t >= 0.5 && t < 0.62) leg.push([c, y, -1]);
-    if (t > 0.45 && t < 0.52 && b - a > 4) leg.push([c, y, 1], [c - 1, y, 1], [c + 1, y, 1]);
-    if (m >= 0.75 && t >= 0.62 && t < 0.9) leg.push([a + 2, y, -1], [a + 3, y, -1]);
-    if (b - a >= 3) leg.push([b - 1, y, 1]);
+    const w = b - a + 1, t = (y - lg0) / Math.max(1, lg1 - lg0); if (w < 5) continue;
+    if (t > 0.46 && t < 0.5) for (let x = a + 2; x <= b - 3; x++) leg.push([x, y, 1]);
+    if (m >= 0.75 && t > 0.56 && t < 0.85) leg.push([a + 1, y, -1], [a + 2, y, -1]);
+    leg.push([b - 1, y, 1]);
   }
   for (const [x, y, d] of leg) shade(x, y, d, S);
+
+  /* crotch: close the gap between the thighs with skin; one 1-px seam in the middle, darker at the top */
+  {
+    const filled = [];
+    for (let y = by0 + 1; y < fy0; y++) {
+      const x0 = g(mid, y) === 0 ? mid : g(mid - 1, y) === 0 ? mid - 1 : -1; if (x0 < 0) continue;
+      let l = x0, r = x0; while (l > 0 && g(l - 1, y) === 0) l--; while (r < W - 1 && g(r + 1, y) === 0) r++;
+      if (l === 0 || r === W - 1 || r - l > 26) continue;
+      filled.push([y, l, r]);
+    }
+    const pts = [];
+    filled.forEach(([y, l, r], k) => { const c = Math.round((l + r) / 2); for (let x = l; x <= r; x++) { set(x, y, S, x === c ? 4 : 3); pts.push([x, y]); } });
+    filled.forEach(([y, l, r]) => { for (let x = l - 4; x <= r + 4; x++) if (g(x, y) === S && gs(x, y) === 4 && x !== Math.round((l + r) / 2)) setSh(x, y, 3); });
+    const ink = new Set();
+    for (const [x, y] of pts) for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1]]) if (g(x + dx, y + dy) === 1) ink.add((y + dy) * W + x + dx);
+    for (const k of ink) {
+      const x = k % W, y = (k - x) / W;
+      if ([[1, 0], [-1, 0], [0, 1], [0, -1]].every(([dx, dy]) => g(x + dx, y + dy) !== 0)) set(x, y, S, 3);
+    }
+  }
   /* shoes: toe cap highlight, lace line */
   for (let x = 0; x < W; x++) { if (g(x, fy0) === F) shade(x, fy0, -1); if (g(x, fy0 + 3) === F && x % 3 === 0) shade(x, fy0 + 3, 1); }
 
-  /* neck shadow under the chin, ears */
+  /* neck shadow under the chin */
   for (let y = ty0 - 5; y < ty0; y++) for (let x = 0; x < W; x++) if (g(x, y) === S) shade(x, y, 1);
 
-  /* hair strands: dark strands, lit top */
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (g(x, y) === HR) {
-    const v = y - headTop; if (v > 36) continue;
-    if ((x * 2 + y) % 6 === 0 && v > 1) shade(x, y, 1, HR); else if ((x + 2 * y) % 7 === 0 && v <= 6) shade(x, y, -1, HR);
-    if (v <= 1) shade(x, y, -1, HR);
+  /* hair: a few clean strands. Shadow right, lit top and left, dark fringe edge, no dots. */
+  for (let y = 0; y < H; y++) for (const [a, b] of runs(y, HR)) {
+    const v = y - headTop; if (v > 44) continue;
+    for (let x = a; x <= b; x++) {
+      const dL = x - a, dR = b - x; let s = 2;
+      const ph = (x - a + (y >> 2)) % 9;
+      if (ph === 2 || ph === 3) s = 1; else if (ph === 6) s = 3;
+      if (dL <= 2 && v <= 16 && a < mid - 6) s = 1;
+      if (dR <= 2) s = 3;
+      if (dR === 0) s = 4;
+      if (v <= 1) s = 1;
+      const open = g(x, y + 1) !== HR || g(x, y + 2) !== HR;
+      if (open && v > 3) s = 3;
+      setSh(x, y, s);
+    }
   }
 
   /* face: eyes, brows, nose, mouth */
   if (exs.length) {
     const groups = []; for (const x of exs) { const l = groups[groups.length - 1]; if (l && x - l[l.length - 1] <= 1) l.push(x); else groups.push([x]); }
     const fmid = Math.round((exs[0] + exs[exs.length - 1]) / 2);
-    groups.forEach((gr, i) => {
-      const x0 = gr[0], left = i === 0 && groups.length > 1;
-      set(x0, ey, 2, 0); set(x0 + 1, ey, 2, 0);
-      set(x0, ey + 1, left ? FIX : 2, 0, EYEWHITE); set(x0 + 1, ey + 1, left ? 2 : FIX, 0, EYEWHITE);
-      if (!left && groups.length > 1) { set(x0, ey + 1, 2, 0); set(x0 + 1, ey + 1, FIX, 0, EYEWHITE); }
-      if (left) { set(x0, ey + 1, FIX, 0, EYEWHITE); set(x0 + 1, ey + 1, 2, 0); }
-      for (let x = x0 - 1; x <= x0 + 2; x++) if (g(x, ey - 2) === S) set(x, ey - 2, HR, 3);
-      if (g(x0, ey - 3) === S && !female) set(x0, ey - 3, HR, 3);
-      if (g(x0, ey + 2) === S) shade(x0, ey + 2, 1); if (g(x0 + 1, ey + 2) === S) shade(x0 + 1, ey + 2, 1);
+    groups.forEach((gr) => { // wipe the old eye
+      for (let y = ey - 1; y <= ey + 3; y++) for (let x = gr[0] - 3; x <= gr[gr.length - 1] + 3; x++) if (g(x, y) === 2 || (g(x, y) === FIX && col[(oy + y) * AW + ox + x] === EYEWHITE)) { const s0 = g(x, ey + 4) === S ? gs(x, ey + 4) : 2; set(x, y, S, s0); }
     });
+    groups.forEach((gr, i) => {
+      const c = gr[0] + 2, left = i === 0 && groups.length > 1, dirOut = left ? -1 : 1;
+      for (let x = c - 2; x <= c + 2; x++) { set(x, ey, 2, 0); set(x, ey + 1, FIX, 0, EYEWHITE); set(x, ey + 2, FIX, 0, EYEWHITE); }
+      const px = left ? c : c - 1; // pupil looks a little to the middle
+      for (const x of [px, px + 1]) { set(x, ey + 1, 2, 0); set(x, ey + 2, 2, 0); }
+      /* brow: outer 3 px high, inner 4 px one row lower (determined); male brow is 2 px thick */
+      for (let k = -3; k <= 3; k++) {
+        const x = c + k, outerSide = k * dirOut > 0; // outerSide: toward the ear
+        if (outerSide || k === 0) { if (g(x, ey - 3) === S) set(x, ey - 3, HR, 3); }
+        if (!outerSide && k !== 0 && g(x, ey - 2) === S) set(x, ey - 2, HR, 3);
+      }
+    });
+    for (let y = ey + 2; y <= ey + 8; y++) for (let x = exs[0] - 3; x <= exs[exs.length - 1] + 3; x++) if (g(x, y) === S && gs(x, y) === 4 && Math.abs(x - fmid) > 3) setSh(x, y, gs(x, ey - 1)); // old under-eye marks
     if (g(fmid, ey + 4) === S) { set(fmid, ey + 4, S, 4); set(fmid, ey + 5, S, 4); }
     if (g(fmid - 1, ey + 3) === S) shade(fmid - 1, ey + 3, -1);
     if (g(fmid + 1, ey + 5) === S) shade(fmid + 1, ey + 5, 1);
     for (const x of [fmid - 2, fmid - 1, fmid, fmid + 1]) if (g(x, ey + 9) === S) set(x, ey + 9, FIX, 0, MOUTH);
     for (const x of [fmid - 1, fmid]) if (g(x, ey + 10) === S) shade(x, ey + 10, 1);
-    for (const x of [fmid - 5, fmid + 4]) if (g(x, ey + 6) === S) shade(x, ey + 6, 1); // cheeks
     info.fmid = fmid;
   }
   cells.push(info);
@@ -247,8 +347,9 @@ for (const c of cells) {
     xs.forEach((x, n) => {
       if (y <= c.ey + 7 && n >= 4 && n < xs.length - 4) return;
       if ((y === c.ey + 9 || y === c.ey + 10) && Math.abs(x - c.fmid + 0.5) < 2.5) return; // keep the mouth
-      const o = (c.oy + y) * AW + c.ox + x; let s = sh[o];
-      if ((x + y * 2) % 5 === 0) s = clampSh(s + 1); else if ((x * 2 + y) % 7 === 0) s = clampSh(s - 1);
+      const o = (c.oy + y) * AW + c.ox + x; let s = 2; // clean bands: base, a lit strand, a shadow edge below
+      if ((x + (y >> 2)) % 8 < 2) s = 1;
+      if (y >= c.ey + 12 || c.g(x, y + 1) !== S) s = 3;
       beardPx.push([o, s]);
     });
   }

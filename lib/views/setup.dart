@@ -627,19 +627,46 @@ const _areaDotsHeight = 30.0;
 /// Height of the texts at the bottom of the area card (name, home tag).
 const _areaTextHeight = 92.0;
 
-/// The area card, the scene in it (whole-number scale) and where the shell
+/// The art-pixel span (left, right) that holds the lifter, the object and all
+/// marks of every area: it must stay visible in the area card.
+final (double, double) _areaContentSpan = () {
+  var l = 6.0, r = 58.0;
+  for (final a in areaArt.values) {
+    final rects = <Rect>[
+      Rect.fromLTWH(a.lifterPos.dx, a.lifterPos.dy, 52, 64),
+      a.objectPos & a.objectSize,
+      for (final m in a.markPositions) ...[
+        m & a.mark.size,
+        if (a.markFifth != null) m & a.markFifth!.size,
+      ],
+    ];
+    for (final q in rects) {
+      l = min(l, q.left);
+      r = max(r, q.right);
+    }
+  }
+  return (l, r);
+}();
+
+/// The area card, the scene in it (fractional scale) and where the shell
 /// draws the lifter (standing in the scene, like on the hub). The arena
 /// fills the card above the texts (D63): the biggest whole-number scale for
 /// that height, the sides cut off if it is wider (crop, never stretch),
 /// standing on the texts; the sky colour fills any room above it.
-({Rect card, Rect arena, Rect scene, int scale, Rect stage}) areaLayout(Size area, double bottomInset, {bool buttons = true}) {
+({Rect card, Rect arena, Rect scene, double scale, Rect stage}) areaLayout(Size area, double bottomInset, {bool buttons = true}) {
   final card = Rect.fromLTRB(16, _setupCardTop, area.width - 22,
       area.height - bottomInset - (buttons ? _classNavHeight : 8) - _areaDotsHeight);
   // Inside the card's 4 px border, above the texts.
   final arena = Rect.fromLTRB(card.left + 4, card.top + 4, card.right - 4, card.bottom - 4 - _areaTextHeight);
-  final scale = max(1, min(arena.height / sceneSize.height, arena.width * 1.6 / sceneSize.width).floor());
+  // The sides may be cropped, but never the lifter, the object or a mark of
+  // any area: the scale is capped so that span stays inside the arena.
+  final (spanL, spanR) = _areaContentSpan;
+  final scale = min(arena.height / sceneSize.height, arena.width / (spanR - spanL));
   final w = sceneSize.width * scale, h = sceneSize.height * scale;
-  final scene = Rect.fromLTWH(arena.center.dx - w / 2, arena.bottom - h, w, h);
+  final left = w >= arena.width
+      ? (arena.center.dx - (spanL + spanR) / 2 * scale).clamp(arena.right - w, arena.left).toDouble()
+      : arena.center.dx - w / 2;
+  final scene = Rect.fromLTWH(left, arena.bottom - h, w, h);
   return (card: card, arena: arena, scene: scene, scale: scale, stage: sceneLifterRect(areaArt.values.first, scene, scale));
 }
 
@@ -712,13 +739,33 @@ class _AreaViewState extends State<AreaView> with SwipeCarousel<AreaView> {
                             border: Border(bottom: BorderSide(color: p.ink, width: 3)),
                           ),
                           child: ClipRect(
-                            child: OverflowBox(
-                              alignment: Alignment.bottomCenter,
-                              minWidth: l.scene.width,
-                              maxWidth: l.scene.width,
-                              minHeight: l.scene.height,
-                              maxHeight: l.scene.height,
-                              child: AreaScene(art: areaArt[a.id]!, scale: l.scale),
+                            child: Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                Positioned(
+                                  left: l.scene.left - l.arena.left,
+                                  bottom: 0,
+                                  width: l.scene.width,
+                                  height: l.scene.height + 160 * l.scale,
+                                  child: Column(
+                                    children: [
+                                      // Optional sky strip above the scene (175 x 160 base).
+                                      Image.asset(
+                                        'assets/areas/${a.id}/sky.png',
+                                        width: l.scene.width,
+                                        height: 160 * l.scale,
+                                        fit: BoxFit.fill,
+                                        filterQuality: FilterQuality.none,
+                                        isAntiAlias: false,
+                                        gaplessPlayback: true,
+                                        excludeFromSemantics: true,
+                                        errorBuilder: (_, _, _) => SizedBox(height: 160 * l.scale),
+                                      ),
+                                      AreaScene(art: areaArt[a.id]!, scale: l.scale),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
