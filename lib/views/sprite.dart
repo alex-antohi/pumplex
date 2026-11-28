@@ -171,11 +171,11 @@ class AtlasSprite extends StatelessWidget {
 
 /// Where [CharacterSprite] draws in a box of [size]: the whole-number pixel
 /// scale, the pedestal height and the sprite rect for [height].
-({double scale, double pedestal, Rect sprite}) spriteGeometry(Size size, int height, {bool pedestal = true}) {
+({double scale, double pedestal, Rect sprite}) spriteGeometry(Size size, int height, {bool pedestal = true, double? pixelScale}) {
   final ped = pedestal ? max(10.0, size.height * 0.1) : 0.0;
   final room = size.height - ped * 0.55;
   // Whole-number scale so every sprite pixel stays square.
-  final s = max(1, min(size.width / spriteWidth, room / (spriteHeight * maxHeightScale)).floor()).toDouble();
+  final s = pixelScale ?? max(1, min(size.width / spriteWidth, room / (spriteHeight * maxHeightScale)).floor()).toDouble();
   // Taller models have more pixel rows, not bigger pixels (D64).
   final w = spriteWidth * s, hh = heightRows(height).length * s;
   return (scale: s, pedestal: ped, sprite: Rect.fromLTWH((size.width - w) / 2, size.height - ped * 0.45 - hh, w, hh));
@@ -205,6 +205,7 @@ class CharacterSprite extends StatefulWidget {
     required this.classId,
     this.pedestal = true,
     this.zoomHead = false,
+    this.pixelScale,
   });
 
   final Character character;
@@ -215,6 +216,10 @@ class CharacterSprite extends StatefulWidget {
 
   /// The camera zooms onto the head (the creator's head looks).
   final bool zoomHead;
+
+  /// Forces the pixel scale (an area scene draws at a fractional scale and
+  /// the lifter must match it). Null: the biggest whole number that fits.
+  final double? pixelScale;
 
   @override
   State<CharacterSprite> createState() => _CharacterSpriteState();
@@ -251,7 +256,7 @@ class _CharacterSpriteState extends State<CharacterSprite>
     final layers = spriteLayers(widget.character, cls.id);
     return LayoutBuilder(
       builder: (context, box) {
-        final g = spriteGeometry(box.biggest, widget.character.height, pedestal: widget.pedestal);
+        final g = spriteGeometry(box.biggest, widget.character.height, pedestal: widget.pedestal, pixelScale: widget.pixelScale);
         final pedestal = g.pedestal, s = g.scale;
         final w = spriteWidth * s;
         // Head zoom: the head grows to most of the box height and moves to
