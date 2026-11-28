@@ -149,6 +149,8 @@ void main() {
   setUpAll(() => exerciseCatalog = ExerciseCatalog.parse(File(ExerciseCatalog.asset).readAsStringSync()));
   // The tests read the English texts (D68).
   final langFiles = {for (final l in I18n.languages) l: File(I18n.asset(l)).readAsStringSync()};
+  // One text of a language file, as it is (no params).
+  String t2(String lang, String key) => I18n.parse(langFiles[lang]!)[key]!;
   setUp(() {
     _now = DateTime(2026, 11, 21, 10);
     I18n.instance.useJson(langFiles);
@@ -1440,7 +1442,7 @@ void main() {
     }
     Finder inRow(String d, Finder f) => find.descendant(of: find.byKey(ValueKey('session-row-$d')), matching: f);
     expect(inRow('2026-11-21', find.textContaining('TODAY · ')), findsOneWidget);
-    expect(inRow('2026-11-18', find.text('7 SETS · 3 EXERCISES')), findsOneWidget);
+    expect(inRow('2026-11-18', find.text('3 EX · 7 SETS')), findsOneWidget);
     expect(inRow('2026-11-18', find.text('+${store.xpOfSession(store.sessions['2026-11-18']!)} XP')), findsOneWidget);
     expect(inRow('2026-11-05', find.text('OLD WORKOUT')), findsOneWidget);
     expect(inRow('2026-11-05', find.text('+$xpPerLegacySession XP')), findsOneWidget);
@@ -1531,7 +1533,7 @@ void main() {
     await t.tap(find.byKey(const ValueKey('tile-session')));
     await _frames(t);
     expect(t.takeException(), isNull);
-    expect(find.descendant(of: find.byKey(const ValueKey('session-row-2026-11-20')), matching: find.text('80 DE SERII · 8 EXERCIȚII')), findsOneWidget);
+    expect(find.descendant(of: find.byKey(const ValueKey('session-row-2026-11-20')), matching: find.text('8 EX · 80 DE SERII')), findsOneWidget);
     await t.tap(find.byKey(const ValueKey('session-row-2026-11-20')));
     await _frames(t);
     expect(t.takeException(), isNull);
@@ -1542,6 +1544,159 @@ void main() {
     expect(t.takeException(), isNull);
     final back = t.getRect(find.byKey(const ValueKey('session-detail-back')));
     expect(back.bottom, lessThanOrEqualTo(t.view.physicalSize.height / t.view.devicePixelRatio));
+  });
+
+  /// 40 past training days, newest 20 Nov; the oldest is an old-app day.
+  Future<LogStore> manyDays() async {
+    final days = [for (var i = 0; i < 40; i++) dateKey(DateTime(2026, 11, 20).subtract(Duration(days: i)))];
+    SharedPreferences.setMockInitialValues({
+      'profile_v1': jsonEncode(_profile.toJson()),
+      'sessions_v3': jsonEncode({
+        for (final (i, d) in days.indexed)
+          d: i == days.length - 1
+              ? {'classId': '', 'difficultyId': '', 'areaId': '', 'legacy': true, 'exercises': []}
+              : {
+                  'classId': 'paladin',
+                  'difficultyId': 'sweat',
+                  'areaId': 'gainsgard',
+                  'legacy': false,
+                  'exercises': [
+                    {'exerciseId': _squat, 'sets': 3},
+                    {'exerciseId': _bench, 'sets': 2},
+                  ],
+                },
+      }),
+    });
+    return LogStore(await SharedPreferences.getInstance(), clock: () => _now);
+  }
+
+  Future<void> openSessions(WidgetTester t, LogStore store) async {
+    await t.pumpWidget(GymApp(store: store));
+    await _frames(t);
+    await t.tap(find.byKey(const ValueKey('workout-character')));
+    await _frames(t);
+    await t.tap(find.byKey(const ValueKey('tile-session')));
+    await _frames(t);
+  }
+
+  /// The past-session rows fully inside the list's viewport.
+  List<String> rowsInView(WidgetTester t) {
+    final view = t.getRect(find.byKey(const PageStorageKey('sessions-list')));
+    return [
+      for (final e in find.byWidgetPredicate((w) => w.key is ValueKey<String> && (w.key as ValueKey<String>).value.startsWith('session-row-')).evaluate())
+        if (view.contains(t.getRect(find.byWidget(e.widget)).topLeft) && t.getRect(find.byWidget(e.widget)).bottom <= view.bottom)
+          (e.widget.key as ValueKey<String>).value.substring('session-row-'.length),
+    ];
+  }
+
+  testWidgets('past sessions: compact rows, about 10 fit on a 1080x2340 phone; BACK at the top right, clear of the title and date', (t) async {
+    for (final lang in ['en', 'ro']) {
+      _phone(t);
+      I18n.instance.useJson(langFiles, lang: lang);
+      addTearDown(() => I18n.instance.useJson(langFiles));
+      final store = await manyDays();
+      await openSessions(t, store);
+      expect(t.takeException(), isNull, reason: lang);
+      final fit = rowsInView(t).length;
+      expect(fit, inInclusiveRange(9, 11), reason: '$lang: $fit rows fit');
+      final row = find.byKey(const ValueKey('session-row-2026-11-20'));
+      expect(t.getRect(row).height, lessThan(52), reason: lang);
+      expect(find.descendant(of: row, matching: find.text(lang == 'en' ? '2 EX · 5 SETS' : '2 EX · 5 SERII')), findsOneWidget);
+      // BACK: top right, above the list title, inside the screen.
+      final screen = t.view.physicalSize / t.view.devicePixelRatio;
+      final back = t.getRect(find.byKey(const ValueKey('sessions-back')));
+      final title = t.getRect(find.text(t2(lang, 'sessions.title').toUpperCase()));
+      expect(back.bottom, lessThan(title.top), reason: lang);
+      expect(back.right, lessThanOrEqualTo(screen.width), reason: lang);
+      expect(back.left, greaterThan(t.getRect(find.byKey(const ValueKey('tile-lifter'))).right), reason: lang);
+      expect(back.top, greaterThanOrEqualTo(0));
+      // The day in full: BACK clear of its title and its date.
+      await t.tap(row);
+      await _frames(t);
+      final dayBack = t.getRect(find.byKey(const ValueKey('session-detail-back')));
+      final detail = find.byKey(const ValueKey('session-detail'));
+      final dayTitle = t.getRect(find.descendant(of: detail, matching: find.text(t2(lang, 'tile.session').toUpperCase())));
+      final date = t.getRect(find.descendant(of: detail, matching: find.textContaining(shortDate(DateTime(2026, 11, 20)).toUpperCase())).first);
+      expect(dayBack.overlaps(dayTitle), isFalse, reason: lang);
+      expect(dayBack.overlaps(date), isFalse, reason: lang);
+      expect(dayBack.bottom, lessThan(dayTitle.top), reason: lang);
+      expect(t.takeException(), isNull, reason: lang);
+      await t.pumpWidget(const SizedBox());
+      t.view.reset();
+    }
+  });
+
+  testWidgets('past sessions: BACK from a day keeps the list where it was', (t) async {
+    _phone(t);
+    final store = await manyDays();
+    await openSessions(t, store);
+    await t.drag(find.byKey(const PageStorageKey('sessions-list')), const Offset(0, -900));
+    await _frames(t);
+    final before = rowsInView(t);
+    expect(before, isNot(contains('2026-11-20'))); // scrolled down
+    final opened = before[before.length ~/ 2];
+    final top = t.getRect(find.byKey(ValueKey('session-row-$opened'))).top;
+    await t.tap(find.byKey(ValueKey('session-row-$opened')));
+    await _frames(t);
+    expect(find.byKey(const ValueKey('session-detail')), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('session-detail-back')));
+    await _frames(t);
+    expect(rowsInView(t), before);
+    expect(t.getRect(find.byKey(ValueKey('session-row-$opened'))).top, closeTo(top, 1));
+    // Android back from a day: the same.
+    await t.tap(find.byKey(ValueKey('session-row-$opened')));
+    await _frames(t);
+    await t.binding.handlePopRoute();
+    await _frames(t);
+    expect(rowsInView(t), before);
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('the Last session tile always shows the newest day, not the day opened last', (t) async {
+    _phone(t);
+    final store = await manyDays();
+    await openSessions(t, store);
+    await t.drag(find.byKey(const PageStorageKey('sessions-list')), const Offset(0, -600));
+    await _frames(t);
+    final opened = rowsInView(t).last;
+    expect(opened, isNot('2026-11-20'));
+    await t.tap(find.byKey(ValueKey('session-row-$opened')));
+    await _frames(t);
+    await t.tap(find.byKey(const ValueKey('session-detail-back')));
+    await _frames(t);
+    await t.tap(find.byKey(const ValueKey('sessions-back')));
+    await _frames(t);
+    final tile = find.byKey(const ValueKey('tile-session'));
+    expect(find.descendant(of: tile, matching: find.text('LAST SESSION')), findsOneWidget);
+    expect(find.descendant(of: tile, matching: find.text(shortDate(DateTime(2026, 11, 20)).toUpperCase())), findsOneWidget);
+    expect(find.descendant(of: tile, matching: find.text(shortDate(parseDateKey(opened)).toUpperCase())), findsNothing);
+  });
+
+  testWidgets('LOAD BACKUP refuses an original-app file (version 2 with logs): a clear snack, no data change', (t) async {
+    final (store, _) = await _openApp(t);
+    store.addSet(_squat);
+    final before = store.backupJson();
+    var original = File('test/fixtures/original_backup.json').readAsStringSync();
+    t.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('pumplex/files'), (call) async => original);
+    addTearDown(() => t.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('pumplex/files'), null));
+    await t.tap(find.byKey(const ValueKey('workout-character')));
+    await _frames(t);
+    await t.tap(find.byKey(const ValueKey('backup-load')));
+    await _frames(t, 12);
+    expect(find.byKey(const ValueKey('backup-replace-dialog')), findsNothing);
+    expect(find.text(t2('en', 'backup.original')), findsOneWidget);
+    expect(find.textContaining('pumplex_import_'), findsOneWidget);
+    expect(store.backupJson(), before);
+    expect(store.setsToday(_squat), 1);
+    // Version 2 with no logs: as before, the replace question.
+    original = jsonEncode({'app': 'pumplex', 'version': 2, 'sessions': []});
+    await _frames(t, 40); // the snack goes
+    await t.tap(find.byKey(const ValueKey('backup-load')));
+    await _frames(t, 12);
+    expect(find.byKey(const ValueKey('backup-replace-dialog')), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('backup-replace-cancel')));
+    await _frames(t, 12);
+    expect(store.backupJson(), before);
   });
 
   testWidgets('3 quick world taps, the 2nd a level-up: 2 sets, the 3rd tap only closes the card', (t) async {

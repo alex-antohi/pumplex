@@ -192,6 +192,12 @@ class _GameShellState extends State<GameShell> {
       _snack(t('backup.notBackup'));
       return;
     }
+    // The original app's own file (version 2 with its logs): load the file
+    // that tools/import_original.mjs made from it instead.
+    if (data['version'] == 2 && data.containsKey('logs')) {
+      _snack(t('backup.original'));
+      return;
+    }
     final ok = await confirmReplaceBackup(context, keepsProfile: LogStore.backupKeepsProfile(data));
     if (ok != true || !mounted) return;
     try {
@@ -312,7 +318,6 @@ class _GameShellState extends State<GameShell> {
           _sessionIndex = i;
           _focus = _Focus.session;
         }),
-        onBack: _profileBack,
         prop: _prop,
         onProp: (i) => setState(() {
           _prop = i;
@@ -660,7 +665,6 @@ class _GameShellState extends State<GameShell> {
                                 child: _focus == _Focus.lifter
                                     ? SessionTile(
                                         store: _store,
-                                        index: _sessionIndex,
                                         onTap: () => setState(() => _focus = _Focus.sessions),
                                       )
                                     : LifterTile(store: _store, onTap: () => setState(() => _focus = _Focus.lifter)),
@@ -674,6 +678,19 @@ class _GameShellState extends State<GameShell> {
                               child: Opacity(
                                 opacity: t,
                                 child: BackupButtons(onSave: _saveBackup, onLoad: _loadBackup),
+                              ),
+                            ),
+                          // The same free space in the past sessions: BACK,
+                          // one level up (the day, the list, the editor).
+                          if (t > 0 && _inSessions)
+                            Positioned.fromRect(
+                              rect: _tileRect(box.biggest, 2),
+                              child: Opacity(
+                                opacity: t,
+                                child: SessionsBack(
+                                  buttonKey: ValueKey(_focus == _Focus.session ? 'session-detail-back' : 'sessions-back'),
+                                  onTap: _profileBack,
+                                ),
                               ),
                             ),
                           // The minimised workout window: tap it to go back.

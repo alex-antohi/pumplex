@@ -6,7 +6,6 @@
 import 'package:flutter/material.dart';
 
 import '../game/model.dart';
-import '../i18n.dart';
 import '../pumplex.dart';
 import '../store.dart';
 import 'carousel.dart';
@@ -144,8 +143,8 @@ class LifterEditor extends StatelessWidget {
 /// [sessions] (one day in full when [detail] is set), else the lifter
 /// editor as a vertical carousel (D63): flick up / down for the next
 /// property, round and round. [editor] builds the editor of a property.
-/// The list and the day have BACK at the bottom left, as in the setup:
-/// [onBack] goes one level up (the day, the list, the editor).
+/// The shell puts BACK for the list and the day at the top right, in the
+/// free tile space.
 class LifterPanel extends StatelessWidget {
   const LifterPanel({
     super.key,
@@ -153,7 +152,6 @@ class LifterPanel extends StatelessWidget {
     required this.sessions,
     required this.detail,
     required this.onOpenSession,
-    required this.onBack,
     required this.prop,
     required this.onProp,
     required this.inset,
@@ -167,37 +165,18 @@ class LifterPanel extends StatelessWidget {
   final Session? detail;
   final int prop;
   final ValueChanged<int> onOpenSession, onProp;
-  final VoidCallback onBack;
   final double inset;
   final Widget Function(int prop) editor;
 
   @override
   Widget build(BuildContext context) {
     if (sessions) {
-      final p = Pal.of(context);
       final day = detail;
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              key: ValueKey(day == null ? 'sessions-list' : 'session-detail-scroll'),
-              padding: const EdgeInsets.fromLTRB(16, 0, 22, 8),
-              child: day == null
-                  ? SessionsCard(store: store, onOpen: onOpenSession)
-                  : SessionDetail(store: store, session: day),
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.fromLTRB(16, 4, 22, 14 + inset),
-            child: BrutalButton(
-              key: ValueKey(day == null ? 'sessions-back' : 'session-detail-back'),
-              color: p.sky,
-              onTap: onBack,
-              child: IconText('back', t('nav.back')),
-            ),
-          ),
-        ],
+      return SingleChildScrollView(
+        // A PageStorageKey: the list keeps its place while a day is open.
+        key: day == null ? const PageStorageKey('sessions-list') : const ValueKey('session-detail-scroll'),
+        padding: EdgeInsets.fromLTRB(16, 0, 22, 14 + inset),
+        child: day == null ? SessionsCard(store: store, onOpen: onOpenSession) : SessionDetail(store: store, session: day),
       );
     }
     return VerticalCarousel(

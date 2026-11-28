@@ -47,7 +47,7 @@ class SessionsCard extends StatelessWidget {
             else
               for (final (i, s) in sessions.indexed)
                 Padding(
-                  padding: EdgeInsets.only(bottom: i == sessions.length - 1 ? 4 : 10),
+                  padding: EdgeInsets.only(bottom: i == sessions.length - 1 ? 4 : 8),
                   child: _SessionRow(store: store, session: s, onTap: () => onOpen(i)),
                 ),
           ],
@@ -64,8 +64,8 @@ String sessionDate(LogStore store, Session s) =>
 /// The XP of a training day, as the session tile shows it.
 int sessionXp(LogStore store, Session s) => s.legacy && s.classId.isEmpty ? xpPerLegacySession : store.xpOfSession(s);
 
-/// One row of the past sessions: date, sets, exercises, XP. Old days: OLD
-/// WORKOUT (D54).
+/// One compact row of the past sessions: the date, then exercises and sets
+/// (5 EX · 18 SETS), and the XP. Old days: OLD WORKOUT (D54).
 class _SessionRow extends StatelessWidget {
   const _SessionRow({required this.store, required this.session, required this.onTap});
 
@@ -83,7 +83,7 @@ class _SessionRow extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Brutal(
-        padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+        padding: const EdgeInsets.fromLTRB(10, 5, 10, 5),
         border: 3,
         shadow: p.violet,
         offset: 4,
@@ -94,11 +94,12 @@ class _SessionRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(sessionDate(store, s), style: display(15, p.ink)),
-                  const SizedBox(height: 2),
+                  Text(sessionDate(store, s), style: display(14, p.ink), maxLines: 1, overflow: TextOverflow.ellipsis),
                   Text(
-                    s.legacy ? t('session.old') : '${tn('sets', s.totalSets)} · ${tn('exercises', moves)}',
+                    s.legacy ? t('session.old') : '${tn('exShort', moves)} · ${tn('sets', s.totalSets)}',
                     style: mono(11, p.ink),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
@@ -205,22 +206,21 @@ class LifterTile extends StatelessWidget {
       );
 }
 
-/// The last session opened (the newest by default) as a tile: date, sets,
-/// XP. Tap: the past-sessions list.
+/// The last session (always the newest, not the day opened last) as a
+/// tile: date, sets, XP. Tap: the past-sessions list.
 class SessionTile extends StatelessWidget {
-  const SessionTile({super.key, required this.store, required this.index, required this.onTap});
+  const SessionTile({super.key, required this.store, required this.onTap});
 
   final LogStore store;
-  final int index;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final all = store.history;
-    final s = all.isEmpty ? null : all[index.clamp(0, all.length - 1)];
+    final s = all.isEmpty ? null : all.first;
     return _Tile(
       key: const ValueKey('tile-session'),
-      title: index == 0 ? t('tile.last') : t('tile.session'),
+      title: t('tile.last'),
       color: Pal.of(context).violet,
       lines: s == null
           ? [t('tile.nothing')]
@@ -232,6 +232,31 @@ class SessionTile extends StatelessWidget {
       onTap: onTap,
     );
   }
+}
+
+/// BACK of the past sessions (the list or a day), at the top right of the
+/// free tile space: one level up (the day, the list, the editor).
+class SessionsBack extends StatelessWidget {
+  const SessionsBack({super.key, required this.buttonKey, required this.onTap});
+
+  /// The key of the button itself.
+  final Key buttonKey;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Align(
+        alignment: Alignment.topRight,
+        child: Padding(
+          // Room for the hard shadow inside the tile square.
+          padding: const EdgeInsets.only(right: 6),
+          child: BrutalButton(
+            key: buttonKey,
+            color: Pal.of(context).sky,
+            onTap: onTap,
+            child: FittedBox(fit: BoxFit.scaleDown, child: IconText('back', t('nav.back'))),
+          ),
+        ),
+      );
 }
 
 /// SAVE BACKUP and LOAD BACKUP, stacked in the free tile space beside the
