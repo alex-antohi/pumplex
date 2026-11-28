@@ -2,7 +2,6 @@ Ab Rollout
 Arnold Press
 Back Bridge
 Back Extension
-Ball Pull-In
 Ball Slam
 Band Pull-Apart
 Bench Press
@@ -31,12 +30,10 @@ Deadlift
 Deficit Deadlift
 Dip
 Doorframe Curl
-Drag Curl
 Dumbbell Swing
 External Rotation
 Face Pull
 Farmer's Walk
-Finger Curl
 Floor Press
 Flutter Kicks
 Fly
@@ -55,7 +52,6 @@ Hanging Leg Raise
 Heel Touch
 High Cable Curl
 High Pulley Row
-High Row
 Hip Abduction
 Hip Adduction
 Hip Thrust
@@ -83,7 +79,6 @@ Long Jump
 Lunge
 Lying Leg Raise
 Medicine Ball Chest Pass
-Monster Walk
 Mountain Climber
 Muscle-Up
 Nordic Curl

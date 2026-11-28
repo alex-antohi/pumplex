@@ -402,8 +402,25 @@ void main() {
     // (part A) wrote the full grids of 5 cards (Bench Press, Squat, Push-Up,
     // Pull-Up, Bent-Over Row); part B the grids of the other 147 cards and
     // the owner's old delete ticks (2 rows became aliases).
-    expect(all.length, 569);
-    expect(exerciseCatalog.groups.length, 152);
+    expect(all.length, 564);
+    expect(exerciseCatalog.groups.length, 147);
+    // The owner's cut of 28 Nov 2026: 5 one-lift cards are aliases, and
+    // their old card keys (favorites before D72) go to the new cards.
+    for (final (id, to) in [
+      ('Finger_Curls', 'Seated_Palm-Up_Barbell_Wrist_Curl'),
+      ('Drag_Curl', 'Barbell_Curl'),
+      ('Exercise_Ball_Pull-In', 'Leg_Pull-In'),
+      ('Leverage_High_Row', 'seated cable row|machine|medium grip'),
+      ('Monster_Walk', 'hip abduction|bands'),
+    ]) {
+      expect(exerciseCatalog.byId.containsKey(id), isFalse, reason: id);
+      expect(exerciseCatalog.resolveId(id), to, reason: id);
+      expect(exerciseCatalog.groupKeyOf(id), exerciseCatalog.groupOf(to)!.key, reason: id);
+    }
+    for (final k in ['move:finger curl', 'move:drag curl', 'move:ball pull-in', 'move:high row', 'move:monster walk']) {
+      expect(exerciseCatalog.byKey.containsKey(k), isFalse, reason: k);
+      expect(exerciseCatalog.byKey.containsKey(exerciseCatalog.groupKeyOf(k)), isTrue, reason: k);
+    }
     // The clean-up (D69): every card is a move, with a clean move name.
     expect(exerciseCatalog.groups.where((g) => !g.key.startsWith('move:')), isEmpty);
     expect(exerciseCatalog.groupKeyOf('Plank'), 'move:plank');

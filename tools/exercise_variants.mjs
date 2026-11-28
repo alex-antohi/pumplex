@@ -45,6 +45,12 @@ const ALIAS = {
   // rows a later decision keeps stay (docs/exercise-list-plan.md).
   'V-Bar_Pullup': 'Pullups', // a pull-up with a V handle over the bar
   Hyperextensions_With_No_Hyperextension_Bench: 'Hyperextensions_Back_Extensions', // a floor back extension
+  // The owner's cut of 28 Nov 2026: 5 rare one-lift cards go to the closest kept lift.
+  Finger_Curls: 'Seated_Palm-Up_Barbell_Wrist_Curl', // a barbell wrist curl
+  Drag_Curl: 'Barbell_Curl', // a barbell curl with the bar close to the body
+  'Exercise_Ball_Pull-In': 'Leg_Pull-In', // the same knee tuck, on the floor
+  Leverage_High_Row: 'seated cable row|machine|medium grip', // a machine row
+  Monster_Walk: 'hip abduction|bands', // a band hip abduction
 };
 
 // Old ids of grid variations (D80) that a new modifier value renamed (D90
@@ -187,7 +193,6 @@ const MOVE = {
   'Bent_Over_Two-Arm_Long_Bar_Row': ['T-Bar Row', {}],
   'Bent_Over_One-Arm_Long_Bar_Row': ['T-Bar Row', { side: 'One Arm' }],
   'Lying_T-Bar_Row': ['T-Bar Row', { position: 'Lying' }],
-  Leverage_High_Row: ['High Row', {}],
   Alternating_Renegade_Row: ['Renegade Row', {}],
   Inverted_Row: ['Inverted Row', {}],
   // The inverted row family is one card (variation audit); the custom
@@ -322,7 +327,6 @@ const MOVE = {
   Barbell_Ab_Rollout: ['Ab Rollout', {}],
   'Barbell_Ab_Rollout_-_On_Knees': ['Ab Rollout', { position: 'Kneeling' }],
   Ab_Roller: ['Ab Rollout', { setup: 'Ab Wheel' }],
-  'Exercise_Ball_Pull-In': ['Ball Pull-In', {}],
   Mountain_Climbers: ['Mountain Climber', {}],
   Overhead_Slam: ['Ball Slam', {}],
   Rope_Jumping: ['Jump Rope', {}],
@@ -1209,8 +1213,6 @@ const CARDS = {
   Thruster: { score: 4, tools: { Kettlebell: {}, Barbell: { from: 'Kettlebell' }, Dumbbell: { from: 'Kettlebell' } } },
   'Landmine Press': { score: 2, tools: { Barbell: {} } }, // an easy angle for the shoulder
   'Muscle-Up': { score: 6, tools: { Bodyweight: {}, Rings: { from: 'Bodyweight' } } },
-  'High Row': { score: 2, tools: { Machine: {} } },
-  'Monster Walk': { score: 2, tools: { Bands: {} } },
   'Handstand Push-Up': { score: 5, tools: { Bodyweight: {} } }, // against a wall; a free one would be 6
   'Scapular Pull-Up': { score: 2, tools: { Bodyweight: {} } },
   'Reverse Hyperextension': { score: 2, tools: { Machine: {} } },
@@ -1232,12 +1234,10 @@ const CARDS = {
   'Jumping Lunge': { score: 3, change: { Dumbbell: 1 }, tools: { Bodyweight: {}, Dumbbell: { from: 'Bodyweight' } } },
   'Long Jump': { score: 3, tools: { Bodyweight: { axes: { type: [null, 'Lateral'] } } } },
   'Heel Touch': { score: 2, tools: { Bodyweight: {} } },
-  'Ball Pull-In': { score: 3, tools: { Ball: {} } },
   'Medicine Ball Chest Pass': { score: 2, tools: { Ball: {} } },
   'JM Press': { score: 4, tools: { Barbell: {} } },
   'Tate Press': { score: 3, tools: { Dumbbell: {} } },
   'Spider Curl': { score: 2, tools: { 'EZ Bar': {} } },
-  'Drag Curl': { score: 2, tools: { Barbell: {} } },
   'Zottman Curl': { score: 2, tools: { Dumbbell: {} } },
   'High Cable Curl': { score: 2, tools: { Cable: {} } },
   'Deficit Deadlift': { score: 5, tools: { Barbell: {} } },
@@ -1266,7 +1266,6 @@ const CARDS = {
   'Kneeling Arm Drill': { score: 1, tools: { Bodyweight: {} } }, // arm swings on the knees
   'Clock Push-Up': { score: 4, tools: { Bodyweight: {} } },
   'Isometric Chest Squeeze': { score: 1, tools: { Bodyweight: {} } }, // press the palms together
-  'Finger Curl': { score: 2, tools: { Barbell: {} } },
   'Zercher Squat': { score: 4, tools: { Barbell: {} } },
   'Cuban Press': { score: 2, tools: { Dumbbell: {} } },
   Scaption: { score: 2, tools: { Dumbbell: {} } },

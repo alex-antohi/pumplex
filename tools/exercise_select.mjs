@@ -66,14 +66,14 @@ const COMMON = [
     'Jump Squat', 'Floor Press', 'Cardio Machine', 'Reverse Curl', 'Rear Delt Row', 'Glute Kickback', 'Side Bend',
     'External Rotation', 'Sumo Deadlift', 'Pallof_Press', 'Oblique Crunch', 'Leg Pull-In', 'Internal Rotation',
     'Nordic Curl', 'Dead Hang', 'Support Hold', 'Box Squat', 'Triceps Extension', 'Rack Pull', 'Pull-Through',
-    'Jump Rope', 'Power Clean', 'Kettlebell_Thruster', 'Landmine_Linear_Jammer', 'Muscle_Up', 'High Row',
-    'Monster_Walk', 'Handstand Push-Up', 'Scapular Pull-Up', 'Reverse_Hyperextension', 'Jackknife_Sit-Up', 'Ball Slam',
+    'Jump Rope', 'Power Clean', 'Kettlebell_Thruster', 'Landmine_Linear_Jammer', 'Muscle_Up',
+    'Handstand Push-Up', 'Scapular Pull-Up', 'Reverse_Hyperextension', 'Jackknife_Sit-Up', 'Ball Slam',
     'Renegade Row', 'Towel Triceps Extension', 'Tuck_Crunch', 'Cross-Body_Crunch', 'Superman', 'Wall_Sit',
     'Hollow_Body_Hold', 'Bird_Dog', 'Prone_Y-T-W_Raise', 'Cossack_Squat', 'Shrimp Squat'],
   // 7: seen now and then.
   [
-    'Push Press', 'High Pulley Row', 'Jumping Lunge', 'Long Jump', 'Alternate_Heel_Touchers', 'Ball Pull-In',
-    'Medicine_Ball_Chest_Pass', 'JM_Press', 'Tate_Press', 'Spider_Curl', 'Drag_Curl', 'Zottman_Curl',
+    'Push Press', 'High Pulley Row', 'Jumping Lunge', 'Long Jump', 'Alternate_Heel_Touchers',
+    'Medicine_Ball_Chest_Pass', 'JM_Press', 'Tate_Press', 'Spider_Curl', 'Zottman_Curl',
     'High_Cable_Curls', 'Deficit_Deadlift', 'Kettlebell_Halo', 'Kettlebell_Turkish_Get-Up_Squat_style',
     'Side_Laterals_to_Front_Raise', 'Push-Up to Side Plank', 'Wall_Walk', 'Wall_Handstand_Hold', 'Pogo_Hops', 'L-Sit',
     'Dumbbell Swing', 'Flutter_Kicks', 'Reverse_Snow_Angel', 'Chin-Up_Hold'],
@@ -81,7 +81,7 @@ const COMMON = [
   // (D90 step 2 added the owner's skills Back Bridge and Front Lever; no
   // program in the sample uses them.)
   [
-    'Running Drill', 'Front Lever', 'Kneeling_Arm_Drill', 'Clock_Push-Up', 'Isometric Chest Squeeze', 'Finger_Curls',
+    'Running Drill', 'Front Lever', 'Kneeling_Arm_Drill', 'Clock_Push-Up', 'Isometric Chest Squeeze',
     'Zercher_Squats', 'Cuban_Press', 'Dumbbell_Scaption', 'Doorframe_Curl', 'Calf Raise on a Dumbbell', 'Back Bridge'],
 ];
 
@@ -92,7 +92,7 @@ const PATTERNS = {
     'Medicine_Ball_Chest_Pass'],
   vpush: ['Shoulder Press', 'Arnold Press', 'Handstand Push-Up', 'Push Press', 'Pike Push-Up', 'Wall_Walk', 'Wall_Handstand_Hold',
     'Kettlebell_Thruster', 'Landmine_Linear_Jammer'],
-  hpull: ['Bent-Over Row', 'One-Arm Row', 'Seated Cable Row', 'Inverted Row', 'T-Bar Row', 'Chest-Supported Row', 'High Row',
+  hpull: ['Bent-Over Row', 'One-Arm Row', 'Seated Cable Row', 'Inverted Row', 'T-Bar Row', 'Chest-Supported Row',
     'Renegade Row', 'Front Lever'],
   vpull: ['Pull-Up', 'Lat Pulldown', 'Straight-Arm Pulldown', 'Scapular Pull-Up', 'High Pulley Row', 'Muscle_Up'],
   squat: ['Squat', 'Leg Press', 'Leg Extension', 'Goblet Squat', 'Hack Squat', 'Front Squat', 'Box Squat',
@@ -102,7 +102,7 @@ const PATTERNS = {
     'Deficit_Deadlift', 'Superman', 'Dumbbell Swing', 'Back Bridge'],
   single: ['Lunge', 'Step-Up', 'Split Squat', 'Pistol Squat', 'Shrimp Squat'],
   calves: ['Calf Raise', 'Pogo_Hops', 'Calf Raise on a Dumbbell'],
-  biceps: ['Bicep Curl', 'Hammer Curl', 'Preacher Curl', 'Concentration Curl', 'Spider_Curl', 'Drag_Curl',
+  biceps: ['Bicep Curl', 'Hammer Curl', 'Preacher Curl', 'Concentration Curl', 'Spider_Curl',
     'Zottman_Curl', 'High_Cable_Curls', 'Chin-Up_Hold', 'Doorframe_Curl'],
   triceps: ['Dip', 'Triceps Pushdown', 'Overhead Triceps Extension', 'Skullcrusher', 'Triceps Kickback', 'Triceps Extension',
     'Towel Triceps Extension', 'JM_Press', 'Tate_Press', 'Support Hold'],
@@ -110,9 +110,9 @@ const PATTERNS = {
   flex: ['Crunch', 'Sit-Up', 'Hanging Leg Raise', 'Bicycle Crunch', 'Reverse Crunch', 'Lying Leg Raise', 'Oblique Crunch',
     'Leg Pull-In', 'Jackknife_Sit-Up', 'Tuck_Crunch',
     'Cross-Body_Crunch', 'Alternate_Heel_Touchers', 'Flutter_Kicks', 'L-Sit'],
-  antiext: ['Plank', 'Dead_Bug', 'Side Plank', 'Ball Pull-In', 'Ab Rollout', 'Hollow_Body_Hold', 'Bird_Dog', 'Pallof_Press'],
-  forearms: ['Wrist Curl', 'Reverse Curl', 'Dead Hang', 'Finger_Curls'],
-  abductor: ['Hip Abduction', 'Monster_Walk'],
+  antiext: ['Plank', 'Dead_Bug', 'Side Plank', 'Ab Rollout', 'Hollow_Body_Hold', 'Bird_Dog', 'Pallof_Press'],
+  forearms: ['Wrist Curl', 'Reverse Curl', 'Dead Hang'],
+  abductor: ['Hip Abduction'],
   adductor: ['Hip Adduction', 'Cossack_Squat'],
   // Not slots.
   raise: ['Lateral Raise', 'Front Raise', 'Upright Row', 'Kettlebell_Halo', 'Side_Laterals_to_Front_Raise', 'Dumbbell_Scaption',

@@ -296,6 +296,13 @@ class ExerciseCatalog {
     'move:fast skipping': 'Fast_Skipping',
     'move:carioca quick step': 'Carioca_Quick_Step',
     'move:butt kick': 'Double_Leg_Butt_Kick',
+    // The owner's cut of 28 Nov 2026: 5 rare one-lift cards (aliases in
+    // tools/exercise_variants.mjs ALIAS).
+    'move:finger curl': 'Seated_Palm-Up_Barbell_Wrist_Curl',
+    'move:drag curl': 'Barbell_Curl',
+    'move:ball pull-in': 'Leg_Pull-In',
+    'move:high row': 'seated cable row|machine|medium grip',
+    'move:monster walk': 'hip abduction|bands',
   };
 
   static const asset = 'assets/exercises/exercises.json';
