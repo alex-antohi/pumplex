@@ -17,6 +17,8 @@ import { fileURLToPath } from 'node:url';
 import { png, decode } from '../moodboard/png.mjs';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+const OUT = process.env.ART_OUT || ROOT;
+const FACE_STYLE = process.env.FACE_STYLE || 'visor';
 const SRC = path.join(ROOT, 'docs/moodboard/creator/body_atlas.png');
 const W1 = 52, H1 = 64, COLS = 5, ROWS = 10, W = 104, H = 128, AW = W * COLS, AH = H * ROWS;
 
@@ -65,6 +67,95 @@ const cls = new Uint8Array(AW * AH), sh = new Uint8Array(AW * AH), col = new Uin
     void P; void key;
   }
 }
+
+/* ---------- sci-fi faces (FACE_STYLE=visor|cyborg|android|helmet|human) ----------
+ * Each style gets the cell helpers, paints only skin pixels (hair and outline stay) with fixed neon colours (class FIX),
+ * so every skin variant shares the lights and only the skin parts differ. Rows are relative to ey (the eye row).
+ * The jaw rows ey+6..ey+13 stay skin (only the mouth is fixed colour) so the beard overlay works on every style. */
+const SM = hx('#43182e'), NAVY = hx('#1a1033'), WH = hx('#ffffff');
+const CY = [hx('#88dff3'), hx('#3fd2ff'), hx('#3681b2')], PK = [hx('#ff98c2'), hx('#ff5fb0'), hx('#a63e84')];
+const LM = [hx('#dcfb7b'), hx('#c6ff3d'), hx('#849b42')], VI = [hx('#c8a9f3'), hx('#a77bff'), hx('#724eb2')];
+const MT = ramp5(['#e6ecf2', '#b4bfcc', '#7a8799']);
+const faceKit = (c) => {
+  const { g, set, rowRange, ey, fmid } = c;
+  const P = (x, y, rgb) => { if (g(x, y) === S || g(x, y) === FIX) set(x, y, FIX, 0, rgb); };
+  const row = (y, fn) => { const r = rowRange(y, S); if (r) for (let x = r[0]; x <= r[1]; x++) fn(x, x - r[0], r[1] - x); };
+  const span = (y, x0, x1, rgb) => { for (let x = x0; x <= x1; x++) P(x, y, rgb); };
+  return { P, row, span, ey, fmid, cs: c.groups.map((gr) => gr[0] + 2) };
+};
+const SCIFI = {
+  visor(c) { // wraparound neon band across the eyes, skin below
+    const { P, row, span, ey, fmid } = faceKit(c);
+    for (let y = ey - 1; y <= ey + 3; y++) row(y, (x, i, j) => {
+      const edge = i < 1 || j < 1, dy = y - ey;
+      if (dy === -1 || dy === 3) return P(x, y, edge ? NAVY : NAVY);
+      if (edge) return P(x, y, PK[dy === 1 ? 0 : 1]);
+      P(x, y, dy === 0 ? CY[0] : dy === 1 ? CY[1] : CY[2]);
+    });
+    span(ey + 1, fmid - 9, fmid - 4, WH); span(ey + 1, fmid + 5, fmid + 6, WH); // glass shine
+    span(ey + 2, fmid - 3, fmid + 3, CY[1]); // brighter middle
+    c.setSh(fmid, ey + 5, 4); c.setSh(fmid, ey + 6, 4); c.setSh(fmid - 1, ey + 5, 1);
+    span(ey + 9, fmid - 2, fmid + 1, SM); span(ey + 10, fmid - 1, fmid, SM);
+  },
+  cyborg(c) { // viewer-left calm human eye, viewer-right metal plate with a glowing LED eye
+    const { P, row, span, ey, fmid, cs } = faceKit(c);
+    c.humanEye(c.groups[0], 0);
+    const top = ey - 4, bot = ey + 7, edge = c.rowRange(ey + 4, S);
+    for (let y = top; y <= bot; y++) row(y, (x, i, j) => {
+      if (x < fmid + 1) return;
+      if (y >= ey + 5 && j < (y - (ey + 4))) return; // chamfered jaw corner
+      if (x === fmid + 1) return P(x, y, NAVY); // seam
+      let s = 2; if (x === fmid + 2) s = 1; if (j < 2) s = 3; if (j === 0) s = 4; if (y === top) s = 1; if (y === bot) s = 4;
+      P(x, y, MT[s]);
+    });
+    row(bot + 1, (x, i, j) => { if (x >= fmid + 1 && j >= 3) P(x, bot + 1, NAVY); });
+    const cx = cs[1];
+    span(ey - 2, cx - 3, cx + 3, MT[0]); span(ey - 1, cx - 3, cx + 3, NAVY); span(ey + 3, cx - 3, cx + 3, NAVY);
+    for (let y = ey; y <= ey + 2; y++) span(y, cx - 3, cx + 3, NAVY);
+    span(ey, cx - 2, cx + 2, PK[1]); span(ey + 1, cx - 2, cx + 2, PK[0]); span(ey + 2, cx - 2, cx + 2, PK[1]);
+    span(ey + 1, cx - 1, cx + 1, WH);
+    P(fmid + 4, top + 1, MT[0]); P(fmid + 4, top + 2, MT[4]); P(fmid + 4, bot - 1, MT[0]); P(fmid + 4, bot, MT[4]);
+    if (edge) { P(edge[1] - 2, ey + 4, LM[1]); P(edge[1] - 2, ey + 5, LM[2]); }
+    c.setSh(fmid - 1, ey + 5, 4); c.setSh(fmid - 1, ey + 6, 4);
+    span(ey + 9, fmid - 3, fmid + 1, SM);
+  },
+  android(c) { // smooth faceplate, two glowing slit eyes, mouth seam, panel lines
+    const { P, span, ey, fmid, cs } = faceKit(c);
+    cs.forEach((cx, gi) => {
+      const d = gi === 0 ? 1 : -1;
+      span(ey, cx - 2, cx + 2, NAVY); span(ey + 3, cx - 2, cx + 2, NAVY);
+      span(ey + 1, cx - 3, cx + 3, NAVY); span(ey + 2, cx - 3, cx + 3, NAVY);
+      span(ey + 1, cx - 2, cx + 2, CY[0]); span(ey + 2, cx - 2, cx + 2, CY[1]); span(ey + 1, cx - 1, cx, WH);
+      for (const [dx, dy] of [[-4, 4], [-4, 5], [-3, 6], [-2, 7], [-1, 7]]) c.setSh(cx + dx * d, ey + dy, 4); // cheek panel line
+      for (const [dx, dy] of [[-3, 5], [-2, 6], [-1, 6], [0, 7]]) c.shade(cx + dx * d, ey + dy, -1, S); // its light edge
+    });
+    for (let y = 12; y <= ey - 3; y++) c.setSh(fmid, y, 4);
+    span(ey - 3, fmid - 1, fmid + 1, CY[1]); // status light
+    c.setSh(fmid, ey + 5, 3); c.setSh(fmid, ey + 6, 3);
+    span(ey + 9, fmid - 3, fmid + 2, NAVY); P(fmid - 4, ey + 8, NAVY); P(fmid + 3, ey + 8, NAVY);
+  },
+  helmet(c) { // open helmet: brow plate, cheek rails, ear pods, lime eye strip, mic boom
+    const { P, row, span, ey, fmid, cs } = faceKit(c);
+    for (let y = 12; y <= ey + 8; y++) row(y, (x, i, j) => {
+      const pod = y >= ey - 1 && y <= ey + 4, w = pod ? 4 : 3;
+      if (y === ey + 8) return (i < 3 || j < 3) && P(x, y, NAVY);
+      if (i < w) { if (pod && i === 3) return P(x, y, VI[2]); return P(x, y, pod && i === 2 ? VI[1] : MT[Math.min(4, i + 1)]); }
+      if (j < w) { if (pod && j === 3) return P(x, y, VI[2]); return P(x, y, pod && j === 2 ? VI[1] : MT[Math.min(4, 3 - j + 1)]); }
+      if (y === 12) return P(x, y, MT[1]);
+      if (y === 13) return P(x, y, MT[3]);
+    });
+    const r = c.rowRange(ey + 1, S); if (r) { span(ey + 1, r[0] + 1, r[0] + 2, PK[1]); span(ey + 1, r[1] - 2, r[1] - 1, PK[1]); }
+    cs.forEach((cx) => {
+      span(ey - 1, cx - 3, cx + 3, NAVY); span(ey + 3, cx - 3, cx + 3, NAVY);
+      span(ey, cx - 3, cx + 3, LM[0]); span(ey + 1, cx - 3, cx + 3, LM[1]); span(ey + 2, cx - 3, cx + 3, LM[2]);
+      span(ey, cx - 1, cx + 1, WH);
+    });
+    span(ey + 1, cs[0] + 4, cs[1] - 4, LM[1]);
+    c.setSh(fmid, ey + 5, 4); c.setSh(fmid, ey + 6, 4);
+    const l = c.rowRange(ey + 7, S); if (l) { span(ey + 7, l[0] + 3, fmid - 5, MT[2]); span(ey + 8, fmid - 5, fmid - 4, LM[1]); }
+    span(ey + 9, fmid - 2, fmid + 1, SM); span(ey + 10, fmid - 1, fmid, SM);
+  },
+};
 
 /* ---------- 3. detail ---------- */
 const clampSh = (v) => Math.max(0, Math.min(4, v));
@@ -268,6 +359,17 @@ for (let cy = 0; cy < ROWS; cy++) for (let cx = 0; cx < COLS; cx++) {
   /* shoes: toe cap highlight, lace line */
   for (let x = 0; x < W; x++) { if (g(x, fy0) === F) shade(x, fy0, -1); if (g(x, fy0 + 3) === F && x % 3 === 0) shade(x, fy0 + 3, 1); }
 
+  /* fat 100: the feet are wide and leave a 4 px hole between the shoes; fill it with one shared ink shadow */
+  if (cx === 4) for (let y = fy0; y < H; y++) {
+    let x = 0;
+    while (x < W) {
+      if (g(x, y) !== 0) { x++; continue; }
+      let e = x; while (e < W && g(e, y) === 0) e++;
+      if (x > 0 && e < W && e - x <= 6) for (let k = x; k < e; k++) set(k, y, 1, 0);
+      x = e;
+    }
+  }
+
   /* neck shadow under the chin */
   for (let y = ty0 - 5; y < ty0; y++) for (let x = 0; x < W; x++) if (g(x, y) === S) shade(x, y, 1);
 
@@ -295,7 +397,7 @@ for (let cy = 0; cy < ROWS; cy++) for (let cx = 0; cx < COLS; cx++) {
     groups.forEach((gr) => { // wipe the old eye
       for (let y = ey - 1; y <= ey + 3; y++) for (let x = gr[0] - 3; x <= gr[gr.length - 1] + 3; x++) if (g(x, y) === 2 || (g(x, y) === FIX && col[(oy + y) * AW + ox + x] === EYEWHITE)) { const s0 = g(x, ey + 4) === S ? gs(x, ey + 4) : 2; set(x, y, S, s0); }
     });
-    groups.forEach((gr, i) => {
+    const humanEye = (gr, i) => {
       const c = gr[0] + 2, left = i === 0 && groups.length > 1, dirOut = left ? -1 : 1;
       for (let x = c - 2; x <= c + 2; x++) { set(x, ey, 2, 0); set(x, ey + 1, FIX, 0, EYEWHITE); set(x, ey + 2, FIX, 0, EYEWHITE); }
       const px = left ? c : c - 1; // pupil looks a little to the middle
@@ -306,13 +408,19 @@ for (let cy = 0; cy < ROWS; cy++) for (let cx = 0; cx < COLS; cx++) {
         if (outerSide || k === 0) { if (g(x, ey - 3) === S) set(x, ey - 3, HR, 3); }
         if (!outerSide && k !== 0 && g(x, ey - 2) === S) set(x, ey - 2, HR, 3);
       }
-    });
+    };
     for (let y = ey + 2; y <= ey + 8; y++) for (let x = exs[0] - 3; x <= exs[exs.length - 1] + 3; x++) if (g(x, y) === S && gs(x, y) === 4 && Math.abs(x - fmid) > 3) setSh(x, y, gs(x, ey - 1)); // old under-eye marks
-    if (g(fmid, ey + 4) === S) { set(fmid, ey + 4, S, 4); set(fmid, ey + 5, S, 4); }
-    if (g(fmid - 1, ey + 3) === S) shade(fmid - 1, ey + 3, -1);
-    if (g(fmid + 1, ey + 5) === S) shade(fmid + 1, ey + 5, 1);
-    for (const x of [fmid - 2, fmid - 1, fmid, fmid + 1]) if (g(x, ey + 9) === S) set(x, ey + 9, FIX, 0, MOUTH);
-    for (const x of [fmid - 1, fmid]) if (g(x, ey + 10) === S) shade(x, ey + 10, 1);
+    if (FACE_STYLE === 'human') {
+      groups.forEach(humanEye);
+      if (g(fmid, ey + 4) === S) { set(fmid, ey + 4, S, 4); set(fmid, ey + 5, S, 4); }
+      if (g(fmid - 1, ey + 3) === S) shade(fmid - 1, ey + 3, -1);
+      if (g(fmid + 1, ey + 5) === S) shade(fmid + 1, ey + 5, 1);
+      for (const x of [fmid - 2, fmid - 1, fmid, fmid + 1]) if (g(x, ey + 9) === S) set(x, ey + 9, FIX, 0, MOUTH);
+      for (const x of [fmid - 1, fmid]) if (g(x, ey + 10) === S) shade(x, ey + 10, 1);
+    } else {
+      const style = SCIFI[FACE_STYLE]; if (!style) throw new Error('FACE_STYLE must be one of: human, ' + Object.keys(SCIFI).join(', '));
+      style({ g, gs, set, shade, setSh, rowRange, ey, groups, fmid, humanEye, female });
+    }
     info.fmid = fmid;
   }
   cells.push(info);
@@ -330,7 +438,7 @@ const write = (dirs, name, fn) => {
   const buf = png(AW, AH, (x, y) => { const c = fn(y * AW + x, x, y); return c === null ? [0, 0, 0, 0] : [...rgbOf(c), 255]; });
   for (const d of dirs) { fs.mkdirSync(d, { recursive: true }); fs.writeFileSync(path.join(d, name), buf); }
 };
-const BODY = [path.join(ROOT, 'assets/body')], LOOKS = [path.join(ROOT, 'assets/body/looks')], OUTF = [path.join(ROOT, 'assets/outfits')];
+const BODY = [path.join(OUT, 'assets/body')], LOOKS = [path.join(OUT, 'assets/body/looks')], OUTF = [path.join(OUT, 'assets/outfits')];
 write(BODY, 'body_atlas.png', (o) => pixelColour(o, SKINS.light, HAIRS.brown));
 let nb = 0;
 for (const [sid, skin] of Object.entries(SKINS)) for (const [hid, hair] of Object.entries(HAIRS)) {
