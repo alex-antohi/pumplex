@@ -287,12 +287,32 @@ class _GameShellState extends State<GameShell> {
         },
       );
 
+  /// The day open in full in the past sessions (D59), else null.
+  Session? get _sessionDetail {
+    if (_focus != _Focus.session) return null;
+    final all = _store.history;
+    return all.isEmpty ? null : all[_sessionIndex.clamp(0, all.length - 1)];
+  }
+
+  /// The past sessions (the list or a day) have the space.
+  bool get _inSessions => _lifter && (_focus == _Focus.sessions || _focus == _Focus.session);
+
+  /// One level up in the past sessions: the day → the list → the editor.
+  void _profileBack() {
+    if (!_inSessions) return;
+    setState(() => _focus = _focus == _Focus.session ? _Focus.sessions : _Focus.lifter);
+  }
+
   /// Under the minimised workout (D62).
   Widget _lifterPanel(double inset) => LifterPanel(
         store: _store,
-        sessions: _focus == _Focus.sessions,
-        sessionIndex: _sessionIndex,
-        onSessionIndex: (i) => setState(() => _sessionIndex = i),
+        sessions: _focus == _Focus.sessions || _focus == _Focus.session,
+        detail: _sessionDetail,
+        onOpenSession: (i) => setState(() {
+          _sessionIndex = i;
+          _focus = _Focus.session;
+        }),
+        onBack: _profileBack,
         prop: _prop,
         onProp: (i) => setState(() {
           _prop = i;
@@ -530,14 +550,23 @@ class _GameShellState extends State<GameShell> {
         ],
       );
 
+  // The phone's back button leaves the app (D60), but in the past sessions
+  // it goes one level up first: the day → the list → the editor.
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => PopScope(
+        canPop: !_inSessions,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) _profileBack();
+        },
+        child: _screen(context),
+      );
+
+  Widget _screen(BuildContext context) {
     final p = Pal.of(context);
     // In setup the character shows the draft; in play, the saved profile.
     final profile = _store.profile;
     final char = _inSetup || profile == null ? _char : profile.character;
     final classId = _inSetup || profile == null ? _classId : profile.classId;
-    // The phone's back button leaves the app, everywhere (D60).
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
@@ -776,5 +805,6 @@ class _WindowClip extends CustomClipper<Rect> {
   bool shouldReclip(_WindowClip old) => old.rect != rect;
 }
 
-/// Which part of the lifter profile has the space (D62).
-enum _Focus { none, lifter, sessions }
+/// Which part of the lifter profile has the space (D62): the editor, the
+/// past-sessions list, or one day of it in full.
+enum _Focus { none, lifter, sessions, session }

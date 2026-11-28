@@ -1139,7 +1139,7 @@ void main() {
     // D62: the session tile gives the sessions the space; the lifter becomes a tile.
     await t.tap(find.byKey(const ValueKey('tile-session')));
     await _frames(t, 20);
-    expect(find.descendant(of: find.byKey(const ValueKey('session-card')), matching: find.textContaining('TODAY · ')), findsOneWidget);
+    expect(find.descendant(of: find.byKey(const ValueKey('profile-sessions')), matching: find.textContaining('TODAY · ')), findsOneWidget);
     expect(find.byKey(const ValueKey('tile-lifter')), findsOneWidget);
     expect(find.text('BUILD YOUR LIFTER'), findsNothing);
     await t.tap(find.byKey(const ValueKey('mini-workout')));
@@ -1380,6 +1380,170 @@ void main() {
     expect(find.byKey(const ValueKey('world-object')), findsOneWidget);
   });
 
+  /// A store with three past days and a set today: 18 Nov (squat with kg
+  /// and reps, bench with reps only, a move with no log), 20 Nov (bench),
+  /// 5 Nov (an old-app day).
+  Future<LogStore> pastDays() async {
+    Map<String, Object> day(List<Map<String, Object>> exercises) =>
+        {'classId': 'paladin', 'difficultyId': 'sweat', 'areaId': 'gainsgard', 'legacy': false, 'exercises': exercises};
+    SharedPreferences.setMockInitialValues({
+      'profile_v1': jsonEncode(_profile.toJson()),
+      'sessions_v3': jsonEncode({
+        '2026-11-05': {'classId': '', 'difficultyId': '', 'areaId': '', 'legacy': true, 'exercises': []},
+        '2026-11-18': day([
+          {
+            'exerciseId': _squat,
+            'sets': 2,
+            'log': [
+              {'kg': 60.0, 'reps': 8},
+              {'kg': 62.5, 'reps': 6},
+            ],
+          },
+          {
+            'exerciseId': _bench,
+            'sets': 2,
+            'log': [
+              {'reps': 10},
+              {'reps': 9},
+            ],
+          },
+          {'exerciseId': 'Pushups', 'sets': 3},
+        ]),
+        '2026-11-20': day([
+          {'exerciseId': _bench, 'sets': 1},
+        ]),
+      }),
+    });
+    final store = LogStore(await SharedPreferences.getInstance(), clock: () => _now);
+    store.addSet(_squat);
+    return store;
+  }
+
+  String nameOf(String id) => displayName(exerciseCatalog.byId[id]!).toUpperCase();
+
+  testWidgets('past sessions: a vertical list, newest first; a tap opens the day in full; back goes one level up', (t) async {
+    _phone(t);
+    final store = await pastDays();
+    await t.pumpWidget(GymApp(store: store));
+    await _frames(t);
+    await t.tap(find.byKey(const ValueKey('workout-character')));
+    await _frames(t);
+    await t.tap(find.byKey(const ValueKey('tile-session')));
+    await _frames(t);
+    expect(find.byKey(const ValueKey('session-card')), findsNothing); // no carousel
+    // One under the other, newest first.
+    final dates = ['2026-11-21', '2026-11-20', '2026-11-18', '2026-11-05'];
+    final rows = [for (final d in dates) t.getRect(find.byKey(ValueKey('session-row-$d')))];
+    for (var i = 1; i < rows.length; i++) {
+      expect(rows[i].top, greaterThan(rows[i - 1].bottom), reason: dates[i]);
+      expect(rows[i].left, closeTo(rows[0].left, 1));
+    }
+    Finder inRow(String d, Finder f) => find.descendant(of: find.byKey(ValueKey('session-row-$d')), matching: f);
+    expect(inRow('2026-11-21', find.textContaining('TODAY · ')), findsOneWidget);
+    expect(inRow('2026-11-18', find.text('7 SETS · 3 EXERCISES')), findsOneWidget);
+    expect(inRow('2026-11-18', find.text('+${store.xpOfSession(store.sessions['2026-11-18']!)} XP')), findsOneWidget);
+    expect(inRow('2026-11-05', find.text('OLD WORKOUT')), findsOneWidget);
+    expect(inRow('2026-11-05', find.text('+$xpPerLegacySession XP')), findsOneWidget);
+
+    // A tap opens the day: every exercise in order, with kg and reps.
+    await t.tap(find.byKey(const ValueKey('session-row-2026-11-18')));
+    await _frames(t);
+    final detail = find.byKey(const ValueKey('session-detail'));
+    expect(detail, findsOneWidget);
+    expect(find.byKey(const ValueKey('profile-sessions')), findsNothing);
+    Finder inDetail(Finder f) => find.descendant(of: detail, matching: f);
+    final names = [_squat, _bench, 'Pushups'].map((id) => inDetail(find.textContaining(nameOf(id))).first).toList();
+    for (var i = 1; i < names.length; i++) {
+      expect(t.getRect(names[i]).top, greaterThan(t.getRect(names[i - 1]).top));
+    }
+    String line(String id, int i) => t.widget<Text>(find.descendant(of: find.byKey(ValueKey('set-line-$id-$i')), matching: find.byType(Text))).data!;
+    expect(line(_squat, 0), 'SET 1 · 60 KG × 8 REPS');
+    expect(line(_squat, 1), 'SET 2 · 62.5 KG × 6 REPS');
+    expect(line(_bench, 0), 'SET 1 · 10 REPS');
+    expect(find.byKey(const ValueKey('set-line-Pushups-0')), findsNothing); // no log: the set count only
+    expect(inDetail(find.textContaining('${nameOf('Pushups')}  3')), findsOneWidget);
+    expect(inDetail(find.text('+${store.xpOfSession(store.sessions['2026-11-18']!)} XP')), findsOneWidget);
+
+    // BACK: the list; Android back from the list: the editor.
+    await t.tap(find.byKey(const ValueKey('session-detail-back')));
+    await _frames(t);
+    expect(find.byKey(const ValueKey('profile-sessions')), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('session-row-2026-11-20')));
+    await _frames(t);
+    expect(find.byKey(const ValueKey('session-detail')), findsOneWidget);
+    await t.binding.handlePopRoute(); // Android back: the day -> the list
+    await _frames(t);
+    expect(find.byKey(const ValueKey('profile-sessions')), findsOneWidget);
+    await t.binding.handlePopRoute(); // the list -> the editor
+    await _frames(t);
+    expect(find.byKey(const ValueKey('profile-sessions')), findsNothing);
+    expect(find.byKey(const ValueKey('lifter-editor')), findsOneWidget);
+    // The list's own BACK does the same.
+    await t.tap(find.byKey(const ValueKey('tile-session')));
+    await _frames(t);
+    await t.tap(find.byKey(const ValueKey('sessions-back')));
+    await _frames(t);
+    expect(find.byKey(const ValueKey('lifter-editor')), findsOneWidget);
+
+    // An old-app day: no exercise list, a short OLD WORKOUT line.
+    await t.tap(find.byKey(const ValueKey('tile-session')));
+    await _frames(t);
+    await t.scrollUntilVisible(find.byKey(const ValueKey('session-row-2026-11-05')), 100, scrollable: find.byType(Scrollable).last);
+    await t.tap(find.byKey(const ValueKey('session-row-2026-11-05')));
+    await _frames(t);
+    expect(inDetail(find.textContaining('OLD WORKOUT')), findsOneWidget);
+    expect(inDetail(find.text('+$xpPerLegacySession XP')), findsOneWidget);
+    expect(find.byKey(const ValueKey('session-detail-back')), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('past sessions: no overflow on a 1080x2340 phone in Romanian with long names', (t) async {
+    _phone(t);
+    I18n.instance.useJson(langFiles, lang: 'ro');
+    addTearDown(() => I18n.instance.useJson(langFiles));
+    // The longest Romanian names, with kg and reps on every set.
+    final long = [...exerciseCatalog.all]..sort((a, b) => displayName(b).length.compareTo(displayName(a).length));
+    SharedPreferences.setMockInitialValues({
+      'profile_v1': jsonEncode(_profile.toJson()),
+      'sessions_v3': jsonEncode({
+        for (var d = 10; d <= 20; d++)
+          '2026-11-$d': {
+            'classId': 'paladin',
+            'difficultyId': 'sweat',
+            'areaId': 'gainsgard',
+            'legacy': false,
+            'exercises': [
+              for (final e in long.take(8))
+                {
+                  'exerciseId': e.id,
+                  'sets': 10,
+                  'log': [for (var i = 0; i < 10; i++) {'kg': 222.5, 'reps': 1000 + i}],
+                },
+            ],
+          },
+      }),
+    });
+    final store = LogStore(await SharedPreferences.getInstance(), clock: () => _now);
+    await t.pumpWidget(GymApp(store: store));
+    await _frames(t);
+    await t.tap(find.byKey(const ValueKey('workout-character')));
+    await _frames(t);
+    await t.tap(find.byKey(const ValueKey('tile-session')));
+    await _frames(t);
+    expect(t.takeException(), isNull);
+    expect(find.descendant(of: find.byKey(const ValueKey('session-row-2026-11-20')), matching: find.text('80 DE SERII · 8 EXERCIȚII')), findsOneWidget);
+    await t.tap(find.byKey(const ValueKey('session-row-2026-11-20')));
+    await _frames(t);
+    expect(t.takeException(), isNull);
+    expect(find.descendant(of: find.byKey(const ValueKey('session-detail')), matching: find.textContaining(displayName(long.first).toUpperCase())), findsOneWidget);
+    expect(find.text('SERIA 1 · 222.5 KG × 1000 REPETĂRI'), findsWidgets);
+    await t.drag(find.byKey(const ValueKey('session-detail-scroll')), const Offset(0, -3000));
+    await _frames(t);
+    expect(t.takeException(), isNull);
+    final back = t.getRect(find.byKey(const ValueKey('session-detail-back')));
+    expect(back.bottom, lessThanOrEqualTo(t.view.physicalSize.height / t.view.devicePixelRatio));
+  });
+
   testWidgets('3 quick world taps, the 2nd a level-up: 2 sets, the 3rd tap only closes the card', (t) async {
     final (store, _) = await _openApp(t);
     final id = store.pickedCard!;
@@ -1486,11 +1650,12 @@ void main() {
         expect(t.takeException(), isNull);
       }
 
-      // The lifter profile (D59): swipe the sessions, then back to the workout.
+      // The lifter profile (D59): open today's session in full, back to
+      // the list, then back to the workout.
       await tapAndSettle(find.byKey(const ValueKey('workout-character')));
       await tapAndSettle(find.byKey(const ValueKey('tile-session')));
-      await t.fling(find.byKey(const ValueKey('session-card')), const Offset(-300, 0), 1000);
-      await _frames(t);
+      await tapAndSettle(find.byKey(ValueKey('session-row-${store.todaySession!.date}')));
+      await tapAndSettle(find.byKey(const ValueKey('session-detail-back')));
       await tapAndSettle(find.byKey(const ValueKey('mini-workout')));
       // The lifter editor (D63): swipe up for CLASS, then AREA, then BODY again.
       await tapAndSettle(find.byKey(const ValueKey('top-level')));

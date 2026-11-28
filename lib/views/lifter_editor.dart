@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 
 import '../game/model.dart';
+import '../i18n.dart';
 import '../pumplex.dart';
 import '../store.dart';
 import 'carousel.dart';
@@ -139,17 +140,20 @@ class LifterEditor extends StatelessWidget {
   }
 }
 
-/// Under the minimised workout (D62): the past-sessions card when
-/// [sessions], else the lifter editor as a vertical carousel (D63): flick
-/// up / down for the next property, round and round. [editor] builds the
-/// editor of a property.
+/// Under the minimised workout (D62): the past-sessions list when
+/// [sessions] (one day in full when [detail] is set), else the lifter
+/// editor as a vertical carousel (D63): flick up / down for the next
+/// property, round and round. [editor] builds the editor of a property.
+/// The list and the day have BACK at the bottom left, as in the setup:
+/// [onBack] goes one level up (the day, the list, the editor).
 class LifterPanel extends StatelessWidget {
   const LifterPanel({
     super.key,
     required this.store,
     required this.sessions,
-    required this.sessionIndex,
-    required this.onSessionIndex,
+    required this.detail,
+    required this.onOpenSession,
+    required this.onBack,
     required this.prop,
     required this.onProp,
     required this.inset,
@@ -158,19 +162,42 @@ class LifterPanel extends StatelessWidget {
 
   final LogStore store;
   final bool sessions;
-  final int sessionIndex, prop;
-  final ValueChanged<int> onSessionIndex, onProp;
+
+  /// The day open in full (null: the list).
+  final Session? detail;
+  final int prop;
+  final ValueChanged<int> onOpenSession, onProp;
+  final VoidCallback onBack;
   final double inset;
   final Widget Function(int prop) editor;
 
   @override
   Widget build(BuildContext context) {
     if (sessions) {
-      return Padding(
-        padding: EdgeInsets.fromLTRB(16, 0, 22, 14 + inset),
-        child: SingleChildScrollView(
-          child: SessionsCard(store: store, index: sessionIndex, onIndex: onSessionIndex),
-        ),
+      final p = Pal.of(context);
+      final day = detail;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              key: ValueKey(day == null ? 'sessions-list' : 'session-detail-scroll'),
+              padding: const EdgeInsets.fromLTRB(16, 0, 22, 8),
+              child: day == null
+                  ? SessionsCard(store: store, onOpen: onOpenSession)
+                  : SessionDetail(store: store, session: day),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(16, 4, 22, 14 + inset),
+            child: BrutalButton(
+              key: ValueKey(day == null ? 'sessions-back' : 'session-detail-back'),
+              color: p.sky,
+              onTap: onBack,
+              child: IconText('back', t('nav.back')),
+            ),
+          ),
+        ],
       );
     }
     return VerticalCarousel(
