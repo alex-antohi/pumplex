@@ -16,8 +16,9 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '.
 const BASE = path.join(ROOT, 'tools', 'app', 'art_base_sizes.json');
 const walk = d => fs.readdirSync(d, { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]);
 const size = f => { const b = fs.readFileSync(f); return [b.readUInt32BE(16), b.readUInt32BE(20)]; };
-const files = walk(path.join(ROOT, 'assets')).filter(f => f.endsWith('.png') && !/[\/]\d\.\dx[\/]/.test(f));
 const rel = f => path.relative(ROOT, f).split(path.sep).join('/');
+// Icon density variants (2.0x/, 3.0x/) are copies of the base icon: not checked.
+const files = walk(path.join(ROOT, 'assets')).filter(f => f.endsWith('.png') && !/\/\d\.\dx\//.test(rel(f)));
 
 if (process.argv.includes('--write')) {
   const old = fs.existsSync(BASE) ? JSON.parse(fs.readFileSync(BASE, 'utf8')) : {};
